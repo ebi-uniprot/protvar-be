@@ -1,0 +1,21 @@
+# PepVEP Back-end
+This module publishes the REST API services for PepVEP.
+This application internally calls UniProt rest API's as well as PDBe API to map protein, gene, variation
+and structural data together.
+
+## Introduction
+It provides various endpoints but response structure remains same.
+These endpoints can be accessed programmatically, as well as PepVEP website (frontend - https://github.com/ebi-uniprot/pepvep-fe) 
+calls these endpoints to display data on screen.
+
+It is a spring boot application. 
+The Main class is uk.ac.ebi.pepvep.ApplicationMainClass
+
+## Running the application locally
+1. Clone repo
+2. Crete file src/main/resources/application-local.properties
+3. Override following three properties
+   1. spring.datasource.jdbcUrl
+   2. spring.datasource.username
+   3. spring.datasource.password
+4. Start the application using mvn spring-boot:run
