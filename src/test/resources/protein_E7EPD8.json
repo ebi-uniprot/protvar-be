@@ -1,0 +1,861 @@
+[
+	{
+		"accession": "E7EPD8",
+		"id": "E7EPD8_HUMAN",
+		"proteinExistence": "Evidence at protein level",
+		"info": {
+			"type": "TrEMBL",
+			"created": "2011-03-08",
+			"modified": "2020-08-12",
+			"version": 69
+		},
+		"organism": {
+			"taxonomy": 9606,
+			"names": [
+				{
+					"type": "scientific",
+					"value": "Homo sapiens"
+				},
+				{
+					"type": "common",
+					"value": "Human"
+				}
+			],
+			"lineage": [
+				"Eukaryota",
+				"Metazoa",
+				"Chordata",
+				"Craniata",
+				"Vertebrata",
+				"Euteleostomi",
+				"Mammalia",
+				"Eutheria",
+				"Euarchontoglires",
+				"Primates",
+				"Haplorrhini",
+				"Catarrhini",
+				"Hominidae",
+				"Homo"
+			]
+		},
+		"protein": {
+			"submittedName": [
+				{
+					"fullName": {
+						"value": "Tyrosyl-DNA phosphodiesterase 1",
+						"evidences": [
+							{
+								"code": "ECO:0000313",
+								"source": {
+									"name": "Ensembl",
+									"id": "ENSP00000377098",
+									"url": "https://www.ensembl.org/id/ENSP00000377098"
+								}
+							}
+						]
+					}
+				}
+			]
+		},
+		"gene": [
+			{
+				"name": {
+					"value": "TDP1",
+					"evidences": [
+						{
+							"code": "ECO:0000313",
+							"source": {
+								"name": "Ensembl",
+								"id": "ENSP00000377098",
+								"url": "https://www.ensembl.org/id/ENSP00000377098"
+							}
+						}
+					]
+				}
+			}
+		],
+		"comments": [
+			{
+				"type": "SUBCELLULAR_LOCATION",
+				"locations": [
+					{
+						"location": {
+							"value": "Nucleus",
+							"evidences": [
+								{
+									"code": "ECO:0000256",
+									"source": {
+										"id": "ARBA00004123"
+									}
+								}
+							]
+						}
+					}
+				]
+			},
+			{
+				"type": "SIMILARITY",
+				"text": [
+					{
+						"value": "Belongs to the tyrosyl-DNA phosphodiesterase family",
+						"evidences": [
+							{
+								"code": "ECO:0000256",
+								"source": {
+									"id": "ARBA00010205"
+								}
+							}
+						]
+					}
+				]
+			}
+		],
+		"features": [
+			{
+				"type": "REGION",
+				"category": "DOMAINS_AND_SITES",
+				"description": "Disordered",
+				"begin": "1",
+				"end": "101",
+				"molecule": "",
+				"evidences": [
+					{
+						"code": "ECO:0000256",
+						"source": {
+							"name": "SAM",
+							"id": "MobiDB-lite",
+							"url": "https://www.uniprot.org/help/sam"
+						}
+					}
+				]
+			},
+			{
+				"type": "COMPBIAS",
+				"category": "SEQUENCE_INFORMATION",
+				"description": "Polyampholyte",
+				"begin": "13",
+				"end": "27",
+				"molecule": "",
+				"evidences": [
+					{
+						"code": "ECO:0000256",
+						"source": {
+							"name": "SAM",
+							"id": "MobiDB-lite",
+							"url": "https://www.uniprot.org/help/sam"
+						}
+					}
+				]
+			},
+			{
+				"type": "COMPBIAS",
+				"category": "SEQUENCE_INFORMATION",
+				"description": "Polar",
+				"begin": "64",
+				"end": "88",
+				"molecule": "",
+				"evidences": [
+					{
+						"code": "ECO:0000256",
+						"source": {
+							"name": "SAM",
+							"id": "MobiDB-lite",
+							"url": "https://www.uniprot.org/help/sam"
+						}
+					}
+				]
+			}
+		],
+		"dbReferences": [
+			{
+				"type": "EMBL",
+				"id": "AL137128",
+				"properties": {
+					"molecule type": "Genomic_DNA",
+					"status": "NOT_ANNOTATED_CDS"
+				}
+			},
+			{
+				"type": "MaxQB",
+				"id": "E7EPD8"
+			},
+			{
+				"type": "PeptideAtlas",
+				"id": "E7EPD8"
+			},
+			{
+				"type": "PRIDE",
+				"id": "E7EPD8"
+			},
+			{
+				"type": "ProteomicsDB",
+				"id": "17337"
+			},
+			{
+				"type": "Antibodypedia",
+				"id": "26468",
+				"properties": {
+					"antibodies": "331 antibodies"
+				}
+			},
+			{
+				"type": "Ensembl",
+				"id": "ENST00000393452",
+				"properties": {
+					"gene ID": "ENSG00000042088",
+					"protein sequence ID": "ENSP00000377098"
+				}
+			},
+			{
+				"type": "UCSC",
+				"id": "uc010atn.4",
+				"properties": {
+					"organism name": "human"
+				}
+			},
+			{
+				"type": "EuPathDB",
+				"id": "HostDB:ENSG00000042088.13"
+			},
+			{
+				"type": "OpenTargets",
+				"id": "ENSG00000042088"
+			},
+			{
+				"type": "GeneTree",
+				"id": "ENSGT00390000002211"
+			},
+			{
+				"type": "ChiTaRS",
+				"id": "TDP1",
+				"properties": {
+					"organism name": "human"
+				}
+			},
+			{
+				"type": "Proteomes",
+				"id": "UP000005640",
+				"properties": {
+					"component": "Chromosome 14"
+				}
+			},
+			{
+				"type": "Bgee",
+				"id": "ENSG00000042088",
+				"properties": {
+					"expression patterns": "Expressed in oocyte and 188 other tissues"
+				}
+			},
+			{
+				"type": "ExpressionAtlas",
+				"id": "E7EPD8",
+				"properties": {
+					"expression patterns": "baseline and differential"
+				}
+			},
+			{
+				"type": "GO",
+				"id": "GO:0043231",
+				"properties": {
+					"term": "C:intracellular membrane-bounded organelle",
+					"source": "IDA:HPA"
+				}
+			},
+			{
+				"type": "GO",
+				"id": "GO:0005654",
+				"properties": {
+					"term": "C:nucleoplasm",
+					"source": "IDA:HPA"
+				}
+			},
+			{
+				"type": "GO",
+				"id": "GO:0005886",
+				"properties": {
+					"term": "C:plasma membrane",
+					"source": "IDA:HPA"
+				}
+			},
+			{
+				"type": "GO",
+				"id": "GO:0008081",
+				"properties": {
+					"term": "F:phosphoric diester hydrolase activity",
+					"source": "IEA:InterPro"
+				}
+			},
+			{
+				"type": "GO",
+				"id": "GO:0006281",
+				"properties": {
+					"term": "P:DNA repair",
+					"source": "IEA:InterPro"
+				}
+			},
+			{
+				"type": "Gene3D",
+				"id": "3.30.870.20",
+				"properties": {
+					"match status": "1"
+				}
+			},
+			{
+				"type": "InterPro",
+				"id": "IPR010347",
+				"properties": {
+					"entry name": "Tdp1"
+				}
+			},
+			{
+				"type": "InterPro",
+				"id": "IPR027415",
+				"properties": {
+					"entry name": "TDP_C"
+				}
+			},
+			{
+				"type": "PANTHER",
+				"id": "PTHR12415",
+				"properties": {
+					"match status": "1",
+					"entry name": "PTHR12415"
+				}
+			},
+			{
+				"type": "Pfam",
+				"id": "PF06087",
+				"properties": {
+					"match status": "1",
+					"entry name": "Tyr-DNA_phospho"
+				}
+			}
+		],
+		"keywords": [
+			{
+				"value": "DNA damage",
+				"evidences": [
+					{
+						"code": "ECO:0000256",
+						"source": {
+							"id": "ARBA00022763"
+						}
+					}
+				]
+			},
+			{
+				"value": "DNA repair",
+				"evidences": [
+					{
+						"code": "ECO:0000256",
+						"source": {
+							"id": "ARBA00023204"
+						}
+					}
+				]
+			},
+			{
+				"value": "Hydrolase",
+				"evidences": [
+					{
+						"code": "ECO:0000256",
+						"source": {
+							"id": "ARBA00022801"
+						}
+					}
+				]
+			},
+			{
+				"value": "Nuclease",
+				"evidences": [
+					{
+						"code": "ECO:0000256",
+						"source": {
+							"id": "ARBA00022722"
+						}
+					}
+				]
+			},
+			{
+				"value": "Nucleus",
+				"evidences": [
+					{
+						"code": "ECO:0000256",
+						"source": {
+							"id": "ARBA00023242"
+						}
+					}
+				]
+			},
+			{
+				"value": "Proteomics identification",
+				"evidences": [
+					{
+						"code": "ECO:0000213",
+						"source": {
+							"name": "EPD",
+							"id": "E7EPD8",
+							"url": "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/proteomics_mapping/README"
+						}
+					},
+					{
+						"code": "ECO:0000213",
+						"source": {
+							"name": "MaxQB",
+							"id": "E7EPD8",
+							"url": "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/proteomics_mapping/README"
+						}
+					},
+					{
+						"code": "ECO:0000213",
+						"source": {
+							"name": "PeptideAtlas",
+							"id": "E7EPD8",
+							"url": "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/proteomics_mapping/README"
+						}
+					},
+					{
+						"code": "ECO:0000213",
+						"source": {
+							"name": "ProteomicsDB",
+							"id": "E7EPD8",
+							"url": "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/proteomics_mapping/README"
+						}
+					}
+				]
+			},
+			{
+				"value": "Reference proteome",
+				"evidences": [
+					{
+						"code": "ECO:0000313",
+						"source": {
+							"name": "Proteomes",
+							"id": "UP000005640",
+							"url": "https://www.uniprot.org/proteomes/UP000005640"
+						}
+					}
+				]
+			}
+		],
+		"references": [
+			{
+				"citation": {
+					"type": "journal article",
+					"publicationDate": "2003",
+					"title": "The DNA sequence and analysis of human chromosome 14.",
+					"authors": [
+						"Heilig R.",
+						"Eckenberg R.",
+						"Petit J.-L.",
+						"Fonknechten N.",
+						"Da Silva C.",
+						"Cattolico L.",
+						"Levy M.",
+						"Barbe V.",
+						"De Berardinis V.",
+						"Ureta-Vidal A.",
+						"Pelletier E.",
+						"Vico V.",
+						"Anthouard V.",
+						"Rowen L.",
+						"Madan A.",
+						"Qin S.",
+						"Sun H.",
+						"Du H.",
+						"Pepin K.",
+						"Artiguenave F.",
+						"Robert C.",
+						"Cruaud C.",
+						"Bruels T.",
+						"Jaillon O.",
+						"Friedlander L.",
+						"Samson G.",
+						"Brottier P.",
+						"Cure S.",
+						"Segurens B.",
+						"Aniere F.",
+						"Samain S.",
+						"Crespeau H.",
+						"Abbasi N.",
+						"Aiach N.",
+						"Boscus D.",
+						"Dickhoff R.",
+						"Dors M.",
+						"Dubois I.",
+						"Friedman C.",
+						"Gouyvenoux M.",
+						"James R.",
+						"Madan A.",
+						"Mairey-Estrada B.",
+						"Mangenot S.",
+						"Martins N.",
+						"Menard M.",
+						"Oztas S.",
+						"Ratcliffe A.",
+						"Shaffer T.",
+						"Trask B.",
+						"Vacherie B.",
+						"Bellemere C.",
+						"Belser C.",
+						"Besnard-Gonnet M.",
+						"Bartol-Mavel D.",
+						"Boutard M.",
+						"Briez-Silla S.",
+						"Combette S.",
+						"Dufosse-Laurent V.",
+						"Ferron C.",
+						"Lechaplais C.",
+						"Louesse C.",
+						"Muselet D.",
+						"Magdelenat G.",
+						"Pateau E.",
+						"Petit E.",
+						"Sirvain-Trukniewicz P.",
+						"Trybou A.",
+						"Vega-Czarny N.",
+						"Bataille E.",
+						"Bluet E.",
+						"Bordelais I.",
+						"Dubois M.",
+						"Dumont C.",
+						"Guerin T.",
+						"Haffray S.",
+						"Hammadi R.",
+						"Muanga J.",
+						"Pellouin V.",
+						"Robert D.",
+						"Wunderle E.",
+						"Gauguet G.",
+						"Roy A.",
+						"Sainte-Marthe L.",
+						"Verdier J.",
+						"Verdier-Discala C.",
+						"Hillier L.W.",
+						"Fulton L.",
+						"McPherson J.",
+						"Matsuda F.",
+						"Wilson R.",
+						"Scarpelli C.",
+						"Gyapay G.",
+						"Wincker P.",
+						"Saurin W.",
+						"Quetier F.",
+						"Waterston R.",
+						"Hood L.",
+						"Weissenbach J."
+					],
+					"publication": {
+						"journalName": "Nature"
+					},
+					"location": {
+						"volume": "421",
+						"firstPage": "601",
+						"lastPage": "607"
+					},
+					"dbReferences": [
+						{
+							"type": "PubMed",
+							"id": "12508121"
+						},
+						{
+							"type": "DOI",
+							"id": "10.1038/nature01348"
+						}
+					]
+				},
+				"scope": [
+					"NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA]"
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000313",
+						"source": {
+							"name": "Ensembl",
+							"id": "ENSP00000377098",
+							"url": "https://www.ensembl.org/id/ENSP00000377098"
+						}
+					},
+					{
+						"code": "ECO:0000313",
+						"source": {
+							"name": "Proteomes",
+							"id": "UP000005640",
+							"url": "https://www.uniprot.org/proteomes/UP000005640"
+						}
+					}
+				]
+			},
+			{
+				"citation": {
+					"type": "journal article",
+					"publicationDate": "2006",
+					"title": "Global, in vivo, and site-specific phosphorylation dynamics in signaling networks.",
+					"authors": [
+						"Olsen J.V.",
+						"Blagoev B.",
+						"Gnad F.",
+						"Macek B.",
+						"Kumar C.",
+						"Mortensen P.",
+						"Mann M."
+					],
+					"publication": {
+						"journalName": "Cell"
+					},
+					"location": {
+						"volume": "127",
+						"firstPage": "635",
+						"lastPage": "648"
+					},
+					"dbReferences": [
+						{
+							"type": "PubMed",
+							"id": "17081983"
+						},
+						{
+							"type": "DOI",
+							"id": "10.1016/j.cell.2006.09.026"
+						}
+					]
+				},
+				"scope": [
+					"IDENTIFICATION BY MASS SPECTROMETRY [LARGE SCALE ANALYSIS]"
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000213",
+						"source": {
+							"name": "PubMed",
+							"id": "17081983",
+							"url": "http://www.ncbi.nlm.nih.gov/pubmed/17081983",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/17081983"
+						}
+					}
+				]
+			},
+			{
+				"citation": {
+					"type": "journal article",
+					"publicationDate": "2008",
+					"title": "A quantitative atlas of mitotic phosphorylation.",
+					"authors": [
+						"Dephoure N.",
+						"Zhou C.",
+						"Villen J.",
+						"Beausoleil S.A.",
+						"Bakalarski C.E.",
+						"Elledge S.J.",
+						"Gygi S.P."
+					],
+					"publication": {
+						"journalName": "Proc. Natl. Acad. Sci. U.S.A."
+					},
+					"location": {
+						"volume": "105",
+						"firstPage": "10762",
+						"lastPage": "10767"
+					},
+					"dbReferences": [
+						{
+							"type": "PubMed",
+							"id": "18669648"
+						},
+						{
+							"type": "DOI",
+							"id": "10.1073/pnas.0805139105"
+						}
+					]
+				},
+				"scope": [
+					"IDENTIFICATION BY MASS SPECTROMETRY [LARGE SCALE ANALYSIS]"
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000213",
+						"source": {
+							"name": "PubMed",
+							"id": "18669648",
+							"url": "http://www.ncbi.nlm.nih.gov/pubmed/18669648",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/18669648"
+						}
+					}
+				]
+			},
+			{
+				"citation": {
+					"type": "journal article",
+					"publicationDate": "2009",
+					"title": "Quantitative phosphoproteomic analysis of T cell receptor signaling reveals system-wide modulation of protein-protein interactions.",
+					"authors": [
+						"Mayya V.",
+						"Lundgren D.H.",
+						"Hwang S.I.",
+						"Rezaul K.",
+						"Wu L.",
+						"Eng J.K.",
+						"Rodionov V.",
+						"Han D.K."
+					],
+					"publication": {
+						"journalName": "Sci. Signal."
+					},
+					"location": {
+						"volume": "2",
+						"firstPage": "RA46",
+						"lastPage": "RA46"
+					},
+					"dbReferences": [
+						{
+							"type": "PubMed",
+							"id": "19690332"
+						},
+						{
+							"type": "DOI",
+							"id": "10.1126/scisignal.2000007"
+						}
+					]
+				},
+				"scope": [
+					"IDENTIFICATION BY MASS SPECTROMETRY [LARGE SCALE ANALYSIS]"
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000213",
+						"source": {
+							"name": "PubMed",
+							"id": "19690332",
+							"url": "http://www.ncbi.nlm.nih.gov/pubmed/19690332",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/19690332"
+						}
+					}
+				]
+			},
+			{
+				"citation": {
+					"type": "journal article",
+					"publicationDate": "2011",
+					"title": "Initial characterization of the human central proteome.",
+					"authors": [
+						"Burkard T.R.",
+						"Planyavsky M.",
+						"Kaupe I.",
+						"Breitwieser F.P.",
+						"Burckstummer T.",
+						"Bennett K.L.",
+						"Superti-Furga G.",
+						"Colinge J."
+					],
+					"publication": {
+						"journalName": "BMC Syst. Biol."
+					},
+					"location": {
+						"volume": "5",
+						"firstPage": "17",
+						"lastPage": "17"
+					},
+					"dbReferences": [
+						{
+							"type": "PubMed",
+							"id": "21269460"
+						},
+						{
+							"type": "DOI",
+							"id": "10.1186/1752-0509-5-17"
+						}
+					]
+				},
+				"scope": [
+					"IDENTIFICATION BY MASS SPECTROMETRY [LARGE SCALE ANALYSIS]"
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000213",
+						"source": {
+							"name": "PubMed",
+							"id": "21269460",
+							"url": "http://www.ncbi.nlm.nih.gov/pubmed/21269460",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/21269460"
+						}
+					}
+				]
+			},
+			{
+				"citation": {
+					"type": "submission",
+					"publicationDate": "JUL-2011",
+					"consortiums": [
+						"Ensembl"
+					],
+					"publication": {
+						"submissionDatabase": "UniProtKB"
+					}
+				},
+				"scope": [
+					"IDENTIFICATION"
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000313",
+						"source": {
+							"name": "Ensembl",
+							"id": "ENSP00000377098",
+							"url": "https://www.ensembl.org/id/ENSP00000377098"
+						}
+					}
+				]
+			},
+			{
+				"citation": {
+					"type": "journal article",
+					"publicationDate": "2013",
+					"title": "Toward a comprehensive characterization of a human cancer cell phosphoproteome.",
+					"authors": [
+						"Zhou H.",
+						"Di Palma S.",
+						"Preisinger C.",
+						"Peng M.",
+						"Polat A.N.",
+						"Heck A.J.",
+						"Mohammed S."
+					],
+					"publication": {
+						"journalName": "J. Proteome Res."
+					},
+					"location": {
+						"volume": "12",
+						"firstPage": "260",
+						"lastPage": "271"
+					},
+					"dbReferences": [
+						{
+							"type": "PubMed",
+							"id": "23186163"
+						}
+					]
+				},
+				"scope": [
+					"IDENTIFICATION BY MASS SPECTROMETRY [LARGE SCALE ANALYSIS]"
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000213",
+						"source": {
+							"name": "PubMed",
+							"id": "23186163",
+							"url": "http://www.ncbi.nlm.nih.gov/pubmed/23186163",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/23186163"
+						}
+					}
+				]
+			}
+		],
+		"sequence": {
+			"version": 1,
+			"length": 589,
+			"mass": 66040,
+			"modified": "2011-03-08",
+			"sequence": "MSQEGDYGRWTISSSDESEEEKPKPDKPSTSSLLCARQGAANEPRYTCSEAQKAAHKRKISPVKFSNTDSVLPPKRQKSGSQEDLGWCLSSSDDELQPEMPQKQAEKVVIKKEKDISAPNDGTAQRTENHGAPACHRLKEEEDEYETSGEGQDIWDMLDKGNPFQFYLTRVSGVKPKYNSGALHIKDILSPLFGTLVSSAQFNYCFDVDWLVKQYPPEFRKKPILLVHGDKREAKAHLHAQAKPYENISLCQAKLDIAFGTHHTKMMLLLYEEGLRVVIHTSNLIHADWHQKTQGIWLSPLYPRIADGTHKSGESPTHFKADLISYLMAYNAPSLKEWIDVIHKHDLSETNVYLIGSTPGRFQGSQKDNWGHFRLKKLLKDHASSMPNAESWPVVGQFSSVGSLGADESKWLCSEFKESMLTLGKESKTPGKSSVPLYLIYPSVENVRTSLEGYPAGGSLPYSIQTAEKQNWLHSYFHKWSAETSGRSNAMPHIKTYMRPSPDFSKIAWFLVTSANLSKAAWGALEKNGTQLMIRSYELGVLFLPSAFAPAKRIKDEVEASFSGSRQFQSETEVLRWQPGANGHLSCAI"
+		}
+	}
+]

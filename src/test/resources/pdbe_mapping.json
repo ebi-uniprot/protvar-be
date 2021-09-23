@@ -1,0 +1,46 @@
+{
+	"6n0d": {
+		"UniProt": {
+			"Q9NUW8": {
+				"identifier": "TYDP1_HUMAN",
+				"name": "TYDP1_HUMAN",
+				"mappings": [
+					{
+						"entity_id": 1,
+						"end": {
+							"author_residue_number": null,
+							"author_insertion_code": "",
+							"residue_number": 461
+						},
+						"chain_id": "A",
+						"start": {
+							"author_residue_number": null,
+							"author_insertion_code": "",
+							"residue_number": 1
+						},
+						"unp_end": 608,
+						"unp_start": 148,
+						"struct_asym_id": "A"
+					},
+					{
+						"entity_id": 1,
+						"end": {
+							"author_residue_number": null,
+							"author_insertion_code": "",
+							"residue_number": 461
+						},
+						"chain_id": "B",
+						"start": {
+							"author_residue_number": null,
+							"author_insertion_code": "",
+							"residue_number": 1
+						},
+						"unp_end": 608,
+						"unp_start": 148,
+						"struct_asym_id": "B"
+					}
+				]
+			}
+		}
+	}
+}

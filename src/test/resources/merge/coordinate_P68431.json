@@ -1,0 +1,4426 @@
+[
+	{
+		"accession": "P68431",
+		"name": "H31_HUMAN",
+		"taxid": 9606,
+		"sequence": "MARTKQTARKSTGGKAPRKQLATKAARKSAPATGGVKKPHRYRPGTVALREIRRYQKSTELLIRKLPFQRLVREIAQDFKTDLRFQSSAVMALQEACEAYLVGLFEDTNLCAIHAKRVTIMPKDIQLARRIRGERA",
+		"protein": {
+			"recommendedName": {
+				"fullName": "Histone H3.1"
+			},
+			"alternativeName": [
+				{
+					"fullName": "Histone H3/l"
+				},
+				{
+					"fullName": "Histone H3/j"
+				},
+				{
+					"fullName": "Histone H3/k"
+				},
+				{
+					"fullName": "Histone H3/b"
+				},
+				{
+					"fullName": "Histone H3/c"
+				},
+				{
+					"fullName": "Histone H3/a"
+				},
+				{
+					"fullName": "Histone H3/h"
+				},
+				{
+					"fullName": "Histone H3/i"
+				},
+				{
+					"fullName": "Histone H3/d"
+				},
+				{
+					"fullName": "Histone H3/f"
+				}
+			]
+		},
+		"gene": [
+			{
+				"value": "H3FC HIST1H3C",
+				"type": "synonym"
+			},
+			{
+				"value": "H3C3",
+				"type": "primary"
+			}
+		],
+		"gnCoordinate": [
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 26020490,
+									"status": "certain"
+								},
+								"end": {
+									"position": 26020897,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00003750152"
+						}
+					],
+					"chromosome": "6",
+					"start": 26020490,
+					"end": 26020897,
+					"reverseStrand": false
+				},
+				"ensemblGeneId": "ENSG00000275714",
+				"ensemblTranscriptId": "ENST00000613854",
+				"ensemblTranslationId": "ENSP00000480826"
+			},
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 26032060,
+									"status": "certain"
+								},
+								"end": {
+									"position": 26031653,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00003712382"
+						}
+					],
+					"chromosome": "6",
+					"start": 26032060,
+					"end": 26031653,
+					"reverseStrand": true
+				},
+				"ensemblGeneId": "ENSG00000286522",
+				"ensemblTranscriptId": "ENST00000621411",
+				"ensemblTranslationId": "ENSP00000484841"
+			},
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 26045411,
+									"status": "certain"
+								},
+								"end": {
+									"position": 26045818,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00003739579"
+						}
+					],
+					"chromosome": "6",
+					"start": 26045411,
+					"end": 26045818,
+					"reverseStrand": false
+				},
+				"ensemblGeneId": "ENSG00000287080",
+				"ensemblTranscriptId": "ENST00000612966",
+				"ensemblTranslationId": "ENSP00000484658"
+			},
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 26197250,
+									"status": "certain"
+								},
+								"end": {
+									"position": 26196843,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00001975051"
+						}
+					],
+					"chromosome": "6",
+					"start": 26197250,
+					"end": 26196843,
+					"reverseStrand": true
+				},
+				"ensemblGeneId": "ENSG00000197409",
+				"ensemblTranscriptId": "ENST00000356476",
+				"ensemblTranslationId": "ENSP00000366999"
+			},
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 26225155,
+									"status": "certain"
+								},
+								"end": {
+									"position": 26225562,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00003790936"
+						}
+					],
+					"chromosome": "6",
+					"start": 26225155,
+					"end": 26225562,
+					"reverseStrand": false
+				},
+				"ensemblGeneId": "ENSG00000274750",
+				"ensemblTranscriptId": "ENST00000634733",
+				"ensemblTranslationId": "ENSP00000489282"
+			},
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 26225155,
+									"status": "certain"
+								},
+								"end": {
+									"position": 26225562,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00003718370"
+						}
+					],
+					"chromosome": "6",
+					"start": 26225155,
+					"end": 26225562,
+					"reverseStrand": false
+				},
+				"ensemblGeneId": "ENSG00000274750",
+				"ensemblTranscriptId": "ENST00000614911",
+				"ensemblTranslationId": "ENSP00000482271"
+			},
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 26250605,
+									"status": "certain"
+								},
+								"end": {
+									"position": 26250198,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00003721828"
+						}
+					],
+					"chromosome": "6",
+					"start": 26250605,
+					"end": 26250198,
+					"reverseStrand": true
+				},
+				"ensemblGeneId": "ENSG00000277775",
+				"ensemblTranscriptId": "ENST00000618052",
+				"ensemblTranslationId": "ENSP00000484095"
+			},
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 26271384,
+									"status": "certain"
+								},
+								"end": {
+									"position": 26270977,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00003718278"
+						}
+					],
+					"chromosome": "6",
+					"start": 26271384,
+					"end": 26270977,
+					"reverseStrand": true
+				},
+				"ensemblGeneId": "ENSG00000273983",
+				"ensemblTranscriptId": "ENST00000614378",
+				"ensemblTranslationId": "ENSP00000484638"
+			},
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 27810074,
+									"status": "certain"
+								},
+								"end": {
+									"position": 27810481,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00001448934"
+						}
+					],
+					"chromosome": "6",
+					"start": 27810074,
+					"end": 27810481,
+					"reverseStrand": false
+				},
+				"ensemblGeneId": "ENSG00000278828",
+				"ensemblTranscriptId": "ENST00000369163",
+				"ensemblTranslationId": "ENSP00000358160"
+			},
+			{
+				"genomicLocation": {
+					"exon": [
+						{
+							"proteinLocation": {
+								"begin": {
+									"position": 1,
+									"status": "certain"
+								},
+								"end": {
+									"position": 136,
+									"status": "certain"
+								}
+							},
+							"genomeLocation": {
+								"begin": {
+									"position": 27890792,
+									"status": "certain"
+								},
+								"end": {
+									"position": 27890385,
+									"status": "certain"
+								}
+							},
+							"id": "ENSE00002310895"
+						}
+					],
+					"chromosome": "6",
+					"start": 27890792,
+					"end": 27890385,
+					"reverseStrand": true
+				},
+				"feature": [
+					{
+						"location": {
+							"begin": {
+								"position": 87,
+								"status": "certain"
+							},
+							"end": {
+								"position": 114,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5Y0D",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "helix",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890534,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890451,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 80,
+								"status": "certain"
+							}
+						},
+						"description": "N6-glutaryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "31542297",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890555,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890553,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 57,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890624,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890622,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 10,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6,N6-trimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "11242053",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890765,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890763,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 80,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "15525939",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890555,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890553,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 135,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"code": "ECO:0000305"
+							}
+						],
+						"type": "sequence conflict",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890390,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890388,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 57,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6,N6-trimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "22387026",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890624,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890622,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 57,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; by EHMT2; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "22387026",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890624,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890622,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 80,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(beta-hydroxybutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105115",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890555,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890553,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 15,
+								"status": "certain"
+							}
+						},
+						"description": "N6-succinyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "22389435",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890750,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890748,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 12,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphothreonine; by PKC and CHEK1.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "12560483",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "18243098",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "18066052",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890759,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890757,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 123,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "19520870",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "23415232",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890426,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890424,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 5,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(beta-hydroxybutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105115",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890780,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890778,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 116,
+								"status": "certain"
+							}
+						},
+						"description": "N6-glutaryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "31542297",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890447,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890445,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 19,
+								"status": "certain"
+							}
+						},
+						"description": "N6-butyryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105113",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890738,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890736,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 37,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890684,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890682,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 19,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890738,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890736,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 24,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890723,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890721,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 4,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphothreonine; by HASPIN.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "15681610",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890783,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890781,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 28,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890711,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890709,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 122,
+								"status": "certain"
+							},
+							"end": {
+								"position": 132,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5Y0D",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "helix",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890429,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890397,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 7,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphothreonine; by PKC.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "20228790",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890774,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890772,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 5,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890780,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890778,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 65,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890600,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890598,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 57,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(beta-hydroxybutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105115",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890624,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890622,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 28,
+								"status": "certain"
+							}
+						},
+						"description": "N6-crotonyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "21925322",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890711,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890709,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 5,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890780,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890778,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 18,
+								"status": "certain"
+							}
+						},
+						"description": "Asymmetric dimethylarginine; by CARM1; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "15345777",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "15471871",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16497732",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890741,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890739,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"original": "K",
+						"variation": [
+							"M"
+						],
+						"location": {
+							"position": {
+								"position": 37,
+								"status": "certain"
+							}
+						},
+						"description": "probable disease-associated variant found in pediatric undifferentiated soft tissue sarcoma samples; somatic mutation; also found in a subset of human papillomavirus-negative head and neck squamous cell carcinomas; results in global decrease of H3K36me2 and H3K36me3 levels and increased H3K27me3 levels.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "28067913",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "27174990",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "sequence variant",
+						"id": "VAR_079020",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890684,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890682,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 108,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphothreonine.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "Q71DI3",
+									"type": "UniProtKB"
+								},
+								"code": "ECO:0000250"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890471,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890469,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 80,
+								"status": "certain"
+							}
+						},
+						"description": "N6-succinyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "22389435",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "29211711",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890555,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890553,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 80,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6-dimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "15525939",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890555,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890553,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 10,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(beta-hydroxybutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105115",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890765,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890763,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 24,
+								"status": "certain"
+							}
+						},
+						"description": "N6-glutaryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "31542297",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890723,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890721,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 28,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890711,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890709,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 80,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6,N6-trimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "P68433",
+									"type": "UniProtKB"
+								},
+								"code": "ECO:0000250"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890555,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890553,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 57,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890624,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890622,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 29,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphoserine; alternate; by AURKB, AURKC and RPS6KA5.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "15681610",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "15684425",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "10464286",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "11856369",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890708,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890706,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 5,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6-dimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890780,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890778,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 32,
+								"status": "certain"
+							},
+							"end": {
+								"position": 34,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5VA6",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "strand",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890699,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890691,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 65,
+								"status": "certain"
+							},
+							"end": {
+								"position": 77,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5Y0D",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "helix",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890600,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890562,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"original": "K",
+						"variation": [
+							"M"
+						],
+						"location": {
+							"position": {
+								"position": 28,
+								"status": "certain"
+							}
+						},
+						"description": "in GLM; non-brain stem pediatric glioblastoma and diffuse intrinsic pontine glioma; somatic mutation; results in a global decrease of H3K27me3 levels; dbSNP:rs1057519904.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "22286216",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "23603901",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "sequence variant",
+						"id": "VAR_079018",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890711,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890709,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 123,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890426,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890424,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"original": "R",
+						"variation": [
+							"C"
+						],
+						"location": {
+							"position": {
+								"position": 70,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"code": "ECO:0000305"
+							}
+						],
+						"type": "sequence conflict",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890585,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890583,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 45,
+								"status": "certain"
+							},
+							"end": {
+								"position": 49,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5T1I",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "strand",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890660,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890646,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 9,
+								"status": "certain"
+							}
+						},
+						"description": "Citrulline; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "15345777",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16567635",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890768,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890766,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 87,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphoserine.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "P84243",
+									"type": "UniProtKB"
+								},
+								"code": "ECO:0000250"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890534,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890532,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 25,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "4X3K",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "strand",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890720,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890712,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 50,
+								"status": "certain"
+							},
+							"end": {
+								"position": 58,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5C3I",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "helix",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890645,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890619,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 19,
+								"status": "certain"
+							}
+						},
+						"description": "N6-glutaryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "31542297",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890738,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890736,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 10,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890765,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890763,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 3,
+								"status": "certain"
+							}
+						},
+						"description": "Citrulline; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16567635",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890786,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890784,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 11,
+								"status": "certain"
+							}
+						},
+						"description": "ADP-ribosylserine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "29480802",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "28190768",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890762,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890760,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 19,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(beta-hydroxybutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105115",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890738,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890736,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 37,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17189264",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890684,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890682,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 9,
+								"status": "certain"
+							}
+						},
+						"description": "Symmetric dimethylarginine; by PRMT5; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "P68433",
+									"type": "UniProtKB"
+								},
+								"code": "ECO:0000250"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890768,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890766,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 24,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890723,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890721,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 19,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890738,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890736,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 37,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6,N6-trimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "15983376",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890684,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890682,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 24,
+								"status": "certain"
+							}
+						},
+						"description": "N6-crotonyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "21925322",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890723,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890721,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"original": "Y",
+						"variation": [
+							"T"
+						],
+						"location": {
+							"position": {
+								"position": 100,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"code": "ECO:0000305"
+							}
+						],
+						"type": "sequence conflict",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890495,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890493,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 19,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890738,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890736,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 65,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890600,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890598,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 15,
+								"status": "certain"
+							}
+						},
+						"description": "N6-glutaryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "31542297",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890750,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890748,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 123,
+								"status": "certain"
+							}
+						},
+						"description": "N6-succinyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27436229",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "22389435",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890426,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890424,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 4,
+								"status": "certain"
+							},
+							"end": {
+								"position": 7,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5SVY",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "strand",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890783,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890772,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 80,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890555,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890553,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 28,
+								"status": "certain"
+							}
+						},
+						"description": "N6-glutaryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "31542297",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890711,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890709,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 116,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "19520870",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890447,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890445,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 81,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphothreonine.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "20850016",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890552,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890550,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"original": "P",
+						"variation": [
+							"L"
+						],
+						"location": {
+							"position": {
+								"position": 122,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"code": "ECO:0000305"
+							}
+						],
+						"type": "sequence conflict",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890429,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890427,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 37,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "15983376",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890684,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890682,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 123,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(beta-hydroxybutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105115",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890426,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890424,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 19,
+								"status": "certain"
+							}
+						},
+						"description": "N6-crotonyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "21925322",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890738,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890736,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 9,
+								"status": "certain"
+							},
+							"end": {
+								"position": 15,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5WVO",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "strand",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890768,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890748,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 10,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6-dimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "11242053",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890765,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890763,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 58,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphoserine.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "20850016",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890621,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890619,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 24,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890723,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890721,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 42,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphotyrosine.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "19783980",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890669,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890667,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 35,
+								"status": "certain"
+							},
+							"end": {
+								"position": 37,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5V22",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "strand",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890690,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890682,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 80,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890555,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890553,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 5,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6,N6-trimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890780,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890778,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 10,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "11242053",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890765,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890763,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 37,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6-dimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "15983376",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890684,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890682,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 57,
+								"status": "certain"
+							}
+						},
+						"description": "N6-crotonyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "21925322",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890624,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890622,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 118,
+								"status": "certain"
+							},
+							"end": {
+								"position": 120,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "5Y0D",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "strand",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890441,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890433,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 5,
+								"status": "certain"
+							}
+						},
+						"description": "N6-crotonyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "21925322",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890780,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890778,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 15,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16497732",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890750,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890748,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 18,
+								"status": "certain"
+							}
+						},
+						"description": "Citrulline; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "15345777",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16497732",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16567635",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890741,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890739,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 123,
+								"status": "certain"
+							}
+						},
+						"description": "N6-glutaryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "31542297",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890426,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890424,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 5,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890780,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890778,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 28,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890711,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890709,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 57,
+								"status": "certain"
+							}
+						},
+						"description": "N6-glutaryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "31542297",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890624,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890622,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 29,
+								"status": "certain"
+							}
+						},
+						"description": "ADP-ribosylserine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "29480802",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "28190768",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890708,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890706,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 15,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890750,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890748,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 38,
+								"status": "certain"
+							}
+						},
+						"description": "N6-methyllysine.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "15983376",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890681,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890679,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 24,
+								"status": "certain"
+							}
+						},
+						"description": "N6-butyryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105113",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890723,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890721,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 123,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(2-hydroxyisobutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "24681537",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890426,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890424,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 1,
+								"status": "certain"
+							}
+						},
+						"description": "Removed.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "initiator methionine",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890792,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890790,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 11,
+								"status": "certain"
+							}
+						},
+						"description": "Phosphoserine; alternate; by AURKB, AURKC, RPS6KA3, RPS6KA4 and RPS6KA5.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "10464286",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "15681610",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "12560483",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "11856369",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890762,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890760,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 10,
+								"status": "certain"
+							}
+						},
+						"description": "N6-butyryllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105113",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890765,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890763,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 28,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6-dimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890711,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890709,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 27,
+								"status": "certain"
+							}
+						},
+						"description": "Citrulline.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16567635",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890714,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890712,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 57,
+								"status": "certain"
+							}
+						},
+						"description": "N6-succinyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "22389435",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890624,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890622,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 28,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(beta-hydroxybutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105115",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890711,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890709,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 28,
+								"status": "certain"
+							}
+						},
+						"description": "N6,N6,N6-trimethyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890711,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890709,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 10,
+								"status": "certain"
+							}
+						},
+						"description": "N6-acetyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "16267050",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17194708",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16497732",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16457588",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16185088",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "16627869",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890765,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890763,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 3,
+								"status": "certain"
+							}
+						},
+						"description": "Asymmetric dimethylarginine; by PRMT6; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "18079182",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "17898714",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							},
+							{
+								"dbReference": {
+									"id": "18077460",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890786,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890784,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"begin": {
+								"position": 80,
+								"status": "certain"
+							},
+							"end": {
+								"position": 82,
+								"status": "certain"
+							}
+						},
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "6IPU",
+									"type": "PDB"
+								},
+								"code": "ECO:0000244"
+							}
+						],
+						"type": "strand",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890555,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890547,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 24,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(beta-hydroxybutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105115",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890723,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890721,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 10,
+								"status": "certain"
+							}
+						},
+						"description": "N6-crotonyllysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "21925322",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890765,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890763,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 5,
+								"status": "certain"
+							}
+						},
+						"description": "Allysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27735137",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890780,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890778,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"original": "K",
+						"variation": [
+							"I"
+						],
+						"location": {
+							"position": {
+								"position": 37,
+								"status": "certain"
+							}
+						},
+						"description": "probable disease-associated variant found in pediatric undifferentiated soft tissue sarcoma samples; somatic mutation; results in global decrease of H3K36me2 and H3K36me3 levels and increased H3K27me3 levels.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27174990",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "sequence variant",
+						"id": "VAR_079019",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890684,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890682,
+								"status": "certain"
+							}
+						}
+					},
+					{
+						"location": {
+							"position": {
+								"position": 15,
+								"status": "certain"
+							}
+						},
+						"description": "N6-(beta-hydroxybutyryl)lysine; alternate.",
+						"evidence": [
+							{
+								"dbReference": {
+									"id": "27105115",
+									"type": "PubMed"
+								},
+								"code": "ECO:0000269"
+							}
+						],
+						"type": "modified residue",
+						"genomeLocation": {
+							"begin": {
+								"position": 27890750,
+								"status": "certain"
+							},
+							"end": {
+								"position": 27890748,
+								"status": "certain"
+							}
+						}
+					}
+				],
+				"ensemblGeneId": "ENSG00000197153",
+				"ensemblTranscriptId": "ENST00000359303",
+				"ensemblTranslationId": "ENSP00000352252"
+			}
+		]
+	}
+]

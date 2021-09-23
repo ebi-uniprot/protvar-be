@@ -1,0 +1,387 @@
+[
+	{
+		"accession": "P35520",
+		"entryName": "CBS_HUMAN",
+		"proteinName": "Cystathionine beta-synthase",
+		"geneName": "CBS",
+		"organismName": "Homo sapiens",
+		"proteinExistence": "Evidence at protein level",
+		"sequence": "MPSETPQAEVGPTGCPHRSGPHSAKGSLEKGSPEDKEAKEPLWIRPDAPSRCTWQLGRPASESPHHHTAPAKSPKILPDILKKIGDTPMVRINKIGKKFGLKCELLAKCEFFNAGGSVKDRISLRMIEDAERDGTLKPGDTIIEPTSGNTGIGLALAAAVRGYRCIIVMPEKMSSEKVDVLRALGAEIVRTPTNARFDSPESHVGVAWRLKNEIPNSHILDQYRNASNPLAHYDTTADEILQQCDGKLDMLVASVGTGGTITGIARKLKEKCPGCRIIGVDPEGSILAEPEELNQTEQTTYEVEGIGYDFIPTVLDRTVVDKWFKSNDEEAFTFARMLIAQEGLLCGGSAGSTVAVAVKAAQELQEGQRCVVILPDSVRNYMTKFLSDRWMLQKGFLKEEDLTEKKPWWWHLRVQELGLSAPLTVLPTITCGHTIEILREKGFDQAPVVDEAGVILGMVTLGNMLSSLLAGKVQPSDQVGKVIYKQFKQIRLTDTLGRLSHILEMDHFALVVHEQIQYHSTGKSSQRQMVFGVVTAIDLLNFVAAQERDQK",
+		"sequenceChecksum": "17914872668929025793",
+		"sequenceVersion": 2,
+		"taxid": 9606,
+		"features": [
+			{
+				"type": "VARIANT",
+				"alternativeSequence": "G",
+				"begin": "349",
+				"end": "349",
+				"xrefs": [
+					{
+						"name": "ExAC",
+						"id": "rs763890444",
+						"url": "https://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?type=rs&rs=rs763890444"
+					},
+					{
+						"name": "gnomAD",
+						"id": "rs763890444",
+						"url": " http://gnomad.broadinstitute.org/awesome?query=rs763890444"
+					}
+				],
+				"cytogeneticBand": "21q22.3",
+				"genomicLocation": "NC_000021.9:g.43060541T>C",
+				"locations": [
+					{
+						"loc": "p.Ser349Gly",
+						"seqId": "ENST00000352178",
+						"source": "Ensembl"
+					},
+					{
+						"loc": "c.1045A>G",
+						"seqId": "ENST00000352178",
+						"source": "Ensembl"
+					}
+				],
+				"codon": "AGT/GGT",
+				"consequenceType": "missense",
+				"wildType": "S",
+				"mutatedType": "G",
+				"predictions": [
+					{
+						"predictionValType": "deleterious",
+						"predictorType": "multi coding",
+						"score": 0,
+						"predAlgorithmNameType": "SIFT",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "probably damaging",
+						"predictorType": "multi coding",
+						"score": 1,
+						"predAlgorithmNameType": "PolyPhen",
+						"sources": [
+							"Ensembl"
+						]
+					}
+				],
+				"somaticStatus": 0,
+				"sourceType": "large_scale_study"
+			},
+			{
+				"type": "VARIANT",
+				"alternativeSequence": "T",
+				"begin": "349",
+				"end": "349",
+				"xrefs": [
+					{
+						"name": "TOPMed",
+						"id": "rs973369208",
+						"url": " https://www.ncbi.nlm.nih.gov/snp/rs973369208#frequency_tab",
+						"alternativeUrl": "http://gnomad.broadinstitute.org/awesome?query=rs973369208"
+					}
+				],
+				"cytogeneticBand": "21q22.3",
+				"genomicLocation": "NC_000021.9:g.43060540C>G",
+				"locations": [
+					{
+						"loc": "p.Ser349Thr",
+						"seqId": "ENST00000352178",
+						"source": "Ensembl"
+					},
+					{
+						"loc": "c.1046G>C",
+						"seqId": "ENST00000352178",
+						"source": "Ensembl"
+					}
+				],
+				"codon": "AGT/ACT",
+				"consequenceType": "missense",
+				"wildType": "S",
+				"mutatedType": "T",
+				"predictions": [
+					{
+						"predictionValType": "probably damaging",
+						"predictorType": "multi coding",
+						"score": 1,
+						"predAlgorithmNameType": "PolyPhen",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "deleterious",
+						"predictorType": "multi coding",
+						"score": 0,
+						"predAlgorithmNameType": "SIFT",
+						"sources": [
+							"Ensembl"
+						]
+					}
+				],
+				"somaticStatus": 0,
+				"sourceType": "large_scale_study"
+			},
+			{
+				"type": "VARIANT",
+				"ftId": "VAR_021799",
+				"alternativeSequence": "N",
+				"begin": "349",
+				"end": "349",
+				"xrefs": [
+					{
+						"name": "UniProt",
+						"id": "VAR_021799",
+						"url": "https://uniprot.org/annotation/VAR_021799"
+					}
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "12815602",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/12815602",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/12815602"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "16429402",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/16429402",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/16429402"
+						}
+					}
+				],
+				"cytogeneticBand": "21q22.3",
+				"locations": [
+					{
+						"loc": "p.Ser349Asn",
+						"seqId": "P35520",
+						"source": "UniProt"
+					}
+				],
+				"consequenceType": "missense",
+				"wildType": "S",
+				"mutatedType": "N",
+				"somaticStatus": 0,
+				"clinicalSignificances": [
+					{
+						"type": "Disease",
+						"sources": [
+							"UniProt"
+						]
+					}
+				],
+				"association": [
+					{
+						"name": "Cystathionine beta-synthase deficiency (CBSD)",
+						"description": "An enzymatic deficiency resulting in altered sulfur metabolism and homocystinuria. The clinical features of untreated homocystinuria due to CBS deficiency include myopia, ectopia lentis, mental retardation, skeletal anomalies resembling Marfan syndrome, and thromboembolic events. Light skin and hair can also be present. Biochemical features include increased urinary homocystine and methionine.",
+						"dbReferences": [
+							{
+								"name": "MIM",
+								"id": "236200",
+								"url": "https://www.omim.org/entry/236200"
+							}
+						],
+						"evidences": [
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "10215408",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/10215408",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/10215408"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "10462600",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/10462600",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/10462600"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "12007221",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/12007221",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/12007221"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "12124992",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/12124992",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/12124992"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "12815602",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/12815602",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/12815602"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "14635102",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/14635102",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/14635102"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15146473",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15146473",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15146473"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15365998",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15365998",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15365998"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15993874",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15993874",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15993874"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "16205833",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/16205833",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/16205833"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "21240075",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/21240075",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/21240075"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "23974653",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/23974653",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/23974653"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "25044645",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/25044645",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/25044645"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "7506602",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/7506602",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/7506602"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "7849717",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/7849717",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/7849717"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "7967489",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/7967489",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/7967489"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "7981678",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/7981678",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/7981678"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "8528202",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/8528202",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/8528202"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "9156316",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/9156316",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/9156316"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "9266356",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/9266356",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/9266356"
+								}
+							}
+						],
+						"disease": true
+					}
+				],
+				"descriptions": [
+					{
+						"value": "severe form; exhibits an activity lower than 4% of the wild-type enzyme; absent capacity to form multimeric quaternary structure",
+						"sources": [
+							"UniProt"
+						]
+					}
+				],
+				"sourceType": "uniprot"
+			}
+		]
+	}
+]

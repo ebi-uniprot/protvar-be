@@ -1,0 +1,931 @@
+[
+	{
+		"Q9NUW8": {
+			"structures": {
+				"positions": [
+					{
+						"position": 493,
+						"position_code": "HIS",
+						"best_structures": [
+							"6n0d",
+							"6n0n",
+							"6n19",
+							"6n0r",
+							"6dhu",
+							"6n17",
+							"6myz",
+							"6djf",
+							"6dje",
+							"6djj",
+							"6dji",
+							"6djd",
+							"6die",
+							"6dih",
+							"6dim",
+							"6mj5",
+							"6djg",
+							"6djh",
+							"6n0o",
+							"6mz0",
+							"1qzq",
+							"1jy1",
+							"1rff",
+							"1mu7",
+							"1rgt",
+							"5nw9",
+							"1mu9",
+							"1rg1",
+							"1rg2",
+							"1rfi"
+						],
+						"count_best_structures": 30
+					}
+				],
+				"description": "Listing out the top 30 best structures"
+			},
+			"ligands": {
+				"positions": [
+					{
+						"position": 493,
+						"position_code": "HIS",
+						"ligands": [
+							{
+								"ligand_id": "GHM",
+								"ligand_name": "benzene-1,2,4-tricarboxylic acid",
+								"formula": "C9 H6 O6",
+								"InChi": "InChI=1S/C9H6O6/c10-7(11)4-1-2-5(8(12)13)6(3-4)9(14)15/h1-3H,(H,10,11)(H,12,13)(H,14,15)",
+								"structures": [
+									"6die",
+									"6dhu"
+								]
+							},
+							{
+								"ligand_id": "GJP",
+								"ligand_name": "4-hydroxyquinoline-3-carboxylic acid",
+								"formula": "C10 H7 N O3",
+								"InChi": "InChI=1S/C10H7NO3/c12-9-6-3-1-2-4-8(6)11-5-7(9)10(13)14/h1-5H,(H,11,12)(H,13,14)",
+								"structures": [
+									"6djd",
+									"6dim"
+								]
+							},
+							{
+								"ligand_id": "GJS",
+								"ligand_name": "4-hydroxybenzene-1,2-dicarboxylic acid",
+								"formula": "C8 H6 O5",
+								"InChi": "InChI=1S/C8H6O5/c9-4-1-2-5(7(10)11)6(3-4)8(12)13/h1-3,9H,(H,10,11)(H,12,13)",
+								"structures": [
+									"6dih"
+								]
+							},
+							{
+								"ligand_id": "GM7",
+								"ligand_name": "4-aminobenzene-1,2-dicarboxylic acid",
+								"formula": "C8 H7 N O4",
+								"InChi": "InChI=1S/C8H7NO4/c9-4-1-2-5(7(10)11)6(3-4)8(12)13/h1-3H,9H2,(H,10,11)(H,12,13)",
+								"structures": [
+									"6djj"
+								]
+							},
+							{
+								"ligand_id": "GNJ",
+								"ligand_name": "4-hydroxy-8-sulfoquinoline-3-carboxylic acid",
+								"formula": "C10 H7 N O6 S",
+								"InChi": "InChI=1S/C10H7NO6S/c12-9-5-2-1-3-7(18(15,16)17)8(5)11-4-6(9)10(13)14/h1-4H,(H,11,12)(H,13,14)(H,15,16,17)",
+								"structures": [
+									"6djg"
+								]
+							},
+							{
+								"ligand_id": "GNM",
+								"ligand_name": "8-bromo-4-oxo-1,4-dihydroquinoline-3-carboxylic acid",
+								"formula": "C10 H6 Br N O3",
+								"InChi": "InChI=1S/C10H6BrNO3/c11-7-3-1-2-5-8(7)12-4-6(9(5)13)10(14)15/h1-4H,(H,12,13)(H,14,15)",
+								"structures": [
+									"6djh"
+								]
+							},
+							{
+								"ligand_id": "GNV",
+								"ligand_name": "4-hydroxyquinoline-3,8-dicarboxylic acid",
+								"formula": "C11 H7 N O5",
+								"InChi": "InChI=1S/C11H7NO5/c13-9-5-2-1-3-6(10(14)15)8(5)12-4-7(9)11(16)17/h1-4H,(H,12,13)(H,14,15)(H,16,17)",
+								"structures": [
+									"6djf"
+								]
+							},
+							{
+								"ligand_id": "GNY",
+								"ligand_name": "4-hydroxy-8-(propan-2-yl)quinoline-3-carboxylic acid",
+								"formula": "C13 H13 N O3",
+								"InChi": "InChI=1S/C13H13NO3/c1-7(2)8-4-3-5-9-11(8)14-6-10(12(9)15)13(16)17/h3-7H,1-2H3,(H,14,15)(H,16,17)",
+								"structures": [
+									"6dje"
+								]
+							},
+							{
+								"ligand_id": "GOG",
+								"ligand_name": "3-hydroxybenzene-1,2-dicarboxylic acid",
+								"formula": "C8 H6 O5",
+								"InChi": "InChI=1S/C8H6O5/c9-5-3-1-2-4(7(10)11)6(5)8(12)13/h1-3,9H,(H,10,11)(H,12,13)",
+								"structures": [
+									"6dji"
+								]
+							},
+							{
+								"ligand_id": "GOL",
+								"ligand_name": "GLYCEROL",
+								"formula": "C3 H8 O3",
+								"InChi": "InChI=1S/C3H8O3/c4-1-3(6)2-5/h3-6H,1-2H2",
+								"structures": [
+									"1mu9"
+								]
+							},
+							{
+								"ligand_id": "JTA",
+								"ligand_name": "4-hydroxy-8-nitroquinoline-3-carboxylic acid",
+								"formula": "C10 H6 N2 O5",
+								"InChi": "InChI=1S/C10H6N2O5/c13-9-5-2-1-3-7(12(16)17)8(5)11-4-6(9)10(14)15/h1-4H,(H,11,13)(H,14,15)",
+								"structures": [
+									"6mj5"
+								]
+							},
+							{
+								"ligand_id": "K7A",
+								"ligand_name": "5-hydroxypyrazine-2,3-dicarboxylic acid",
+								"formula": "C6 H4 N2 O5",
+								"InChi": "InChI=1S/C6H4N2O5/c9-2-1-7-3(5(10)11)4(8-2)6(12)13/h1H,(H,8,9)(H,10,11)(H,12,13)",
+								"structures": [
+									"6mz0"
+								]
+							},
+							{
+								"ligand_id": "K7D",
+								"ligand_name": "4-oxo-8-phenyl-1,4-dihydroquinoline-3-carboxylic acid",
+								"formula": "C16 H11 N O3",
+								"InChi": "InChI=1S/C16H11NO3/c18-15-12-8-4-7-11(10-5-2-1-3-6-10)14(12)17-9-13(15)16(19)20/h1-9H,(H,17,18)(H,19,20)",
+								"structures": [
+									"6myz"
+								]
+							},
+							{
+								"ligand_id": "K8D",
+								"ligand_name": "4-(methylamino)benzene-1,2-dicarboxylic acid",
+								"formula": "C9 H9 N O4",
+								"InChi": "InChI=1S/C9H9NO4/c1-10-5-2-3-6(8(11)12)7(4-5)9(13)14/h2-4,10H,1H3,(H,11,12)(H,13,14)",
+								"structures": [
+									"6n0r"
+								]
+							},
+							{
+								"ligand_id": "K8G",
+								"ligand_name": "4-nitrobenzene-1,2-dicarboxylic acid",
+								"formula": "C8 H5 N O6",
+								"InChi": "InChI=1S/C8H5NO6/c10-7(11)5-2-1-4(9(14)15)3-6(5)8(12)13/h1-3H,(H,10,11)(H,12,13)",
+								"structures": [
+									"6n0o"
+								]
+							},
+							{
+								"ligand_id": "K8J",
+								"ligand_name": "4-fluorobenzene-1,2-dicarboxylic acid",
+								"formula": "C8 H5 F O4",
+								"InChi": "InChI=1S/C8H5FO4/c9-4-1-2-5(7(10)11)6(3-4)8(12)13/h1-3H,(H,10,11)(H,12,13)",
+								"structures": [
+									"6n0d"
+								]
+							},
+							{
+								"ligand_id": "K8V",
+								"ligand_name": "4-[(4-carboxybutanoyl)amino]benzene-1,2-dicarboxylic acid",
+								"formula": "C13 H13 N O7",
+								"InChi": "InChI=1S/C13H13NO7/c15-10(2-1-3-11(16)17)14-7-4-5-8(12(18)19)9(6-7)13(20)21/h4-6H,1-3H2,(H,14,15)(H,16,17)(H,18,19)(H,20,21)",
+								"structures": [
+									"6n19"
+								]
+							},
+							{
+								"ligand_id": "K8Y",
+								"ligand_name": "4-[(3-carboxypropanoyl)amino]benzene-1,2-dicarboxylic acid",
+								"formula": "C12 H11 N O7",
+								"InChi": "InChI=1S/C12H11NO7/c14-9(3-4-10(15)16)13-6-1-2-7(11(17)18)8(5-6)12(19)20/h1-2,5H,3-4H2,(H,13,14)(H,15,16)(H,17,18)(H,19,20)",
+								"structures": [
+									"6n17"
+								]
+							},
+							{
+								"ligand_id": "KAY",
+								"ligand_name": "4-methylbenzene-1,2-dicarboxylic acid",
+								"formula": "C9 H8 O4",
+								"InChi": "InChI=1S/C9H8O4/c1-5-2-3-6(8(10)11)7(4-5)9(12)13/h2-4H,1H3,(H,10,11)(H,12,13)",
+								"structures": [
+									"6n0n"
+								]
+							},
+							{
+								"ligand_id": "OTR",
+								"ligand_name": "4-(2R-AMINO-1-HYDROXYETHYL)PHENOL",
+								"formula": "C8 H11 N O2",
+								"InChi": "InChI=1S/C8H11NO2/c9-5-8(11)6-1-3-7(10)4-2-6/h1-4,8,10-11H,5,9H2/t8-/m0/s1",
+								"structures": [
+									"1rg2",
+									"1rgt"
+								]
+							},
+							{
+								"ligand_id": "OTS",
+								"ligand_name": "4-(2S-AMINO-1-HYDROXYETHYL)PHENOL",
+								"formula": "C8 H11 N O2",
+								"InChi": "InChI=1S/C8H11NO2/c9-5-8(11)6-1-3-7(10)4-2-6/h1-4,8,10-11H,5,9H2/t8-/m1/s1",
+								"structures": [
+									"1rg2",
+									"1rgt",
+									"1rg1",
+									"1rh0",
+									"1rgu"
+								]
+							},
+							{
+								"ligand_id": "VO4",
+								"ligand_name": "VANADATE ION",
+								"formula": "O4 V",
+								"InChi": "InChI=1S/4O.V/q;3*-1;",
+								"structures": [
+									"1rg2",
+									"1rgt",
+									"1mu9",
+									"1nop",
+									"1rg1",
+									"1rff",
+									"1rfi",
+									"1rh0",
+									"1rgu"
+								]
+							},
+							{
+								"ligand_id": "WO4",
+								"ligand_name": "TUNGSTATE(VI)ION",
+								"formula": "O4 W",
+								"InChi": "InChI=1S/4O.W/q;;2*-1;",
+								"structures": [
+									"1mu7"
+								]
+							}
+						],
+						"count_ligands": 23
+					}
+				]
+			},
+			"interactions": {
+				"positions": [
+					{
+						"position": 493,
+						"position_code": "HIS",
+						"partners": [
+							{
+								"partner_name": "Other",
+								"partner_accession": "Other",
+								"structures": [
+									"1nop",
+									"1rff",
+									"1rfi"
+								]
+							},
+							{
+								"partner_name": "DNA",
+								"partner_accession": "DNA",
+								"structures": [
+									"5nw9",
+									"5nwa"
+								]
+							}
+						],
+						"count_partners": 2
+					}
+				]
+			},
+			"annotations": {
+				"positions": [
+					{
+						"position": 493,
+						"position_code": "HIS",
+						"data_resource": [
+							"14-3-3-pred",
+							"3Dcomplex",
+							"FoldX",
+							"Missense3D",
+							"POPScomp_PDBML",
+							"canSAR",
+							"cath-funsites",
+							"p2rank"
+						],
+						"count_data_resource": 8
+					}
+				],
+				"details": {
+					"canSAR": {
+						"type": "Predicted ligand binding sites",
+						"name": "canSAR",
+						"description": "canSAR is an integrated knowledge-base to provide drug-discovery useful predictions",
+						"link": "https://cansarblack.icr.ac.uk/"
+					},
+					"cath-funsites": {
+						"type": "Predicted functional sites",
+						"name": "CATH-FunSites",
+						"description": "CATH-FunSites are groups of amino acid residues that are evolutionarily conserved within a CATH FunFam",
+						"link": "https://www.cathdb.info/"
+					},
+					"akid": {
+						"type": "Predicted PTM sites",
+						"name": "AKID",
+						"description": "Predictions of phosphorylation sites for kinases in target proteins",
+						"link": "http://akid.bio.uniroma2.it/"
+					},
+					"3dligandsite": {
+						"type": "Predicted ligand binding sites",
+						"name": "3DLigandSite",
+						"description": "3DLigandSite is an automated method for the prediction of ligand binding sites",
+						"link": "http://www.sbg.bio.ic.ac.uk/~3dligandsite/"
+					},
+					"ProKinO": {
+						"type": "Curated regularity motifs",
+						"name": "ProKinO",
+						"description": "The Protein Kinase Ontology (ProKinO) is a protein kinase-specific ontology",
+						"link": "http://vulcan.cs.uga.edu/prokino/about/browser"
+					},
+					"14-3-3-pred": {
+						"type": "Predicted PTM sites",
+						"name": "14-3-3-Pred",
+						"description": "14-3-3-Pred is a webserver that predicts 14-3-3-binding sites in proteins",
+						"link": "https://www.compbio.dundee.ac.uk/1433pred"
+					},
+					"nod": {
+						"type": "Predicted PTM sites",
+						"name": "NoD",
+						"description": "NoD is a predictor of nucleolar localisation sequences (NoLSs) in proteins",
+						"link": "https://www.compbio.dundee.ac.uk/www-nod/"
+					},
+					"M-CSA": {
+						"type": "Curated catalytic sites",
+						"name": "M-CSA",
+						"description": "M-CSA is a database of enzyme reaction mechanisms",
+						"link": "https://www.ebi.ac.uk/thornton-srv/m-csa/"
+					},
+					"p2rank": {
+						"type": "Predicted ligand binding sites",
+						"name": "P2Rank",
+						"description": "P2Rank is a new open source software package for ligand binding site prediction from protein structure",
+						"link": "http://siret.ms.mff.cuni.cz/p2rank/"
+					},
+					"ChannelsDB": {
+						"type": [
+							"Predicted molecular channels",
+							"Curated molecular channels"
+						],
+						"name": "ChannelsDB",
+						"description": "ChannelsDB is a database providing information about the positions, geometry and physicochemical properties of channels (pores and tunnels) found within biomacromolecular structures deposited in the Protein Data Bank",
+						"link": "https://webchemdev.ncbr.muni.cz/ChannelsDB/index.html"
+					},
+					"ChannelsDB_Curated": {
+						"type": "Curated molecular channels",
+						"name": "ChannelsDB",
+						"description": "ChannelsDB is a database providing information about the positions, geometry and physicochemical properties of channels (pores and tunnels) found within biomacromolecular structures deposited in the Protein Data Bank",
+						"link": "https://webchemdev.ncbr.muni.cz/ChannelsDB/index.html"
+					},
+					"ChannelsDB_Predicted": {
+						"type": "Predicted molecular channels",
+						"name": "ChannelsDB",
+						"description": "ChannelsDB is a database providing information about the positions, geometry and physicochemical properties of channels (pores and tunnels) found within biomacromolecular structures deposited in the Protein Data Bank",
+						"link": "https://webchemdev.ncbr.muni.cz/ChannelsDB/index.html"
+					},
+					"camkinet": {
+						"type": "Curated PTM sites",
+						"name": "CaMKinet",
+						"description": "CaMKinet is a database providing infomation on CaMKs. Calcium/Calmodulin-dependent protein kinases (CaMKs) and their allies constitute a large family of Serine/Threonine kinases",
+						"link": "http://camkinet.embl.de/v2/home/"
+					},
+					"depth": {
+						"type": "Biophysical parameters",
+						"name": "Cospi-Depth",
+						"description": "Cospi-Depth is a server for computing/predicting depth, cavity sizes, ligand binding sites and pKa",
+						"link": "http://cospi.iiserpune.ac.in/depth/htdocs/index.html"
+					},
+					"dynamine": {
+						"type": "Biophysical parameters",
+						"name": "DynaMine",
+						"description": "DynaMine is a fast predictor of protein backbone dynamics using only sequence information as input. Higher scores indicate stable backbone, while lower scores predict flexibility.",
+						"link": "http://dynamine.ibsquare.be/"
+					},
+					"efoldmine": {
+						"type": "Biophysical parameters",
+						"name": "EFoldMine",
+						"description": "EFoldMine is a fast predictor of early folding regions using only sequence information as input",
+						"link": "http://dynamine.ibsquare.be/"
+					},
+					"backbone": {
+						"type": "Biophysical parameters",
+						"name": "DynaMine",
+						"description": "DynaMine is a fast predictor of protein backbone dynamics using only sequence information as input. Higher scores indicate stable backbone, while lower scores predict flexibility.",
+						"link": "http://dynamine.ibsquare.be/"
+					},
+					"complex_residue_depth": {
+						"type": "Biophysical parameters",
+						"name": "Complex Residue Depth",
+						"description": "Cospi-Depth is a server for computing/predicting depth, cavity sizes, ligand binding sites and pKa",
+						"link": "http://cospi.iiserpune.ac.in/depth/htdocs/index.html"
+					},
+					"monomeric_residue_depth": {
+						"type": "Biophysical parameters",
+						"name": "Monomeric Residue Depth",
+						"description": "Cospi-Depth is a server for computing/predicting depth, cavity sizes, ligand binding sites and pKa",
+						"link": "http://cospi.iiserpune.ac.in/depth/htdocs/index.html"
+					},
+					"MetalPDB": {
+						"type": "Predicted ligand binding sites",
+						"name": "MetalPDB",
+						"description": "MetalPDB is a database of metal sites in biological macromolecular structures",
+						"link": "http://metalweb.cerm.unifi.it/"
+					},
+					"FoldX": {
+						"type": "Predicted protein binding sites",
+						"name": "FoldX",
+						"description": "FoldX provides a fast and quantitative estimation of the importance of the interactions contributing to the stability of proteins and protein complexes",
+						"link": "http://foldxsuite.crg.eu/"
+					},
+					"3Dcomplex": {
+						"type": "Protein complexes",
+						"name": "3Dcomplex",
+						"description": "3D Complex is a hierarchical classification of protein complexes that describes similarities in structure, sequence, as well as topology of contacts of the constituent proteins",
+						"link": "https://shmoo.weizmann.ac.il/elevy/3dcomplexV6/Home.cgi"
+					}
+				}
+			},
+			"all_structures": {
+				"6n0d": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"6n0n": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"6n19": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					}
+				],
+				"6n0r": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					}
+				],
+				"6dhu": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"6n17": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"6myz": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"6djf": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"1jy1": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					}
+				],
+				"1rff": [
+					{
+						"entity_id": "2",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "2",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					}
+				],
+				"6dje": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"6djj": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					}
+				],
+				"6dji": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					}
+				],
+				"6djd": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					}
+				],
+				"6die": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					}
+				],
+				"6dih": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"6dim": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					}
+				],
+				"6mj5": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					}
+				],
+				"6djg": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"6djh": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					}
+				],
+				"6n0o": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"6mz0": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "148-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "148-608"
+					}
+				],
+				"1mu7": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					}
+				],
+				"1rgt": [
+					{
+						"entity_id": "2",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "2",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					}
+				],
+				"5nw9": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					}
+				],
+				"1mu9": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					}
+				],
+				"1rg1": [
+					{
+						"entity_id": "2",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "2",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					}
+				],
+				"1rg2": [
+					{
+						"entity_id": "2",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "2",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					}
+				],
+				"1rfi": [
+					{
+						"entity_id": "2",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "2",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					}
+				],
+				"1rgu": [
+					{
+						"entity_id": "2",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "2",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					}
+				],
+				"1nop": [
+					{
+						"entity_id": "2",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "2",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					}
+				],
+				"1rh0": [
+					{
+						"entity_id": "2",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "2",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					}
+				],
+				"1qzq": [
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					}
+				],
+				"5nwa": [
+					{
+						"entity_id": "1",
+						"chain_id": "B",
+						"residue_range": "149-608"
+					},
+					{
+						"entity_id": "1",
+						"chain_id": "A",
+						"residue_range": "149-608"
+					}
+				]
+			},
+			"length": 608
+		}
+	},
+	{
+		"H0YJ44": {
+			"structures": {
+				
+			},
+			"ligands": [],
+			"interactions": [],
+			"annotations": [],
+			"all_structures": [],
+			"length": null
+		}
+	},
+	{
+		"G3V2F4": {
+			"structures": {
+				"positions": [],
+				"description": "Listing out the top 30 best structures"
+			},
+			"ligands": {
+				"positions": []
+			},
+			"interactions": {
+				"positions": []
+			},
+			"annotations": {
+				"positions": [],
+				"details": {
+					
+				}
+			},
+			"all_structures": {
+				
+			},
+			"length": 578
+		}
+	},
+	{
+		"E7EPD8": {
+			"structures": {
+				"positions": [],
+				"description": "Listing out the top 30 best structures"
+			},
+			"ligands": {
+				"positions": []
+			},
+			"interactions": {
+				"positions": []
+			},
+			"annotations": {
+				"positions": [],
+				"details": {
+					
+				}
+			},
+			"all_structures": {
+				
+			},
+			"length": 589
+		}
+	}
+]

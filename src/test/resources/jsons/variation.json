@@ -1,0 +1,970 @@
+[
+	{
+		"accession": "E7EPD8",
+		"entryName": "E7EPD8_HUMAN",
+		"proteinName": "Tyrosyl-DNA phosphodiesterase 1",
+		"geneName": "TDP1",
+		"organismName": "Homo sapiens",
+		"proteinExistence": "Evidence at protein level",
+		"sequence": "MSQEGDYGRWTISSSDESEEEKPKPDKPSTSSLLCARQGAANEPRYTCSEAQKAAHKRKISPVKFSNTDSVLPPKRQKSGSQEDLGWCLSSSDDELQPEMPQKQAEKVVIKKEKDISAPNDGTAQRTENHGAPACHRLKEEEDEYETSGEGQDIWDMLDKGNPFQFYLTRVSGVKPKYNSGALHIKDILSPLFGTLVSSAQFNYCFDVDWLVKQYPPEFRKKPILLVHGDKREAKAHLHAQAKPYENISLCQAKLDIAFGTHHTKMMLLLYEEGLRVVIHTSNLIHADWHQKTQGIWLSPLYPRIADGTHKSGESPTHFKADLISYLMAYNAPSLKEWIDVIHKHDLSETNVYLIGSTPGRFQGSQKDNWGHFRLKKLLKDHASSMPNAESWPVVGQFSSVGSLGADESKWLCSEFKESMLTLGKESKTPGKSSVPLYLIYPSVENVRTSLEGYPAGGSLPYSIQTAEKQNWLHSYFHKWSAETSGRSNAMPHIKTYMRPSPDFSKIAWFLVTSANLSKAAWGALEKNGTQLMIRSYELGVLFLPSAFAPAKRIKDEVEASFSGSRQFQSETEVLRWQPGANGHLSCAI",
+		"sequenceChecksum": "8439967694992818288",
+		"sequenceVersion": 1,
+		"taxid": 9606,
+		"features": [
+			{
+				"type": "VARIANT",
+				"ftId": "VAR_017144",
+				"alternativeSequence": "R",
+				"begin": "493",
+				"end": "493",
+				"xrefs": [
+					{
+						"name": "ClinVar",
+						"id": "RCV000003593",
+						"url": "https://www.ncbi.nlm.nih.gov/clinvar/RCV000003593",
+						"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=RCV000003593"
+					},
+					{
+						"name": "UniProt",
+						"id": "VAR_017144",
+						"url": "https://uniprot.org/annotation/VAR_017144"
+					},
+					{
+						"name": "TOPMed",
+						"id": "rs119467003",
+						"url": " https://www.ncbi.nlm.nih.gov/snp/rs119467003#frequency_tab",
+						"alternativeUrl": "http://gnomad.broadinstitute.org/awesome?query=rs119467003"
+					},
+					{
+						"name": "dbSNP",
+						"id": "rs119467003",
+						"url": "https://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?type=rs&rs=rs119467003"
+					}
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "12244316",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+						}
+					},
+					{
+						"code": "ECO:0000313",
+						"source": {
+							"name": "pubmed",
+							"id": "12244316",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "15647511",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/15647511",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/15647511"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "15920477",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/15920477",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/15920477"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "16141202",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/16141202",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/16141202"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "17948061",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/17948061",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/17948061"
+						}
+					}
+				],
+				"cytogeneticBand": "14q32.11",
+				"genomicLocation": "NC_000014.9:g.89993420A>G",
+				"locations": [
+					{
+						"loc": "p.His493Arg",
+						"seqId": "ENST00000393452",
+						"source": "Ensembl"
+					},
+					{
+						"loc": "c.1478A>G",
+						"seqId": "ENST00000393452",
+						"source": "Ensembl"
+					}
+				],
+				"codon": "CAT/CGT",
+				"consequenceType": "missense",
+				"wildType": "H",
+				"mutatedType": "R",
+				"somaticStatus": 0,
+				"clinicalSignificances": [
+					{
+						"type": "Pathogenic",
+						"sources": [
+							"ClinVar",
+							"Ensembl"
+						]
+					},
+					{
+						"type": "Disease",
+						"sources": [
+							"UniProt"
+						]
+					}
+				],
+				"association": [
+					{
+						"name": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1 (SCAN1)",
+						"dbReferences": [
+							{
+								"name": "MIM",
+								"id": "607250",
+								"url": "https://www.omim.org/entry/607250"
+							}
+						],
+						"evidences": [
+							{
+								"code": "ECO:0000313",
+								"source": {
+									"name": "pubmed",
+									"id": "20301284",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/20301284",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/20301284"
+								}
+							},
+							{
+								"code": "ECO:0000313",
+								"source": {
+									"name": "ClinVar",
+									"id": "RCV000003593",
+									"url": "https://www.ncbi.nlm.nih.gov/clinvar/RCV000003593",
+									"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=RCV000003593"
+								}
+							}
+						],
+						"disease": true
+					},
+					{
+						"name": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1 (SCAN1)",
+						"description": "A form of spinocerebellar ataxia, a clinically and genetically heterogeneous group of cerebellar disorders. Patients show progressive incoordination of gait and often poor coordination of hands, speech and eye movements, due to degeneration of the cerebellum with variable involvement of the brainstem and spinal cord. SCAN1 is an autosomal recessive cerebellar ataxia (ARCA) associated with peripheral axonal motor and sensory neuropathy, distal muscular atrophy, pes cavus and steppage gait as seen in Charcot-Marie-Tooth neuropathy. All affected individuals have normal intelligence.",
+						"dbReferences": [
+							{
+								"name": "MIM",
+								"id": "607250",
+								"url": "https://www.omim.org/entry/607250"
+							}
+						],
+						"evidences": [
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "12244316",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15647511",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15647511",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15647511"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15920477",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15920477",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15920477"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "16141202",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/16141202",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/16141202"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "17948061",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/17948061",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/17948061"
+								}
+							}
+						],
+						"disease": true
+					}
+				],
+				"descriptions": [
+					{
+						"value": "reduces enzyme activity and leads to the accumulation of covalent complexes between TDP1 and DNA",
+						"sources": [
+							"UniProt"
+						]
+					},
+					{
+						"value": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1",
+						"sources": [
+							"ClinVar"
+						]
+					}
+				],
+				"sourceType": "mixed"
+			}
+		]
+	},
+	{
+		"accession": "G3V2F4",
+		"entryName": "G3V2F4_HUMAN",
+		"proteinName": "Tyrosyl-DNA phosphodiesterase 1",
+		"geneName": "TDP1",
+		"organismName": "Homo sapiens",
+		"proteinExistence": "Evidence at protein level",
+		"sequence": "MSQEGDYGRWTISSSDESEEEKPKPDKPSTSSLLCARQGAANEPRYTCSEAQKAAHKRKISPVKFSNTDSVLPPKRQKSGSQEDLGWCLSSSDDELQPEMPQKQAEKVVIKKEKDISAPNDGTAQRTENHGAPACHRLKEEEDEYETSGEGQDIWDMLDKGNPFQFYLTRVSGVKPKYNSGALHIKDILSPLFGTLVSSAQFNYCFDVDWLVKQYPPEFRKKPILLVHGDKREAKAHLHAQAKPYENISLCQAKLDIAFGTHHTKMMLLLYEEGLRVVIHTSNLIHADWHQKTQGIWLSPLYPRIADGTHKSGESPTHFKADLISYLMAYNAPSLKEWIDVIHKHDLSETNVYLIGSTPGRFQGSQKDNWGHFRLKKLLKDHASSMPNAESWPVVGQFSSVGSLGADESKWLCSEFKESMLTLGKESKTPGKSSVPLYLIYPSVENVRTSLEGYPAGGSLPYSIQTAEKQNWLHSYFHKWSAETSGRSNAMPHIKTYMRPSPDFSKIAWFLVTSANLSKAAWGALEKNGTQLMIRSYELGVLFLPSAFIGHGYGTFLMSKHRIRMGTCGCPPENLEAL",
+		"sequenceChecksum": "1121418959471570096",
+		"sequenceVersion": 1,
+		"taxid": 9606,
+		"features": [
+			{
+				"type": "VARIANT",
+				"ftId": "VAR_017144",
+				"alternativeSequence": "R",
+				"begin": "493",
+				"end": "493",
+				"xrefs": [
+					{
+						"name": "ClinVar",
+						"id": "RCV000003593",
+						"url": "https://www.ncbi.nlm.nih.gov/clinvar/RCV000003593",
+						"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=RCV000003593"
+					},
+					{
+						"name": "UniProt",
+						"id": "VAR_017144",
+						"url": "https://uniprot.org/annotation/VAR_017144"
+					},
+					{
+						"name": "TOPMed",
+						"id": "rs119467003",
+						"url": " https://www.ncbi.nlm.nih.gov/snp/rs119467003#frequency_tab",
+						"alternativeUrl": "http://gnomad.broadinstitute.org/awesome?query=rs119467003"
+					},
+					{
+						"name": "dbSNP",
+						"id": "rs119467003",
+						"url": "https://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?type=rs&rs=rs119467003"
+					}
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "12244316",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+						}
+					},
+					{
+						"code": "ECO:0000313",
+						"source": {
+							"name": "pubmed",
+							"id": "12244316",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "15647511",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/15647511",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/15647511"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "15920477",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/15920477",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/15920477"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "16141202",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/16141202",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/16141202"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "17948061",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/17948061",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/17948061"
+						}
+					}
+				],
+				"cytogeneticBand": "14q32.11",
+				"genomicLocation": "NC_000014.9:g.89993420A>G",
+				"locations": [
+					{
+						"loc": "p.His493Arg",
+						"seqId": "ENST00000555880",
+						"source": "Ensembl"
+					},
+					{
+						"loc": "c.1478A>G",
+						"seqId": "ENST00000555880",
+						"source": "Ensembl"
+					}
+				],
+				"codon": "CAT/CGT",
+				"consequenceType": "missense",
+				"wildType": "H",
+				"mutatedType": "R",
+				"somaticStatus": 0,
+				"clinicalSignificances": [
+					{
+						"type": "Pathogenic",
+						"sources": [
+							"ClinVar",
+							"Ensembl"
+						]
+					},
+					{
+						"type": "Disease",
+						"sources": [
+							"UniProt"
+						]
+					}
+				],
+				"association": [
+					{
+						"name": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1 (SCAN1)",
+						"dbReferences": [
+							{
+								"name": "MIM",
+								"id": "607250",
+								"url": "https://www.omim.org/entry/607250"
+							}
+						],
+						"evidences": [
+							{
+								"code": "ECO:0000313",
+								"source": {
+									"name": "pubmed",
+									"id": "20301284",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/20301284",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/20301284"
+								}
+							},
+							{
+								"code": "ECO:0000313",
+								"source": {
+									"name": "ClinVar",
+									"id": "RCV000003593",
+									"url": "https://www.ncbi.nlm.nih.gov/clinvar/RCV000003593",
+									"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=RCV000003593"
+								}
+							}
+						],
+						"disease": true
+					},
+					{
+						"name": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1 (SCAN1)",
+						"description": "A form of spinocerebellar ataxia, a clinically and genetically heterogeneous group of cerebellar disorders. Patients show progressive incoordination of gait and often poor coordination of hands, speech and eye movements, due to degeneration of the cerebellum with variable involvement of the brainstem and spinal cord. SCAN1 is an autosomal recessive cerebellar ataxia (ARCA) associated with peripheral axonal motor and sensory neuropathy, distal muscular atrophy, pes cavus and steppage gait as seen in Charcot-Marie-Tooth neuropathy. All affected individuals have normal intelligence.",
+						"dbReferences": [
+							{
+								"name": "MIM",
+								"id": "607250",
+								"url": "https://www.omim.org/entry/607250"
+							}
+						],
+						"evidences": [
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "12244316",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15647511",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15647511",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15647511"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15920477",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15920477",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15920477"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "16141202",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/16141202",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/16141202"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "17948061",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/17948061",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/17948061"
+								}
+							}
+						],
+						"disease": true
+					}
+				],
+				"descriptions": [
+					{
+						"value": "reduces enzyme activity and leads to the accumulation of covalent complexes between TDP1 and DNA",
+						"sources": [
+							"UniProt"
+						]
+					},
+					{
+						"value": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1",
+						"sources": [
+							"ClinVar"
+						]
+					}
+				],
+				"sourceType": "mixed"
+			}
+		]
+	},
+	{
+		"accession": "H0YJ44",
+		"entryName": "H0YJ44_HUMAN",
+		"proteinName": "Tyrosyl-DNA phosphodiesterase 1 (Fragment)",
+		"geneName": "TDP1",
+		"organismName": "Homo sapiens",
+		"proteinExistence": "Evidence at protein level",
+		"sequence": "XRFQGSQKDNWGHFRLKKLLKDHASSMPNAESWPVVGQFSSVGSLGADESKWLCSEFKESMLTLGKESKTPGKSSVPLYLIYPSVENVRTSLEGYPAGGSLPYSIQTAEKQNWLHSYFHKWSAETSGRSNAMPHIKTYMRPSPDFSKIAWFLVTSANLSKAAWGALEKNGTQLMIRSYELGVLFLPSAFGLDSFKVKQKFFAGSQEPMATFPVPYDLPPELYGSKGETQIKENHGWICIRKTNRAQEKPLVSVGSWLMEPSGSSSLQRALCQPVWGLVATG",
+		"sequenceChecksum": "13945379366624741786",
+		"sequenceVersion": 1,
+		"taxid": 9606,
+		"features": [
+			{
+				"type": "VARIANT",
+				"ftId": "VAR_017144",
+				"alternativeSequence": "R",
+				"begin": "134",
+				"end": "134",
+				"xrefs": [
+					{
+						"name": "ClinVar",
+						"id": "RCV000003593",
+						"url": "https://www.ncbi.nlm.nih.gov/clinvar/RCV000003593",
+						"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=RCV000003593"
+					},
+					{
+						"name": "UniProt",
+						"id": "VAR_017144",
+						"url": "https://uniprot.org/annotation/VAR_017144"
+					},
+					{
+						"name": "TOPMed",
+						"id": "rs119467003",
+						"url": " https://www.ncbi.nlm.nih.gov/snp/rs119467003#frequency_tab",
+						"alternativeUrl": "http://gnomad.broadinstitute.org/awesome?query=rs119467003"
+					},
+					{
+						"name": "dbSNP",
+						"id": "rs119467003",
+						"url": "https://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?type=rs&rs=rs119467003"
+					}
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "12244316",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+						}
+					},
+					{
+						"code": "ECO:0000313",
+						"source": {
+							"name": "pubmed",
+							"id": "12244316",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "15647511",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/15647511",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/15647511"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "15920477",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/15920477",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/15920477"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "16141202",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/16141202",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/16141202"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "17948061",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/17948061",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/17948061"
+						}
+					}
+				],
+				"cytogeneticBand": "14q32.11",
+				"genomicLocation": "NC_000014.9:g.89993420A>G",
+				"locations": [
+					{
+						"loc": "p.His134Arg",
+						"seqId": "ENST00000556063",
+						"source": "Ensembl"
+					},
+					{
+						"loc": "c.401A>G",
+						"seqId": "ENST00000556063",
+						"source": "Ensembl"
+					}
+				],
+				"codon": "CAT/CGT",
+				"consequenceType": "missense",
+				"wildType": "H",
+				"mutatedType": "R",
+				"somaticStatus": 0,
+				"clinicalSignificances": [
+					{
+						"type": "Pathogenic",
+						"sources": [
+							"ClinVar",
+							"Ensembl"
+						]
+					},
+					{
+						"type": "Disease",
+						"sources": [
+							"UniProt"
+						]
+					}
+				],
+				"association": [
+					{
+						"name": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1 (SCAN1)",
+						"dbReferences": [
+							{
+								"name": "MIM",
+								"id": "607250",
+								"url": "https://www.omim.org/entry/607250"
+							}
+						],
+						"evidences": [
+							{
+								"code": "ECO:0000313",
+								"source": {
+									"name": "pubmed",
+									"id": "20301284",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/20301284",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/20301284"
+								}
+							},
+							{
+								"code": "ECO:0000313",
+								"source": {
+									"name": "ClinVar",
+									"id": "RCV000003593",
+									"url": "https://www.ncbi.nlm.nih.gov/clinvar/RCV000003593",
+									"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=RCV000003593"
+								}
+							}
+						],
+						"disease": true
+					},
+					{
+						"name": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1 (SCAN1)",
+						"description": "A form of spinocerebellar ataxia, a clinically and genetically heterogeneous group of cerebellar disorders. Patients show progressive incoordination of gait and often poor coordination of hands, speech and eye movements, due to degeneration of the cerebellum with variable involvement of the brainstem and spinal cord. SCAN1 is an autosomal recessive cerebellar ataxia (ARCA) associated with peripheral axonal motor and sensory neuropathy, distal muscular atrophy, pes cavus and steppage gait as seen in Charcot-Marie-Tooth neuropathy. All affected individuals have normal intelligence.",
+						"dbReferences": [
+							{
+								"name": "MIM",
+								"id": "607250",
+								"url": "https://www.omim.org/entry/607250"
+							}
+						],
+						"evidences": [
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "12244316",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15647511",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15647511",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15647511"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15920477",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15920477",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15920477"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "16141202",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/16141202",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/16141202"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "17948061",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/17948061",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/17948061"
+								}
+							}
+						],
+						"disease": true
+					}
+				],
+				"descriptions": [
+					{
+						"value": "reduces enzyme activity and leads to the accumulation of covalent complexes between TDP1 and DNA",
+						"sources": [
+							"UniProt"
+						]
+					},
+					{
+						"value": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1",
+						"sources": [
+							"ClinVar"
+						]
+					}
+				],
+				"sourceType": "mixed"
+			}
+		]
+	},
+	{
+		"accession": "Q9NUW8",
+		"entryName": "TYDP1_HUMAN",
+		"proteinName": "Tyrosyl-DNA phosphodiesterase 1",
+		"geneName": "TDP1",
+		"organismName": "Homo sapiens",
+		"proteinExistence": "Evidence at protein level",
+		"sequence": "MSQEGDYGRWTISSSDESEEEKPKPDKPSTSSLLCARQGAANEPRYTCSEAQKAAHKRKISPVKFSNTDSVLPPKRQKSGSQEDLGWCLSSSDDELQPEMPQKQAEKVVIKKEKDISAPNDGTAQRTENHGAPACHRLKEEEDEYETSGEGQDIWDMLDKGNPFQFYLTRVSGVKPKYNSGALHIKDILSPLFGTLVSSAQFNYCFDVDWLVKQYPPEFRKKPILLVHGDKREAKAHLHAQAKPYENISLCQAKLDIAFGTHHTKMMLLLYEEGLRVVIHTSNLIHADWHQKTQGIWLSPLYPRIADGTHKSGESPTHFKADLISYLMAYNAPSLKEWIDVIHKHDLSETNVYLIGSTPGRFQGSQKDNWGHFRLKKLLKDHASSMPNAESWPVVGQFSSVGSLGADESKWLCSEFKESMLTLGKESKTPGKSSVPLYLIYPSVENVRTSLEGYPAGGSLPYSIQTAEKQNWLHSYFHKWSAETSGRSNAMPHIKTYMRPSPDFSKIAWFLVTSANLSKAAWGALEKNGTQLMIRSYELGVLFLPSAFGLDSFKVKQKFFAGSQEPMATFPVPYDLPPELYGSKDRPWIWNIPYVKAPDTHGNMWVPS",
+		"sequenceChecksum": "17510561314142545358",
+		"sequenceVersion": 2,
+		"taxid": 9606,
+		"features": [
+			{
+				"type": "VARIANT",
+				"ftId": "VAR_017144",
+				"alternativeSequence": "R",
+				"begin": "493",
+				"end": "493",
+				"xrefs": [
+					{
+						"name": "ClinVar",
+						"id": "RCV000003593",
+						"url": "https://www.ncbi.nlm.nih.gov/clinvar/RCV000003593",
+						"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=RCV000003593"
+					},
+					{
+						"name": "UniProt",
+						"id": "VAR_017144",
+						"url": "https://uniprot.org/annotation/VAR_017144"
+					},
+					{
+						"name": "TOPMed",
+						"id": "rs119467003",
+						"url": " https://www.ncbi.nlm.nih.gov/snp/rs119467003#frequency_tab",
+						"alternativeUrl": "http://gnomad.broadinstitute.org/awesome?query=rs119467003"
+					},
+					{
+						"name": "dbSNP",
+						"id": "rs119467003",
+						"url": "https://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?type=rs&rs=rs119467003"
+					}
+				],
+				"evidences": [
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "12244316",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+						}
+					},
+					{
+						"code": "ECO:0000313",
+						"source": {
+							"name": "pubmed",
+							"id": "12244316",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "15647511",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/15647511",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/15647511"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "15920477",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/15920477",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/15920477"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "16141202",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/16141202",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/16141202"
+						}
+					},
+					{
+						"code": "ECO:0000269",
+						"source": {
+							"name": "pubmed",
+							"id": "17948061",
+							"url": "https://www.ncbi.nlm.nih.gov/pubmed/17948061",
+							"alternativeUrl": "https://europepmc.org/abstract/MED/17948061"
+						}
+					}
+				],
+				"cytogeneticBand": "14q32.11",
+				"genomicLocation": "NC_000014.9:g.89993420A>G",
+				"locations": [
+					{
+						"loc": "p.His493Arg",
+						"seqId": "ENST00000335725",
+						"source": "Ensembl"
+					},
+					{
+						"loc": "c.1478A>G",
+						"seqId": "ENST00000335725",
+						"source": "Ensembl"
+					}
+				],
+				"codon": "CAT/CGT",
+				"consequenceType": "missense",
+				"wildType": "H",
+				"mutatedType": "R",
+				"somaticStatus": 0,
+				"clinicalSignificances": [
+					{
+						"type": "Pathogenic",
+						"sources": [
+							"ClinVar",
+							"Ensembl"
+						]
+					},
+					{
+						"type": "Disease",
+						"sources": [
+							"UniProt"
+						]
+					}
+				],
+				"association": [
+					{
+						"name": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1 (SCAN1)",
+						"dbReferences": [
+							{
+								"name": "MIM",
+								"id": "607250",
+								"url": "https://www.omim.org/entry/607250"
+							}
+						],
+						"evidences": [
+							{
+								"code": "ECO:0000313",
+								"source": {
+									"name": "pubmed",
+									"id": "20301284",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/20301284",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/20301284"
+								}
+							},
+							{
+								"code": "ECO:0000313",
+								"source": {
+									"name": "ClinVar",
+									"id": "RCV000003593",
+									"url": "https://www.ncbi.nlm.nih.gov/clinvar/RCV000003593",
+									"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=RCV000003593"
+								}
+							}
+						],
+						"disease": true
+					},
+					{
+						"name": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1 (SCAN1)",
+						"description": "A form of spinocerebellar ataxia, a clinically and genetically heterogeneous group of cerebellar disorders. Patients show progressive incoordination of gait and often poor coordination of hands, speech and eye movements, due to degeneration of the cerebellum with variable involvement of the brainstem and spinal cord. SCAN1 is an autosomal recessive cerebellar ataxia (ARCA) associated with peripheral axonal motor and sensory neuropathy, distal muscular atrophy, pes cavus and steppage gait as seen in Charcot-Marie-Tooth neuropathy. All affected individuals have normal intelligence.",
+						"dbReferences": [
+							{
+								"name": "MIM",
+								"id": "607250",
+								"url": "https://www.omim.org/entry/607250"
+							}
+						],
+						"evidences": [
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "12244316",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/12244316",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/12244316"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15647511",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15647511",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15647511"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "15920477",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/15920477",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/15920477"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "16141202",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/16141202",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/16141202"
+								}
+							},
+							{
+								"code": "ECO:0000269",
+								"source": {
+									"name": "pubmed",
+									"id": "17948061",
+									"url": "https://www.ncbi.nlm.nih.gov/pubmed/17948061",
+									"alternativeUrl": "https://europepmc.org/abstract/MED/17948061"
+								}
+							}
+						],
+						"disease": true
+					}
+				],
+				"descriptions": [
+					{
+						"value": "reduces enzyme activity and leads to the accumulation of covalent complexes between TDP1 and DNA",
+						"sources": [
+							"UniProt"
+						]
+					},
+					{
+						"value": "Spinocerebellar ataxia, autosomal recessive, with axonal neuropathy 1",
+						"sources": [
+							"ClinVar"
+						]
+					}
+				],
+				"sourceType": "mixed"
+			}
+		]
+	}
+]

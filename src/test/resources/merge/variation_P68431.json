@@ -1,0 +1,256 @@
+[
+	{
+		"accession": "P68431",
+		"entryName": "H31_HUMAN",
+		"proteinName": "Histone H3.1",
+		"geneName": "H3C12",
+		"organismName": "Homo sapiens",
+		"proteinExistence": "Evidence at protein level",
+		"sequence": "MARTKQTARKSTGGKAPRKQLATKAARKSAPATGGVKKPHRYRPGTVALREIRRYQKSTELLIRKLPFQRLVREIAQDFKTDLRFQSSAVMALQEACEAYLVGLFEDTNLCAIHAKRVTIMPKDIQLARRIRGERA",
+		"sequenceChecksum": "11207489760342445814",
+		"sequenceVersion": 2,
+		"taxid": 9606,
+		"features": [
+			{
+				"type": "VARIANT",
+				"alternativeSequence": "?",
+				"begin": "1",
+				"end": "1",
+				"xrefs": [
+					{
+						"name": "NCI-TCGA",
+						"id": "GGCCATAGTTG",
+						"url": "https://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?type=rs&rs=GGCCATAGTTG",
+						"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=GGCCATAGTTG"
+					},
+					{
+						"name": "NCI-TCGA",
+						"id": "rs766949103",
+						"url": "https://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?type=rs&rs=rs766949103",
+						"alternativeUrl": "https://www.ensembl.org/homo_sapiens/Variation/Explore?v=rs766949103"
+					}
+				],
+				"cytogeneticBand": "6p22.1",
+				"genomicLocation": "NC_000006.12:g.27890792T>C",
+				"locations": [
+					{
+						"loc": "c.1A>G",
+						"seqId": "ENST00000359303",
+						"source": "NCI-TCGA"
+					},
+					{
+						"loc": "p.M1?",
+						"seqId": "ENST00000359303",
+						"source": "NCI-TCGA"
+					}
+				],
+				"consequenceType": "-",
+				"wildType": "M",
+				"mutatedType": "?",
+				"predictions": [
+					{
+						"predictionValType": "unknown",
+						"predictorType": "multi coding",
+						"score": 1,
+						"version": "2",
+						"predAlgorithmNameType": "PolyPhen",
+						"sources": [
+							"NCI-TCGA"
+						]
+					},
+					{
+						"predictionValType": "benign",
+						"predictorType": "multi coding",
+						"score": 0.267,
+						"version": "6.2.1",
+						"predAlgorithmNameType": "SIFT",
+						"sources": [
+							"NCI-TCGA"
+						]
+					}
+				],
+				"somaticStatus": 0,
+				"descriptions": [
+					{
+						"value": "Variant assessed as Somatic; 1 impact.",
+						"sources": [
+							"NCI-TCGA"
+						]
+					}
+				],
+				"sourceType": "large_scale_study"
+			},
+			{
+				"type": "VARIANT",
+				"alternativeSequence": "D",
+				"begin": "2",
+				"end": "2",
+				"xrefs": [
+					{
+						"name": "gnomAD",
+						"id": "rs1249330554",
+						"url": " http://gnomad.broadinstitute.org/awesome?query=rs1249330554"
+					}
+				],
+				"cytogeneticBand": "6p22.2",
+				"genomicLocation": "NC_000006.12:g.26197246G>T",
+				"locations": [
+					{
+						"loc": "p.Ala2Asp",
+						"seqId": "ENST00000356476",
+						"source": "Ensembl"
+					},
+					{
+						"loc": "c.5C>A",
+						"seqId": "ENST00000356476",
+						"source": "Ensembl"
+					}
+				],
+				"codon": "GCT/GAT",
+				"consequenceType": "missense",
+				"wildType": "A",
+				"mutatedType": "D",
+				"predictions": [
+					{
+						"predictionValType": "possibly damaging",
+						"predictorType": "multi coding",
+						"score": 0.764,
+						"predAlgorithmNameType": "PolyPhen",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "deleterious - low confidence",
+						"predictorType": "multi coding",
+						"score": 0,
+						"predAlgorithmNameType": "SIFT",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "benign",
+						"predictorType": "multi coding",
+						"score": 0.022,
+						"predAlgorithmNameType": "PolyPhen",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "tolerated - low confidence",
+						"predictorType": "multi coding",
+						"score": 0.98,
+						"predAlgorithmNameType": "SIFT",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "benign",
+						"predictorType": "multi coding",
+						"score": 0,
+						"predAlgorithmNameType": "PolyPhen",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "tolerated - low confidence",
+						"predictorType": "multi coding",
+						"score": 0.05,
+						"predAlgorithmNameType": "SIFT",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "benign",
+						"predictorType": "multi coding",
+						"score": 0.017,
+						"predAlgorithmNameType": "PolyPhen",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "tolerated - low confidence",
+						"predictorType": "multi coding",
+						"score": 0.24,
+						"predAlgorithmNameType": "SIFT",
+						"sources": [
+							"Ensembl"
+						]
+					}
+				],
+				"somaticStatus": 0,
+				"sourceType": "large_scale_study"
+			},
+			{
+				"type": "VARIANT",
+				"alternativeSequence": "C",
+				"begin": "3",
+				"end": "3",
+				"xrefs": [
+					{
+						"name": "ExAC",
+						"id": "rs763475502",
+						"url": "https://www.ncbi.nlm.nih.gov/SNP/snp_ref.cgi?type=rs&rs=rs763475502"
+					},
+					{
+						"name": "TOPMed",
+						"id": "rs763475502",
+						"url": " https://www.ncbi.nlm.nih.gov/snp/rs763475502#frequency_tab",
+						"alternativeUrl": "http://gnomad.broadinstitute.org/awesome?query=rs763475502"
+					},
+					{
+						"name": "gnomAD",
+						"id": "rs763475502",
+						"url": " http://gnomad.broadinstitute.org/awesome?query=rs763475502"
+					}
+				],
+				"cytogeneticBand": "6p22.2",
+				"genomicLocation": "NC_000006.12:g.26271378G>A",
+				"locations": [
+					{
+						"loc": "p.Arg3Cys",
+						"seqId": "ENST00000614378",
+						"source": "Ensembl"
+					},
+					{
+						"loc": "c.7C>T",
+						"seqId": "ENST00000614378",
+						"source": "Ensembl"
+					}
+				],
+				"codon": "CGC/TGC",
+				"consequenceType": "missense",
+				"wildType": "R",
+				"mutatedType": "C",
+				"predictions": [
+					{
+						"predictionValType": "benign",
+						"predictorType": "multi coding",
+						"score": 0.023,
+						"predAlgorithmNameType": "PolyPhen",
+						"sources": [
+							"Ensembl"
+						]
+					},
+					{
+						"predictionValType": "deleterious - low confidence",
+						"predictorType": "multi coding",
+						"score": 0.01,
+						"predAlgorithmNameType": "SIFT",
+						"sources": [
+							"Ensembl"
+						]
+					}
+				],
+				"somaticStatus": 0,
+				"sourceType": "large_scale_study"
+			}
+		]
+	}
+]
