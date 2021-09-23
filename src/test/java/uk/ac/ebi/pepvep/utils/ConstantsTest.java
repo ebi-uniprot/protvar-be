@@ -26,7 +26,7 @@ class ConstantsTest {
 
   @Test
   void invalidRef() {
-    Assertions.assertEquals("Invalid alternative ", Constants.NOTE_INVALID_INPUT_REF);
+    Assertions.assertEquals("Invalid reference ", Constants.NOTE_INVALID_INPUT_REF);
   }
 
   @Test

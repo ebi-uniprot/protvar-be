@@ -19,9 +19,6 @@ import uk.ac.ebi.pepvep.exception.ServiceException;
 import uk.ac.ebi.pepvep.model.Gene;
 import uk.ac.ebi.pepvep.resolver.AppTestConfig;
 
-@ActiveProfiles({ "test" })
-@EnableAutoConfiguration
-@ComponentScan(basePackages = { "uk.ac.ebi.uniprot.pepvep" })
 @SpringBootTest(classes = { AppTestConfig.class })
 public class GenomicFetcherIT {
 
