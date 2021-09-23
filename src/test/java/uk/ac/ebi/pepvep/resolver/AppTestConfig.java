@@ -25,7 +25,7 @@ import uk.ac.ebi.pepvep.repo.UniprotAPIRepo;
 
 @Configuration
 @Profile({ "test" })
-@SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
+@SpringBootApplication
 public class AppTestConfig {
 
 	@Bean

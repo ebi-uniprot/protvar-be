@@ -9,13 +9,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
-import javax.sql.DataSource;
 
+import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -25,6 +22,7 @@ import uk.ac.ebi.pepvep.model.response.CADDPrediction;
 import uk.ac.ebi.pepvep.model.response.GenomeToProteinMapping;
 
 @Repository
+@AllArgsConstructor
 public class VariantsRepositoryImpl implements VariantsRepository {
 
 	private static final String CADD_PREDICTION_TABLE = "CADD_PREDICTION_CHR";
@@ -56,21 +54,12 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, protein_name "
 			+ "from genomic_protein_mapping where genomic_position in (:position)  order by is_canonical desc";
 
-	@Bean(name = "variantJDBCTemplate")
-	public NamedParameterJdbcTemplate variantJDBCTemplate(@Qualifier("dataSource") DataSource variantDS) {
-		return new NamedParameterJdbcTemplate(variantDS);
-	}
-
-	@Resource(name = "variantJDBCTemplate")
 	private NamedParameterJdbcTemplate variantJDBCTemplate;
 	
 	@Override
 	public List<CADDPrediction> getPredictions(List<Long> positions) {
 		SqlParameterSource parameters = new MapSqlParameterSource("position", positions);
-		List<CADDPrediction> mappings = variantJDBCTemplate.query(SELECT_PREDICTIONS_BY_POSITIONS, parameters,
-				(rs, rowNum) -> createPrediction(rs));
-
-		return mappings;
+		return variantJDBCTemplate.query(SELECT_PREDICTIONS_BY_POSITIONS, parameters, (rs, rowNum) -> createPrediction(rs));
 	}
 
 	private CADDPrediction createPrediction(ResultSet rs) throws SQLException {

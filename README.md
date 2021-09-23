@@ -15,7 +15,7 @@ The Main class is uk.ac.ebi.pepvep.ApplicationMainClass
 1. Clone repo
 2. Crete file src/main/resources/application-local.properties
 3. Override following three properties
-   1. spring.datasource.jdbcUrl
+   1. spring.datasource.url
    2. spring.datasource.username
    3. spring.datasource.password
 4. Start the application using mvn spring-boot:run

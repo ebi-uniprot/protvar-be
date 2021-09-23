@@ -29,7 +29,7 @@ import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import uk.ac.ebi.pepvep.cache.RestTemplateCache;
 
-@SpringBootApplication(exclude = { DataSourceAutoConfiguration.class })
+@SpringBootApplication
 @EnableSwagger2
 @Api
 @CrossOrigin
@@ -108,11 +108,4 @@ public class ApplicationMainClass extends SpringBootServletInitializer {
 		restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeAPI));
 		return restTemplate;
 	}
-
-	@Bean(name = "dataSource")
-	@ConfigurationProperties("spring.datasource")
-	public DataSource dataSource() {
-		return DataSourceBuilder.create().build();
-	}
-
 }
