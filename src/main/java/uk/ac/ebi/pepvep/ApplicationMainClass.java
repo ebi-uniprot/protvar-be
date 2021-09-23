@@ -2,15 +2,9 @@ package uk.ac.ebi.pepvep;
 
 import java.nio.charset.StandardCharsets;
 
-import javax.sql.DataSource;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.jdbc.DataSourceBuilder;
-import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -33,7 +27,7 @@ import uk.ac.ebi.pepvep.cache.RestTemplateCache;
 @EnableSwagger2
 @Api
 @CrossOrigin
-public class ApplicationMainClass extends SpringBootServletInitializer {
+public class ApplicationMainClass {
 	@Value(("${variation.api}"))
 	private String variationAPI;
 
