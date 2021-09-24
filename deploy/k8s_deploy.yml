@@ -31,7 +31,6 @@ spec:
   selector:
     matchLabels:
       app: pepvep-be # Has to match .spec.template.metadata.labels
-  serviceName: pepvep-be
   replicas: 1
   template:
     metadata:
