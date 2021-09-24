@@ -1,0 +1,86 @@
+variables:
+  URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/deploy.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
+  URL_WP_CONFIG_TEMPLATE_yml: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/wp-config-template.yml/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
+stages:
+  - test
+  - build
+  - build_docker_image
+  - deploy
+
+.mvn:
+  image: maven:3.8.2-openjdk-17-slim
+  before_script:
+    - java --version
+    - mvn --version
+
+test:
+  extends: .mvn
+  stage: test
+  script:
+    - mvn clean verify
+
+build:
+  only:
+    refs:
+      - main
+  extends: .mvn
+  stage: build
+  before_script:
+    - echo "spring.datasource.url=${db_url}" > src/main/resources/application-local.properties
+    - echo "spring.datasource.username=${db_user}" >> src/main/resources/application-local.properties
+    - echo "spring.datasource.password=${db_pwd}" >> src/main/resources/application-local.properties
+    - echo "logging.file.path=/var/log" >> src/main/resources/application-local.properties
+  script:
+    - mvn -DskipTests clean package
+    - mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
+  artifacts:
+    expire_in: 2 days
+    paths:
+      - target/dependency
+
+build_docker_image:
+  only:
+    refs:
+      - main
+  stage: build_docker_image
+  image: docker:latest
+  tags:
+    - dind
+  services:
+    - docker:dind
+  script:
+    - docker --version
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
+    - CONTAINER_IMAGE=${CI_REGISTRY_IMAGE}:latest
+    - echo "image name will be ${CONTAINER_IMAGE}"
+    - docker build -t ${CONTAINER_IMAGE} --no-cache -f deploy/Dockerfile .
+    - docker image ls
+    - docker push ${CONTAINER_IMAGE}
+    - docker rmi ${CONTAINER_IMAGE}
+    - docker logout "$CI_REGISTRY"
+
+deploy:
+  only:
+    refs:
+      - main
+  stage: deploy
+  image: alpine
+  before_script:
+    - apk add --no-cache curl git bash
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    - chmod +x ./kubectl
+    - mv ./kubectl /usr/local/bin/kubectl
+    - 'wget -O deploy.sh "${URL_DEPLOY_SH}"'
+    - echo "--no-cache --no-cookies was not used by wget"
+    - if [ ! -f deploy.sh ];
+      then echo "k8s deployment file is missing";
+      fi
+    - 'wget -O wp-config-template.yml "${URL_WP_CONFIG_TEMPLATE_yml}"'
+    - echo "--no-cache --no-cookies was not used by wget"
+    - if [ ! -f wp-config-template.yml ];
+      then echo "k8s config file is missing";
+      fi
+    - chmod +x deploy.sh
+  script:
+    - ./deploy.sh HX pepvep-be pepvep # fallback app_name namespace
+    - ./deploy.sh HH pepvep-be pepvep # prod app_name namespace
