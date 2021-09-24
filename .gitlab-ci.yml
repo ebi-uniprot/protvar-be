@@ -16,6 +16,10 @@ stages:
 test:
   extends: .mvn
   stage: test
+  before_script:
+    - echo "spring.datasource.url=${db_url}" >> src/main/resources/application-test.properties
+    - echo "spring.datasource.username=testdatabase" >> src/main/resources/application-test.properties
+    - echo "spring.datasource.password=testdatabase" >> src/main/resources/application-test.properties
   script:
     - mvn clean verify
 
