@@ -49,6 +49,6 @@ spec:
       volumes:
         - name: pepvep-be-logs
           persistentVolumeClaim:
-            claimName: PersistentVolumeClaim
+            claimName: pepvep-be-logs
       imagePullSecrets:
         - name: gitlab-registry # Provided by GitLab, this allows K8s to connect to dockerhub.ebi.ac.uk
