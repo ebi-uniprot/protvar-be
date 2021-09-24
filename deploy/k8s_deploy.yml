@@ -14,7 +14,7 @@ spec:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: pepvep-be-logs
+  name: pepvep-logs
 spec:
   storageClassName: standard-nfs-production
   accessModes:
@@ -49,6 +49,6 @@ spec:
       volumes:
         - name: pepvep-be-logs
           persistentVolumeClaim:
-            claimName: pepvep-be-logs
+            claimName: pepvep-logs
       imagePullSecrets:
         - name: gitlab-registry # created by deploy script using env variables Provided by GitLab, this allows K8s to connect to dockerhub.ebi.ac.uk
