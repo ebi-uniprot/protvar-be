@@ -1,4 +1,4 @@
-#VCF format
+# VCF format
 
 * PepVEP currently supports the annotation of single nucleotide variants (SNVs).
 * PepVEP accepts user variant data using the standard VCF format with eight columns. Details can be found at https://www.ebi.ac.uk/training/online/courses/human-genetic-variation-introduction/variant-identification-and-analysis/understanding-vcf-format/
