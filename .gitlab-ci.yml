@@ -16,10 +16,6 @@ stages:
 test:
   extends: .mvn
   stage: test
-  before_script:
-    - echo "spring.datasource.url=${db_url}" >> src/main/resources/application-local.properties
-    - echo "spring.datasource.username=testdatabase" >> src/main/resources/application-local.properties
-    - echo "spring.datasource.password=testdatabase" >> src/main/resources/application-local.properties
   script:
     - mvn clean verify
 
@@ -29,11 +25,6 @@ build:
       - main
   extends: .mvn
   stage: build
-  before_script:
-    - echo "spring.datasource.url=${db_url}" > src/main/resources/application-local.properties
-    - echo "spring.datasource.username=${db_user}" >> src/main/resources/application-local.properties
-    - echo "spring.datasource.password=${db_pwd}" >> src/main/resources/application-local.properties
-    - echo "logging.file.path=/var/log" >> src/main/resources/application-local.properties
   script:
     - mvn -DskipTests clean package
     - mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)

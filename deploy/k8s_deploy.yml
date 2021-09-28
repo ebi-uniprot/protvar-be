@@ -47,6 +47,12 @@ spec:
           volumeMounts:
             - name: pepvep-be-logs
               mountPath: /var/log
+          env:
+            - name: logging.file.path
+              value: /var/log
+          envFrom:
+            - secretRef:
+                name: properties
       volumes:
         - name: pepvep-be-logs
           persistentVolumeClaim:
