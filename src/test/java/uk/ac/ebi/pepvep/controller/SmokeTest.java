@@ -1,4 +1,4 @@
-package uk.ac.ebi.pepvep;
+package uk.ac.ebi.pepvep.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
