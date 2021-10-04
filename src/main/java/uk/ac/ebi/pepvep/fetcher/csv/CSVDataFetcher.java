@@ -57,25 +57,23 @@ public class CSVDataFetcher {
 	private CSVPopulationDataFetcher populationFetcher;
 	private CSVStructureDataFetcher csvStructureDataFetcher;
 
-	public void sendCSVResult(List<String> inputs, boolean function, boolean variation, boolean structure, String email,
-			String jobName) throws Exception {
+	public void sendCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName) throws Exception {
 
 		List<String> inputList = new ArrayList<>();
 		var zip = new CSVZipWriter();
 		zip.writer.writeNext(CSV_HEADER.split(","));
 		for (String line : inputs) {
-			processInput(function, variation, structure, inputList, zip.writer, line);
+			processInput(options, inputList, zip.writer, line);
 		}
 		if (!inputList.isEmpty()) {
-			List<String[]> contentList = buildCSVResult(inputList, function, variation, structure);
+			List<String[]> contentList = buildCSVResult(inputList, options);
 			zip.writer.writeAll(contentList);
 		}
 		zip.close();
 		Email.send(email, jobName, zip.path);
 	}
 
-	public void sendCSVResult(String file, boolean function, boolean variation, boolean structure, String email,
-			String jobName) throws Exception {
+	public void sendCSVResult(String file, List<OPTIONS> options, String email, String jobName) throws Exception {
 		InputStream inputStream = new FileInputStream(file);
 		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 		String line;
@@ -84,41 +82,37 @@ public class CSVDataFetcher {
 		var zip = new CSVZipWriter();
 		zip.writer.writeNext(CSV_HEADER.split(","));
 		while ((line = bufferedReader.readLine()) != null) {
-			processInput(function, variation, structure, inputList, zip.writer, line);
+			processInput(options, inputList, zip.writer, line);
 		}
 		if (!inputList.isEmpty()) {
-			List<String[]> contentList = buildCSVResult(inputList, function, variation, structure);
+			List<String[]> contentList = buildCSVResult(inputList, options);
 			zip.writer.writeAll(contentList);
 		}
 		zip.close();
 		Email.send(email, jobName, zip.path);
 	}
 
-	private void processInput(boolean function, boolean variation, boolean structure, List<String> inputList,
-			CSVWriter csvOutput, String input) {
+	private void processInput(List<OPTIONS> options, List<String> inputList, CSVWriter csvOutput, String input) {
 		if (inputList.size() >= PAGE_SIZE) {
-			List<String[]> contentList = buildCSVResult(inputList, function, variation, structure);
+			List<String[]> contentList = buildCSVResult(inputList, options);
 			csvOutput.writeAll(contentList);
 			inputList.clear();
 		}
 		inputList.add(input);
 	}
 
-	public void downloadCSVResult(List<String> inputs, boolean function, boolean variation, boolean structure,
-			HttpServletResponse response) throws IOException {
+	public void downloadCSVResult(List<String> inputs, List<OPTIONS> options, HttpServletResponse response) throws IOException {
 		PrintWriter outStream = response.getWriter();
 		CSVWriter writer = new CSVWriter(new BufferedWriter(outStream));
 		outStream.write(CSV_HEADER);
-		List<String[]> contentList = buildCSVResult(inputs, function, variation, structure);
+		List<String[]> contentList = buildCSVResult(inputs, options);
 		writer.writeAll(contentList);
 		writer.flush();
 		writer.close();
 
 	}
 
-	private List<String[]> buildCSVResult(List<String> inputList, boolean function, boolean variation,
-			boolean structure) {
-		List<OPTIONS> options = OptionBuilder.build(function, variation, structure);
+	private List<String[]> buildCSVResult(List<String> inputList, List<OPTIONS> options) {
 		MappingResponse response = mappingFetcher.getMappings(inputList, options);
 		List<String[]> csvOutput = new ArrayList<>();
 

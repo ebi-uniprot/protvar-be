@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import uk.ac.ebi.pepvep.builder.OptionBuilder;
 import uk.ac.ebi.pepvep.fetcher.csv.CSVDataFetcher;
 import uk.ac.ebi.pepvep.utils.Constants;
 import uk.ac.ebi.pepvep.utils.FileUtils;
@@ -36,17 +37,12 @@ public class DownloadController implements WebMvcConfigurer {
 			@RequestParam(name = "jobName", required = false, defaultValue = "") String jobName,
 			@RequestParam(name = "function", required = false, defaultValue = "false") boolean function,
 			@RequestParam(name = "variation", required = false, defaultValue = "false") boolean variation,
-		  @RequestParam(name = "structure", required = false, defaultValue = "false") boolean structure,
-			final HttpServletResponse response) throws Exception {
-		response.setContentType("application/zip");
-		response.setHeader("Content-Disposition", "attachment;filename=sample.zip");
-		
-		System.out.println("email : " + email);
-		System.out.println("jobName : " + jobName);
+		  @RequestParam(name = "structure", required = false, defaultValue = "false") boolean structure) throws Exception {
+		List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, variation, structure);
 		String newFile;
 		if (file != null) {
 			newFile = FileUtils.writeFile(file, Constants.FILE_PATH);
-			csvDataFetcher.sendCSVResult(newFile, function, variation, structure, email, jobName);
+			csvDataFetcher.sendCSVResult(newFile, options, email, jobName);
 
 		}
 		return "Your job submitted successfully, report will be sent to email " + email;
@@ -58,15 +54,9 @@ public class DownloadController implements WebMvcConfigurer {
 			@RequestParam(name = "jobName", required = false, defaultValue = "") String jobName,
 			@RequestParam(name = "function", required = false, defaultValue = "false") boolean function,
 			@RequestParam(name = "variation", required = false, defaultValue = "false") boolean variation,
-		  @RequestParam(name = "structure", required = false, defaultValue = "false") boolean structure,
-			final HttpServletResponse response) throws Exception {
-		response.setContentType("application/zip");
-		response.setHeader("Content-Disposition", "attachment;filename=sample.zip");
-		
-		System.out.println("email : " + email);
-		System.out.println("jobName : " + jobName);
-
-		csvDataFetcher.sendCSVResult(inputs, function,variation, structure, email, jobName);
+		  @RequestParam(name = "structure", required = false, defaultValue = "false") boolean structure) throws Exception {
+		List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, variation, structure);
+		csvDataFetcher.sendCSVResult(inputs, options, email, jobName);
 
 		return "Your job submitted successfully, report will be sent to email " + email;
 	}
@@ -77,11 +67,10 @@ public class DownloadController implements WebMvcConfigurer {
 			@RequestParam(name = "variation", required = false, defaultValue = "false") boolean variation,
 		  @RequestParam(name = "structure", required = false, defaultValue = "false") boolean structure,
 			final HttpServletResponse response) throws Exception {
-		logger.info("Download called");
+		List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, variation, structure);
 		response.addHeader("Content-Type", "application/csv");
 		response.addHeader("Content-Disposition", "attachment; filename=pepvep.csv");
-		csvDataFetcher.downloadCSVResult(inputs, function, variation, structure, response);
-
+		csvDataFetcher.downloadCSVResult(inputs, options, response);
 	}
 
 }
