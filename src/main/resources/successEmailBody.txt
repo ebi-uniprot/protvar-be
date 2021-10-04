@@ -1,0 +1,16 @@
+Dear user,
+
+Your results from PepVEP have been processed, please find the attached zip file. To view your results
+1. Save file to your computer
+2. Unzip the file
+3. In unzipped folder you will find file ending with ".csv" Comma seperated values.
+4. This file can be opened directly in MS Excel or LibreOffice or any spreadsheet software.
+
+For descriptions of each column and what value it contain please see below link
+https://github.com/ebi-uniprot/pepvep-be/blob/main/docs/csv-output-version1.md
+
+For any additional queries please feel free to contact us.
+
+Thank you for using PepVEP.
+PepVEP Team
+pepvep.ebi.ac.uk

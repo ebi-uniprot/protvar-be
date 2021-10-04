@@ -2,15 +2,11 @@ package uk.ac.ebi.pepvep.fetcher.csv;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,9 +19,7 @@ import org.springframework.stereotype.Service;
 
 import com.opencsv.CSVWriter;
 
-import uk.ac.ebi.pepvep.utils.CSVUtils;
-import uk.ac.ebi.pepvep.utils.Constants;
-import uk.ac.ebi.pepvep.utils.Email;
+import uk.ac.ebi.pepvep.utils.*;
 import uk.ac.ebi.pepvep.builder.OptionBuilder;
 import uk.ac.ebi.pepvep.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.pepvep.fetcher.MappingFetcher;
@@ -34,7 +28,6 @@ import uk.ac.ebi.pepvep.model.response.Gene;
 import uk.ac.ebi.pepvep.model.response.IsoFormMapping;
 import uk.ac.ebi.pepvep.model.response.MappingResponse;
 import uk.ac.ebi.pepvep.model.response.Transcript;
-import uk.ac.ebi.pepvep.utils.Codon2AminoAcid;
 
 @Service
 @AllArgsConstructor
@@ -64,30 +57,21 @@ public class CSVDataFetcher {
 	private CSVPopulationDataFetcher populationFetcher;
 	private CSVStructureDataFetcher csvStructureDataFetcher;
 
-	public static void main(String[] args) {
-		String timeStamp = new SimpleDateFormat("yyyyMMddHHmmssSSS").format(new Date());
-
-		System.out.println("timeStamp: " + timeStamp);
-	}
-
 	public void sendCSVResult(List<String> inputs, boolean function, boolean variation, boolean structure, String email,
 			String jobName) throws Exception {
-		File outputFile = createFile();
 
-		CSVWriter csvOutput = new CSVWriter(new FileWriter(outputFile));
 		List<String> inputList = new ArrayList<>();
-		logger.info("Writing header");
-		csvOutput.writeNext(CSV_HEADER.split(","));
+		var zip = new CSVZipWriter();
+		zip.writer.writeNext(CSV_HEADER.split(","));
 		for (String line : inputs) {
-			processInput(function, variation, structure, inputList, csvOutput, line);
+			processInput(function, variation, structure, inputList, zip.writer, line);
 		}
 		if (!inputList.isEmpty()) {
 			List<String[]> contentList = buildCSVResult(inputList, function, variation, structure);
-			csvOutput.writeAll(contentList);
+			zip.writer.writeAll(contentList);
 		}
-		csvOutput.flush();
-		csvOutput.close();
-		Email.send(email, jobName, outputFile);
+		zip.close();
+		Email.send(email, jobName, zip.path);
 	}
 
 	public void sendCSVResult(String file, boolean function, boolean variation, boolean structure, String email,
@@ -96,20 +80,18 @@ public class CSVDataFetcher {
 		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 		String line;
 		List<String> inputList = new ArrayList<>();
-		File outputFile = createFile();
 
-		CSVWriter csvOutput = new CSVWriter(new FileWriter(outputFile));
-		csvOutput.writeNext(CSV_HEADER.split(","));
+		var zip = new CSVZipWriter();
+		zip.writer.writeNext(CSV_HEADER.split(","));
 		while ((line = bufferedReader.readLine()) != null) {
-			processInput(function, variation, structure, inputList, csvOutput, line);
+			processInput(function, variation, structure, inputList, zip.writer, line);
 		}
 		if (!inputList.isEmpty()) {
 			List<String[]> contentList = buildCSVResult(inputList, function, variation, structure);
-			csvOutput.writeAll(contentList);
+			zip.writer.writeAll(contentList);
 		}
-		csvOutput.flush();
-		csvOutput.close();
-		Email.send(email, jobName, outputFile);
+		zip.close();
+		Email.send(email, jobName, zip.path);
 	}
 
 	private void processInput(boolean function, boolean variation, boolean structure, List<String> inputList,
@@ -257,13 +239,5 @@ public class CSVDataFetcher {
 		if ("*".equals(variantCodon))
 			return "stop gained";
 		return "missense";
-	}
-
-	private File createFile() throws IOException {
-		DateFormat df = new SimpleDateFormat("yyyy-MM-dd_HH.mm.ss");
-		File outputFile = new File(Constants.FILE_PATH + df.format(new Date()) + "_csv_output.csv");
-		var ret = outputFile.createNewFile();
-		logger.trace("Did output file already exist? {}", ret);
-		return outputFile;
 	}
 }
