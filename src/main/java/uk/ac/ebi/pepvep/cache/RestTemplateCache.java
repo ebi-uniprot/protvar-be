@@ -1,7 +1,6 @@
 package uk.ac.ebi.pepvep.cache;
 
 import lombok.AllArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -29,9 +28,7 @@ public class RestTemplateCache extends RestTemplate {
     }
 
     var apiResponse = super.getForEntity(url, responseType);
-    if (apiResponse.getStatusCode() == HttpStatus.OK) {
-      updateCache(url, apiResponse);
-    }
+    updateCache(url, apiResponse);
     return apiResponse;
   }
 
