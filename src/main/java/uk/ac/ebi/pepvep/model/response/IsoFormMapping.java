@@ -53,6 +53,12 @@ public class IsoFormMapping implements Comparable<IsoFormMapping> {
 	@JsonInclude(Include.NON_NULL)
 	private String proteinStructureUri;
 
+	public String getCodonChange(){
+		return refCodon + "/" + variantCodon;
+	}
+	public String getAminoAcidChange(){
+		return refAA + "/" + variantAA;
+	}
 	@Override
 	public int compareTo(IsoFormMapping o) {
 		return Boolean.compare(o.canonical, this.canonical);

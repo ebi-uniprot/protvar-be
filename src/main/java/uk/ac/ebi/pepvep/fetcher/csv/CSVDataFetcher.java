@@ -19,15 +19,11 @@ import org.springframework.stereotype.Service;
 
 import com.opencsv.CSVWriter;
 
+import uk.ac.ebi.pepvep.model.response.*;
 import uk.ac.ebi.pepvep.utils.*;
-import uk.ac.ebi.pepvep.builder.OptionBuilder;
 import uk.ac.ebi.pepvep.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.pepvep.fetcher.MappingFetcher;
 import uk.ac.ebi.pepvep.model.UserInput;
-import uk.ac.ebi.pepvep.model.response.Gene;
-import uk.ac.ebi.pepvep.model.response.IsoFormMapping;
-import uk.ac.ebi.pepvep.model.response.MappingResponse;
-import uk.ac.ebi.pepvep.model.response.Transcript;
 
 @Service
 @AllArgsConstructor
@@ -160,15 +156,14 @@ public class CSVDataFetcher {
 			strand = "-";
 		}
 
-		String changeAminoAcid = Codon2AminoAcid.getAminoAcid(mapping.getVariantCodon().toUpperCase());
-		String isoformDetails = buildIsoFormDetails(gene.getIsoforms(), varAllele);
-		List<String> ensps = getEnsps(mapping);
+		var alternateInformDetails = buildAlternateInformDetails(gene.getIsoforms());
+		List<String> ensps = getEnsps(mapping.getTranslatedSequences());
 
 		List<String> output = new ArrayList<>(Arrays.asList(input, chr, genomicLocation.toString(), id, gene.getRefAllele(),
-			varAllele, Constants.NA, gene.getGeneName(), mapping.getRefCodon() + "/" + mapping.getVariantCodon(), strand, cadd,
-			ensps.toString(), Constants.NA,mapping.getAccession(), CSVUtils.getValOrNA(isoformDetails), mapping.getProteinName(),
-			String.valueOf(mapping.getIsoformPosition()), mapping.getRefAA() + "/" + changeAminoAcid,
-			getConsequence(mapping.getRefAA(), mapping.getVariantAA())));
+			varAllele, Constants.NA, gene.getGeneName(), mapping.getCodonChange(), strand, cadd,
+			ensps.toString(), Constants.NA,mapping.getAccession(), CSVUtils.getValOrNA(alternateInformDetails), mapping.getProteinName(),
+			String.valueOf(mapping.getIsoformPosition()), mapping.getAminoAcidChange(),
+			mapping.getConsequences()));
 
 		if (options.contains(OPTIONS.FUNCTION) && mapping.getReferenceFunction() != null)
 			output.addAll(functionDataFetcher.fetch(mapping));
@@ -193,45 +188,25 @@ public class CSVDataFetcher {
 			output.add(Constants.NA);
 	}
 
-	private String buildIsoFormDetails(List<IsoFormMapping> value, String alt) {
+	private String buildAlternateInformDetails(List<IsoFormMapping> value) {
 		List<String> isformDetails = new ArrayList<>();
-		if (value.size() > 1) {
-			for (int i = 1; i < value.size(); i++) {
-				IsoFormMapping mapping = value.get(i);
-				if (mapping.isCanonical())
-					continue;
-				List<String> ensps = getEnsps(mapping);
-				String changeCodon = getCodonChange(mapping.getRefCodon(), alt, mapping.getCdsPosition());
-				String changeAmoniAcid = Codon2AminoAcid.getAminoAcid(changeCodon.toUpperCase());
-				isformDetails.add(mapping.getAccession() + ";" + mapping.getIsoformPosition() + ";"
-						+ Codon2AminoAcid.getAminoAcid(mapping.getRefCodon().toUpperCase()) + "/" + changeAmoniAcid
-						+ ";" + getConsequence(mapping.getRefCodon(), changeCodon) + ";" + ensps);
-			}
+		for (IsoFormMapping mapping: value) {
+			if (mapping.isCanonical())
+				continue;
+			List<String> ensps = getEnsps(mapping.getTranslatedSequences());
+			isformDetails.add(
+				mapping.getAccession() + ";" +
+					mapping.getIsoformPosition() + ";" +
+					mapping.getAminoAcidChange() + ";" +
+					mapping.getConsequences() + ";" + ensps);
 		}
 		return String.join("|", isformDetails);
 	}
 
-	private List<String> getEnsps(IsoFormMapping mapping) {
-		return mapping.getTranslatedSequences().stream().map(translatedSeq -> {
-			String ensts = translatedSeq.getTranscripts().stream().map(Transcript::getEnst)
-					.collect(Collectors.joining(":"));
+	private List<String> getEnsps(List<Ensp> translatedSequences) {
+		return translatedSequences.stream().map(translatedSeq -> {
+			String ensts = translatedSeq.getTranscripts().stream().map(Transcript::getEnst).collect(Collectors.joining(":"));
 			return translatedSeq.getEnsp() + "(" + ensts + ")";
 		}).collect(Collectors.toList());
-
-	}
-
-	private String getCodonChange(String codon, String alt, int codonPosition) {
-		StringBuilder codonChange = new StringBuilder(codon);
-		codonPosition = codonPosition - 1;
-		codonChange.setCharAt(codonPosition, alt.charAt(0));
-		return codonChange.toString();
-	}
-
-	private String getConsequence(String codon, String variantCodon) {
-		if (Objects.equals(codon, variantCodon))
-			return "synonymous";
-		if ("*".equals(variantCodon))
-			return "stop gained";
-		return "missense";
 	}
 }
