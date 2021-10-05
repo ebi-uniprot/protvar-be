@@ -8,7 +8,7 @@ The output file will be CSV (comma separated values). This file can be divided i
 6. Population outputs
 7. Structural outputs
 ## Syntax
-File has 36 columns in total. Every Column value is double quoteded e-g “user input” and then separated by comma.
+File has 36 columns in total. Every Column value is double quoteded e-g “user input” and then separated by a comma.
 Columns can contain “N/A” as value indicating two things
 1. User didn’t requested this value
 2. We can not provide value for any reason
