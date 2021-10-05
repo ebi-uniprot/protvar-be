@@ -1,5 +1,5 @@
 # CSV format Version 1
-Output file will be CSV (comma separated values). Where File can be divided into Seven major categories.
+The output file will be CSV (comma separated values). This file can be divided into seven major categories:
 1. Header lines
 2. Input
 3. Notes
