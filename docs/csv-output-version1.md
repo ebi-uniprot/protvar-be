@@ -1,20 +1,21 @@
 # CSV format Version 1
-The output file will be CSV (comma separated values). This file can be divided into seven major categories:
-1. Header lines
-2. Input
-3. Notes
-4. Mapping outputs
-5. Functional outputs
-6. Population outputs
-7. Structural outputs
+The output file will be in CSV (comma separated values) format. The file is divided into the following categories:
+
+* Header lines
+* Variant data
+   * User input
+   * Mapping notes
+   * Mapping outputs
+   * Functional annotation outputs
+   * Population annotation outputs
+   * Structural annotation outputs
 ## Syntax
-File has 36 columns in total. Every Column value is double quoteded e-g “user input” and then separated by a comma.
-Columns can contain “N/A” as value indicating two things
-1. User didn’t requested this value
-2. We can not provide value for any reason
-   1. We don’t have information about it
-   2. External API don’t have information about it
-   3. External API is not working
+The output file has 36 columns in total. Every column value is double quoteded e-g “user input” and then separated by a comma.
+Columns can contain “N/A” as a value indicating either:
+* The user did not requested the data (for example if only mappings are requested without annotation)
+* We can not provide a value for reasons such as:
+   * No data exists in our database in the category for this variant
+   * One of the external APIs is not working
 ## Header lines
 Think about header lines as metadata about the file and data you are downloading. Below will be the lines
 1. File version e-g version-1
@@ -22,48 +23,41 @@ Think about header lines as metadata about the file and data you are downloading
    1. Values will be all capital letters
    2. Words separated by space
 ## Input
-These are the combination of columns which we have created from user input. Following are the columns
-1. USER INPUT
-2. CHROMOSOME
-3. COORDINATE
+These are the columns created from the user variant input:
+1. User input
+2. Chromosome
+3. Coordinate
 4. ID
-5. REF
-6. ALT
+5. Ref
+6. Alt
 
 ### 1. User input
-This field replicates the user input with no changes to the format. (it is useful for comparing with the retrieved 
-mappings when there is a sequence conflict and also for the user to map their inputs to the outputs).
+This field replicates the user input with no changes to the format. Users can use this field to match their input data to the annotated output file.
 ### 2. Chromosome
-Can only be numbers 1..22 or “X” or “Y” or mitochondria (chrM, mitochondria, mitochondrion, MT, mtDNA, 
-mit [case insensitive])
+Only numbers 1-22 or “X” or “Y” or mitochondria (chrM, mitochondria, mitochondrion, MT, mtDNA, mit) are accepted. All case insensitive.
 ### 3. Coordinate
-Must be numeric only. (Numbering is independent for each chromosome. It starts at 1 but has different ends according 
-to length. Generally 1 is the longest and they decrease in size. Mitochondria is the smallest (although not technically 
-a chromosome) Y is very small also and shares much of the sequence with X which is quite large. Both X and Y are 
-sometimes referred to as chromosome 23)
-### 4. Id
-This is provided by the user to keep track of their variants. Sometimes the user may add an “rs” ID here which is a 
-DB SNP reference (a repository of single nucleotide polymorphisms maintained by the NCBI).
+The genomic coordinate position of the variant as interpreted from the user input. Only numeric characters. 
+### 4. ID
+This is a field which can optionally be provided by the user to keep track of their variants or store information about teh variant which will be retained in the output file.
 ### 5. Ref
-This is the reference allele. It is defined by the nucleotide identity at that coordinate in the reference genome build.
-(roughly this equates to the most common nucleotide in that position across many sequenced humans).
+This is the reference allele. It is defined by the nucleotide identity at that coordinate in the reference genome build. If the user inputted nucleotide differs from the reference build the reference build nucleotide identity will be shown and not the user inputted identity. This conflict will be noted in the "notes" column. Any user inputs except 'A', 'G', 'C', 'T' will be flagged in the "notes section.
 ### 6. Alt
-Alternative allele. When a sequence from an individual shows a nucleotide which is different from the reference it is 
-called a variant allele. These are very common and usually not associated with disease. However, when these occur in 
-coding regions and cause a change in amino acid they are more likely to cause problems. Especially if that amino acid 
-is highly conserved because its specific side chain plays an important role for the function or structure of the protein.
+This is the alternative allele and will always match the user input. Any user inputs except 'A', 'G', 'C', 'T' will be flagged in the "notes section.
 
 ## Notes
-In this category we have only one column “NOTES”. 
+7. Notes
 
 ### 7. Notes
-It explains if there is something special about user input. It can contain “N/A” as a value if there is no note present.
-Examples
-* Invalid input - (we should be explicit about which part is invalid)
-* The input sequence does not match the reference - (this can happen due to user error, an updated sequence in the 
-reference build or because the user has submitted variants from an older reference genome such as GRCh37)
-* Mapping not found - (we should try to be as explicit as possible here.perhaps not for this version. Eventually 
-it should state something like “intergenic region” “intronic region”, “no transcript maps to the canonical isoform” etc.
+It explains if there is some potential issue with the user input. It will contain “N/A” if there is nothing to report. For example:
+* Invalid input - Such as a nonesense chromosome, a non-numeric coordinate of invalid nucleotides in either the reference or variant allele positions.
+* The input sequence does not match the reference. Possible reasons for this include
+   * user error
+   * an updated sequence in the reference build 
+   * because the user has submitted variants from an older reference genome such as GRCh37)
+* Mapping not found. Reasons may include:
+   * intergenic region
+   * intronic region
+   * no transcript maps to the canonical isoform” etc.
 
 ## Mapping outputs
 These columns contain the information about mapping of user input. We have 12 columns in this category
