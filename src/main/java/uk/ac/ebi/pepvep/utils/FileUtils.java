@@ -16,11 +16,10 @@ public class FileUtils {
 	private static final Logger logger = LoggerFactory.getLogger(FileUtils.class);
 
 	public static String writeFile(MultipartFile file, String filePath) throws IOException {
-		byte[] bytes = file.getBytes();
 		String timeStamp = new SimpleDateFormat("yyyyMMddHHmmssSSS").format(new Date());
 		String fileName = file.getOriginalFilename() + "_" + timeStamp;
 		Path path = Paths.get(filePath + fileName);
-		Files.write(path, bytes);
+		file.transferTo(path);
 		logger.info("File written {}", fileName);
 		return fileName;
 	}
