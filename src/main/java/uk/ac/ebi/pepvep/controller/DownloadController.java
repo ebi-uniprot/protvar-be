@@ -1,5 +1,7 @@
 package uk.ac.ebi.pepvep.controller;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
@@ -39,12 +41,9 @@ public class DownloadController implements WebMvcConfigurer {
 			@RequestParam(name = "variation", required = false, defaultValue = "false") boolean variation,
 		  @RequestParam(name = "structure", required = false, defaultValue = "false") boolean structure) throws Exception {
 		List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, variation, structure);
-		String newFile;
-		if (file != null) {
-			newFile = FileUtils.writeFile(file, Constants.FILE_PATH);
-			csvDataFetcher.sendCSVResult(newFile, options, email, jobName);
-
-		}
+		Path newFile = FileUtils.writeFile(file, Constants.FILE_PATH);
+		csvDataFetcher.sendCSVResult(newFile, options, email, jobName);
+		Files.delete(newFile);
 		return "Your job submitted successfully, report will be sent to email " + email;
 	}
 

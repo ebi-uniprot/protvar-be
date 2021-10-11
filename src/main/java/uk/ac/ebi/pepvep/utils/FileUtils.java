@@ -1,7 +1,6 @@
 package uk.ac.ebi.pepvep.utils;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -15,12 +14,12 @@ public class FileUtils {
 
 	private static final Logger logger = LoggerFactory.getLogger(FileUtils.class);
 
-	public static String writeFile(MultipartFile file, String filePath) throws IOException {
+	public static Path writeFile(MultipartFile file, String filePath) throws IOException {
 		String timeStamp = new SimpleDateFormat("yyyyMMddHHmmssSSS").format(new Date());
 		String fileName = file.getOriginalFilename() + "_" + timeStamp;
 		Path path = Paths.get(filePath + fileName);
 		file.transferTo(path);
 		logger.info("File written {}", fileName);
-		return fileName;
+		return path;
 	}
 }

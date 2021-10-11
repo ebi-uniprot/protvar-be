@@ -1,14 +1,10 @@
 package uk.ac.ebi.pepvep.fetcher.csv;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -54,32 +50,20 @@ public class CSVDataFetcher {
 	private CSVStructureDataFetcher csvStructureDataFetcher;
 
 	public void sendCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName) throws Exception {
-
-		List<String> inputList = new ArrayList<>();
-		var zip = new CSVZipWriter();
-		zip.writer.writeNext(CSV_HEADER.split(","));
-		for (String line : inputs) {
-			processInput(options, inputList, zip.writer, line);
-		}
-		if (!inputList.isEmpty()) {
-			List<String[]> contentList = buildCSVResult(inputList, options);
-			zip.writer.writeAll(contentList);
-		}
-		zip.close();
-		Email.send(email, jobName, zip.path);
+		sendCSVResult(inputs.stream(), options, email, jobName);
 	}
 
-	public void sendCSVResult(String file, List<OPTIONS> options, String email, String jobName) throws Exception {
-		InputStream inputStream = new FileInputStream(file);
-		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-		String line;
-		List<String> inputList = new ArrayList<>();
+	public void sendCSVResult(Path path, List<OPTIONS> options, String email, String jobName) throws Exception {
+		try(BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path.toFile())))) {
+      sendCSVResult(br.lines(), options, email, jobName);
+    }
+	}
 
+	private void sendCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName) throws Exception {
+		List<String> inputList = new ArrayList<>();
 		var zip = new CSVZipWriter();
 		zip.writer.writeNext(CSV_HEADER.split(","));
-		while ((line = bufferedReader.readLine()) != null) {
-			processInput(options, inputList, zip.writer, line);
-		}
+		inputs.forEach(line -> processInput(options, inputList, zip.writer, line));
 		if (!inputList.isEmpty()) {
 			List<String[]> contentList = buildCSVResult(inputList, options);
 			zip.writer.writeAll(contentList);
