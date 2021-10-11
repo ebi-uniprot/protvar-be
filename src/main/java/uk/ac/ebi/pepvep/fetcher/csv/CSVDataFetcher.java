@@ -40,7 +40,7 @@ public class CSVDataFetcher {
 	private static final String CSV_HEADER_OUTPUT = CSV_HEADER_OUTPUT_MAPPING + Constants.COMMA + CSV_HEADER_OUTPUT_FUNCTION + Constants.COMMA
 		+ CSV_HEADER_OUTPUT_POPULATION + Constants.COMMA + CSV_HEADER_OUTPUT_STRUCTURE;
 
-	static final String CSV_HEADER = CSV_HEADER_INPUT + Constants.COMMA + CSV_HEADER_NOTES + Constants.COMMA + CSV_HEADER_OUTPUT + System.lineSeparator();
+	static final String CSV_HEADER = CSV_HEADER_INPUT + Constants.COMMA + CSV_HEADER_NOTES + Constants.COMMA + CSV_HEADER_OUTPUT;
 
 	private static final int PAGE_SIZE = 500;
 
@@ -84,12 +84,11 @@ public class CSVDataFetcher {
 	public void downloadCSVResult(List<String> inputs, List<OPTIONS> options, HttpServletResponse response) throws IOException {
 		PrintWriter outStream = response.getWriter();
 		CSVWriter writer = new CSVWriter(new BufferedWriter(outStream));
-		outStream.write(CSV_HEADER);
+		writer.writeNext(CSV_HEADER.split(","));
 		List<String[]> contentList = buildCSVResult(inputs, options);
 		writer.writeAll(contentList);
 		writer.flush();
 		writer.close();
-
 	}
 
 	private List<String[]> buildCSVResult(List<String> inputList, List<OPTIONS> options) {
