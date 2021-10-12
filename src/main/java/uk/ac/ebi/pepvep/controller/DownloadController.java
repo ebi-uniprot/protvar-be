@@ -21,7 +21,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import uk.ac.ebi.pepvep.builder.OptionBuilder;
 import uk.ac.ebi.pepvep.fetcher.csv.CSVDataFetcher;
-import uk.ac.ebi.pepvep.utils.Constants;
 import uk.ac.ebi.pepvep.utils.FileUtils;
 
 @RestController
@@ -41,7 +40,7 @@ public class DownloadController implements WebMvcConfigurer {
 			@RequestParam(name = "variation", required = false, defaultValue = "false") boolean variation,
 		  @RequestParam(name = "structure", required = false, defaultValue = "false") boolean structure) throws Exception {
 		List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, variation, structure);
-		Path newFile = FileUtils.writeFile(file, Constants.FILE_PATH);
+		Path newFile = FileUtils.writeFile(file);
 		csvDataFetcher.sendCSVResult(newFile, options, email, jobName);
 		Files.delete(newFile);
 		return "Your job submitted successfully, report will be sent to email " + email;
