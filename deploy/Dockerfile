@@ -5,4 +5,4 @@ ARG DEPENDENCY=target/dependency
 COPY ${DEPENDENCY}/BOOT-INF/lib /app/lib
 COPY ${DEPENDENCY}/BOOT-INF/classes /app
 COPY ${DEPENDENCY}/META-INF /app/META-INF
-ENTRYPOINT ["java","-Djava.net.useSystemProxies=true","-cp","app:app/lib/*","uk.ac.ebi.pepvep.ApplicationMainClass"]
+ENTRYPOINT ["java","-cp","app:app/lib/*","uk.ac.ebi.pepvep.ApplicationMainClass"]
