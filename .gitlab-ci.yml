@@ -23,6 +23,7 @@ build:
   only:
     refs:
       - main
+      - dev
   extends: .mvn
   stage: build
   script:
@@ -37,6 +38,7 @@ build_docker_image:
   only:
     refs:
       - main
+      - dev
   stage: build_docker_image
   image: docker:latest
   tags:
