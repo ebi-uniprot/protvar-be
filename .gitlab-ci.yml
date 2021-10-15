@@ -54,28 +54,35 @@ build_docker_image:
     - docker rmi ${CONTAINER_IMAGE}
     - docker logout "$CI_REGISTRY"
 
-deploy:
-  only:
-    refs:
-      - main
-  stage: deploy
+.kubectl:
   image: alpine
   before_script:
     - apk add --no-cache curl git bash
     - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
     - chmod +x ./kubectl
     - mv ./kubectl /usr/local/bin/kubectl
-    - 'wget -O deploy.sh "${URL_DEPLOY_SH}"'
+    - wget -O deploy.sh "${URL_DEPLOY_SH}"
+    - wget -O wp-config-template.yml "${URL_WP_CONFIG_TEMPLATE_yml}"
     - echo "--no-cache --no-cookies was not used by wget"
-    - if [ ! -f deploy.sh ];
-      then echo "k8s deployment file is missing";
-      fi
-    - 'wget -O wp-config-template.yml "${URL_WP_CONFIG_TEMPLATE_yml}"'
-    - echo "--no-cache --no-cookies was not used by wget"
-    - if [ ! -f wp-config-template.yml ];
-      then echo "k8s config file is missing";
-      fi
+    - if [ ! -f deploy.sh ]; then echo "k8s deployment file is missing"; exit 1; fi
+    - if [ ! -f wp-config-template.yml ]; then echo "k8s config file is missing"; exit 1; fi
     - chmod +x deploy.sh
+
+deploy-dev:
+  only:
+    refs:
+      - dev
+  stage: deploy
+  extends: .kubectl
   script:
-    - ./deploy.sh HX pepvep-be pepvep deployment # fallback app_name namespace type-of-deployment
-    - ./deploy.sh HH pepvep-be pepvep deployment # prod app_name namespace type-of-deployment
+    - ./deploy.sh HX dev-pepvep-be pepvep deployment # data-center app_name namespace type-of-deployment
+
+deploy:
+  only:
+    refs:
+      - main
+  stage: deploy
+  extends: .kubectl
+  script:
+    - ./deploy.sh HX prod-pepvep-be pepvep deployment # fallback app_name namespace type-of-deployment
+    - ./deploy.sh HH prod-pepvep-be pepvep deployment # prod app_name namespace type-of-deployment
