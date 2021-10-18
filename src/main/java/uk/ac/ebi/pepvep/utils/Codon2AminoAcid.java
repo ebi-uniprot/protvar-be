@@ -3,6 +3,7 @@ package uk.ac.ebi.pepvep.utils;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,8 +17,12 @@ public class Codon2AminoAcid {
 		codonAminoAcidMap = new HashMap<>();
 		InputStream inputFS = Codon2AminoAcid.class.getClassLoader().getResourceAsStream(CODON_MAPPING_FILE);
 		assert inputFS != null;
-		BufferedReader br = new BufferedReader(new InputStreamReader(inputFS));
-		br.lines().forEach(line -> {
+		BufferedReader br = new BufferedReader(new InputStreamReader(inputFS, StandardCharsets.UTF_8));
+		br.lines()
+			.filter(Commons::notNullNotEmpty)
+			.map(Commons::trim)
+			.filter(line -> !line.startsWith("#"))
+			.forEach(line -> {
 			String[] p = line.split("=");
 			codonAminoAcidMap.put(p[0], p[1]);
 		});

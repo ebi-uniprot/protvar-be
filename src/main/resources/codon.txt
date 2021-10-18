@@ -1,5 +1,6 @@
 ﻿DUMMY=DUMMY
-XXX=X
+#Very first line contain hidden [-17, -69, -65] negative bytes at start, not able find exact reason
+#That is why put dummy, else key will not going find in map
 UUU=PHE
 UUC=PHE
 UUA=LEU
@@ -26,8 +27,8 @@ CCA=PRO
 CCG=PRO
 CAU=HIS
 CAC=HIS
-CAA=GIN
-CAG=GIN
+CAA=GLN
+CAG=GLN
 CGU=ARG
 CGC=ARG
 CGA=ARG
