@@ -1,4 +1,4 @@
-# CSV format Version 1
+# CSV format Version 1.0
 The output file will be in CSV (comma separated values) format. The file is divided into the following general categories:
 
 * Header lines
