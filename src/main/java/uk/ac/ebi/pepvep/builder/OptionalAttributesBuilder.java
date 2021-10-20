@@ -20,10 +20,10 @@ import uk.ac.ebi.pepvep.model.response.Variation;
 @AllArgsConstructor
 public class OptionalAttributesBuilder {
 
-	private static final String UNIPROT_API_PEPVEP_BASE = "/variant/";
+	private static final String UNIPROT_API_PEPVEP_BASE = "/";
 	private static final String STRUCTURE_API = "structure";
 	private static final String FUNCTION_API = "function";
-	private static final String VARIATION_API = "variation";
+	private static final String POPULATION_API = "population";
 
 	private VariationFetcher variationFetcher;
 	private ProteinFetcher proteinFetcher;
@@ -81,7 +81,7 @@ public class OptionalAttributesBuilder {
 	}
 
 	private static String buildUri(String accession, int isoformPostion, long genomicLocation) {
-		return UNIPROT_API_PEPVEP_BASE + VARIATION_API + Constants.SLASH + accession + Constants.SLASH
+		return UNIPROT_API_PEPVEP_BASE + POPULATION_API + Constants.SLASH + accession + Constants.SLASH
 			+ isoformPostion + "?genomicLocation=" + genomicLocation;
 	}
 }
