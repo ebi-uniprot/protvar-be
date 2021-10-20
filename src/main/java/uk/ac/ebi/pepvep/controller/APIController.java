@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,7 +23,6 @@ import uk.ac.ebi.pepvep.service.APIService;
 
 @Api(tags = "PepVEP")
 @RestController
-@RequestMapping("/variant")
 @CrossOrigin
 @AllArgsConstructor
 public class APIController {
@@ -37,10 +35,10 @@ public class APIController {
 		return new ResponseEntity<>(protein, HttpStatus.OK);
 	}
 
-	@GetMapping(value = "/variation/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<PopulationObservation> getVariation(@PathVariable("accession") String accession,
+	@GetMapping(value = "/population/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<PopulationObservation> getPopulationObservation(@PathVariable("accession") String accession,
                                                             @PathVariable("position") int position) {
-		PopulationObservation variations = service.getVariation(accession, position);
+		PopulationObservation variations = service.getPopulationObservation(accession, position);
 		return new ResponseEntity<>(variations, HttpStatus.OK);
 	}
 
