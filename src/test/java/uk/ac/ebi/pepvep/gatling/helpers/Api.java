@@ -2,6 +2,7 @@ package uk.ac.ebi.pepvep.gatling.helpers;
 
 import io.gatling.core.javaapi.ChainBuilder;
 import io.gatling.core.javaapi.FeederBuilder;
+import uk.ac.ebi.pepvep.utils.TestHelper;
 
 import static io.gatling.core.javaapi.Predef.*;
 import static io.gatling.http.javaapi.Predef.*;
@@ -13,8 +14,10 @@ public interface Api {
   ChainBuilder mapping = exec(
     http("Mapping")
       .post(SUB_DOMAIN + "mapping")
-      .header("content-type","application/json")
-      .body(RawFileBody(""))
+      .header("content-type", "application/json")
+      .body(StringBody(TestHelper.getRandomMappingsJson(10)))
+      .check(jsonPath("mappings").notNull())
+      .check(jsonPath("invalidInputs").notNull())
   );
 
   ChainBuilder functionalAnnotations = feed(accession)

@@ -25,4 +25,10 @@ public class UserJourneys {
           .exec(Api.populationAnnotations)
       );
   }
+
+  public static ChainBuilder searchMappingsAndBrowseAnnotations() {
+    return exec(Api.mapping)
+
+      ;
+  }
 }
