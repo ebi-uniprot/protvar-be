@@ -14,14 +14,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import io.swagger.annotations.Api;
 import uk.ac.ebi.pepvep.model.response.GenomeProteinMapping;
 import uk.ac.ebi.pepvep.model.response.MappingResponse;
 import uk.ac.ebi.pepvep.model.response.PopulationObservation;
 import uk.ac.ebi.pepvep.model.response.Protein;
 import uk.ac.ebi.pepvep.service.APIService;
 
-@Api(tags = "PepVEP")
 @RestController
 @CrossOrigin
 @AllArgsConstructor

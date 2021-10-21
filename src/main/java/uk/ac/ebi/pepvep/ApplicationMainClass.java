@@ -15,17 +15,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
-import io.swagger.annotations.Api;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import uk.ac.ebi.pepvep.cache.RestTemplateCache;
 
 @SpringBootApplication
-@EnableSwagger2
-@Api
 @CrossOrigin
 public class ApplicationMainClass {
 	@Value(("${variation.api}"))
@@ -42,12 +34,6 @@ public class ApplicationMainClass {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ApplicationMainClass.class, args);
-	}
-
-	@Bean
-	public Docket swaggerConfigurarion() {
-		return new Docket(DocumentationType.SWAGGER_2).select().paths(PathSelectors.ant("/**/pepvep/variant/**"))
-				.apis(RequestHandlerSelectors.basePackage("uk.ac.ebi.pepvep")).build();
 	}
 
 	@Bean
