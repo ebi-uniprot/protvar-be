@@ -4,6 +4,8 @@ import io.gatling.core.javaapi.ChainBuilder;
 import io.gatling.core.javaapi.FeederBuilder;
 import uk.ac.ebi.pepvep.utils.TestHelper;
 
+import java.util.List;
+
 import static io.gatling.core.javaapi.Predef.*;
 import static io.gatling.http.javaapi.Predef.*;
 
@@ -15,9 +17,10 @@ public interface Api {
     http("Mapping")
       .post(SUB_DOMAIN + "mapping")
       .header("content-type", "application/json")
-      .body(StringBody(TestHelper.getRandomMappingsJson(10)))
-      .check(jsonPath("mappings").notNull())
-      .check(jsonPath("invalidInputs").notNull())
+      .body(StringBody(TestHelper.getRandomMappingsJson(25)))
+      .check(status().is(200))
+      .check(jmesPath("mappings").ofList().transform(List::size).is(25))
+      .check(jmesPath("invalidInputs").notNull())
   );
 
   ChainBuilder functionalAnnotations = feed(accession)
@@ -27,7 +30,6 @@ public interface Api {
         .check(status().is(200))
         .check(jmesPath("position").is(session -> session.getString("proteinPosition")))
         .check(jmesPath("accession").is(session -> session.getString("accession")))
-        .check(jmesPath("name").exists())
     );
 
   ChainBuilder populationAnnotations = feed(accession)

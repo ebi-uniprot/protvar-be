@@ -34,11 +34,11 @@ public class BasicSimulation extends Simulation {
 //    HttpProtocolBuilder httpProtocol = http().baseUrl("https://" + domain);
     HttpProtocolBuilder httpProtocol = http().baseUrl("http://" + domain);
 
-    //    setUp(
-//      UserBehaviour.regular(testDuration).injectOpen(rampUsers(userCount).during(rampDuration)).protocols(httpProtocol),
+        setUp(
+      UserBehaviour.regular(testDuration).injectOpen(rampUsers(userCount).during(rampDuration)).protocols(httpProtocol)//,
 //      UserBehaviour.highPurchase(testDuration).injectOpen(rampUsers(5).during(10)).protocols(httpProtocol)
-//    );
-    setUp(scenario("Debug simple").exec(UserJourneys.browseStaticPages()).injectOpen(atOnceUsers(1)).protocols(httpProtocol));
+    );
+//    setUp(scenario("Debug simple").exec(UserJourneys.browseStaticPages()).injectOpen(atOnceUsers(40)).protocols(httpProtocol));
   }
 
   private String getProperty(String propertyName, String defaultValue) {

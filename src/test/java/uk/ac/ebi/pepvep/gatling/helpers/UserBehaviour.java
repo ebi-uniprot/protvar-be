@@ -11,8 +11,8 @@ public class UserBehaviour {
       .during(testDuration)
       .loop(
         randomSwitch(
-          new Possibility.WithWeight(75d, exec(UserJourneys.browseStaticPages()))//,
-//          new Possibility.WithWeight(15d, exec(UserJourneys.)),
+          new Possibility.WithWeight(10d, exec(UserJourneys.browseStaticPages())),
+          new Possibility.WithWeight(80d, exec(UserJourneys.searchMappingsAndBrowseAnnotations()))//,
 //          new Possibility.WithWeight(10d, exec(UserJourneys.))
         )
       );

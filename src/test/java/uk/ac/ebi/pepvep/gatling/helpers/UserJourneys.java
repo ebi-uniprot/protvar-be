@@ -17,18 +17,17 @@ public class UserJourneys {
       .pause(maxPause)
       .exec(Pages.aboutUs)
       .pause(minPause, maxPause)
-      .exec(Pages.contactUs)
+      .exec(Pages.contactUs);
+  }
+
+  public static ChainBuilder searchMappingsAndBrowseAnnotations() {
+    return exec(Api.mapping)
+      .pause(minPause, maxPause)
       .repeat(5)
       .loop(
         exec(Api.functionalAnnotations)
           .pause(minPause, maxPause)
           .exec(Api.populationAnnotations)
       );
-  }
-
-  public static ChainBuilder searchMappingsAndBrowseAnnotations() {
-    return exec(Api.mapping)
-
-      ;
   }
 }
