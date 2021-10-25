@@ -2,6 +2,9 @@ package uk.ac.ebi.pepvep;
 
 import java.nio.charset.StandardCharsets;
 
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -87,5 +90,16 @@ public class ApplicationMainClass {
 		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
 		restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeAPI));
 		return restTemplate;
+	}
+
+	@Bean
+	public OpenAPI customOpenAPI() {
+		return new OpenAPI()
+			.components(new Components())
+			.info(
+				new Info()
+					.title("Pepvep API")
+					.description("This RESTful service using springdoc-openapi and OpenAPI 3.")
+			);
 	}
 }
