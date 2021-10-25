@@ -35,6 +35,13 @@ public class APIController {
 		return new ResponseEntity<>(protein, HttpStatus.OK);
 	}
 
+	/**
+	 * Get population observation information for given position using uniprot variation api
+	 * @param accession Uniprot accession
+	 * @param position Amino Acid position
+	 * @return List of proteinColocatedVariants and genomicColocatedVariants. For now genomicColocatedVariants will be
+	 * null
+	 */
 	@GetMapping(value = "/population/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<PopulationObservation> getPopulationObservation(@PathVariable("accession") String accession,
                                                             @PathVariable("position") int position) {
