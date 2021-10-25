@@ -2,6 +2,7 @@ package uk.ac.ebi.pepvep.controller;
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -20,6 +21,7 @@ import uk.ac.ebi.pepvep.model.response.PopulationObservation;
 import uk.ac.ebi.pepvep.model.response.Protein;
 import uk.ac.ebi.pepvep.service.APIService;
 
+@Tag(name = "Search", description = "Variation mapping and detail annotations")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
@@ -60,6 +62,11 @@ public class APIController {
 		return new ResponseEntity<>(mappings, HttpStatus.OK);
 	}
 
+	/**
+	 * Maps user provided mapping to check variations
+	 * @param inputs array of mappings
+	 * @return MappingResponse
+	 */
 	@PostMapping(value = "/mapping", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<MappingResponse> getGenomeProteinMappings(@RequestBody List<String> inputs,
                                                                   @RequestParam(name = "function", required = false, defaultValue = "false") boolean function,

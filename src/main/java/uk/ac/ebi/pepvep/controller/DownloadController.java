@@ -6,6 +6,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +24,7 @@ import uk.ac.ebi.pepvep.builder.OptionBuilder;
 import uk.ac.ebi.pepvep.fetcher.csv.CSVDataFetcher;
 import uk.ac.ebi.pepvep.utils.FileUtils;
 
+@Tag(name = "Download Mappings", description = "Stream download or send email")
 @RestController
 @RequestMapping("/download")
 @CrossOrigin
