@@ -3,7 +3,9 @@ package uk.ac.ebi.pepvep;
 import java.nio.charset.StandardCharsets;
 
 import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
@@ -94,12 +96,15 @@ public class ApplicationMainClass {
 
 	@Bean
 	public OpenAPI customOpenAPI() {
+		var description = "Welcome to api documentation. You can know how to use api and try it with examples provided." +
+			" REST api uses OpenAPI 3. Meaning you can use utils like openapi-generator to generate model classes on run.";
 		return new OpenAPI()
 			.components(new Components())
-			.info(
-				new Info()
-					.title("Pepvep API")
-					.description("This RESTful service using springdoc-openapi and OpenAPI 3.")
+			.externalDocs(new ExternalDocumentation()
+				.description("openapi-generator").url("https://github.com/OpenAPITools/openapi-generator")
+			)
+			.info(new Info().title("Pepvep API docs & try").description(description)
+					.contact(new Contact().name("PepVep").email("abc").url("/sdfs/sdf/sd"))
 			);
 	}
 }

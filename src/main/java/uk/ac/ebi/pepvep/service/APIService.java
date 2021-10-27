@@ -6,10 +6,7 @@ import uk.ac.ebi.pepvep.fetcher.MappingFetcher;
 import uk.ac.ebi.pepvep.fetcher.PDBeFetcher;
 import uk.ac.ebi.pepvep.fetcher.ProteinFetcher;
 import uk.ac.ebi.pepvep.fetcher.VariationFetcher;
-import uk.ac.ebi.pepvep.model.response.GenomeProteinMapping;
-import uk.ac.ebi.pepvep.model.response.MappingResponse;
-import uk.ac.ebi.pepvep.model.response.PopulationObservation;
-import uk.ac.ebi.pepvep.model.response.Protein;
+import uk.ac.ebi.pepvep.model.response.*;
 import uk.ac.ebi.pepvep.builder.OptionBuilder;
 import uk.ac.ebi.pepvep.builder.OptionBuilder.OPTIONS;
 
@@ -46,7 +43,7 @@ public class APIService {
 		return populationFetcher.fetchPopulationObservation(accession, position + "-" + position);
 	}
 
-	public Object getStructure(String accession, int position) {
+	public List<PDBeStructure> getStructure(String accession, int position) {
 		return pdbeFetcher.fetchByAccession(accession, position);
 	}
 }
