@@ -1,8 +1,8 @@
 # VCF format
 
-* PepVEP currently supports the annotation of single nucleotide variants (SNVs).
-* PepVEP accepts user variant data using the standard VCF format with eight columns. Details can be found at https://www.ebi.ac.uk/training/online/courses/human-genetic-variation-introduction/variant-identification-and-analysis/understanding-vcf-format/
-* PepVEP is also able to support VCF-like formats and only the first five columns are used. Any white space delimiters are tolerated.
+* ProtVar currently supports the annotation of single nucleotide variants (SNVs).
+* ProtVar accepts user variant data using the standard VCF format with eight columns. Details can be found at https://www.ebi.ac.uk/training/online/courses/human-genetic-variation-introduction/variant-identification-and-analysis/understanding-vcf-format/
+* ProtVar is also able to support VCF-like formats and only the first five columns are used. Any white space delimiters are tolerated.
 * **Header lines** in the input file are optional and will be ignored. But they should start with #
 
 ## Input fields
@@ -24,19 +24,19 @@ The identity of the fourth (and fifth) fields can alter the interpretation of th
 
 
 
-**IDs are not permitted to contain only a nucleotide base eg "C" or "A" or "G" or "T" or any combination eg "C/T", "A/G". Otherwise PepVEP will interpret these as reference or variant alleles.**
+**IDs are not permitted to contain only a nucleotide base eg "C" or "A" or "G" or "T" or any combination eg "C/T", "A/G". Otherwise ProtVar will interpret these as reference or variant alleles.**
 
 ### Reference allele
 
-The column following the ID is interpreted as the reference allele. If no ID is supplied by the user then the third column is considered as the reference allele. The reference allele is currently limited to "A" or "C" or "G" or "T". Currently PepVEP only supports SNV annotation and so multiple nucleobases indicating deletions or structural variations are not permitted.
+The column following the ID is interpreted as the reference allele. If no ID is supplied by the user then the third column is considered as the reference allele. The reference allele is currently limited to "A" or "C" or "G" or "T". Currently ProtVar only supports SNV annotation and so multiple nucleobases indicating deletions or structural variations are not permitted.
 
 ### Alternative allele
 
-The column following the reference allele is interpreted as the alternative allele. If no ID is supplied by the user then the fourth column is considered as the alternative allele. The alternative allele is currently limited to "A" or "C" or "G" or "T". Currently PepVEP only supports SNV annotation and so multiple nucleobases indicating insertions or structural variations are not permitted.
+The column following the reference allele is interpreted as the alternative allele. If no ID is supplied by the user then the fourth column is considered as the alternative allele. The alternative allele is currently limited to "A" or "C" or "G" or "T". Currently ProtVar only supports SNV annotation and so multiple nucleobases indicating insertions or structural variations are not permitted.
 
 ### Additional fields
 
-Additional fields can be included in addition to the three/four mandatory fields but they are not interpreted by PepVEP.
+Additional fields can be included in addition to the three/four mandatory fields but they are not interpreted by ProtVar.
 
 ### Examples
 

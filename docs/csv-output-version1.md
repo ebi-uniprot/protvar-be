@@ -102,8 +102,8 @@ Contains information regarding mapping of the user variant input to the encoded 
 * Consequences
 
 ### 14(N). Uniprot_canonical_isoform_(non_canonical)
-This is the accession of the canonical isoform of the protein if PepVEP can map to this. PepVEP always attempts to map to this isoform because 
-most of the UniProt annotations are based on numbering in the canonical. Sometimes PepVEP cannot map to the canonical isoform
+This is the accession of the canonical isoform of the protein if ProtVar can map to this. ProtVar always attempts to map to this isoform because 
+most of the UniProt annotations are based on numbering in the canonical. Sometimes ProtVar cannot map to the canonical isoform
 but can to another isoform (sequence version of the protein). In these cases brackets are displayed around the accession to show that the mapping is to a non-canonical isoform.
 accessions? P12345
 ### 15(O). Alternative_isoform_mappings

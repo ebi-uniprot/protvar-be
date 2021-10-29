@@ -112,7 +112,7 @@ may not translate into the UniProt canonical isoform sequence.In this new column
 identifier if the MANE select transcript .translates to the UniProt canonical isoform and “no” if the MANE select
 transcript does not translate to the UniProt canonical isoform.
 ### 14. Uniprot Canonical isoform (non-canonical)
-This is the accession of the canonical isoform of the protein. PepVEP always attempts to map to this isoform because
+This is the accession of the canonical isoform of the protein. ProtVar always attempts to map to this isoform because
 most of the UniProt annotations are based on numbering in the canonical. Sometimes we cannot map to the canonical
 but we can to another isoform (sequence version of the protein). It would be great if we could distinguish between
 instances where we can map to the canonical and when we cannot. Can we add an asterisk or brackets around non-canonical

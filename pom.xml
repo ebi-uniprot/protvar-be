@@ -10,10 +10,10 @@
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
 
-  <artifactId>pepvep-service</artifactId>
+  <artifactId>ProtVar-service</artifactId>
   <version>0.0.1-SNAPSHOT</version>
-  <name>pepvep-service</name>
-  <description>PepVEP Service</description>
+  <name>ProtVar-service</name>
+  <description>ProtVar Service</description>
 
   <properties>
     <java.version>11</java.version>
@@ -135,7 +135,7 @@
         <version>4.0.0-M1</version>
         <configuration>
           <includes>
-            <include>uk.ac.ebi.pepvep.gatling.*</include>
+            <include>uk.ac.ebi.protvar.gatling.*</include>
           </includes>
         </configuration>
       </plugin>

@@ -1,20 +1,20 @@
 apiVersion: v1 # Specifies what version of K8s you want to use
 kind: Service # A service is used to expose your Deployment to the external access
 metadata:
-  name: pepvep-be
+  name: protvar-be
 spec:
   ports: # Don't set nodePort (external facing) in case it's conflict with another services
     - port: 80 # Internally exposes the service on this port within the k8s cluster. Other pods within the cluster can communicate with this server on this port
       protocol: TCP
       targetPort: 8080 # The port on which the service will forward requests to, that your pod will be listening on. springboot in the container will need to be listening on this port also.
   selector:
-    app: pepvep-be # Selects the Deployment to attach the Service to
+    app: protvar-be # Selects the Deployment to attach the Service to
   type: NodePort # Tell K8s this wants to expose an external port
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: pepvep-logs
+  name: protvar-logs
 spec:
   storageClassName: standard-nfs-production
   accessModes:
@@ -26,26 +26,26 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: pepvep-be
+  name: protvar-be
 spec:
   selector:
     matchLabels:
-      app: pepvep-be # Has to match .spec.template.metadata.labels
+      app: protvar-be # Has to match .spec.template.metadata.labels
   replicas: 1
   revisionHistoryLimit: 0
   template:
     metadata:
       labels:
-        app: pepvep-be # Has to match .spec.selector.matchLabels
+        app: protvar-be # Has to match .spec.selector.matchLabels
     spec:
       terminationGracePeriodSeconds: 10
       containers:
-        - name: pepvep-be
-          image: dockerhub.ebi.ac.uk/uniprot/deployment/mirror-pepvep-be:latest # The image which contains springboot app
+        - name: protvar-be
+          image: dockerhub.ebi.ac.uk/uniprot/deployment/mirror-protvar-be:latest # The image which contains springboot app
           ports:
             - containerPort: 8080 # default port for springboot
           volumeMounts:
-            - name: pepvep-be-logs
+            - name: protvar-be-logs
               mountPath: /var/log
           env:
             - name: logging.file.path
@@ -66,8 +66,8 @@ spec:
             initialDelaySeconds: 5 # wait 5 seconds before performing the first readiness probe
             periodSeconds: 3 # perform a readiness probe every 3 seconds
       volumes:
-        - name: pepvep-be-logs
+        - name: protvar-be-logs
           persistentVolumeClaim:
-            claimName: pepvep-logs
+            claimName: protvar-logs
       imagePullSecrets:
         - name: gitlab-registry # created by deploy script using env variables Provided by GitLab, this allows K8s to connect to dockerhub.ebi.ac.uk
