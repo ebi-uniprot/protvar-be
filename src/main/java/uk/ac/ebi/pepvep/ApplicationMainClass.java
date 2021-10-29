@@ -2,6 +2,11 @@ package uk.ac.ebi.pepvep;
 
 import java.nio.charset.StandardCharsets;
 
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.ExternalDocumentation;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Contact;
+import io.swagger.v3.oas.models.info.Info;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,17 +20,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 
-import io.swagger.annotations.Api;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import uk.ac.ebi.pepvep.cache.RestTemplateCache;
 
 @SpringBootApplication
-@EnableSwagger2
-@Api
 @CrossOrigin
 public class ApplicationMainClass {
 	@Value(("${variation.api}"))
@@ -42,12 +39,6 @@ public class ApplicationMainClass {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ApplicationMainClass.class, args);
-	}
-
-	@Bean
-	public Docket swaggerConfigurarion() {
-		return new Docket(DocumentationType.SWAGGER_2).select().paths(PathSelectors.ant("/**/pepvep/variant/**"))
-				.apis(RequestHandlerSelectors.basePackage("uk.ac.ebi.pepvep")).build();
 	}
 
 	@Bean
@@ -101,5 +92,19 @@ public class ApplicationMainClass {
 		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
 		restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeAPI));
 		return restTemplate;
+	}
+
+	@Bean
+	public OpenAPI customOpenAPI() {
+		var description = "Welcome to api documentation. You can know how to use api and try it with examples provided." +
+			" REST api uses OpenAPI 3. Meaning you can use utils like openapi-generator to generate model classes on run.";
+		return new OpenAPI()
+			.components(new Components())
+			.externalDocs(new ExternalDocumentation()
+				.description("openapi-generator").url("https://github.com/OpenAPITools/openapi-generator")
+			)
+			.info(new Info().title("Pepvep API docs & try").description(description)
+					.contact(new Contact().name("PepVep").email("abc").url("/sdfs/sdf/sd"))
+			);
 	}
 }

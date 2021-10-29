@@ -27,16 +27,17 @@ public class CSVDataFetcher {
 
 	private final Logger logger = LoggerFactory.getLogger(CSVDataFetcher.class);
 
-	private static final String CSV_HEADER_INPUT = "USER INPUT,CHROMOSOME,COORDINATE,ID,REF,ALT";
-	private static final String CSV_HEADER_NOTES = "NOTES";
-	private static final String CSV_HEADER_OUTPUT_MAPPING = "GENE,CODON CHANGE,STRAND,CADD PHRED,TRANSCRIPTS OF THE CANONICAL ISOFORM,"
-		+ "MANE TRANSCRIPT,UNIPROT CANONICAL ISOFORM,ALTERNATIVE ISOFORM DETAILS,PROTEIN NAME,AMINO ACID POSITION,AMINO ACID CHANGE,CONSEQUENCES";
-	private static final String CSV_HEADER_OUTPUT_FUNCTION = "RESIDUE FUNCTION (EVIDENCE),REGION FUNCTION (EVIDENCE),"
-		+ "PROTEIN EXISTENCE,PROTEIN LENGTH,ENTRY LAST UPDATED,SEQUENCE LAST UPDATED,PROTEIN CATALYTIC ACTIVITY,"
-		+ "PROTEIN COMPLEX,PROTEIN SUBCELLULAR LOCATION,PROTEIN FAMILY,PROTEIN INTERACTIONS - PROTEIN(GENE)";
-	private static final String CSV_HEADER_OUTPUT_POPULATION = "GENOMIC LOCATION,CYTOGENETIC BAND,OTHER IDENTIFIERS FOR SAME VARIANT,"
-		+ "DISEASES ASSOCIATED WITH VARIANT,VARIANTS CO-LOCATED AT SAME RESIDUE POSITION";
-	private static final String CSV_HEADER_OUTPUT_STRUCTURE = "STRUCTURE";
+	private static final String CSV_HEADER_INPUT = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele";
+	private static final String CSV_HEADER_NOTES = "Notes";
+	private static final String CSV_HEADER_OUTPUT_MAPPING = "Gene,Codon_change,Strand,CADD_phred_like_score,"
+		+ "Canonical_isoform_transcripts,MANE_transcript,Uniprot_canonical_isoform_(non_canonical),"
+		+ "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences";
+	private static final String CSV_HEADER_OUTPUT_FUNCTION = "Residue_function_(evidence),Region_function_(evidence),"
+		+ "Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,"
+		+ "Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)";
+	private static final String CSV_HEADER_OUTPUT_POPULATION = "Genomic_location,Cytogenetic_band,Other_identifiers_for_the_variant,"
+		+ "Diseases_associated_with_variant,Variants_colocated_at_residue_position";
+	private static final String CSV_HEADER_OUTPUT_STRUCTURE = "Position_in_structures";
 	private static final String CSV_HEADER_OUTPUT = CSV_HEADER_OUTPUT_MAPPING + Constants.COMMA + CSV_HEADER_OUTPUT_FUNCTION + Constants.COMMA
 		+ CSV_HEADER_OUTPUT_POPULATION + Constants.COMMA + CSV_HEADER_OUTPUT_STRUCTURE;
 

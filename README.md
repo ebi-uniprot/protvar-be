@@ -19,3 +19,8 @@ The Main class is uk.ac.ebi.pepvep.ApplicationMainClass
    2. spring.datasource.username
    3. spring.datasource.password
 4. Start the application using mvn spring-boot:run
+
+## Load/Stress Testing
+1. We are using gatling to test application
+2. Use mvn gatling:test -Dgatling.simulationClass=uk.ac.ebi.pepvep.gatling.simulations.BasicSimulation
+3. or mvn gatling:test

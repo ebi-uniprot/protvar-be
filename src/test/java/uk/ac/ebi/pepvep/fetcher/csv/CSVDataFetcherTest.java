@@ -19,13 +19,14 @@ class CSVDataFetcherTest {
   class Header {
     @Test
     void csvHeader() {
-      var header = "USER INPUT,CHROMOSOME,COORDINATE,ID,REF,ALT,NOTES,GENE,CODON CHANGE,STRAND,CADD PHRED," +
-        "TRANSCRIPTS OF THE CANONICAL ISOFORM,MANE TRANSCRIPT,UNIPROT CANONICAL ISOFORM,ALTERNATIVE ISOFORM DETAILS," +
-        "PROTEIN NAME,AMINO ACID POSITION,AMINO ACID CHANGE,CONSEQUENCES,RESIDUE FUNCTION (EVIDENCE)," +
-        "REGION FUNCTION (EVIDENCE),PROTEIN EXISTENCE,PROTEIN LENGTH,ENTRY LAST UPDATED,SEQUENCE LAST UPDATED," +
-        "PROTEIN CATALYTIC ACTIVITY,PROTEIN COMPLEX,PROTEIN SUBCELLULAR LOCATION,PROTEIN FAMILY," +
-        "PROTEIN INTERACTIONS - PROTEIN(GENE),GENOMIC LOCATION,CYTOGENETIC BAND,OTHER IDENTIFIERS FOR SAME VARIANT," +
-        "DISEASES ASSOCIATED WITH VARIANT,VARIANTS CO-LOCATED AT SAME RESIDUE POSITION,STRUCTURE";
+      var header = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele,Notes,Gene,Codon_change," +
+        "Strand,CADD_phred_like_score,Canonical_isoform_transcripts,MANE_transcript,Uniprot_canonical_isoform_(non_canonical)," +
+        "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences," +
+        "Residue_function_(evidence),Region_function_(evidence),Protein_existence_evidence,Protein_length," +
+        "Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location," +
+        "Protein_family,Protein_interactions_PROTEIN(gene),Genomic_location,Cytogenetic_band," +
+        "Other_identifiers_for_the_variant,Diseases_associated_with_variant,Variants_colocated_at_residue_position," +
+        "Position_in_structures";
       assertEquals(header, CSVDataFetcher.CSV_HEADER);
     }
 
