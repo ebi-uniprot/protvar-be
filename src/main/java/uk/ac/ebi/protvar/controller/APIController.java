@@ -28,7 +28,8 @@ public class APIController {
 	private APIService service;
 
 	/**
-	 * Return protein information. This is a wrapper api upon https://www.ebi.ac.uk/proteins/api/proteins/
+	 * Return protein information related to specific position and dropping everything else which is ot relevant to position.
+	 * This is a wrapper api upon https://www.ebi.ac.uk/proteins/api/proteins/
 	 * <a href="https://www.ebi.ac.uk/proteins/api/proteins/" target="_new">protein api</a>
 	 * to help us generate data for our web application and download. Please consider calling protein api directly if you
 	 * need data related to uniprot accession. That would be lot faster for you
@@ -45,7 +46,7 @@ public class APIController {
 	}
 
 	/**
-	 * Get population observation information for given position using
+	 * Get population observation information for given position and dropping everything else which is ot relevant using
 	 * <a href="https://www.ebi.ac.uk/proteins/api/doc/#/variation" target="_new">variation api</a>
 	 * with endpoint https://www.ebi.ac.uk/proteins/api/variation/ Please consider calling variation api directly if you
 	 * need related data. That would be lot faster for you
