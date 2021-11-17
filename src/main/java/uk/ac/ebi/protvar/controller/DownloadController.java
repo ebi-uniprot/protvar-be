@@ -58,8 +58,11 @@ public class DownloadController implements WebMvcConfigurer {
 		  @RequestParam(required = false, defaultValue = "false") boolean structure) throws Exception {
 		List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
 		Path newFile = FileUtils.writeFile(file);
-		csvDataFetcher.sendCSVResult(newFile, options, email, jobName);
-		Files.delete(newFile);
+		try {
+			csvDataFetcher.sendCSVResult(newFile, options, email, jobName);
+		} finally {
+			Files.delete(newFile);
+		}
 		return "Your job submitted successfully, report will be sent to email " + email;
 	}
 

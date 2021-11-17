@@ -51,13 +51,28 @@ public class CSVDataFetcher {
 	private CSVStructureDataFetcher csvStructureDataFetcher;
 
 	public void sendCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName) throws Exception {
-		sendCSVResult(inputs.stream(), options, email, jobName);
+		try {
+			sendCSVResult(inputs.stream(), options, email, jobName);
+		} catch (Exception e) {
+			Email.sendErr(email, jobName, inputs);
+			throw reportError(email, jobName, e);
+		}
 	}
 
 	public void sendCSVResult(Path path, List<OPTIONS> options, String email, String jobName) throws Exception {
 		try(BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path.toFile())))) {
       sendCSVResult(br.lines(), options, email, jobName);
-    }
+    }catch (Exception e) {
+			Email.sendErr(email, jobName, path);
+			throw reportError(email, jobName, e);
+		}
+	}
+
+	private Exception reportError(String email, String jobName, Exception e) {
+		var detail = "Download failed user:" + email + " job:" + jobName;
+		logger.error(detail, e);
+		Email.reportException("user:" + email + " job:" + jobName, detail, e);
+		return new Exception("Your request failed, check your email for details");
 	}
 
 	private void sendCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName) throws Exception {

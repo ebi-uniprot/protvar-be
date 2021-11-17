@@ -1,0 +1,12 @@
+Dear user,
+
+Our apologies but we have been unable to retrieve results for your query.
+Please check the PortVar website again for information relating to any potential issues: https://www.ebi.ac.uk/PortVar/
+Please also check the frequently asked questions for potential upload problems here: https://www.ebi.ac.uk/PortVar/faqs
+Please re-submit your query. If the problem persists then please contact us with your inputs.
+
+For any additional queries please feel free to contact us.
+
+Kind regards,
+PortVar Team
+protvar.ebi.ac.uk
