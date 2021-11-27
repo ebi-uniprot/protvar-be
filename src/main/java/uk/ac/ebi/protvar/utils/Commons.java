@@ -178,6 +178,12 @@ public class Commons {
   }
 
   @Nullable
+  public static String upperFirstRemainingLower(@Nullable String str) {
+    if (nullOrEmpty(str)) return str;
+    return Character.toTitleCase(str.charAt(0)) + str.substring(1).toLowerCase();
+  }
+
+  @Nullable
   public static String lowerFirstChar(@Nullable String str) {
     if (nullOrEmpty(str)) return str;
     return Character.toLowerCase(str.charAt(0)) + str.substring(1);

@@ -130,6 +130,31 @@ class CommonsTest {
         assertTrue(Commons.notNullNotEmpty(test));
       }
     }
+
+    @Nested
+    class upperFirstRemainingLower {
+      @Test
+      void whenNullOrEmpty_returnFalse() {
+        assertAll(
+          () -> assertNull(Commons.upperFirstRemainingLower(null)),
+          () -> assertEquals("   ", Commons.upperFirstRemainingLower("   ")),
+          () -> assertEquals("", Commons.upperFirstRemainingLower("")));
+      }
+
+      @Test
+      void singleCharacter() {
+        assertAll(
+          () -> assertEquals("A", Commons.upperFirstRemainingLower("a")),
+          () -> assertEquals("B", Commons.upperFirstRemainingLower("B")));
+      }
+
+      @Test
+      void twoCharacters() {
+        assertAll(
+          () -> assertEquals("Ab", Commons.upperFirstRemainingLower("ab")),
+          () -> assertEquals("Bc", Commons.upperFirstRemainingLower("BC")));
+      }
+    }
   }
 
   @Nested

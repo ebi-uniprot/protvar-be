@@ -10,6 +10,8 @@ import lombok.Builder;
 import lombok.Getter;
 import uk.ac.ebi.protvar.model.api.ProteinFeature;
 
+import static uk.ac.ebi.protvar.utils.Commons.upperFirstRemainingLower;
+
 @Getter
 @Builder
 @JsonPropertyOrder({ "accession", "canonical" })
@@ -57,7 +59,14 @@ public class IsoFormMapping implements Comparable<IsoFormMapping> {
 		return refCodon + "/" + variantCodon;
 	}
 	public String getAminoAcidChange(){
-		return refAA + "/" + variantAA;
+		return getRefAA() + "/" + getVariantAA();
+	}
+	public String getRefAA() {
+		return upperFirstRemainingLower(refAA);
+	}
+
+	public String getVariantAA() {
+		return upperFirstRemainingLower(variantAA);
 	}
 	@Override
 	public int compareTo(IsoFormMapping o) {

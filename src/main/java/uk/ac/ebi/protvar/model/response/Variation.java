@@ -16,6 +16,8 @@ import uk.ac.ebi.protvar.model.api.DSVPopulationFrequency;
 import uk.ac.ebi.protvar.model.api.Evidence;
 import uk.ac.ebi.protvar.model.api.Prediction;
 
+import static uk.ac.ebi.protvar.utils.Commons.upperFirstRemainingLower;
+
 @Getter
 @Setter
 public class Variation {
@@ -47,4 +49,11 @@ public class Variation {
 	private List<DSVAssociation> association = new ArrayList<>();
 	private List<DSVClinicalSignificance> clinicalSignificances = new ArrayList<>();
 
+	public String getWildType() {
+		return upperFirstRemainingLower(wildType);
+	}
+
+	public String getAlternativeSequence() {
+		return upperFirstRemainingLower(alternativeSequence);
+	}
 }
