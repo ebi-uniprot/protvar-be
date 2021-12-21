@@ -6,7 +6,9 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.swagger.v3.oas.annotations.ExternalDocumentation;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.http.MediaType;
@@ -23,95 +25,104 @@ import uk.ac.ebi.protvar.fetcher.csv.CSVDataFetcher;
 import uk.ac.ebi.protvar.utils.FileUtils;
 
 
-@Tag(name = "Download Variations",
-  description = "Stream download results or send email. All below endpoints take same format of input and produces" +
-    " same csv files. Currently support VCF format as input",
-  externalDocs = @ExternalDocumentation(
-    url = "https://github.com/ebi-uniprot/protvar-be/blob/main/docs/csv-output-version1.md",
-    description = "Result csv file & columns details"))
+@Tag(name = "Generate Variant Annotation Files",
+  description = "Retrieve annotations for a list of protein coding variants.\n\n\n" +
+    "All three endpoints in this section require a list of genomic variant inputs and all return a .csv file" +
+    " in the same format as the “download” service in the ProtVar website. A description of the columns in the " +
+    "file can be found <a href='https://github.com/ebi-uniprot/protvar-be/blob/main/docs/csv-output-version1.md' target='_new'>here</a>." +
+    " The user can choose which types of annotations are required.\n\n\n" +
+    "<strong>Please note that large lists where all annotations are requested will take a long time to respond.<strong>")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
 public class DownloadController implements WebMvcConfigurer {
-	private CSVDataFetcher csvDataFetcher;
+  private CSVDataFetcher csvDataFetcher;
 
   /**
-   * Takes file and send results to user's email. Call to this endpoint will return once email sent to user
-   * after all the processing.
+   * Users submit a path to a genomic coordinates variants file in VCF format on their local machine and annotations
+   * are returned via email. The call to this endpoint will return once processing has been completed and the results
+   * email has been sent.
    *
-   * @param file       Full path to file (which you want to process) containing inputs mappings. Each line will contain
-   *                   single mapping entry. Details about
-   *                   <a href="https://github.com/ebi-uniprot/protvar-be/blob/main/docs/vcf-format.md">VCF</a> format
-   * @param email      Address where you want to receive results once processing it is done
-   * @param jobName    Identifier to help you remember job, part of email subject
-   * @param function   Do you want to include functional annotations in results
-   * @param population Do you want to include population annotations in results
-   * @param structure  Do you want to include structural annotations in results
+   * @param file       Full path to VCF format variants file which you would like to process Each should contain a
+   *                   single variant. Details about VCF format and variations accepted can be found
+   *                   <a href="https://github.com/ebi-uniprot/protvar-be/blob/main/docs/vcf-format.md" target='_new'>here</a>
+   * @param email      Email address where you want to receive your results once processing is complete
+   * @param jobName    Identifier to help you track your jobs. This will form part of the returned email subject
+   * @param function   Include functional annotations in results
+   * @param population Include population annotations (residue co-located variants and disease associations) in results
+   * @param structure  Include structural annotations in results
    * @return <code>String</code> confirming you have received email
    * @throws Exception server side exception if something goes wrong
    */
-	@PostMapping(value = "/email/process/file", produces = MediaType.APPLICATION_JSON_VALUE)
-	public String upload(@RequestParam MultipartFile file, @RequestParam String email,
-			@RequestParam(required = false) String jobName,
-			@RequestParam(required = false, defaultValue = "false") boolean function,
-			@RequestParam(required = false, defaultValue = "false") boolean population,
-		  @RequestParam(required = false, defaultValue = "false") boolean structure) throws Exception {
-		List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
-		Path newFile = FileUtils.writeFile(file);
-		try {
-			csvDataFetcher.sendCSVResult(newFile, options, email, jobName);
-		} finally {
-			Files.delete(newFile);
-		}
-		return "Your job submitted successfully, report will be sent to email " + email;
-	}
+  @Operation(summary = "– upload a VCF format variants file and retrieve results via email")
+  @PostMapping(value = "/email/process/file", produces = MediaType.APPLICATION_JSON_VALUE)
+  public String upload(@RequestParam MultipartFile file, @RequestParam String email,
+                       @RequestParam(required = false) String jobName,
+                       @RequestParam(required = false, defaultValue = "false") boolean function,
+                       @RequestParam(required = false, defaultValue = "false") boolean population,
+                       @RequestParam(required = false, defaultValue = "false") boolean structure) throws Exception {
+    List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
+    Path newFile = FileUtils.writeFile(file);
+    try {
+      csvDataFetcher.sendCSVResult(newFile, options, email, jobName);
+    } finally {
+      Files.delete(newFile);
+    }
+    return "Your job submitted successfully, report will be sent to email " + email;
+  }
 
   /**
-   * Takes user data in body and send results to user's email. Call to this endpoint will return once email sent to user
-   * after all the processing.
+   * Users submit a list of genomic coordinate variant inputs in VCF format and receive annotation results via email.
+   * The call to this endpoint will return once processing has been completed and the results email has been sent
    *
-   * @param inputs     Data which you want to analysis. List of String
-   *                   ["19 1010539 G C","14 89993420 A/G", "10 87933147 rs7565837 C/T"]
-   * @param email      Address where you want to receive results once processing it is done
-   * @param jobName    Identifier to help you remember job, part of email subject
-   * @param function   Do you want to include functional annotations in results
-   * @param population Do you want to include population annotations in results
-   * @param structure  Do you want to include structural annotations in results
-   * @return <code>String</code> confirming you have received email
+   * @param inputs     Variants which you wish to retrieve annotations for in json string array format
+   * @param email      Email address where you want to receive your results once processing is complete
+   * @param jobName    Identifier to help you track your jobs. This will form part of the returned email subject
+   * @param function   Include functional annotations in results
+   * @param population Include population annotations (residue co-located variants and disease associations) in results
+   * @param structure  Include structural annotations in results
+   * @return <code>String</code> confirming the results email has been sent
    * @throws Exception Server side exception if something goes wrong
    */
-	@PostMapping(value = "/email/process/inputs", produces = MediaType.APPLICATION_JSON_VALUE)
-	public String search(@RequestBody List<String> inputs,
-			@RequestParam String email,
-			@RequestParam(required = false) String jobName,
-			@RequestParam(required = false, defaultValue = "false") boolean function,
-			@RequestParam(required = false, defaultValue = "false") boolean population,
-		  @RequestParam(required = false, defaultValue = "false") boolean structure) throws Exception {
-		List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
-		csvDataFetcher.sendCSVResult(inputs, options, email, jobName);
-		return "Your job submitted successfully, report will be sent to email " + email;
-	}
+  @Operation(summary = "– submit a list of variants and retrieve results via email")
+  @PostMapping(value = "/email/process/inputs", produces = MediaType.APPLICATION_JSON_VALUE)
+  public String search(
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
+    @ExampleObject(value = "[\"19 1010539 G C\",\"14 89993420 A/G\", \"10 87933147 rs7565837 C/T\"]"))})
+    @RequestBody List<String> inputs,
+    @RequestParam String email,
+    @RequestParam(required = false) String jobName,
+    @RequestParam(required = false, defaultValue = "false") boolean function,
+    @RequestParam(required = false, defaultValue = "false") boolean population,
+    @RequestParam(required = false, defaultValue = "false") boolean structure) throws Exception {
+    List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
+    csvDataFetcher.sendCSVResult(inputs, options, email, jobName);
+    return "Your job submitted successfully, report will be sent to email " + email;
+  }
 
   /**
-   * Stream results back as response
+   * Stream results back as response. (You must press download when trying it here in the browser)
    *
-   * @param inputs     Data which you want to analysis. List of String as json document
-   *                   ["19 1010539 G C","14 89993420 A/G", "10 87933147 rs7565837 C/T"]
-   * @param function   Do you want to include functional annotations in results
-   * @param population Do you want to include population annotations in results
-   * @param structure  Do you want to include structural annotations in results
+   * @param inputs     Variants which you wish to retrieve annotations for in json string array format (example shown below):
+   * @param function   Include functional annotations in results
+   * @param population Include population annotations (residue co-located variants and disease associations) in results
+   * @param structure  Include structural annotations in results
    * @throws Exception Server side exception - when something get wrong
    */
-	@PostMapping(value = "/download/stream", produces = MediaType.APPLICATION_JSON_VALUE)
-	public void download(@RequestBody List<String> inputs,
-			@RequestParam(required = false, defaultValue = "false") boolean function,
-			@RequestParam(required = false, defaultValue = "false") boolean population,
-		  @RequestParam(required = false, defaultValue = "false") boolean structure,
-			final HttpServletResponse response) throws Exception {
-		List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
-		response.addHeader("Content-Type", "application/csv");
-		response.addHeader("Content-Disposition", "attachment; filename=ProtVar.csv");
-		csvDataFetcher.downloadCSVResult(inputs, options, response);
-	}
+  @Operation(summary = "– stream mapping and annotation results back as a response")
+  @PostMapping(value = "/download/stream", produces = MediaType.APPLICATION_JSON_VALUE)
+  public void download(
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
+    @ExampleObject(value = "[\"19 1010539 G C\",\"14 89993420 A/G\", \"10 87933147 rs7565837 C/T\"]"))})
+    @RequestBody List<String> inputs,
+    @RequestParam(required = false, defaultValue = "false") boolean function,
+    @RequestParam(required = false, defaultValue = "false") boolean population,
+    @RequestParam(required = false, defaultValue = "false") boolean structure,
+    final HttpServletResponse response) throws Exception {
+    List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
+    response.addHeader("Content-Type", "application/csv");
+    response.addHeader("Content-Disposition", "attachment; filename=ProtVar.csv");
+    csvDataFetcher.downloadCSVResult(inputs, options, response);
+  }
 
 }

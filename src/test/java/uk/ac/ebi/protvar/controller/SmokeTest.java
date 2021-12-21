@@ -10,10 +10,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class SmokeTest {
 
 	@Autowired
-	private APIController apiController;
+	private AnnotationController annotationController;
 
 	@Test
 	public void contextLoads() throws Exception {
-		assertThat(apiController).isNotNull();
+		assertThat(annotationController).isNotNull();
 	}
 }

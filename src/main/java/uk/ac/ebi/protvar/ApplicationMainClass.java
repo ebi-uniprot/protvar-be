@@ -96,15 +96,21 @@ public class ApplicationMainClass {
 
 	@Bean
 	public OpenAPI customOpenAPI() {
-		var description = "Welcome to api documentation. You can know how to use api and try it with examples provided." +
-			" REST api uses OpenAPI 3. Meaning you can use utils like openapi-generator to generate model classes on run.";
+		var description = "ProtVar REST API is a programmatic way to obtain information from ProtVar.\n" +
+			"You can query:\n" +
+			"1) A list of variants via their genomic coordinates and choose which annotations you require. These can be posted as a list and then downloaded or emailed or a file can be uploaded.\n" +
+			"2) Genomic coordinates to retrieve mappings to positions in proteins for all isoforms\n" +
+			"3) Individual amino acid positions to retrieve functional/structural/co-located variant annotations via a json object\n\n\n" +
+			"REST API uses OpenAPI 3 which means you can use utils like " +
+			"<a href='https://github.com/OpenAPITools/openapi-generator' target='_new'>openapi-generator</a> to generate model classes\n\n"+
+			"You can look at the examples below to see how it works. \n";
 		return new OpenAPI()
 			.components(new Components())
 			.externalDocs(new ExternalDocumentation()
-				.description("openapi-generator").url("https://github.com/OpenAPITools/openapi-generator")
+				.description("Contact us").url("https://www.ebi.ac.uk/ProtVar/contact")
 			)
-			.info(new Info().title("ProtVar API docs & try").description(description)
-					.contact(new Contact().name("ProtVar").email("protvar@ebi.ac.uk").url("https://www.ebi.ac.uk/ProtVar/contact"))
+			.info(new Info().title("ProtVar REST API").description(description)
+					.contact(new Contact().name("ProtVar").url("https://www.ebi.ac.uk/ProtVar/"))
 			);
 	}
 }
