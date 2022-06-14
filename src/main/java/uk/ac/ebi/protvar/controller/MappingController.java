@@ -66,9 +66,9 @@ MappingController {
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 
-  @Operation(summary = "- retrieve amino acid positions in proteins from a list of UniProt accession and protein positions")
-  @PostMapping(value = "/accessionsAndProteinPositions", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<MappingResponse> getGenomeProteinMappingsByAccessionsAndProteinPositions(
+  @Operation(summary = "- retrieve mappings from a list of protein accessions and positions")
+  @PostMapping(value = "/proteinAccessionsAndPositions", produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<MappingResponse> getMappingsByProteinAccessionsAndPositions(
           @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
           @ExampleObject(value = "[\"Q4ZIN3 558\",\"Q9NUW8 493\", \"P60484 130\"]"))})
           @RequestBody List<String> inputs,
@@ -79,7 +79,7 @@ MappingController {
           @Parameter(description = "Include structural annotations in results")
           @RequestParam(required = false, defaultValue = "false") boolean structure
   ) {
-    MappingResponse mappingResponse = service.getMappingsByAccessions(inputs, function, population, structure);
+    MappingResponse mappingResponse = service.getMappingsByProteinAccessionsAndPositions(inputs, function, population, structure);
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 
