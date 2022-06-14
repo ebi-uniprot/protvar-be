@@ -21,7 +21,8 @@ import java.util.List;
 @RestController
 @CrossOrigin
 @AllArgsConstructor
-public class MappingController {
+public class
+MappingController {
   private APIService service;
 
   @Hidden
@@ -64,4 +65,22 @@ public class MappingController {
     MappingResponse mappingResponse = service.getMappings(inputs, function, population, structure);
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
+
+  @Operation(summary = "- retrieve amino acid positions in proteins from a list of UniProt accession and protein positions")
+  @PostMapping(value = "/accessionsAndProteinPositions", produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<MappingResponse> getGenomeProteinMappingsByAccessionsAndProteinPositions(
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
+          @ExampleObject(value = "[\"Q4ZIN3 558\",\"Q9NUW8 493\", \"P60484 130\"]"))})
+          @RequestBody List<String> inputs,
+          @Parameter(description = "Include functional annotations in results")
+          @RequestParam(required = false, defaultValue = "false") boolean function,
+          @Parameter(description = "Include population annotations (residue co-located variants and disease associations) in results")
+          @RequestParam(required = false, defaultValue = "false") boolean population,
+          @Parameter(description = "Include structural annotations in results")
+          @RequestParam(required = false, defaultValue = "false") boolean structure
+  ) {
+    MappingResponse mappingResponse = service.getMappingsByAccessions(inputs, function, population, structure);
+    return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
+  }
+
 }
