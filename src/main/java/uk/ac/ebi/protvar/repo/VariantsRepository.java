@@ -10,6 +10,6 @@ public interface VariantsRepository {
 	List<GenomeToProteinMapping> getMappings(String chromosome, Long position);
 
 	List<CADDPrediction> getPredictions(List<Long> positions);
-
 	List<GenomeToProteinMapping> getMappings(List<Long> positions);
+	List<GenomeToProteinMapping> getMappingsByAccessionAndProteinPosition(String accession, Long proteinPosition);
 }
