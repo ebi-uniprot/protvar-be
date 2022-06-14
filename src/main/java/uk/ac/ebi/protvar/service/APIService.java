@@ -35,6 +35,13 @@ public class APIService {
 		return mappingFetcher.getMappings(inputs, options);
 	}
 
+	public MappingResponse getMappingsByAccessions(List<String> inputs, boolean function, boolean variation, boolean structure) {
+		if (inputs == null || inputs.isEmpty())
+			return new MappingResponse();
+		List<OPTIONS> options = OptionBuilder.build(function, variation, structure);
+		return mappingFetcher.getMappingsByAccessions(inputs, options);
+	}
+
 	public Protein getProtein(String accession, int position) {
 		return proteinFetcher.fetch(accession, position);
 	}
