@@ -16,4 +16,5 @@ public class Constants {
 	public static final String NOTE_INVALID_INPUT_POSITION = "Position should be a number ";
 	public static final String NOTE_INVALID_INPUT_ALT = "Invalid alternative ";
 	public static final String NOTE_INVALID_INPUT_REF = "Invalid reference ";
+	public static final String NOTE_INVALID_INPUT_ACCESSION = "Invalid accession ";
 }

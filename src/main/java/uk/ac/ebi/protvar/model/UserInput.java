@@ -4,6 +4,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.regex.Pattern;
 
 import lombok.Getter;
 import uk.ac.ebi.protvar.exception.InvalidInputException;
@@ -25,6 +26,8 @@ public class UserInput {
 
 	static final String DB_MT_CHROMOSOME = "Mitochondrion";
 
+	private static final String UNIPROT_ACC_NEW_REX = "[O,P,Q][0-9][A-Z, 0-9]{3}[0-9]|[A-N,R-Z]([0-9][A-Z][A-Z, 0-9]{2}){1,2}[0-9]";
+
 	private String chromosome;
 	private Long start;
 	private String id;
@@ -32,6 +35,9 @@ public class UserInput {
 	private String alt;
 	private String inputString;
 	private final List<String> invalidReasons = new ArrayList<>();
+
+	private String accession;
+	private Long proteinPosition;
 
 	@Override
 	public String toString() {
@@ -44,6 +50,8 @@ public class UserInput {
 			return null;
 		if (input.startsWith("NC"))
 			return HGVSParser.parse(input);
+		else if (!UserInput.startsWithChromo(input))
+			return UniprotAccessionParser.parse(input);
 		return VCFParser.parse(input);
 	}
 
@@ -107,6 +115,8 @@ public class UserInput {
 	private void setChromosome(String chr) {
 		chromosome = chr;
 	}
+	private void setAccession(String acc) { this.accession = acc; }
+	private void setProteinPosition(Long pos) { this.proteinPosition = pos; }
 
 	public String getGroupBy() {
 		return this.chromosome + "-" + this.start;
@@ -146,6 +156,19 @@ public class UserInput {
 		ret.invalidReasons.add(Constants.NOTE_INVALID_INPUT_REF);
 		ret.invalidReasons.add(Constants.NOTE_INVALID_INPUT_ALT);
 		return ret;
+	}
+
+	static boolean startsWithChromo(String input) {
+		String[] params = input.split(" ");
+		if (params.length > 0){
+			String p1 = params[0].toUpperCase();
+			return chromosomes1to22.contains(p1) || chromosomesXAndY.contains(p1) || chromosomeMitochondria.contains(p1);
+		}
+		return false;
+	}
+
+	static boolean isCanonicalProteinAccession(String acc) {
+		return Pattern.matches(UNIPROT_ACC_NEW_REX, acc);
 	}
 
 	static class VCFParser {
@@ -226,6 +249,46 @@ public class UserInput {
 			} catch (Exception ex) {
 				return invalidObject(hgvs);
 			}
+		}
+	}
+
+	static class UniprotAccessionParser {
+		public static UserInput parse(String input) {
+			if (input == null || input.isBlank())
+				return invalidObject(input);
+
+			input = input.trim();
+			UserInput userInput = new UserInput();
+			userInput.inputString = input;
+			LinkedList<String> tokens = new LinkedList<>(Arrays.asList(input.split(FIELD_SEPERATOR)));
+
+			var accession = Commons.trim(tokens.poll());
+			if (isCanonicalProteinAccession(accession))
+				userInput.invalidReasons.add(Constants.NOTE_INVALID_INPUT_ACCESSION + accession);
+			userInput.accession = accession;
+
+			var proteinPosition = Commons.trim(tokens.poll());
+			long position = convertPosition(proteinPosition);
+			if (position <= 0)
+				userInput.invalidReasons.add(Constants.NOTE_INVALID_INPUT_POSITION + proteinPosition);
+			userInput.proteinPosition = position;
+
+			var refAllele = Commons.trim(tokens.poll());
+			if (isAllele(refAllele))
+				userInput.ref = refAllele.toUpperCase();
+			else {
+				userInput.ref = Constants.NA;
+				userInput.invalidReasons.add(Constants.NOTE_INVALID_INPUT_REF + refAllele);
+			}
+
+			var altAllele = Commons.trim(tokens.poll());
+			if (isAllele(altAllele))
+				userInput.alt = altAllele.toUpperCase();
+			else {
+				userInput.alt = Constants.NA;
+				userInput.invalidReasons.add(Constants.NOTE_INVALID_INPUT_ALT + altAllele);
+			}
+			return userInput;
 		}
 	}
 }
