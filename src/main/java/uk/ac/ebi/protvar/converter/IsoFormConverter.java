@@ -8,14 +8,14 @@ import javax.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.utils.AminoAcidsThreeLetter;
+import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.builder.OptionalAttributesBuilder;
 import uk.ac.ebi.protvar.model.response.Ensp;
 import uk.ac.ebi.protvar.model.response.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.Transcript;
-import uk.ac.ebi.protvar.utils.Codon2AminoAcid;
+import uk.ac.ebi.protvar.utils.RNACodon;
 
 @Service
 @AllArgsConstructor
@@ -62,15 +62,17 @@ public class IsoFormConverter {
 		String userCodon = replaceChar(codon, refAlleleUser.charAt(0), genomeToProteinMapping.getCodonPosition());
 		String variantCodon = replaceChar(codon, variantAllele.charAt(0), genomeToProteinMapping.getCodonPosition());
 		List<Ensp> ensps = mergeMappings(g2pAccessionMapping);
-		String variantAA3Letter = Codon2AminoAcid.getAminoAcid(variantCodon.toUpperCase());
-		String consequences = getConsequence(AminoAcidsThreeLetter.getThreeLetterFromSingleLetter(genomeToProteinMapping.getAa()),
-				Codon2AminoAcid.getAminoAcid(variantCodon.toUpperCase()));
+		String variantAA = RNACodon.valueOf(variantCodon).getAa().getName();
+		String variantAA3Letter = variantAA;
+		AminoAcid refAA = AminoAcid.fromOneLetter(genomeToProteinMapping.getAa());
+
+		String consequences = getConsequence(refAA.getThreeLetters(), variantAA);
 
 		IsoFormMapping.IsoFormMappingBuilder builder = IsoFormMapping.builder().accession(accession).refCodon(codon)
 				.userCodon(userCodon).cdsPosition(genomeToProteinMapping.getCodonPosition())
-				.refAA(AminoAcidsThreeLetter.getThreeLetterFromSingleLetter(genomeToProteinMapping.getAa()))
+				.refAA(refAA.getThreeLetters())
 				.userAA(variantAA3Letter)
-				.variantAA(Codon2AminoAcid.getAminoAcid(variantCodon.toUpperCase())).variantCodon(variantCodon)
+				.variantAA(variantAA).variantCodon(variantCodon)
 				.canonicalAccession(canonicalAccession).canonical(isCanonical(accession, canonicalAccession))
 				.isoformPosition(genomeToProteinMapping.getIsoformPosition()).translatedSequences(ensps)
 				.consequences(consequences).proteinName(genomeToProteinMapping.getProteinName());
