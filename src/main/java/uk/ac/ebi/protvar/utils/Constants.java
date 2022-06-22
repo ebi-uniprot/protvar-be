@@ -17,4 +17,7 @@ public class Constants {
 	public static final String NOTE_INVALID_INPUT_ALT = "Invalid alternative ";
 	public static final String NOTE_INVALID_INPUT_REF = "Invalid reference ";
 	public static final String NOTE_INVALID_INPUT_ACCESSION = "Invalid accession ";
+	public static final String NOTE_INVALID_INPUT_PROTEIN_POSITION = "Invalid protein position ";
+	public static final String NOTE_INVALID_INPUT_AA = "Invalid reference or alternative amino acid ";
+	public static final String NOTE_INVALID_INPUT_NON_SNV = "Non SNV ";
 }
