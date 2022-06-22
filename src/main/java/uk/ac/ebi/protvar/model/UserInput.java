@@ -1,15 +1,11 @@
 package uk.ac.ebi.protvar.model;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-import java.util.regex.Pattern;
 
 import lombok.Getter;
 import lombok.Setter;
 import uk.ac.ebi.protvar.parser.HGVSParser;
-import uk.ac.ebi.protvar.parser.ProteinInfoParser;
+import uk.ac.ebi.protvar.parser.ProtACParser;
 import uk.ac.ebi.protvar.parser.VCFParser;
 import uk.ac.ebi.protvar.utils.*;
 
@@ -49,8 +45,8 @@ public class UserInput {
 				return HGVSParser.parse(input);
 			else if (VCFParser.startsWithChromo(input))
 				return VCFParser.parse(input);
-			else if (ProteinInfoParser.startsWithAccession(input))
-				return ProteinInfoParser.parse(input);
+			else if (ProtACParser.startsWithAccession(input))
+				return ProtACParser.parse(input);
 		}
 		return null;
 	}
