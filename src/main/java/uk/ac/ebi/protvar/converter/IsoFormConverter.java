@@ -36,16 +36,16 @@ public class IsoFormConverter {
 	}
 
 	public List<IsoFormMapping> createIsoforms(List<GenomeToProteinMapping> mappingList, String refAlleleUser,
-			String variantAllele, List<OPTIONS> options) {
+											   String variantAllele, List<OPTIONS> options) {
 		String canonicalAccession = mappingList.stream().filter(GenomeToProteinMapping::isCanonical)
-			.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
+				.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
 
 		Map<String, List<GenomeToProteinMapping>> accessionMapping = mappingList.stream()
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getAccession));
 
 		return accessionMapping.keySet().stream()
-			.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), options))
-			.sorted().collect(Collectors.toList());
+				.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), options))
+				.sorted().collect(Collectors.toList());
 
 	}
 
@@ -62,17 +62,16 @@ public class IsoFormConverter {
 		String userCodon = replaceChar(codon, refAlleleUser.charAt(0), genomeToProteinMapping.getCodonPosition());
 		String variantCodon = replaceChar(codon, variantAllele.charAt(0), genomeToProteinMapping.getCodonPosition());
 		List<Ensp> ensps = mergeMappings(g2pAccessionMapping);
-		String variantAA = RNACodon.valueOf(variantCodon).getAa().getName();
-		String variantAA3Letter = variantAA;
 		AminoAcid refAA = AminoAcid.fromOneLetter(genomeToProteinMapping.getAa());
+		AminoAcid variantAA = RNACodon.valueOf(variantCodon.toUpperCase()).getAa();
 
-		String consequences = getConsequence(refAA.getThreeLetters(), variantAA);
+		String consequences = getConsequence(refAA, variantAA);
 
 		IsoFormMapping.IsoFormMappingBuilder builder = IsoFormMapping.builder().accession(accession).refCodon(codon)
 				.userCodon(userCodon).cdsPosition(genomeToProteinMapping.getCodonPosition())
 				.refAA(refAA.getThreeLetters())
-				.userAA(variantAA3Letter)
-				.variantAA(variantAA).variantCodon(variantCodon)
+				.userAA(variantAA.getThreeLetters())
+				.variantAA(variantAA.getThreeLetters()).variantCodon(variantCodon)
 				.canonicalAccession(canonicalAccession).canonical(isCanonical(accession, canonicalAccession))
 				.isoformPosition(genomeToProteinMapping.getIsoformPosition()).translatedSequences(ensps)
 				.consequences(consequences).proteinName(genomeToProteinMapping.getProteinName());
@@ -81,10 +80,10 @@ public class IsoFormConverter {
 		return builder.build();
 	}
 
-	private String getConsequence(String codon, String variantCodon) {
-		if (Objects.equals(codon, variantCodon))
+	private String getConsequence(AminoAcid ref, AminoAcid alt) {
+		if (ref.equals(alt))
 			return "synonymous";
-		if ("*".equals(variantCodon))
+		if (alt.equals(AminoAcid.TER))
 			return "stop gained";
 		return "missense";
 	}
