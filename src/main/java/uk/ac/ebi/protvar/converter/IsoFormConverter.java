@@ -59,18 +59,21 @@ public class IsoFormConverter {
 		}
 		long genomicLocation = genomeToProteinMapping.getGenomeLocation();
 		String codon = genomeToProteinMapping.getCodon();
-		String userCodon = replaceChar(codon, refAlleleUser.charAt(0), genomeToProteinMapping.getCodonPosition());
+		//String userCodon = replaceChar(codon, refAlleleUser.charAt(0), genomeToProteinMapping.getCodonPosition());
 		String variantCodon = replaceChar(codon, variantAllele.charAt(0), genomeToProteinMapping.getCodonPosition());
 		List<Ensp> ensps = mergeMappings(g2pAccessionMapping);
 		AminoAcid refAA = AminoAcid.fromOneLetter(genomeToProteinMapping.getAa());
 		AminoAcid variantAA = RNACodon.valueOf(variantCodon.toUpperCase()).getAa();
 
-		String consequences = getConsequence(refAA, variantAA);
+		String consequences = AminoAcid.getConsequence(refAA, variantAA);
 
-		IsoFormMapping.IsoFormMappingBuilder builder = IsoFormMapping.builder().accession(accession).refCodon(codon)
-				.userCodon(userCodon).cdsPosition(genomeToProteinMapping.getCodonPosition())
+		IsoFormMapping.IsoFormMappingBuilder builder = IsoFormMapping.builder()
+				.accession(accession).refCodon(codon)
+				//TODO clean up
+				//.userCodon(userCodon)
+				.cdsPosition(genomeToProteinMapping.getCodonPosition())
 				.refAA(refAA.getThreeLetters())
-				.userAA(variantAA.getThreeLetters())
+				//.userAA(variantAA.getThreeLetters())
 				.variantAA(variantAA.getThreeLetters()).variantCodon(variantCodon)
 				.canonicalAccession(canonicalAccession).canonical(isCanonical(accession, canonicalAccession))
 				.isoformPosition(genomeToProteinMapping.getIsoformPosition()).translatedSequences(ensps)
@@ -78,14 +81,6 @@ public class IsoFormConverter {
 		if (isCanonical(accession, canonicalAccession))
 			optionalAttributeBuilder.build(accession, genomicLocation, genomeToProteinMapping.getIsoformPosition(), options, builder);
 		return builder.build();
-	}
-
-	private String getConsequence(AminoAcid ref, AminoAcid alt) {
-		if (ref.equals(alt))
-			return "synonymous";
-		if (alt.equals(AminoAcid.TER))
-			return "stop gained";
-		return "missense";
 	}
 
 	private String replaceChar(String str, char ch, int index) {

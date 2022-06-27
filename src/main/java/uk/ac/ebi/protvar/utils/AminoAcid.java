@@ -139,4 +139,11 @@ public enum AminoAcid {
         return this.getAltAACodonPositions().get(alt);
     }
 
+    public static String getConsequence(AminoAcid ref, AminoAcid alt) {
+        if (ref.equals(alt))
+            return "synonymous";
+        if (alt.equals(AminoAcid.TER))
+            return "stop gained";
+        return "missense";
+    }
 }
