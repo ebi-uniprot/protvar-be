@@ -38,6 +38,13 @@ public class UserInput {
 	public UserInput(Type type) {
 		this.type = type;
 	}
+	public UserInput(String accession, Long proteinPosition, String oneLetterRefAA, String oneLetterAltAA) {
+		this.type = Type.PROTAC;
+		this.accession = accession;
+		this.proteinPosition = proteinPosition;
+		this.oneLetterRefAA = oneLetterRefAA;
+		this.oneLetterAltAA = oneLetterAltAA;
+	}
 
 	public static UserInput getInput(String input) {
 		if (input != null) {
@@ -135,6 +142,6 @@ public class UserInput {
 		return "UserInput [type=" + type + ", chromosome=" + chromosome + ", start=" + start
 				+ ", id=" + id + ", ref=" + ref + ", alt=" + alt + ", inputString=" + inputString
 				+ ", accession=" + accession + ", proteinPosition=" + proteinPosition
-				+ ", oneLetterRefAA=" + oneLetterRefAA + ", oneLetterAltAA=" + oneLetterRefAA + "]";
+				+ ", oneLetterRefAA=" + oneLetterRefAA + ", oneLetterAltAA=" + oneLetterAltAA + "]";
 	}
 }

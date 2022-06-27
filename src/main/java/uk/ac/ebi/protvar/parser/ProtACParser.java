@@ -2,94 +2,100 @@ package uk.ac.ebi.protvar.parser;
 
 import uk.ac.ebi.protvar.model.UserInput;
 import uk.ac.ebi.protvar.utils.AminoAcid;
-import uk.ac.ebi.protvar.utils.Commons;
-import uk.ac.ebi.protvar.utils.Constants;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Set;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * Accepted input formats:
- * ACC L558A  (one letter AA rep)
- * ACC 558 L/A
- * Possible future formats:
- * ACC 558 L A
- * ACC 558 Leu/Ala (or Leu Ala) (3 letters AA rep)
+ * Supported formats:
+ * ACC X 999 Y
+ * ACC/X/999/Y
+ * ACC X/999/Y
+ * ACC 999 X Y
+ * ACC 999    X     Y
+ * ACC p.XXX999YYY
+ * ACC X999Y
+ * ACC 999 X/Y
+ * ACC 999 XXX/YYY
+ * ACC XXX999YYY
+ * ACC/999/YYY
+ * where
+ * ACC=protein accession,
+ * X=one letter ref AA, XXX=three letters ref AA (case-insensitive),
+ * Y=one letter variant AA, YYY=three letters variant AA (case-insensitive),
+ * 999=protein position.
+ *
+ * The order will be ACC first always.
+ * Then either reference AA or position
+ * Then either reference AA or position
+ * Then variant last
+ * The p. can just be ignored
+ * The delimiters could vary but most likely whitespace or / and occasionally ,
  */
 public class ProtACParser extends GenericParser {
+    public static final String ACCESSION = "([O,P,Q][0-9][A-Z, 0-9]{3}[0-9]|[A-N,R-Z]([0-9][A-Z][A-Z, 0-9]{2}){1,2}[0-9])";
+    public static final String POSITION = "(\\d+)";
+    public final static String AA1 = String.format("([%s])", AminoAcid.VALID_AA1.stream().collect(Collectors.joining(",")));
+    public final static String AA3 = String.format("(%s)", AminoAcid.VALID_AA3.stream().collect(Collectors.joining("|")));
+    public static final String SPACES_OR_SLASH = "(\\s+|/)";
 
-    public static final String REGEX_ACCESSION = "[O,P,Q][0-9][A-Z, 0-9]{3}[0-9]|[A-N,R-Z]([0-9][A-Z][A-Z, 0-9]{2}){1,2}[0-9]";
+    public final static String PATTERN_ACC_X_999_Y = ACCESSION + "#" + AA1 + "#" + POSITION + "#" + AA1;
+    public final static String PATTERN_ACC_999_X_Y = ACCESSION + "#" + POSITION + "#" + AA1 + "#" + AA1;
+    public final static String PATTERN_ACC_999_XXX_YYY = ACCESSION + "#" + POSITION + "#" + AA3 + "#" + AA3;
+    public final static String PATTERN_X999Y = AA1 + POSITION + AA1;
+    public final static String PATTERN_XXX999YYY = AA3 + POSITION + AA3;
+    public final static String PATTERN_pdotXXX999YYY = "([p|P].)" + AA3 + POSITION + AA3;
+    public final static String PATTERN_ACC_X999Y = ACCESSION + "#" + PATTERN_X999Y;
+    public final static String PATTERN_ACC_XXX999YYY = ACCESSION + "#" + PATTERN_XXX999YYY;
+    public final static String PATTERN_ACC_pdotXXX999YYY = ACCESSION + "#" + PATTERN_pdotXXX999YYY;
+    public final static String PATTERN_ACC_999_YYY = ACCESSION + "#" + POSITION + "#" + AA3;
 
-    // format e.g. L558A
-    public final static String AA_POS_AA_PATTERN = "([%s])(\\d+)([%s])".replace("%s", AminoAcid.VALID_LETTERS);
-
-    // format L/A
-    public final static String AA_AA_PATTERN = ("([%s])/([%s])").replace("%s", AminoAcid.VALID_LETTERS);
-
+    public final static String PROTEINS_FILE = "proteins.txt";
+    public static Set<String> PROTEIN_ACCESSIONS;
+    static {
+        PROTEIN_ACCESSIONS = new BufferedReader(new InputStreamReader(ProtACParser.class.getClassLoader().getResourceAsStream(PROTEINS_FILE)))
+                .lines()
+                .collect(Collectors.toSet());
+    }
 
     public static UserInput parse(String input) {
         if (input == null || input.isBlank())
             return UserInput.invalidObject(input, UserInput.Type.PROTAC);
 
         input = input.trim();
-        UserInput userInput = new UserInput(UserInput.Type.PROTAC);
-        userInput.setInputString(input);
-        LinkedList<String> tokens = new LinkedList<>(Arrays.asList(input.split(FIELD_SEPERATOR)));
+        UserInput userInput = userInputFromLine(input);
 
-        var accession = Commons.trim(tokens.poll());
-        if (!validAccession(accession))
-            userInput.addInvalidReason(Constants.NOTE_INVALID_INPUT_ACCESSION + accession);
-        userInput.setAccession(accession);
+        if (userInput != null) {
+            userInput.setInputString(input);
+            if (userInput.isValid()) {
 
-        long proteinPosition = -1L;
-        String oneLetterRefAA = null;
-        String oneLetterAltAA = null;
-
-        String aaInput = "";
-
-        var token = Commons.trim(tokens.poll());
-        if (token.matches("\\d+")) {
-            proteinPosition = convertPosition(token);
-            var aaToken = Commons.trim(tokens.poll());
-            if (aaToken.matches(AA_AA_PATTERN)) {
-                oneLetterRefAA = String.valueOf(aaToken.charAt(0));
-                oneLetterAltAA = String.valueOf(aaToken.charAt(2));
             } else {
-                aaInput = aaToken;
-            }
-        } else {
-            if (token.matches(AA_POS_AA_PATTERN)) {
-                oneLetterRefAA = token.substring(0, 1);
-                proteinPosition = convertPosition(token.substring(1, token.length()-1));
-                oneLetterAltAA = token.substring(token.length()-1);
-            } else {
-                aaInput = token;
+                if (PROTEIN_ACCESSIONS.contains(userInput.getAccession())) {
+                    userInput.addInvalidReason(userInput.getAccession() + " not a human protein accession");
+                }
+                if (userInput.getOneLetterRefAA() != null && userInput.getOneLetterAltAA() != null) {
+                    AminoAcid refAA = AminoAcid.fromOneLetter(userInput.getOneLetterRefAA());
+                    AminoAcid altAA = AminoAcid.fromOneLetter(userInput.getOneLetterAltAA());
+                    Set<Integer> changedPosSet = refAA.changedPositions(altAA);
+                    if (changedPosSet == null || changedPosSet.isEmpty())
+                        userInput.addInvalidReason(refAA.formatted() + " -> " + altAA.formatted() + " not possible via SNV");
+                }
             }
         }
-        userInput.setProteinPosition(proteinPosition);
-        userInput.setOneLetterRefAA(oneLetterRefAA);
-        userInput.setOneLetterAltAA(oneLetterAltAA);
-
-        if (proteinPosition <= 0)
-            userInput.addInvalidReason(Constants.NOTE_INVALID_INPUT_POSITION + proteinPosition);
-        if (oneLetterRefAA == null || oneLetterAltAA == null)
-            userInput.addInvalidReason(Constants.NOTE_INVALID_INPUT_AA + aaInput);
-
-        if (oneLetterRefAA != null && oneLetterAltAA != null) {
-            AminoAcid refAA = AminoAcid.fromOneLetter(oneLetterRefAA);
-            AminoAcid altAA = AminoAcid.fromOneLetter(oneLetterAltAA);
-            Set<Integer> changedPosSet = refAA.changedPositions(altAA);
-            if (changedPosSet == null || changedPosSet.isEmpty())
-                userInput.addInvalidReason(refAA.formatted() + " -> " + altAA.formatted() + " not possible via SNV");
-        }
-
         return userInput;
     }
 
     public static boolean validAccession(String acc) {
-        return Pattern.matches(REGEX_ACCESSION, acc);
+        return Pattern.matches(ACCESSION, acc);
     }
 
     public static boolean startsWithAccession(String input) {
@@ -98,6 +104,69 @@ public class ProtACParser extends GenericParser {
             return validAccession(params[0]);
         }
         return false;
+    }
+
+    public static UserInput userInputFromLine(String line) {
+        line = line.trim().toUpperCase();
+        // ACC X 999 Y
+        // ACC/X/999/Y
+        // ACC X/999/Y
+        if (Pattern.matches(PATTERN_ACC_X_999_Y.replace("#", SPACES_OR_SLASH), line)) {
+            String tokens[] = line.split(SPACES_OR_SLASH);
+            return new UserInput(tokens[0], Long.valueOf(tokens[2]), tokens[1], tokens[3]);
+        }
+        // ACC 999 X Y
+        // ACC 999    X     Y
+        // ACC 999 X/Y
+        else if (Pattern.matches(PATTERN_ACC_999_X_Y.replace("#", SPACES_OR_SLASH), line)) {
+            String tokens[] = line.split(SPACES_OR_SLASH);
+            return new UserInput(tokens[0], Long.valueOf(tokens[1]), tokens[2], tokens[3]);
+        }
+        // ACC 999 XXX/YYY
+        // ACC 999 XXX YYY
+        else if (Pattern.matches(PATTERN_ACC_999_XXX_YYY.replace("#", SPACES_OR_SLASH), line)) {
+            String tokens[] = line.split(SPACES_OR_SLASH);
+            AminoAcid aaRef = AminoAcid.valueOf(tokens[2]);
+            AminoAcid aaAlt = AminoAcid.valueOf(tokens[3]);
+            return new UserInput(tokens[0], Long.valueOf(tokens[1]), aaRef.getOneLetter(), aaAlt.getOneLetter());
+        }
+        // ACC X999Y
+        else if (Pattern.matches(PATTERN_ACC_X999Y.replace("#", SPACES_OR_SLASH), line)) {
+            String tokens[] = line.split(SPACES_OR_SLASH);
+            Matcher m = Pattern.compile(PATTERN_X999Y).matcher(tokens[1]);
+            if (m.find()) {
+                Long pos = Long.valueOf(m.group(2));
+                String r = m.group(1);
+                String a = m.group(3);
+                return new UserInput(tokens[0], Long.valueOf(m.group(2)), m.group(1), m.group(3));
+            }
+            return UserInput.invalidObject(line, UserInput.Type.PROTAC);
+        }
+        // ACC XXX999YYY
+        else if (Pattern.matches(PATTERN_ACC_XXX999YYY.replace("#", SPACES_OR_SLASH), line)) {
+            String tokens[] = line.split(SPACES_OR_SLASH);
+            Matcher m = Pattern.compile(PATTERN_XXX999YYY).matcher(tokens[1]);
+            if (m.find()) {
+                return new UserInput(tokens[0], Long.valueOf(m.group(2)), AminoAcid.valueOf(m.group(1)).getOneLetter(), AminoAcid.valueOf(m.group(3)).getOneLetter());
+            }
+            return UserInput.invalidObject(line, UserInput.Type.PROTAC);
+        }
+        // ACC p.XXX999YYY
+        else if (Pattern.matches(PATTERN_ACC_pdotXXX999YYY.replace("#", SPACES_OR_SLASH), line)) {
+            String tokens[] = line.split(SPACES_OR_SLASH);
+            Matcher m = Pattern.compile(PATTERN_pdotXXX999YYY).matcher(tokens[1]);
+            if (m.find()) {
+                return new UserInput(tokens[0], Long.valueOf(m.group(3)), AminoAcid.valueOf(m.group(2)).getOneLetter(), AminoAcid.valueOf(m.group(4)).getOneLetter());
+            }
+            return UserInput.invalidObject(line, UserInput.Type.PROTAC);
+        }
+        // ACC/999/YYY
+        else if (Pattern.matches(PATTERN_ACC_999_YYY.replace("#", SPACES_OR_SLASH), line)) {
+            String tokens[] = line.split(SPACES_OR_SLASH);
+            AminoAcid aaAlt = AminoAcid.valueOf(tokens[2]);
+            return new UserInput(tokens[0], Long.valueOf(tokens[1]), null, aaAlt.getOneLetter());
+        }
+        return UserInput.invalidObject(line, UserInput.Type.PROTAC);
     }
 
 }
