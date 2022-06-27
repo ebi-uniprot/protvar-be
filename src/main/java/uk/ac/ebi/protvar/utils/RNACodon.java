@@ -28,6 +28,34 @@ public enum RNACodon {
     private AminoAcid aa;
     private Map<Integer, List<RNACodon>> possibleVariants = new HashMap<>();
 
+    public enum Change {
+        SNV,
+        DOUBLE,
+        TRIPLE;
+
+        public static Change byCount(int i) {
+            switch (i) {
+                case 1:
+                    return  SNV;
+                case 2:
+                    return DOUBLE;
+                case 3:
+                    return TRIPLE;
+            }
+            return null;
+        }
+    }
+
+    static RNACodon.Change fromTo(RNACodon from, RNACodon to) {
+        int count = 0;
+        for (int pos = 0; pos < 3; pos++) {
+            if (from.name().charAt(pos) != to.name().charAt(pos)) {
+                count += 1;
+            }
+        }
+        return Change.byCount(count);
+    }
+
     static {
         UUU.aa = AminoAcid.PHE; UCU.aa = AminoAcid.SER; UAU.aa = AminoAcid.TYR; UGU.aa = AminoAcid.CYS;
         UUC.aa = AminoAcid.PHE; UCC.aa = AminoAcid.SER; UAC.aa = AminoAcid.TYR; UGC.aa = AminoAcid.CYS;
