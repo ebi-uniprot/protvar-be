@@ -52,19 +52,8 @@ public enum AminoAcid {
     private List<RNACodon> rnaCodons = new ArrayList<>();
     private Map<AminoAcid, Set<Integer>> altAACodonPositions = new HashMap<>();
 
-    public final static Set<Character> VALID_AMINO_ACID_CHARS = new HashSet<>();
-    public final static String VALID_LETTERS;
-
-    static {
-        Arrays.stream(AminoAcid.standardValues()).forEach(
-                aminoAcid -> {
-                    VALID_AMINO_ACID_CHARS.add(aminoAcid.getOneLetter().charAt(0));
-                }
-        );
-        VALID_LETTERS = AminoAcid.VALID_AMINO_ACID_CHARS.stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining());
-    }
+    public final static Set<String> VALID_AA1 = new HashSet<>();
+    public final static Set<String> VALID_AA3 = new HashSet<>();
 
     static {
         Arrays.stream(AminoAcid.standardValues())
@@ -94,6 +83,12 @@ public enum AminoAcid {
                         }
                     });
                 });
+
+        Arrays.stream(AminoAcid.standardValues()).forEach(
+                aminoAcid -> {
+                    VALID_AA1.add(aminoAcid.getOneLetter());
+                    VALID_AA3.add(aminoAcid.name());
+                });
     }
 
     AminoAcid(String oneLetter, String threeLetters, String name) {
@@ -113,31 +108,6 @@ public enum AminoAcid {
 
     public static AminoAcid[] nonStandardValues() {
         return Arrays.stream(AminoAcid.values()).filter(aa -> aa.extended).toArray(AminoAcid[]::new);
-    }
-
-    public static void main(String[] args) {
-
-        System.out.println(AminoAcid.SER.getChangePos(AminoAcid.ARG));
-        System.out.println(AminoAcid.SER.changedPositions(AminoAcid.ARG));
-
-        for (AminoAcid aa : AminoAcid.standardValues()) {
-            System.out.println(aa + ", encoded by -> " + aa.getRnaCodons() + ", altAACodonPosMap -> " + aa.getAltAACodonPositions());
-        }
-
-        for (RNACodon codon : RNACodon.values()) {
-            System.out.println(codon +
-                    ", aa -> " + codon.getAa() +
-                    ", SNVs -> " + codon.getSNVs() +
-                    " Variant AAs -> " + codon.getVariantAAs());
-        }
-
-        /*
-        System.out.println(RNACodon.GGG.getSNVs(0));
-        System.out.println(RNACodon.GGG.getSNVs());
-        System.out.println(RNACodon.GGG.getVariantAAs(0));
-        System.out.println(RNACodon.GGG.getVariantAAs());
-        System.out.println(AminoAcid.ALA +" "+ AminoAcid.ALA.rnaCodons);
-        */
     }
 
     public static AminoAcid fromOneLetter(String oneLetter) {
