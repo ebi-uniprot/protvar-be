@@ -110,8 +110,8 @@ public class MappingFetcher {
 		AminoAcid refAA = AminoAcid.fromOneLetter(input.getOneLetterRefAA());
 		AminoAcid altAA = AminoAcid.fromOneLetter(input.getOneLetterAltAA());
 		Set<Integer> codonPositions = refAA.changedPositions(altAA);
-		if (codonPositions.isEmpty())
-			codonPositions.addAll(Arrays.asList(1, 2, 3));
+		if (codonPositions == null || codonPositions.isEmpty())
+			codonPositions = new HashSet<>(Arrays.asList(1, 2, 3));
 
 		Map<String, List<GenomeToProteinMapping>> mappings = variantRepository.getMappings(input.getAccession(), input.getProteinPosition(), codonPositions)
 				.stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));
@@ -139,7 +139,7 @@ public class MappingFetcher {
 					.collect(Collectors.toList());
 
 			if (altRNACodons_.isEmpty()) {
-				input.addInvalidReason("SNV not possible for refRNACodon (" + refRNACodon.name() + ") to variant AA " + altAA.getThreeLetters() + "(" + altAA.getRnaCodons() + ")");
+				input.addInvalidReason(String.format("%s (%s) to %s %s not possible via SNV", refAA.getThreeLetters(), refRNACodon.name(), altAA.getThreeLetters(), altAA.getRnaCodons() ));
 				invalidInputs.add(input);
 			}
 

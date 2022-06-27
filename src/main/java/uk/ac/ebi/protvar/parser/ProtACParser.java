@@ -2,18 +2,14 @@ package uk.ac.ebi.protvar.parser;
 
 import uk.ac.ebi.protvar.model.UserInput;
 import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.utils.Constants;
 
 import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Supported formats:
@@ -69,7 +65,7 @@ public class ProtACParser extends GenericParser {
 
     public static UserInput parse(String input) {
         if (input == null || input.isBlank())
-            return UserInput.invalidObject(input, UserInput.Type.PROTAC);
+            return UserInput.invalidProtAC(input);
 
         input = input.trim();
         UserInput userInput = userInputFromLine(input);
@@ -77,17 +73,15 @@ public class ProtACParser extends GenericParser {
         if (userInput != null) {
             userInput.setInputString(input);
             if (userInput.isValid()) {
-
-            } else {
-                if (PROTEIN_ACCESSIONS.contains(userInput.getAccession())) {
-                    userInput.addInvalidReason(userInput.getAccession() + " not a human protein accession");
+                if (!PROTEIN_ACCESSIONS.contains(userInput.getAccession())) {
+                    userInput.addInvalidReason(Constants.NOTE_INVALID_INPUT_NON_HUMAN_ACC + userInput.getAccession());
                 }
                 if (userInput.getOneLetterRefAA() != null && userInput.getOneLetterAltAA() != null) {
                     AminoAcid refAA = AminoAcid.fromOneLetter(userInput.getOneLetterRefAA());
                     AminoAcid altAA = AminoAcid.fromOneLetter(userInput.getOneLetterAltAA());
                     Set<Integer> changedPosSet = refAA.changedPositions(altAA);
                     if (changedPosSet == null || changedPosSet.isEmpty())
-                        userInput.addInvalidReason(refAA.formatted() + " -> " + altAA.formatted() + " not possible via SNV");
+                        userInput.addInvalidReason(Constants.NOTE_INVALID_INPUT_NON_SNV + String.format("%s -> %s not possible", refAA.formatted(), altAA.formatted()));
                 }
             }
         }
@@ -140,7 +134,7 @@ public class ProtACParser extends GenericParser {
                 String a = m.group(3);
                 return new UserInput(tokens[0], Long.valueOf(m.group(2)), m.group(1), m.group(3));
             }
-            return UserInput.invalidObject(line, UserInput.Type.PROTAC);
+            return UserInput.invalidProtAC(line);
         }
         // ACC XXX999YYY
         else if (Pattern.matches(PATTERN_ACC_XXX999YYY.replace("#", SPACES_OR_SLASH), line)) {
@@ -149,7 +143,7 @@ public class ProtACParser extends GenericParser {
             if (m.find()) {
                 return new UserInput(tokens[0], Long.valueOf(m.group(2)), AminoAcid.valueOf(m.group(1)).getOneLetter(), AminoAcid.valueOf(m.group(3)).getOneLetter());
             }
-            return UserInput.invalidObject(line, UserInput.Type.PROTAC);
+            return UserInput.invalidProtAC(line);
         }
         // ACC p.XXX999YYY
         else if (Pattern.matches(PATTERN_ACC_pdotXXX999YYY.replace("#", SPACES_OR_SLASH), line)) {
@@ -158,7 +152,7 @@ public class ProtACParser extends GenericParser {
             if (m.find()) {
                 return new UserInput(tokens[0], Long.valueOf(m.group(3)), AminoAcid.valueOf(m.group(2)).getOneLetter(), AminoAcid.valueOf(m.group(4)).getOneLetter());
             }
-            return UserInput.invalidObject(line, UserInput.Type.PROTAC);
+            return UserInput.invalidProtAC(line);
         }
         // ACC/999/YYY
         else if (Pattern.matches(PATTERN_ACC_999_YYY.replace("#", SPACES_OR_SLASH), line)) {
@@ -166,7 +160,7 @@ public class ProtACParser extends GenericParser {
             AminoAcid aaAlt = AminoAcid.valueOf(tokens[2]);
             return new UserInput(tokens[0], Long.valueOf(tokens[1]), null, aaAlt.getOneLetter());
         }
-        return UserInput.invalidObject(line, UserInput.Type.PROTAC);
+        return UserInput.invalidProtAC(line);
     }
 
 }

@@ -52,7 +52,7 @@ public class UserInput {
 				return HGVSParser.parse(input);
 			else if (VCFParser.startsWithChromo(input))
 				return VCFParser.parse(input);
-			else if (ProtACParser.startsWithAccession(input))
+			else //if (ProtACParser.startsWithAccession(input))
 				return ProtACParser.parse(input);
 		}
 		return null;
@@ -96,6 +96,20 @@ public class UserInput {
 		ret.invalidReasons.add(Constants.NOTE_INVALID_INPUT_POSITION);
 		ret.invalidReasons.add(Constants.NOTE_INVALID_INPUT_REF);
 		ret.invalidReasons.add(Constants.NOTE_INVALID_INPUT_ALT);
+		return ret;
+	}
+
+	public static UserInput invalidProtAC(String userInput){
+		var ret = new UserInput(Type.PROTAC);
+		ret.inputString = userInput;
+		ret.invalidReasons.add(Constants.NOTE_INVALID_INPUT_FORMAT);
+		return ret;
+	}
+
+	public static UserInput invalidInput(String userInput){
+		var ret = new UserInput(Type.PROTAC);
+		ret.inputString = userInput;
+		ret.invalidReasons.add(Constants.NOTE_INVALID_INPUT_FORMAT);
 		return ret;
 	}
 
