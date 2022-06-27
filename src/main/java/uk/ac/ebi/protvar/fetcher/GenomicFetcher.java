@@ -29,7 +29,7 @@ public class GenomicFetcher {
 	private CoordinateAPI2GeneConverter converter;
 
 	public Map<String, Gene> fetch(final UserInput pInput) throws ServiceException {
-		logger.info("Processing Gene -> {}", pInput.getInputString());
+		logger.info("Processing Gene -> {}", pInput.getFormattedInputString());
 		DataServiceCoordinate[] dataServiceCoordinates;
 		Map<String, Gene> accessionGeneMap = new HashMap<>();
 		try {
