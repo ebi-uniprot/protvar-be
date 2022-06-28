@@ -93,7 +93,7 @@ public class ProtACParser extends GenericParser {
     }
 
     public static boolean startsWithAccession(String input) {
-        String[] params = input.split(" ");
+        String[] params = input.split(ProtACParser.SPACES_OR_SLASH);
         if (params.length > 0){
             return validAccession(params[0]);
         }
