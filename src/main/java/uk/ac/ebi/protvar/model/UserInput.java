@@ -47,19 +47,14 @@ public class UserInput {
 	}
 
 	public static UserInput getInput(String input) {
-		if (input != null) {
-			if (input.startsWith("NC"))
-				return HGVSParser.parse(input);
-			else if (VCFParser.startsWithChromo(input))
-				return VCFParser.parse(input);
-			else //if (ProtACParser.startsWithAccession(input))
-				return ProtACParser.parse(input);
-		}
-		return null;
+		if (input == null)
+			return null;
+		if (input.startsWith("NC"))
+			return HGVSParser.parse(input);
+		if (ProtACParser.startsWithAccession(input))
+			return ProtACParser.parse(input);
+		return VCFParser.parse(input); // if (VCFParser.startsWithChromo(input))
 	}
-
-
-
 
 	public String getFormattedInputString() {
 		if (inputString != null)
