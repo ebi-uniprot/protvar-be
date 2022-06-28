@@ -74,14 +74,6 @@ public class RNACodonTest {
                 expectedDouble == doubleCount &&
                 expectedTriple == tripleCount &&
                 expectedNoChange == noChangeCount);
-
-        System.out.println(snvSyno + ", " + snvStop + ", " + snvMiss);
-        System.out.println(doubleSyno + ", " + doubleStop + ", " + doubleMiss);
-        System.out.println(tripleSyno + ", " + tripleStop + ", " + tripleMiss);
     }
 
-    @Test
-    void testChangeConsequence() {
-
-    }
 }
