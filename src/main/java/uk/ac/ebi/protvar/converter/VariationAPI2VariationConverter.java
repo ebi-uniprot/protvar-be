@@ -8,7 +8,7 @@ import uk.ac.ebi.protvar.exception.UnexpectedUseCaseException;
 import uk.ac.ebi.protvar.model.api.DSVAssociation;
 import uk.ac.ebi.protvar.model.api.Feature;
 import uk.ac.ebi.protvar.model.response.Variation;
-import uk.ac.ebi.protvar.utils.AminoAcidsThreeLetter;
+import uk.ac.ebi.protvar.utils.AminoAcid;
 
 @Service
 public class VariationAPI2VariationConverter {
@@ -48,7 +48,7 @@ public class VariationAPI2VariationConverter {
 		//RR, T*, QLQ, KRSHY* show insertions of new Amino Acids
 		// - ? No idea why we have these values
 		try {
-			return AminoAcidsThreeLetter.getThreeLetterFromSingleLetter(letter);
+			return AminoAcid.fromOneLetter(letter).getThreeLetters();
 		} catch (UnexpectedUseCaseException ignore) {
 			return null;
 		}

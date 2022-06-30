@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -54,6 +55,11 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, protein_name "
 			+ "from genomic_protein_mapping where genomic_position in (:position)  order by is_canonical desc";
 
+	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL = "select * " +
+			"from genomic_protein_mapping where protein_position = :proteinPosition " +
+			"and accession = :accession " +
+			"and codon_position in (:codonPositions) order by is_canonical desc";
+
 	private NamedParameterJdbcTemplate variantJDBCTemplate;
 	
 	@Override
@@ -92,5 +98,12 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 		return variantJDBCTemplate.query(SELECT_MAPPINGS_BY_POSITION_SQL, parameters, (rs, rowNum) -> createMapping(rs))
 			.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
+	public List<GenomeToProteinMapping> getMappings(String accession, Long proteinPosition, Set<Integer> codonPositions) {
+		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
+				.addValue("proteinPosition", proteinPosition)
+				.addValue("codonPositions", codonPositions);
 
+		return variantJDBCTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL, parameters, (rs, rowNum) -> createMapping(rs))
+				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
+	}
 }

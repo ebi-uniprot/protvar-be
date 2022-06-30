@@ -8,14 +8,14 @@ import javax.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.utils.AminoAcidsThreeLetter;
+import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.builder.OptionalAttributesBuilder;
 import uk.ac.ebi.protvar.model.response.Ensp;
 import uk.ac.ebi.protvar.model.response.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.Transcript;
-import uk.ac.ebi.protvar.utils.Codon2AminoAcid;
+import uk.ac.ebi.protvar.utils.RNACodon;
 
 @Service
 @AllArgsConstructor
@@ -36,16 +36,16 @@ public class IsoFormConverter {
 	}
 
 	public List<IsoFormMapping> createIsoforms(List<GenomeToProteinMapping> mappingList, String refAlleleUser,
-			String variantAllele, List<OPTIONS> options) {
+											   String variantAllele, List<OPTIONS> options) {
 		String canonicalAccession = mappingList.stream().filter(GenomeToProteinMapping::isCanonical)
-			.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
+				.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
 
 		Map<String, List<GenomeToProteinMapping>> accessionMapping = mappingList.stream()
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getAccession));
 
 		return accessionMapping.keySet().stream()
-			.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), options))
-			.sorted().collect(Collectors.toList());
+				.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), options))
+				.sorted().collect(Collectors.toList());
 
 	}
 
@@ -59,32 +59,28 @@ public class IsoFormConverter {
 		}
 		long genomicLocation = genomeToProteinMapping.getGenomeLocation();
 		String codon = genomeToProteinMapping.getCodon();
-		String userCodon = replaceChar(codon, refAlleleUser.charAt(0), genomeToProteinMapping.getCodonPosition());
+		//String userCodon = replaceChar(codon, refAlleleUser.charAt(0), genomeToProteinMapping.getCodonPosition());
 		String variantCodon = replaceChar(codon, variantAllele.charAt(0), genomeToProteinMapping.getCodonPosition());
 		List<Ensp> ensps = mergeMappings(g2pAccessionMapping);
-		String variantAA3Letter = Codon2AminoAcid.getAminoAcid(variantCodon.toUpperCase());
-		String consequences = getConsequence(AminoAcidsThreeLetter.getThreeLetterFromSingleLetter(genomeToProteinMapping.getAa()),
-				Codon2AminoAcid.getAminoAcid(variantCodon.toUpperCase()));
+		AminoAcid refAA = AminoAcid.fromOneLetter(genomeToProteinMapping.getAa());
+		AminoAcid variantAA = RNACodon.valueOf(variantCodon.toUpperCase()).getAa();
 
-		IsoFormMapping.IsoFormMappingBuilder builder = IsoFormMapping.builder().accession(accession).refCodon(codon)
-				.userCodon(userCodon).cdsPosition(genomeToProteinMapping.getCodonPosition())
-				.refAA(AminoAcidsThreeLetter.getThreeLetterFromSingleLetter(genomeToProteinMapping.getAa()))
-				.userAA(variantAA3Letter)
-				.variantAA(Codon2AminoAcid.getAminoAcid(variantCodon.toUpperCase())).variantCodon(variantCodon)
+		String consequences = AminoAcid.getConsequence(refAA, variantAA);
+
+		IsoFormMapping.IsoFormMappingBuilder builder = IsoFormMapping.builder()
+				.accession(accession).refCodon(codon)
+				//TODO clean up
+				//.userCodon(userCodon)
+				.cdsPosition(genomeToProteinMapping.getCodonPosition())
+				.refAA(refAA.getThreeLetters())
+				//.userAA(variantAA.getThreeLetters())
+				.variantAA(variantAA.getThreeLetters()).variantCodon(variantCodon)
 				.canonicalAccession(canonicalAccession).canonical(isCanonical(accession, canonicalAccession))
 				.isoformPosition(genomeToProteinMapping.getIsoformPosition()).translatedSequences(ensps)
 				.consequences(consequences).proteinName(genomeToProteinMapping.getProteinName());
 		if (isCanonical(accession, canonicalAccession))
 			optionalAttributeBuilder.build(accession, genomicLocation, genomeToProteinMapping.getIsoformPosition(), options, builder);
 		return builder.build();
-	}
-
-	private String getConsequence(String codon, String variantCodon) {
-		if (Objects.equals(codon, variantCodon))
-			return "synonymous";
-		if ("*".equals(variantCodon))
-			return "stop gained";
-		return "missense";
 	}
 
 	private String replaceChar(String str, char ch, int index) {

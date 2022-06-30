@@ -22,10 +22,12 @@ public class IsoFormMapping implements Comparable<IsoFormMapping> {
 	private String canonicalAccession;
 	private int isoformPosition;
 	private String refCodon;
-	private String userCodon;
+	//TODO clean up
+	//private String userCodon;
 	private int cdsPosition;
 	private String refAA;
-	private String userAA;
+	//TODO clean up
+	//private String userAA;
 	private String variantAA;
 	private String variantCodon;
 	private String consequences;
@@ -42,13 +44,13 @@ public class IsoFormMapping implements Comparable<IsoFormMapping> {
 	@JsonInclude(Include.NON_NULL)
 	private String referenceFunctionUri;
 
-	@JsonInclude(Include.NON_NULL)
-	private List<ProteinFeature> experimentalEvidence;
+	//@JsonInclude(Include.NON_NULL)
+	//private List<ProteinFeature> experimentalEvidence;
 
-	@JsonInclude(Include.NON_NULL)
-	private EvolutionInference evolutionalInference;
-	@JsonInclude(Include.NON_NULL)
-	private String evolutionalInferenceUri;
+	//@JsonInclude(Include.NON_NULL)
+	//private EvolutionInference evolutionalInference;
+	//@JsonInclude(Include.NON_NULL)
+	//private String evolutionalInferenceUri;
 
 	@JsonInclude(Include.NON_NULL)
 	private List<PDBeStructure> proteinStructure;
