@@ -13,6 +13,7 @@ import uk.ac.ebi.protvar.model.UserInput;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.VariantsRepository;
 import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.RNACodon;
 
 @Service
@@ -140,6 +141,11 @@ public class MappingFetcher {
 
 			if (altRNACodons_.isEmpty()) {
 				input.addInvalidReason(String.format("%s (%s) to %s %s not possible via SNV", refAA.getThreeLetters(), refRNACodon.name(), altAA.getThreeLetters(), altAA.getRnaCodons() ));
+				input.setChromosome(mapping.getChromosome());
+				input.setStart(mapping.getGenomeLocation());
+				input.setRef(refAllele);
+				input.setAlt(Constants.NA);
+				input.setId(Constants.NA);
 				invalidInputs.add(input);
 			}
 
