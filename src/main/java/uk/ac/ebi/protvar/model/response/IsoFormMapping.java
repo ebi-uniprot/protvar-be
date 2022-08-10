@@ -57,6 +57,12 @@ public class IsoFormMapping implements Comparable<IsoFormMapping> {
 	@JsonInclude(Include.NON_NULL)
 	private String proteinStructureUri;
 
+	@JsonInclude(Include.NON_NULL)
+	private Double eveScore;
+
+	@JsonInclude(Include.NON_NULL)
+	private Integer eveClass;
+
 	public String getCodonChange(){
 		return refCodon + "/" + variantCodon;
 	}
