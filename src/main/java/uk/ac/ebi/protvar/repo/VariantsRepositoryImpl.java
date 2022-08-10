@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 import uk.ac.ebi.protvar.model.response.CADDPrediction;
+import uk.ac.ebi.protvar.model.response.EVEScore;
 import uk.ac.ebi.protvar.model.response.GenomeToProteinMapping;
 
 @Repository
@@ -59,6 +60,9 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 			"from genomic_protein_mapping where protein_position = :proteinPosition " +
 			"and accession = :accession " +
 			"and codon_position in (:codonPositions) order by is_canonical desc";
+
+	private static final String SELECT_EVE_SCORES = "SELECT * FROM EVE_SCORE WHERE accession IN (:accessions) " +
+			"AND position IN (:positions)";
 
 	private NamedParameterJdbcTemplate variantJDBCTemplate;
 	
@@ -106,4 +110,15 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 		return variantJDBCTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL, parameters, (rs, rowNum) -> createMapping(rs))
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
+
+	public List<EVEScore> getEVEScores(List<String> accessions, List<Integer> positions) {
+		SqlParameterSource parameters = new MapSqlParameterSource("accessions", accessions)
+				.addValue("positions", positions);
+		return variantJDBCTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
+	}
+	private EVEScore createEveScore(ResultSet rs) throws SQLException {
+		return new EVEScore(rs.getString("accession"), rs.getInt("position"), rs.getString("wt_aa"),
+				rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
+	}
+
 }

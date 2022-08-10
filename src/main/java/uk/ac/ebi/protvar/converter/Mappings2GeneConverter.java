@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
+import uk.ac.ebi.protvar.model.response.EVEScore;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.response.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
@@ -22,7 +23,7 @@ public class Mappings2GeneConverter {
 	private IsoFormConverter isformConverter;
 
 	public List<Gene> createGenes(List<GenomeToProteinMapping> mappings, String allele, String variantAllele,
-			Double caddScore, List<OPTIONS> options) {
+								  Double caddScore, Map<String, List<EVEScore>> eveScoreMap, List<OPTIONS> options) {
 
 		Map<String, List<GenomeToProteinMapping>> ensgMappings = mappings.stream()
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getEnsg));
@@ -35,7 +36,7 @@ public class Mappings2GeneConverter {
 			String userAllele = getUserAllele(allele, genomeToProteinMapping.isReverseStrand());
 
 			List<IsoFormMapping> accMappings = isformConverter.createIsoforms(mappingList, userAllele, variantAllele,
-					options);
+					eveScoreMap, options);
 
 			return Gene.builder().ensg(ensg).reverseStrand(genomeToProteinMapping.isReverseStrand())
 					.geneName(genomeToProteinMapping.getGeneName())

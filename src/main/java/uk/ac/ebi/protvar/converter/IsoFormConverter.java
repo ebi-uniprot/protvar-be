@@ -8,13 +8,10 @@ import javax.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.builder.OptionalAttributesBuilder;
-import uk.ac.ebi.protvar.model.response.Ensp;
-import uk.ac.ebi.protvar.model.response.GenomeToProteinMapping;
-import uk.ac.ebi.protvar.model.response.IsoFormMapping;
-import uk.ac.ebi.protvar.model.response.Transcript;
 import uk.ac.ebi.protvar.utils.RNACodon;
 
 @Service
@@ -36,7 +33,7 @@ public class IsoFormConverter {
 	}
 
 	public List<IsoFormMapping> createIsoforms(List<GenomeToProteinMapping> mappingList, String refAlleleUser,
-											   String variantAllele, List<OPTIONS> options) {
+											   String variantAllele, Map<String, List<EVEScore>> eveScoreMap, List<OPTIONS> options) {
 		String canonicalAccession = mappingList.stream().filter(GenomeToProteinMapping::isCanonical)
 				.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
 
@@ -44,13 +41,14 @@ public class IsoFormConverter {
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getAccession));
 
 		return accessionMapping.keySet().stream()
-				.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), options))
+				.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), eveScoreMap, options))
 				.sorted().collect(Collectors.toList());
 
 	}
 
 	private IsoFormMapping createIsoform(String refAlleleUser, String variantAllele, String canonicalAccession,
-			String accession, List<GenomeToProteinMapping> g2pAccessionMapping, List<OPTIONS> options) {
+			String accession, List<GenomeToProteinMapping> g2pAccessionMapping, Map<String, List<EVEScore>> eveScoreMap,
+										 List<OPTIONS> options) {
 		GenomeToProteinMapping genomeToProteinMapping = g2pAccessionMapping.get(0);
 
 		boolean strand = genomeToProteinMapping.isReverseStrand();
@@ -65,6 +63,8 @@ public class IsoFormConverter {
 		AminoAcid refAA = AminoAcid.fromOneLetter(genomeToProteinMapping.getAa());
 		AminoAcid variantAA = RNACodon.valueOf(variantCodon.toUpperCase()).getAa();
 
+		EVEScore eveScore = calcEveScore(genomeToProteinMapping, eveScoreMap, variantAA);
+
 		String consequences = AminoAcid.getConsequence(refAA, variantAA);
 
 		IsoFormMapping.IsoFormMappingBuilder builder = IsoFormMapping.builder()
@@ -78,9 +78,34 @@ public class IsoFormConverter {
 				.canonicalAccession(canonicalAccession).canonical(isCanonical(accession, canonicalAccession))
 				.isoformPosition(genomeToProteinMapping.getIsoformPosition()).translatedSequences(ensps)
 				.consequences(consequences).proteinName(genomeToProteinMapping.getProteinName());
+		if (eveScore != null) {
+			builder.eveScore(eveScore.getScore());
+			builder.eveClass(eveScore.getEveClass().getNum());
+		}
 		if (isCanonical(accession, canonicalAccession))
 			optionalAttributeBuilder.build(accession, genomicLocation, genomeToProteinMapping.getIsoformPosition(), options, builder);
 		return builder.build();
+	}
+
+	private EVEScore calcEveScore(GenomeToProteinMapping genomeToProteinMapping, Map<String, List<EVEScore>> eveScoreMap, AminoAcid variantAA) {
+		EVEScore eveScore = null;
+
+		if (genomeToProteinMapping.getAccession() != null && genomeToProteinMapping.getAa() != null
+				&& genomeToProteinMapping.isCanonical()) {
+
+			String eveScoreKey = genomeToProteinMapping.getAccession() + "-" + genomeToProteinMapping.getIsoformPosition() + "-" +
+					genomeToProteinMapping.getAa();
+			if (eveScoreMap.containsKey(eveScoreKey)) {
+				List<EVEScore> eveScores = eveScoreMap.get(eveScoreKey).stream()
+						.filter(e -> e.getMtAA().equals(variantAA.getOneLetter()))
+						.collect(Collectors.toList());
+
+				if (eveScores.size() == 1) {
+					eveScore = eveScores.get(0);
+				}
+			}
+		}
+		return eveScore;
 	}
 
 	private String replaceChar(String str, char ch, int index) {
