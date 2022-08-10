@@ -41,7 +41,7 @@ public class MappingFetcher {
 		if (predictions != null && !predictions.isEmpty())
 			caddScore = predictions.get(0).getScore();
 
-		List<Gene> ensgMappingList = mappingsConverter.createGenes(mappings, allele, variantAllele, caddScore, options);
+		List<Gene> ensgMappingList = mappingsConverter.createGenes(mappings, allele, variantAllele, caddScore, null, options);
 
 		return GenomeProteinMapping.builder().chromosome(chromosome).geneCoordinateStart(genomicLocation).id(id)
 				.geneCoordinateEnd(genomicLocation).userAllele(allele).variantAllele(variantAllele)
@@ -80,8 +80,18 @@ public class MappingFetcher {
 			Map<String, List<CADDPrediction>> predictionMap = variantRepository.getPredictions(positions)
 				.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
-			Map<String, List<GenomeToProteinMapping>> map = variantRepository.getMappings(positions)
-				.stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));
+			List<GenomeToProteinMapping> g2pMappings = variantRepository.getMappings(positions);
+			List <String> proteinAccessions = new ArrayList<>();
+			List <Integer> proteinPositions = new ArrayList<>();
+			g2pMappings.forEach(m -> {
+				proteinAccessions.add(m.getAccession());
+				proteinPositions.add(m.getIsoformPosition());
+			});
+			Map<String, List<EVEScore>> eveScoreMap = variantRepository.getEVEScores(proteinAccessions, proteinPositions)
+					.stream().collect(Collectors.groupingBy(EVEScore::getGroupBy));
+
+			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
+					.collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));
 
 			List<GenomeProteinMapping> mappingsListToReturn = new ArrayList<>();
 			validInputs.forEach(input -> {
@@ -94,7 +104,7 @@ public class MappingFetcher {
 
 				List<Gene> ensgMappingList = Collections.emptyList();
 				if (mappingList != null)
-					ensgMappingList = mappingsConverter.createGenes(mappingList, input.getRef(), input.getAlt(), caddScore, options);
+					ensgMappingList = mappingsConverter.createGenes(mappingList, input.getRef(), input.getAlt(), caddScore, eveScoreMap, options);
 				
 				GenomeProteinMapping mapping = GenomeProteinMapping.builder().chromosome(input.getChromosome())
 						.geneCoordinateStart(input.getStart()).id(input.getId()).geneCoordinateEnd(input.getStart())
