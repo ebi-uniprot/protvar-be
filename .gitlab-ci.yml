@@ -1,5 +1,5 @@
 variables:
-  URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/deploy.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
+  URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/deploy-web-cluster.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
   URL_WP_CONFIG_TEMPLATE_yml: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/wp-config-template.yml/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
 stages:
   - test
