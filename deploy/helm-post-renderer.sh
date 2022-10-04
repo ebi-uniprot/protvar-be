@@ -1,4 +1,4 @@
 #!/bin/sh
-GITLAB_HL_DB_PWD=$(echo ${GITLAB_HL_DB_PWD} | base64)
-GITLAB_HX_DB_PWD=$(echo ${GITLAB_HX_DB_PWD} | base64)
+GITLAB_HL_DB_PWD=$(printf ${GITLAB_HL_DB_PWD} | base64)
+GITLAB_HX_DB_PWD=$(printf ${GITLAB_HX_DB_PWD} | base64)
 envsubst '${GITLAB_HL_DB_URL} ${GITLAB_HX_DB_URL} ${GITLAB_DB_USER} ${GITLAB_HL_DB_PWD} ${GITLAB_HX_DB_PWD}' <&0
