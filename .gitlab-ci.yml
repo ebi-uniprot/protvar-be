@@ -1,6 +1,5 @@
 variables:
-  URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/deploy-web-cluster.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
-  URL_WP_CONFIG_TEMPLATE_yml: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/wp-config-template.yml/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
+  URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/helm-deploy.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
 stages:
   - test
   - build
@@ -59,16 +58,16 @@ build_docker_image:
 .kubectl:
   image: alpine
   before_script:
-    - apk add --no-cache curl git bash
+    - apk add --no-cache curl git bash gettext coreutils
     - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
     - chmod +x ./kubectl
     - mv ./kubectl /usr/local/bin/kubectl
     - wget -O deploy.sh "${URL_DEPLOY_SH}"
-    - wget -O wp-config-template.yml "${URL_WP_CONFIG_TEMPLATE_yml}"
     - echo "--no-cache --no-cookies was not used by wget"
     - if [ ! -f deploy.sh ]; then echo "k8s deployment file is missing"; exit 1; fi
-    - if [ ! -f wp-config-template.yml ]; then echo "k8s config file is missing"; exit 1; fi
     - chmod +x deploy.sh
+    - export VERIFY_CHECKSUM=false
+    - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 dev-deploy:
   only:
@@ -77,7 +76,7 @@ dev-deploy:
   stage: deploy
   extends: .kubectl
   script:
-    - ./deploy.sh HX protvar-be protvar-dev deployment # data-center app_name namespace type-of-deployment
+    - ./deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev
 
 prod-deploy:
   only:
@@ -86,5 +85,5 @@ prod-deploy:
   stage: deploy
   extends: .kubectl
   script:
-    - ./deploy.sh HX protvar-be protvar deployment # fallback app_name namespace type-of-deployment
-    - ./deploy.sh HH protvar-be protvar deployment # prod app_name namespace type-of-deployment
+    - ./deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar
+    - ./deploy.sh ENV=PD APP_NAME=protvar-be K8S_NAMESPACE=protvar
