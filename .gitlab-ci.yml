@@ -56,18 +56,12 @@ build_docker_image:
     - docker logout "$CI_REGISTRY"
 
 .kubectl:
-  image: alpine
+  image: dockerhub.ebi.ac.uk/uniprot/deployment/containers/helm
   before_script:
-    - apk add --no-cache curl git bash gettext coreutils
-    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-    - chmod +x ./kubectl
-    - mv ./kubectl /usr/local/bin/kubectl
     - wget -O deploy.sh "${URL_DEPLOY_SH}"
     - echo "--no-cache --no-cookies was not used by wget"
-    - if [ ! -f deploy.sh ]; then echo "k8s deployment file is missing"; exit 1; fi
+    - if [ ! -f deploy.sh ]; then echo "k8s deployment script is missing"; exit 1; fi
     - chmod +x deploy.sh
-    - export VERIFY_CHECKSUM=false
-    - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 dev-deploy:
   only:
