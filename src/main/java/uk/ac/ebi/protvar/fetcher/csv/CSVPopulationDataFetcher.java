@@ -22,11 +22,11 @@ public class CSVPopulationDataFetcher {
 		List<Variation> variants = populationObservations.getProteinColocatedVariant().stream()
 				.filter(feature -> refAA.equalsIgnoreCase(feature.getWildType())
 						&& variantAA.equalsIgnoreCase(feature.getAlternativeSequence())
-						&& genomicLocation == getLocation(feature.getGenomicLocation()))
+						&& genomicLocation == ExtractUtils.extractLocation(feature.getGenomicLocation()))
 				.collect(Collectors.toList());
 
 		List<Variation> colocatedVariants = populationObservations.getProteinColocatedVariant().stream()
-				.filter(feature -> genomicLocation != getLocation(feature.getGenomicLocation()))
+				.filter(feature -> genomicLocation != ExtractUtils.extractLocation(feature.getGenomicLocation()))
 				.collect(Collectors.toList());
 		List<String> csv = new ArrayList<>();
 		if (variants.isEmpty()) {
@@ -107,13 +107,6 @@ public class CSVPopulationDataFetcher {
 			colocatedVar = colocatedVar + ";" + clinicalSignificances.get(xref.getName());
 		}
 		return colocatedVar;
-	}
-
-	private long getLocation(String genomicLocation) {
-		if (genomicLocation != null) {
-			return ExtractUtils.extractLocation(genomicLocation);
-		}
-		return 0L;
 	}
 
 }
