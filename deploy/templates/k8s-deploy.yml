@@ -41,7 +41,7 @@ spec:
       terminationGracePeriodSeconds: 10
       containers:
         - name: protvar-be
-          image: dockerhub.ebi.ac.uk/uniprot/deployment/mirror-protvar-be:{{ .Value.imageTag }}
+          image: dockerhub.ebi.ac.uk/uniprot/deployment/mirror-protvar-be:{{ .Values.imageTag }}
           ports:
             - containerPort: 8080 # default port for springboot
           volumeMounts:
