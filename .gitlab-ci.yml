@@ -47,7 +47,7 @@ build_docker_image:
   script:
     - docker --version
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-    - CONTAINER_IMAGE=${CI_REGISTRY_IMAGE}:latest
+    - CONTAINER_IMAGE=${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
     - echo "image name will be ${CONTAINER_IMAGE}"
     - docker build -t ${CONTAINER_IMAGE} --no-cache -f deploy/Dockerfile .
     - docker image ls
@@ -70,7 +70,7 @@ dev-deploy:
   stage: deploy
   extends: .kubectl
   script:
-    - ./deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev
+    - ./deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev imageTag="${CI_COMMIT_SHORT_SHA}"
 
 prod-deploy:
   only:
@@ -79,5 +79,5 @@ prod-deploy:
   stage: deploy
   extends: .kubectl
   script:
-    - ./deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar
-    - ./deploy.sh ENV=PD APP_NAME=protvar-be K8S_NAMESPACE=protvar
+    - ./deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
+    - ./deploy.sh ENV=PD APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
