@@ -49,11 +49,11 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 	}
 
 	private static final String SELECT_MAPPINGS_SQL = "select chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, "
-			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, protein_name "
+			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name "
 			+ "from genomic_protein_mapping where chromosome = :chromosome and genomic_position = :position  order by is_canonical desc";
 	
 	private static final String SELECT_MAPPINGS_BY_POSITION_SQL = "select chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, "
-			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, protein_name "
+			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name "
 			+ "from genomic_protein_mapping where genomic_position in (:position)  order by is_canonical desc";
 
 	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL = "select * " +
@@ -92,7 +92,7 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 				rs.getString("codon"), rs.getString("accession"), rs.getString("ensg"), rs.getString("ensp"),
 				rs.getString("enst"), rs.getString("ense"), rs.getBoolean("reverse_strand"), rs.getBoolean("is_match"),
 				rs.getString("patch_name"), rs.getString("gene_name"), rs.getInt("codon_position"),
-				rs.getBoolean("is_canonical"), rs.getString("protein_name"));
+				rs.getBoolean("is_canonical"), rs.getBoolean("is_mane_select"), rs.getString("protein_name"));
 	}
 
 	@Override
