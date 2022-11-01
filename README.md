@@ -24,3 +24,17 @@ The Main class is uk.ac.ebi.protvar.ApplicationMainClass
 1. We are using gatling to test application
 2. Use mvn gatling:test -Dgatling.simulationClass=uk.ac.ebi.protvar.gatling.simulations.BasicSimulation
 3. or mvn gatling:test
+
+## Deployment
+
+To deploy to development environment:
+- Merge or commit changes directly to the `dev` branch.
+- Gitlab CI/CD pipeline will execute deployment to the dev environment.
+- It may take a couple of minutes for the Gitlab mirror repository to refresh from the Github repository.
+- To check deployment:
+  - either check Gitlab CI/CD
+  - or run `helm status protvar-be` and check the last deployed to confirm.
+
+To deploy to production environment:
+- Merge or commit changes to the main branch.
+- The same automated CI/CD process as above will execute for production.
