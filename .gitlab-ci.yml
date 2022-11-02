@@ -1,6 +1,5 @@
 variables:
-  URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/deploy.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
-  URL_WP_CONFIG_TEMPLATE_yml: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/wp-config-template.yml/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
+  URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/helm-deploy.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
 stages:
   - test
   - build
@@ -48,7 +47,7 @@ build_docker_image:
   script:
     - docker --version
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u $CI_REGISTRY_USER $CI_REGISTRY --password-stdin
-    - CONTAINER_IMAGE=${CI_REGISTRY_IMAGE}:latest
+    - CONTAINER_IMAGE=${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
     - echo "image name will be ${CONTAINER_IMAGE}"
     - docker build -t ${CONTAINER_IMAGE} --no-cache -f deploy/Dockerfile .
     - docker image ls
@@ -57,17 +56,11 @@ build_docker_image:
     - docker logout "$CI_REGISTRY"
 
 .kubectl:
-  image: alpine
+  image: dockerhub.ebi.ac.uk/uniprot/deployment/containers/helm
   before_script:
-    - apk add --no-cache curl git bash
-    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
-    - chmod +x ./kubectl
-    - mv ./kubectl /usr/local/bin/kubectl
     - wget -O deploy.sh "${URL_DEPLOY_SH}"
-    - wget -O wp-config-template.yml "${URL_WP_CONFIG_TEMPLATE_yml}"
     - echo "--no-cache --no-cookies was not used by wget"
-    - if [ ! -f deploy.sh ]; then echo "k8s deployment file is missing"; exit 1; fi
-    - if [ ! -f wp-config-template.yml ]; then echo "k8s config file is missing"; exit 1; fi
+    - if [ ! -f deploy.sh ]; then echo "k8s deployment script is missing"; exit 1; fi
     - chmod +x deploy.sh
 
 dev-deploy:
@@ -77,7 +70,7 @@ dev-deploy:
   stage: deploy
   extends: .kubectl
   script:
-    - ./deploy.sh HX protvar-be protvar-dev deployment # data-center app_name namespace type-of-deployment
+    - ./deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev imageTag="${CI_COMMIT_SHORT_SHA}"
 
 prod-deploy:
   only:
@@ -86,5 +79,5 @@ prod-deploy:
   stage: deploy
   extends: .kubectl
   script:
-    - ./deploy.sh HX protvar-be protvar deployment # fallback app_name namespace type-of-deployment
-    - ./deploy.sh HH protvar-be protvar deployment # prod app_name namespace type-of-deployment
+    - ./deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
+    - ./deploy.sh ENV=PD APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"

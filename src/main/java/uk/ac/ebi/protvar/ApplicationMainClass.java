@@ -23,7 +23,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import uk.ac.ebi.protvar.cache.RestTemplateCache;
 
 @SpringBootApplication
-@CrossOrigin
+@CrossOrigin //
 public class ApplicationMainClass {
 	@Value(("${variation.api}"))
 	private String variationAPI;

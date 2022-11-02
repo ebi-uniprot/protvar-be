@@ -18,6 +18,7 @@ public class GenomeToProteinMapping implements Comparable<GenomeToProteinMapping
 	private boolean reverseStrand;
 	private boolean isValidRecord;
 	private boolean isCanonical;
+	private boolean isManeSelect;
 	private String patchName;
 	private String geneName;
 	private int codonPosition;
@@ -26,7 +27,7 @@ public class GenomeToProteinMapping implements Comparable<GenomeToProteinMapping
 	public GenomeToProteinMapping(String chromosome, Long genomeLocation, int proteinLocation, String baseNucleotide,
 			String aa, String codon, String accession, String ensg, String ensp, String enst, String ense,
 			boolean reverseStrand, boolean isValidRecord, String patchName, String geneName, int codonPosition,
-			boolean isCanonical, String proteinName) {
+								  boolean isCanonical, boolean isManeSelect, String proteinName) {
 		super();
 		this.chromosome = chromosome;
 		this.genomeLocation = genomeLocation;
@@ -45,6 +46,7 @@ public class GenomeToProteinMapping implements Comparable<GenomeToProteinMapping
 		this.geneName = geneName;
 		this.codonPosition = codonPosition;
 		this.isCanonical = isCanonical;
+		this.isManeSelect = isManeSelect;
 		this.proteinName = proteinName;
 	}
 

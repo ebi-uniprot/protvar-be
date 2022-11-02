@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -19,6 +20,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 
 import uk.ac.ebi.protvar.model.response.CADDPrediction;
+import uk.ac.ebi.protvar.model.response.EVEScore;
 import uk.ac.ebi.protvar.model.response.GenomeToProteinMapping;
 
 @Repository
@@ -47,12 +49,20 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 	}
 
 	private static final String SELECT_MAPPINGS_SQL = "select chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, "
-			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, protein_name "
+			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name "
 			+ "from genomic_protein_mapping where chromosome = :chromosome and genomic_position = :position  order by is_canonical desc";
 	
 	private static final String SELECT_MAPPINGS_BY_POSITION_SQL = "select chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, "
-			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, protein_name "
+			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name "
 			+ "from genomic_protein_mapping where genomic_position in (:position)  order by is_canonical desc";
+
+	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL = "select * " +
+			"from genomic_protein_mapping where protein_position = :proteinPosition " +
+			"and accession = :accession " +
+			"and codon_position in (:codonPositions) order by is_canonical desc";
+
+	private static final String SELECT_EVE_SCORES = "SELECT * FROM EVE_SCORE WHERE accession IN (:accessions) " +
+			"AND position IN (:positions)";
 
 	private NamedParameterJdbcTemplate variantJDBCTemplate;
 	
@@ -82,7 +92,7 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 				rs.getString("codon"), rs.getString("accession"), rs.getString("ensg"), rs.getString("ensp"),
 				rs.getString("enst"), rs.getString("ense"), rs.getBoolean("reverse_strand"), rs.getBoolean("is_match"),
 				rs.getString("patch_name"), rs.getString("gene_name"), rs.getInt("codon_position"),
-				rs.getBoolean("is_canonical"), rs.getString("protein_name"));
+				rs.getBoolean("is_canonical"), rs.getBoolean("is_mane_select"), rs.getString("protein_name"));
 	}
 
 	@Override
@@ -91,6 +101,24 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 
 		return variantJDBCTemplate.query(SELECT_MAPPINGS_BY_POSITION_SQL, parameters, (rs, rowNum) -> createMapping(rs))
 			.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
+	}
+	public List<GenomeToProteinMapping> getMappings(String accession, Long proteinPosition, Set<Integer> codonPositions) {
+		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
+				.addValue("proteinPosition", proteinPosition)
+				.addValue("codonPositions", codonPositions);
+
+		return variantJDBCTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL, parameters, (rs, rowNum) -> createMapping(rs))
+				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
+	}
+
+	public List<EVEScore> getEVEScores(List<String> accessions, List<Integer> positions) {
+		SqlParameterSource parameters = new MapSqlParameterSource("accessions", accessions)
+				.addValue("positions", positions);
+		return variantJDBCTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
+	}
+	private EVEScore createEveScore(ResultSet rs) throws SQLException {
+		return new EVEScore(rs.getString("accession"), rs.getInt("position"), rs.getString("wt_aa"),
+				rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
 	}
 
 }
