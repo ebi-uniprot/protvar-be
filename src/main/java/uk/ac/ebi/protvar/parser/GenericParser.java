@@ -18,6 +18,8 @@ public abstract class GenericParser {
             .map(String::toUpperCase).collect(Collectors.toList());
     public static final String DB_MT_CHROMOSOME = "Mitochondrion";
 
+    public static final String RS_ID_REGEX = "rs(\\d+)";
+
     static Long convertPosition(String sPosition) {
         long position = -1L;
         try {
