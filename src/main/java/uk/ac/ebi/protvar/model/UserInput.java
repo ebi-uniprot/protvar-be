@@ -1,12 +1,14 @@
 package uk.ac.ebi.protvar.model;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 import lombok.Getter;
 import lombok.Setter;
 import uk.ac.ebi.protvar.parser.HGVSParser;
 import uk.ac.ebi.protvar.parser.ProtACParser;
 import uk.ac.ebi.protvar.parser.VCFParser;
+import uk.ac.ebi.protvar.parser.GenericParser;
 import uk.ac.ebi.protvar.utils.*;
 
 @Getter
@@ -15,7 +17,8 @@ public class UserInput {
 	public enum Type {
 		VCF,
 		HGVS,
-		PROTAC
+		PROTAC,
+		RS
 	}
 
 	private static final String INPUT_END_STRING = "...";
@@ -46,9 +49,17 @@ public class UserInput {
 		this.oneLetterAltAA = oneLetterAltAA;
 	}
 
+	public static UserInput rsInput(String id) {
+		UserInput input = new UserInput(Type.RS);
+		input.setId(id);
+		return input;
+	}
+
 	public static UserInput getInput(String input) {
 		if (input == null)
 			return null;
+		if (input.startsWith("rs") && Pattern.matches(GenericParser.RS_ID_REGEX, input))
+			return UserInput.rsInput(input);
 		if (input.startsWith("NC"))
 			return HGVSParser.parse(input);
 		if (ProtACParser.startsWithAccession(input))
