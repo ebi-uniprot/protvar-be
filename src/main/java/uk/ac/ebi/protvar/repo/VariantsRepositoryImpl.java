@@ -62,7 +62,7 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 	private static final String SELECT_EVE_SCORES = "SELECT * FROM EVE_SCORE WHERE accession IN (:accessions) " +
 			"AND position IN (:positions)";
 
-	private static final String SELECT_VARIANTS = "SELECT * FROM variants WHERE id IN (:rsIds) ";
+	private static final String SELECT_VARIANTS = "SELECT * FROM variants WHERE id IN (:ids) ";
 
 	private NamedParameterJdbcTemplate variantJDBCTemplate;
 	
@@ -112,16 +112,18 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 	}
 
 	public List<EVEScore> getEVEScores(List<String> accessions, List<Integer> positions) {
+		if (accessions.isEmpty() || positions.isEmpty())
+			return new ArrayList<>();
 		SqlParameterSource parameters = new MapSqlParameterSource("accessions", accessions)
 				.addValue("positions", positions);
 		return variantJDBCTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
 	}
 
 	@Override
-	public List<Variant> getVariants(Set<String> rsIds) {
-		if (rsIds.isEmpty())
+	public List<Variant> getVariants(List<String> ids) {
+		if (ids.isEmpty())
 			return new ArrayList<>();
-		SqlParameterSource parameters = new MapSqlParameterSource("rsIds", rsIds);
+		SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
 		return variantJDBCTemplate.query(SELECT_VARIANTS, parameters, (rs, rowNum) ->
 				new Variant(rs.getString("chr"), rs.getLong("pos"), rs.getString("id"),
 						rs.getString("ref"),rs.getString("alt")));

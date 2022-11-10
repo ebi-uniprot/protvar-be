@@ -18,5 +18,5 @@ public interface VariantsRepository {
 
 	List<EVEScore> getEVEScores(List<String> accessions, List<Integer> positions);
 
-	List<Variant> getVariants(Set<String> rsIds);
+	List<Variant> getVariants(List<String> rsIds);
 }

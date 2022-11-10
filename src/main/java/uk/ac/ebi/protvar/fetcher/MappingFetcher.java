@@ -1,20 +1,18 @@
 package uk.ac.ebi.protvar.fetcher;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
 import lombok.AllArgsConstructor;
-import org.apache.catalina.User;
 import org.springframework.stereotype.Service;
-
-import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
+import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.model.UserInput;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.VariantsRepository;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.RNACodon;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -60,7 +58,7 @@ public class MappingFetcher {
 		List<UserInput> invalidInputs = new ArrayList<>();
 		List<UserInput> validInputs = new ArrayList<>();
 
-		Set<String> rsIds = new TreeSet<>();
+		List<String> rsIds = new ArrayList<>();
 
 		response.setInvalidInputs(invalidInputs);
 		inputs.stream().map(String::trim)
