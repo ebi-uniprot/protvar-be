@@ -1,20 +1,18 @@
 package uk.ac.ebi.protvar.fetcher;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
 import lombok.AllArgsConstructor;
-import org.apache.catalina.User;
 import org.springframework.stereotype.Service;
-
-import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
+import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.model.UserInput;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.VariantsRepository;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.RNACodon;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
@@ -56,21 +54,33 @@ public class MappingFetcher {
 	 */
 	public MappingResponse getMappings(List<String> inputs, List<OPTIONS> options) {
 		MappingResponse response = new MappingResponse();
+		List<UserInput> userInputs = new ArrayList<>();
 		List<UserInput> invalidInputs = new ArrayList<>();
 		List<UserInput> validInputs = new ArrayList<>();
+
+		List<String> rsIds = new ArrayList<>();
+
 		response.setInvalidInputs(invalidInputs);
 		inputs.stream().map(String::trim)
 				.filter(i -> !i.isEmpty())
 				.filter(i -> !i.startsWith("#")).forEach(input -> {
 					UserInput pInput = UserInput.getInput(input);
+					userInputs.add(pInput);
+					if (pInput.getType() == UserInput.Type.RS)
+						rsIds.add(pInput.getId());
+				});
+
+		Map<String, List<Variant>> variantsMap = variantRepository.getVariants(rsIds).stream().collect(Collectors.groupingBy(Variant::getId));
+
+		userInputs.stream().forEach(pInput -> {
 					if (pInput.isValid()) {
-						if (pInput.getType() == UserInput.Type.PROTAC) {
+						if (pInput.getType() == UserInput.Type.PROTAC)
 							addNewInputsUsingGenomicFromProteinInfo(validInputs, invalidInputs, pInput);
-						} else {
+						else if (pInput.getType() == UserInput.Type.RS)
+							addRsInputs(validInputs, invalidInputs, pInput, variantsMap);
+						else
 							validInputs.add(pInput);
-						}
-					}
-					else
+					} else
 						invalidInputs.add(pInput);
 				});
 
@@ -179,6 +189,29 @@ public class MappingFetcher {
 				newInput.setAlt(altAllele);
 				validInputs.add(newInput);
 			}
+		}
+	}
+
+	private void addRsInputs(List<UserInput> validInputs, List<UserInput> invalidInputs, UserInput input, Map<String, List<Variant>> variantsMap) {
+		String id = input.getId();
+		List<Variant> rsInputVariants = variantsMap.get(id);
+		if (rsInputVariants != null && !rsInputVariants.isEmpty()) {
+			for (Variant v: rsInputVariants) {
+				for (String alt : v.getAlt().split(",")) {
+					UserInput newInput = UserInput.rsInput(id);
+					newInput.setChromosome(v.getChr());
+					newInput.setStart(v.getPos());
+					newInput.setRef(v.getRef());
+					newInput.setAlt(alt);
+					validInputs.add(newInput);
+				}
+			}
+		} else {
+			input.addInvalidReason(String.format("Variant ID %s not found", id));
+			input.setChromosome(Constants.NA);
+			input.setRef(Constants.NA);
+			input.setAlt(Constants.NA);
+			invalidInputs.add(input);
 		}
 	}
 
