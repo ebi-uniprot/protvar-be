@@ -67,6 +67,12 @@ spec:
               port: 8080
             initialDelaySeconds: 5 # wait 5 seconds before performing the first readiness probe
             periodSeconds: 3 # perform a readiness probe every 3 seconds
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "500m"
+            limits:
+              memory: "512Mi"
       volumes:
         - name: protvar-be-logs
           persistentVolumeClaim:

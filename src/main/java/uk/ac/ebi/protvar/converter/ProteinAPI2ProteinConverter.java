@@ -43,7 +43,7 @@ public class ProteinAPI2ProteinConverter {
 		if(genes == null) return null;
 		return genes.stream().map(gene -> {
 			GeneName geneName = new GeneName();
-			geneName.setGeneName(gene.getName().getValue());
+			geneName.setGeneName(gene.getName() != null ? gene.getName().getValue() : null);
 			if (gene.getSynonyms() != null && !gene.getSynonyms().isEmpty())
 				geneName.setSynonyms(
 						gene.getSynonyms().stream().map(DSPName::getValue).collect(Collectors.joining(",")));

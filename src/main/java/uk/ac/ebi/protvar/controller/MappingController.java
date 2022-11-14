@@ -70,7 +70,7 @@ MappingController {
   @PostMapping(value = "/proteinAccessionsAndPositions", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<MappingResponse> getMappingsByProteinAccessionsAndPositions(
           @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
-          @ExampleObject(value = "[\"Q4ZIN3 S558R\",\"Q9NUW8 H493R\", \"P60484 R130*\"]"))})
+          @ExampleObject(value = "[\"P80404 Gln56Arg\",\"P49588 Cys152Phe\", \"Q9NRG9 Gln15Lys\"]"))})
           @RequestBody List<String> inputs,
           @Parameter(description = "Include functional annotations in results")
           @RequestParam(required = false, defaultValue = "false") boolean function,

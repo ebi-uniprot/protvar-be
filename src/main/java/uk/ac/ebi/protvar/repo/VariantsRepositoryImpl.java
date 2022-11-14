@@ -2,10 +2,7 @@ package uk.ac.ebi.protvar.repo;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -22,6 +19,7 @@ import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.model.response.CADDPrediction;
 import uk.ac.ebi.protvar.model.response.EVEScore;
 import uk.ac.ebi.protvar.model.response.GenomeToProteinMapping;
+import uk.ac.ebi.protvar.model.response.Variant;
 
 @Repository
 @AllArgsConstructor
@@ -63,6 +61,8 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 
 	private static final String SELECT_EVE_SCORES = "SELECT * FROM EVE_SCORE WHERE accession IN (:accessions) " +
 			"AND position IN (:positions)";
+
+	private static final String SELECT_VARIANTS = "SELECT * FROM variants WHERE id IN (:ids) ";
 
 	private NamedParameterJdbcTemplate variantJDBCTemplate;
 	
@@ -112,10 +112,23 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 	}
 
 	public List<EVEScore> getEVEScores(List<String> accessions, List<Integer> positions) {
+		if (accessions.isEmpty() || positions.isEmpty())
+			return new ArrayList<>();
 		SqlParameterSource parameters = new MapSqlParameterSource("accessions", accessions)
 				.addValue("positions", positions);
 		return variantJDBCTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
 	}
+
+	@Override
+	public List<Variant> getVariants(List<String> ids) {
+		if (ids.isEmpty())
+			return new ArrayList<>();
+		SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+		return variantJDBCTemplate.query(SELECT_VARIANTS, parameters, (rs, rowNum) ->
+				new Variant(rs.getString("chr"), rs.getLong("pos"), rs.getString("id"),
+						rs.getString("ref"),rs.getString("alt")));
+	}
+
 	private EVEScore createEveScore(ResultSet rs) throws SQLException {
 		return new EVEScore(rs.getString("accession"), rs.getInt("position"), rs.getString("wt_aa"),
 				rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
