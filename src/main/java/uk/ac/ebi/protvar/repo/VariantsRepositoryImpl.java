@@ -1,13 +1,5 @@
 package uk.ac.ebi.protvar.repo;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,11 +7,18 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
-
+import uk.ac.ebi.protvar.model.grc.Crossmap;
 import uk.ac.ebi.protvar.model.response.CADDPrediction;
 import uk.ac.ebi.protvar.model.response.EVEScore;
 import uk.ac.ebi.protvar.model.response.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Variant;
+
+import javax.annotation.PostConstruct;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Repository
 @AllArgsConstructor
@@ -63,6 +62,7 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 			"AND position IN (:positions)";
 
 	private static final String SELECT_VARIANTS = "SELECT * FROM variants WHERE id IN (:ids) ";
+	private static final String SELECT_CROSSMAPS = "SELECT * FROM crossmap WHERE grch{VER}_pos IN (:pos) ";
 
 	private NamedParameterJdbcTemplate variantJDBCTemplate;
 	
@@ -127,6 +127,16 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 		return variantJDBCTemplate.query(SELECT_VARIANTS, parameters, (rs, rowNum) ->
 				new Variant(rs.getString("chr"), rs.getLong("pos"), rs.getString("id"),
 						rs.getString("ref"),rs.getString("alt")));
+	}
+
+	public List<Crossmap> getCrossmaps(List<Long> positions, String from) {
+		if (positions.isEmpty())
+			return new ArrayList<>();
+		String sql = SELECT_CROSSMAPS.replace("{VER}", from);
+		SqlParameterSource parameters = new MapSqlParameterSource("pos", positions);
+		return variantJDBCTemplate.query(sql, parameters, (rs, rowNum) ->
+				new Crossmap(rs.getString("chr"), rs.getLong("grch38_pos"), rs.getString("grch38_base"),
+						rs.getLong("grch37_pos"),rs.getString("grch37_base")));
 	}
 
 	private EVEScore createEveScore(ResultSet rs) throws SQLException {
