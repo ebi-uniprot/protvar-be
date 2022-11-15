@@ -30,6 +30,7 @@ public class UserInput {
 	private String ref;
 	private String alt;
 	private String inputString;
+	private String originalInputString;
 
 	private String accession;
 	private Long proteinPosition;
