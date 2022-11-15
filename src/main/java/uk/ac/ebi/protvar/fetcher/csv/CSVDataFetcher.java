@@ -108,7 +108,7 @@ public class CSVDataFetcher {
 	}
 
 	private List<String[]> buildCSVResult(List<String> inputList, List<OPTIONS> options) {
-		MappingResponse response = mappingFetcher.getMappings(inputList, options);
+		MappingResponse response = mappingFetcher.getMappings(inputList, options, null);
 		List<String[]> csvOutput = new ArrayList<>();
 
 		response.getMappings().forEach(mapping -> {
