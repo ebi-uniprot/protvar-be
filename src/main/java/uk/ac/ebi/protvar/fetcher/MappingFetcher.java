@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.model.UserInput;
+import uk.ac.ebi.protvar.model.grc.Assembly;
+import uk.ac.ebi.protvar.model.grc.Crossmap;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.VariantsRepository;
 import uk.ac.ebi.protvar.utils.AminoAcid;
@@ -52,13 +54,14 @@ public class MappingFetcher {
 	 * @return - List of GenomeProteinMapping - Object containing genomic and
 	 *         protein data for a given chromosome and genomicLocation
 	 */
-	public MappingResponse getMappings(List<String> inputs, List<OPTIONS> options) {
+	public MappingResponse getMappings(List<String> inputs, List<OPTIONS> options, String assembly) {
 		MappingResponse response = new MappingResponse();
 		List<UserInput> userInputs = new ArrayList<>();
 		List<UserInput> invalidInputs = new ArrayList<>();
 		List<UserInput> validInputs = new ArrayList<>();
 
 		List<String> rsIds = new ArrayList<>();
+		List<UserInput> grch37Inputs = new ArrayList<>();
 
 		response.setInvalidInputs(invalidInputs);
 		inputs.stream().map(String::trim)
@@ -68,9 +71,39 @@ public class MappingFetcher {
 					userInputs.add(pInput);
 					if (pInput.getType() == UserInput.Type.RS)
 						rsIds.add(pInput.getId());
+
+					if (assembly != null && assembly.equals(Assembly.GRCh37) &&
+							(pInput.getType() == UserInput.Type.VCF || pInput.getType() == UserInput.Type.HGVS)) {
+						grch37Inputs.add(pInput);
+					}
 				});
 
 		Map<String, List<Variant>> variantsMap = variantRepository.getVariants(rsIds).stream().collect(Collectors.groupingBy(Variant::getId));
+
+		if (assembly != null && assembly.equals(Assembly.GRCh37)) {
+			List<Long> grch37Positions = new ArrayList<>();
+			for (UserInput grch37Input : grch37Inputs) {
+				if (grch37Input.isValid()) {
+					grch37Positions.add(grch37Input.getStart());
+				}
+			}
+			Map<String, List<Crossmap>> groupedCrossmaps = variantRepository.getCrossmaps(grch37Positions, assembly)
+					.stream().collect(Collectors.groupingBy(Crossmap::getGroupByChrAnd37Pos));
+			for (UserInput grch37Input : grch37Inputs) {
+				if (grch37Input.isValid()) {
+					String chr = grch37Input.getChromosome();
+					Long pos = grch37Input.getStart();
+					List<Crossmap> crossmaps = groupedCrossmaps.get(chr+"-"+pos);
+					if (crossmaps == null || crossmaps.isEmpty()) {
+						grch37Input.addInvalidReason(String.format("No equivalent GRCh38 coordinate found for GRCh37 coordinate (%s,%s)", chr, pos));
+					} else if (crossmaps.size()==1) {
+						grch37Input.setStart(crossmaps.get(0).getGrch38Pos());
+					} else {
+						grch37Input.addInvalidReason(String.format("Multiple mappings for GRCh37 coordinate (%s,%s)", chr, pos));
+					}
+				}
+			}
+		}
 
 		userInputs.stream().forEach(pInput -> {
 					if (pInput.isValid()) {

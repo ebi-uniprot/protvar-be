@@ -49,37 +49,23 @@ MappingController {
    * @param inputs Variants which you wish to retrieve annotations for in json string array format (example shown below):
    * @return <code>MappingResponse</code> see below schema for more details
    */
-  @Operation(summary = "- retrieve amino acid positions in proteins from a list of genomic coordinates")
-  @PostMapping(value = "/genomicCoordinatesToProteinPosition", produces = MediaType.APPLICATION_JSON_VALUE)
+  @Operation(summary = "- retrieve amino acid positions in proteins from a list of genomic coordinates (specified" +
+          " in VCF or HGVS format), protein positions, or variant IDs")
+  @PostMapping(value = "/mappings", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<MappingResponse> getGenomeProteinMappings(
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
-    @ExampleObject(value = "[\"19 1010539 G C\",\"14 89993420 A/G\", \"10 87933147 rs7565837 C/T\"]"))})
+    @ExampleObject(value = "[\"19 1010539 G C\",\"P80404 Gln56Arg\", \"rs1042779\"]"))})
     @RequestBody List<String> inputs,
     @Parameter(description = "Include functional annotations in results")
     @RequestParam(required = false, defaultValue = "false") boolean function,
     @Parameter(description = "Include population annotations (residue co-located variants and disease associations) in results")
     @RequestParam(required = false, defaultValue = "false") boolean population,
     @Parameter(description = "Include structural annotations in results")
-    @RequestParam(required = false, defaultValue = "false") boolean structure
+    @RequestParam(required = false, defaultValue = "false") boolean structure,
+    @Parameter(description = "Human genome assembly version. Default GRCh38")
+    @RequestParam(required = false) String assembly
   ) {
-    MappingResponse mappingResponse = service.getMappings(inputs, function, population, structure);
-    return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
-  }
-
-  @Operation(summary = "- retrieve mappings from a list of protein accessions and positions")
-  @PostMapping(value = "/proteinAccessionsAndPositions", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<MappingResponse> getMappingsByProteinAccessionsAndPositions(
-          @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
-          @ExampleObject(value = "[\"P80404 Gln56Arg\",\"P49588 Cys152Phe\", \"Q9NRG9 Gln15Lys\"]"))})
-          @RequestBody List<String> inputs,
-          @Parameter(description = "Include functional annotations in results")
-          @RequestParam(required = false, defaultValue = "false") boolean function,
-          @Parameter(description = "Include population annotations (residue co-located variants and disease associations) in results")
-          @RequestParam(required = false, defaultValue = "false") boolean population,
-          @Parameter(description = "Include structural annotations in results")
-          @RequestParam(required = false, defaultValue = "false") boolean structure
-  ) {
-    MappingResponse mappingResponse = service.getMappings(inputs, function, population, structure);
+    MappingResponse mappingResponse = service.getMappings(inputs, function, population, structure, assembly);
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 
