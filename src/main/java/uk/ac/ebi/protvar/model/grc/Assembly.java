@@ -12,6 +12,8 @@ public class Assembly {
     private static final String GRCH37_STR = "GRCH37";
 
     public static String get(String str) {
+        if (str == null)
+            return null;
         str = str.toUpperCase();
         if (str.equals(GRCH38_STR))
             return GRCh38;
