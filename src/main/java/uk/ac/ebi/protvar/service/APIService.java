@@ -26,12 +26,12 @@ public class APIService {
 		return mappingFetcher.getMapping(chromosome, position, id, refAllele, altAllele, options);
 	}
 
-	public MappingResponse getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, String assembly) {
+	public MappingResponse getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, Assembly assembly) {
 		if (inputs == null || inputs.isEmpty())
 			return new MappingResponse();
 
 		List<OPTIONS> options = OptionBuilder.build(function, variation, structure);
-		return mappingFetcher.getMappings(inputs, options, Assembly.get(assembly));
+		return mappingFetcher.getMappings(inputs, options, assembly);
 	}
 
 	public Protein getProtein(String accession, int position) {
@@ -46,7 +46,7 @@ public class APIService {
 		return pdbeFetcher.fetchByAccession(accession, position);
 	}
 
-	public AssemblyMappingResponse getAssemblyMapping(List<String> inputs, String from, String to) {
+	public AssemblyMappingResponse getAssemblyMapping(List<String> inputs, Assembly from, Assembly to) {
 		return assemblyMappingFetcher.getMappings(inputs, from, to);
 	}
 }
