@@ -54,7 +54,7 @@ public class MappingFetcher {
 	 * @return - List of GenomeProteinMapping - Object containing genomic and
 	 *         protein data for a given chromosome and genomicLocation
 	 */
-	public MappingResponse getMappings(List<String> inputs, List<OPTIONS> options, String assembly) {
+	public MappingResponse getMappings(List<String> inputs, List<OPTIONS> options, Assembly assembly) {
 		MappingResponse response = new MappingResponse();
 		List<UserInput> userInputs = new ArrayList<>();
 		List<UserInput> invalidInputs = new ArrayList<>();
@@ -72,7 +72,7 @@ public class MappingFetcher {
 					if (pInput.getType() == UserInput.Type.RS)
 						rsIds.add(pInput.getId());
 
-					if (assembly != null && assembly.equals(Assembly.GRCh37) &&
+					if (assembly != null && assembly == Assembly.GRCH37 &&
 							(pInput.getType() == UserInput.Type.VCF || pInput.getType() == UserInput.Type.HGVS)) {
 						grch37Inputs.add(pInput);
 					}
@@ -80,14 +80,14 @@ public class MappingFetcher {
 
 		Map<String, List<Variant>> variantsMap = variantRepository.getVariants(rsIds).stream().collect(Collectors.groupingBy(Variant::getId));
 
-		if (assembly != null && assembly.equals(Assembly.GRCh37)) {
+		if (assembly != null && assembly == Assembly.GRCH37) {
 			List<Long> grch37Positions = new ArrayList<>();
 			for (UserInput grch37Input : grch37Inputs) {
 				if (grch37Input.isValid()) {
 					grch37Positions.add(grch37Input.getStart());
 				}
 			}
-			Map<String, List<Crossmap>> groupedCrossmaps = variantRepository.getCrossmaps(grch37Positions, assembly)
+			Map<String, List<Crossmap>> groupedCrossmaps = variantRepository.getCrossmaps(grch37Positions, assembly.version)
 					.stream().collect(Collectors.groupingBy(Crossmap::getGroupByChrAnd37Pos));
 			for (UserInput grch37Input : grch37Inputs) {
 				if (grch37Input.isValid()) {
