@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.GenomeProteinMapping;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.service.APIService;
@@ -62,9 +63,15 @@ MappingController {
     @RequestParam(required = false, defaultValue = "false") boolean population,
     @Parameter(description = "Include structural annotations in results")
     @RequestParam(required = false, defaultValue = "false") boolean structure,
-    @Parameter(description = "Human genome assembly version. Default GRCh38")
-    @RequestParam(required = false) String assembly
+    @Parameter(description = "Human genome assembly version. For e.g. GRCh38/h38/38 or GRCh37/h37/37. Default GRCh38")
+    @RequestParam(required = false) String version
   ) {
+    Assembly assembly = null;
+    if (version != null) {
+      assembly = Assembly.of(version);
+      if (assembly == null) // invalid specified assembly
+        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
     MappingResponse mappingResponse = service.getMappings(inputs, function, population, structure, assembly);
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
