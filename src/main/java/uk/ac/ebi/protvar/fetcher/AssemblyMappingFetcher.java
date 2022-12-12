@@ -21,7 +21,7 @@ public class AssemblyMappingFetcher {
     private VariantsRepository variantRepository;
 
 
-    public AssemblyMappingResponse getMappings(List<String> inputs, String from, String to) {
+    public AssemblyMappingResponse getMappings(List<String> inputs, Assembly from, Assembly to) {
 
         List<AssemblyMapping> assemblyMappings = new ArrayList<>();
         List<Coordinate> fromCoordinates = new ArrayList<>();
@@ -39,7 +39,7 @@ public class AssemblyMappingFetcher {
                     }
                 });
 
-        Map<String, List<Crossmap>> groupedCrossmaps = variantRepository.getCrossmaps(fromCoordinates.stream().map(Coordinate::getPos).collect(Collectors.toList()), from)
+        Map<String, List<Crossmap>> groupedCrossmaps = variantRepository.getCrossmaps(fromCoordinates.stream().map(Coordinate::getPos).collect(Collectors.toList()), from.version)
                 .stream().collect(Collectors.groupingBy(Crossmap::getGroupByChrAnd37Pos));
 
         assemblyMappings.stream().filter(mapping -> mapping.getFrom() != null)
@@ -51,11 +51,11 @@ public class AssemblyMappingFetcher {
                     } else {
                         if (crossmap.size() == 1) {
                             Coordinate toCoordinate = new Coordinate(crossmap.get(0).getChr());
-                            if (from.equals(Assembly.GRCh37)) {
+                            if (from == Assembly.GRCH37) {
                                 toCoordinate.setPos(crossmap.get(0).getGrch38Pos());
                                 toCoordinate.setBase(crossmap.get(0).getGrch38Base());
                                 mapping.getFrom().setBase(crossmap.get(0).getGrch37Base());
-                            } else if (from.equals(Assembly.GRCh38)) {
+                            } else if (from == Assembly.GRCH38) {
                                 toCoordinate.setPos(crossmap.get(0).getGrch37Pos());
                                 toCoordinate.setBase(crossmap.get(0).getGrch37Base());
                                 mapping.getFrom().setBase(crossmap.get(0).getGrch38Base());
@@ -67,7 +67,7 @@ public class AssemblyMappingFetcher {
                     }
                 });
 
-        return new AssemblyMappingResponse(from, to, assemblyMappings);
+        return new AssemblyMappingResponse(from.name, to.name, assemblyMappings);
     }
 }
 
