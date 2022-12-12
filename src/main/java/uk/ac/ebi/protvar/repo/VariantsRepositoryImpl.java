@@ -45,15 +45,20 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 		}
 	}
 
-	private static final String SELECT_MAPPINGS_SQL = "select chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, "
-			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name "
-			+ "from genomic_protein_mapping where chromosome = :chromosome and genomic_position = :position  order by is_canonical desc";
+	private static final String SELECT_MAPPINGS_SQL = "select " +
+			"chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, reverse_strand, " +
+			"ensg, ensg_ver, ensp, ensp_ver, enst, enst_ver, " +
+			"ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name " +
+			"from genomic_protein_mapping where chromosome = :chromosome and genomic_position = :position  order by is_canonical desc";
 	
-	private static final String SELECT_MAPPINGS_BY_POSITION_SQL = "select chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, "
-			+ "reverse_strand, ensg, ensp, enst, ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name "
-			+ "from genomic_protein_mapping where genomic_position in (:position)  order by is_canonical desc";
+	private static final String SELECT_MAPPINGS_BY_POSITION_SQL = "select " +
+			"chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, reverse_strand, " +
+			"ensg, ensg_ver, ensp, ensp_ver, enst, enst_ver, " +
+			"ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name " +
+			"from genomic_protein_mapping where genomic_position in (:position)  order by is_canonical desc";
 
-	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL = "select * " +
+	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL = "select " +
+			"chromosome, allele, genomic_position, protein_position, codon, reverse_strand, codon_position " +
 			"from genomic_protein_mapping where protein_position = :proteinPosition " +
 			"and accession = :accession " +
 			"and codon_position in (:codonPositions) order by is_canonical desc";
@@ -86,13 +91,32 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 			.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
+	private String ensXVersion(String ens, String ver) {
+		return (ens == null ? "" : ens) + "." + (ver == null ? "" : ver);
+	}
+
 	private GenomeToProteinMapping createMapping(ResultSet rs) throws SQLException {
-		return new GenomeToProteinMapping(rs.getString("chromosome"), rs.getLong("genomic_position"),
-				rs.getInt("protein_position"), rs.getString("allele"), rs.getString("protein_seq"),
-				rs.getString("codon"), rs.getString("accession"), rs.getString("ensg"), rs.getString("ensp"),
-				rs.getString("enst"), rs.getString("ense"), rs.getBoolean("reverse_strand"), rs.getBoolean("is_match"),
-				rs.getString("patch_name"), rs.getString("gene_name"), rs.getInt("codon_position"),
-				rs.getBoolean("is_canonical"), rs.getBoolean("is_mane_select"), rs.getString("protein_name"));
+		return GenomeToProteinMapping.builder()
+				.chromosome(rs.getString("chromosome"))
+				.genomeLocation(rs.getLong("genomic_position"))
+				.isoformPosition(rs.getInt("protein_position"))
+				.baseNucleotide(rs.getString("allele"))
+				.aa(rs.getString("protein_seq"))
+				.codon(rs.getString("codon"))
+				.accession(rs.getString("accession"))
+				.ensg(ensXVersion(rs.getString("ensg"), rs.getString("ensg_ver")))
+				.ensp(ensXVersion(rs.getString("ensp"), rs.getString("ensp_ver")))
+				.enst(ensXVersion(rs.getString("enst"), rs.getString("enst_ver")))
+				.ense(rs.getString("ense"))
+				.reverseStrand(rs.getBoolean("reverse_strand"))
+				.isValidRecord(rs.getBoolean("is_match"))
+				.patchName(rs.getString("patch_name"))
+				.geneName(rs.getString("gene_name"))
+				.codonPosition(rs.getInt("codon_position"))
+				.isCanonical(rs.getBoolean("is_canonical"))
+				.isManeSelect(rs.getBoolean("is_mane_select"))
+				.proteinName(rs.getString("protein_name"))
+				.build();
 	}
 
 	@Override
@@ -106,8 +130,15 @@ public class VariantsRepositoryImpl implements VariantsRepository {
 		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
 				.addValue("proteinPosition", proteinPosition)
 				.addValue("codonPositions", codonPositions);
-
-		return variantJDBCTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL, parameters, (rs, rowNum) -> createMapping(rs))
+		return variantJDBCTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL, parameters, (rs, rowNum) ->
+						GenomeToProteinMapping.builder()
+								.chromosome(rs.getString("chromosome"))
+								.baseNucleotide(rs.getString("allele"))
+								.genomeLocation(rs.getLong("genomic_position"))
+								.isoformPosition(rs.getInt("protein_position"))
+								.codon(rs.getString("codon"))
+								.reverseStrand(rs.getBoolean("reverse_strand"))
+								.codonPosition(rs.getInt("codon_position")).build())
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
