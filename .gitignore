@@ -4,3 +4,4 @@ target
 .settings
 .idea
 **/application-local.properties
+*.iml
