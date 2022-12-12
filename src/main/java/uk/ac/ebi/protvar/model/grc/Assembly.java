@@ -1,24 +1,38 @@
 package uk.ac.ebi.protvar.model.grc;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-public class Assembly {
-    public static final String GRCh38 = "38";
-    public static final String GRCh37 = "37";
-    public static final List<String> VALID_ASSEMBLY_VERSIONS = List.of(GRCh38, GRCh37);
-    public static final String DEFAULT_ASSEMBLY_VERSION = GRCh38;
+public enum Assembly {
+    GRCH38("GRCh38", "h38", "38"),
+    GRCH37("GRCh37", "h37", "37");
 
-    private static final String GRCH38_STR = "GRCH38";
-    private static final String GRCH37_STR = "GRCH37";
+    public static final Assembly DEFAULT_ASSEMBLY = Assembly.GRCH38;
 
-    public static String get(String str) {
+    // properties with different names (or version num) each assembly is known
+    public final String name;
+    public final String shortName;
+    public final String version;
+
+    private static final Map<String, Assembly> BY_NAME_STR = new HashMap<>();
+
+    static {
+        for (Assembly e: values()) {
+            BY_NAME_STR.put(e.name.toUpperCase(), e);
+            BY_NAME_STR.put(e.shortName.toUpperCase(), e);
+            BY_NAME_STR.put(e.version.toUpperCase(), e);
+        }
+    }
+
+    private Assembly(String name, String shortName, String version) {
+        this.name = name;
+        this.shortName = shortName;
+        this.version = version;
+    }
+
+    public static Assembly of(String str) {
         if (str == null)
             return null;
-        str = str.toUpperCase();
-        if (str.equals(GRCH38_STR))
-            return GRCh38;
-        if (str.equals(GRCH37_STR))
-            return GRCh37;
-        return null;
+        return BY_NAME_STR.get(str.toUpperCase());
     }
 }
