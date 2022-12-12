@@ -31,8 +31,8 @@ public class AssemblyMappingController {
      * can differ.
      *
      * @param inputs list of genomic coordinates
-     * @param from   input assembly version e.g. 37
-     * @param to     output assembly version e.g. 38
+     * @param from   input assembly version e.g. 37/h37/GRCh37
+     * @param to     output assembly version e.g. 38/h38/GRCh38
      * @return <code>AssemblyMappingResponse</code> see below schema for more details
      */
     @Operation(summary = "- convert genomic coordinates")
@@ -44,10 +44,12 @@ public class AssemblyMappingController {
             @Parameter(example = "37") @PathVariable("from") String from,
             @Parameter(example = "38") @PathVariable("to") String to
     ) {
-        if (Assembly.VALID_ASSEMBLY_VERSIONS.contains(from)
-                && Assembly.VALID_ASSEMBLY_VERSIONS.contains(to)
-                && !from.equals(to)) {
-            AssemblyMappingResponse result = service.getAssemblyMapping(inputs, from, to);
+        Assembly fromAssembly = Assembly.of(from);
+        Assembly toAssembly = Assembly.of(to);
+
+        if (fromAssembly != null && toAssembly != null
+                && fromAssembly != toAssembly) {
+            AssemblyMappingResponse result = service.getAssemblyMapping(inputs, fromAssembly, toAssembly);
             return new ResponseEntity<>(result, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
