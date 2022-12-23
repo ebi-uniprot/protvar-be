@@ -10,6 +10,7 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -19,6 +20,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import org.springframework.web.util.DefaultUriBuilderFactory;
+import org.springframework.retry.policy.SimpleRetryPolicy;
+import org.springframework.retry.support.RetryTemplate;
 
 import uk.ac.ebi.protvar.cache.RestTemplateCache;
 
@@ -92,6 +95,23 @@ public class ApplicationMainClass {
 		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
 		restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeAPI));
 		return restTemplate;
+	}
+
+	@Bean
+	RestTemplateCustomizer retryRestTemplateCustomizer() {
+		return restTemplate -> restTemplate.getInterceptors().add((request, body, execution) -> {
+
+			RetryTemplate retryTemplate = new RetryTemplate();
+			retryTemplate.setRetryPolicy(new SimpleRetryPolicy(3));
+			try {
+				return retryTemplate.execute(context -> {
+					System.out.println("start retrying ....");
+					return execution.execute(request, body);
+				});
+			} catch (Throwable throwable) {
+				throw new RuntimeException(throwable);
+			}
+		});
 	}
 
 	@Bean

@@ -108,7 +108,7 @@ public class CSVDataFetcher {
 	}
 
 	private List<String[]> buildCSVResult(List<String> inputList, List<OPTIONS> options) {
-		MappingResponse response = mappingFetcher.getMappings(inputList, options);
+		MappingResponse response = mappingFetcher.getMappings(inputList, options, null);
 		List<String[]> csvOutput = new ArrayList<>();
 
 		response.getMappings().forEach(mapping -> {
@@ -134,7 +134,7 @@ public class CSVDataFetcher {
 	}
 
 	String[] getCsvDataInvalidInput(UserInput input){
-		return concatNaOutputCols(List.of(input.getFormattedInputString(), input.getChromosome(), input.getStart().toString(), input.getId(),
+		return concatNaOutputCols(List.of(input.getFormattedInputString(), input.getChromosome(), input.getStartEmptyForNull(), input.getId(),
 			input.getRef(), input.getAlt(), input.getInvalidReason()));
 	}
 

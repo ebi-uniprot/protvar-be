@@ -1,8 +1,10 @@
 package uk.ac.ebi.protvar.model.response;
 
+import lombok.Builder;
 import lombok.Getter;
 
 @Getter
+@Builder
 public class GenomeToProteinMapping implements Comparable<GenomeToProteinMapping> {
 	private String chromosome;
 	private Long genomeLocation;
@@ -23,32 +25,6 @@ public class GenomeToProteinMapping implements Comparable<GenomeToProteinMapping
 	private String geneName;
 	private int codonPosition;
 	private String proteinName;
-
-	public GenomeToProteinMapping(String chromosome, Long genomeLocation, int proteinLocation, String baseNucleotide,
-			String aa, String codon, String accession, String ensg, String ensp, String enst, String ense,
-			boolean reverseStrand, boolean isValidRecord, String patchName, String geneName, int codonPosition,
-								  boolean isCanonical, boolean isManeSelect, String proteinName) {
-		super();
-		this.chromosome = chromosome;
-		this.genomeLocation = genomeLocation;
-		this.isoformPosition = proteinLocation;
-		this.baseNucleotide = baseNucleotide;
-		this.aa = aa;
-		this.codon = codon;
-		this.accession = accession;
-		this.ensg = ensg;
-		this.ensp = ensp;
-		this.enst = enst;
-		this.ense = ense;
-		this.reverseStrand = reverseStrand;
-		this.isValidRecord = isValidRecord;
-		this.patchName = patchName;
-		this.geneName = geneName;
-		this.codonPosition = codonPosition;
-		this.isCanonical = isCanonical;
-		this.isManeSelect = isManeSelect;
-		this.proteinName = proteinName;
-	}
 
 	@Override
 	public String toString() {

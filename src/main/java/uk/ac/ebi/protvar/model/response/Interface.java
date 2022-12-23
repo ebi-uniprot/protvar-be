@@ -4,14 +4,15 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
-public class Variant {
+public class Interface {
+	private String protein;
+	private String chain;
+	private String pair;
+	private List<Integer> residues;
 
-    private String chr;
-    private Long pos;
-    private String id;
-    private String ref;
-    private String alt;
 }

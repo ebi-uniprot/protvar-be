@@ -30,6 +30,7 @@ public class UserInput {
 	private String ref;
 	private String alt;
 	private String inputString;
+	private String originalInputString;
 
 	private String accession;
 	private Long proteinPosition;
@@ -163,5 +164,9 @@ public class UserInput {
 				+ ", id=" + id + ", ref=" + ref + ", alt=" + alt + ", inputString=" + inputString
 				+ ", accession=" + accession + ", proteinPosition=" + proteinPosition
 				+ ", oneLetterRefAA=" + oneLetterRefAA + ", oneLetterAltAA=" + oneLetterAltAA + "]";
+	}
+
+	public String getStartEmptyForNull() {
+		return start == null ? "" : start.toString();
 	}
 }

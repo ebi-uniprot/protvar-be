@@ -13,4 +13,4 @@ For any additional queries please feel free to contact us.
 
 Thank you for using ProtVar.
 ProtVar Team
-protvar.ebi.ac.uk
+protvar@ebi.ac.uk
