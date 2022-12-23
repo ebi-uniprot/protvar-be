@@ -165,4 +165,8 @@ public class UserInput {
 				+ ", accession=" + accession + ", proteinPosition=" + proteinPosition
 				+ ", oneLetterRefAA=" + oneLetterRefAA + ", oneLetterAltAA=" + oneLetterAltAA + "]";
 	}
+
+	public String getStartEmptyForNull() {
+		return start == null ? "" : start.toString();
+	}
 }
