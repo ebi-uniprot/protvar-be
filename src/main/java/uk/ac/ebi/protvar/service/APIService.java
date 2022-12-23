@@ -7,6 +7,7 @@ import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.*;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 
 import java.util.List;
 
@@ -19,6 +20,8 @@ public class APIService {
 	private PDBeFetcher pdbeFetcher;
 	private MappingFetcher mappingFetcher;
 	private AssemblyMappingFetcher assemblyMappingFetcher;
+
+	private ProtVarDataRepo protVarDataRepo;
 
 	public GenomeProteinMapping getMapping(String chromosome, Long position, String id, String refAllele,
                                          String altAllele, boolean function, boolean variation, boolean structure) {
@@ -35,7 +38,14 @@ public class APIService {
 	}
 
 	public Protein getProtein(String accession, int position) {
-		return proteinFetcher.fetch(accession, position);
+		Protein protein = proteinFetcher.fetch(accession, position);
+		if (protein != null) {
+			protein.setPockets(protVarDataRepo.getPockets(accession, position));
+			protein.setInterfaces(protVarDataRepo.getInterfaces(accession, position));
+			protein.setFoldxs(protVarDataRepo.getFoldxs(accession, position));
+		}
+
+		return protein;
 	}
 
 	public PopulationObservation getPopulationObservation(String accession, int position) {
