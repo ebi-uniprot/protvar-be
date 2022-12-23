@@ -8,7 +8,7 @@ import uk.ac.ebi.protvar.model.UserInput;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.grc.Crossmap;
 import uk.ac.ebi.protvar.model.response.*;
-import uk.ac.ebi.protvar.repo.VariantsRepository;
+import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.RNACodon;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class MappingFetcher {
 
-	private VariantsRepository variantRepository;
+	private ProtVarDataRepo protVarDataRepo;
 	private Mappings2GeneConverter mappingsConverter;
 
 	/**
@@ -29,13 +29,13 @@ public class MappingFetcher {
 	 */
 	public GenomeProteinMapping getMapping(String chromosome, Long genomicLocation, String id, String allele,
 			String variantAllele, List<OPTIONS> options) {
-		List<GenomeToProteinMapping> mappings = variantRepository.getMappings(chromosome, genomicLocation);
+		List<GenomeToProteinMapping> mappings = protVarDataRepo.getMappings(chromosome, genomicLocation);
 		if (mappings == null || mappings.isEmpty())
 			return GenomeProteinMapping.builder().chromosome(chromosome).geneCoordinateStart(genomicLocation)
 					.geneCoordinateEnd(genomicLocation).id(id).userAllele(allele).variantAllele(variantAllele)
 					.genes(Collections.emptyList()).build();
 
-		List<CADDPrediction> predictions = variantRepository.getPredictions(List.of(genomicLocation));
+		List<CADDPrediction> predictions = protVarDataRepo.getCADDPredictions(List.of(genomicLocation));
 
 		Double caddScore = null;
 		if (predictions != null && !predictions.isEmpty())
@@ -78,7 +78,7 @@ public class MappingFetcher {
 					}
 				});
 
-		Map<String, List<Variant>> variantsMap = variantRepository.getVariants(rsIds).stream().collect(Collectors.groupingBy(Variant::getId));
+		Map<String, List<Dbsnp>> dbsnpMap = protVarDataRepo.getDbsnps(rsIds).stream().collect(Collectors.groupingBy(Dbsnp::getId));
 
 		if (assembly != null && assembly == Assembly.GRCH37) {
 			List<Long> grch37Positions = new ArrayList<>();
@@ -87,7 +87,7 @@ public class MappingFetcher {
 					grch37Positions.add(grch37Input.getStart());
 				}
 			}
-			Map<String, List<Crossmap>> groupedCrossmaps = variantRepository.getCrossmaps(grch37Positions, assembly.version)
+			Map<String, List<Crossmap>> groupedCrossmaps = protVarDataRepo.getCrossmaps(grch37Positions, assembly.version)
 					.stream().collect(Collectors.groupingBy(Crossmap::getGroupByChrAnd37Pos));
 			for (UserInput grch37Input : grch37Inputs) {
 				if (grch37Input.isValid()) {
@@ -110,7 +110,7 @@ public class MappingFetcher {
 						if (pInput.getType() == UserInput.Type.PROTAC)
 							addNewInputsUsingGenomicFromProteinInfo(validInputs, invalidInputs, pInput);
 						else if (pInput.getType() == UserInput.Type.RS)
-							addRsInputs(validInputs, invalidInputs, pInput, variantsMap);
+							addRsInputs(validInputs, invalidInputs, pInput, dbsnpMap);
 						else
 							validInputs.add(pInput);
 					} else
@@ -120,17 +120,17 @@ public class MappingFetcher {
 		List<Long> positions = validInputs.stream().map(UserInput::getStart).distinct().collect(Collectors.toList());
 		if (!positions.isEmpty()) {
 
-			Map<String, List<CADDPrediction>> predictionMap = variantRepository.getPredictions(positions)
+			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDPredictions(positions)
 				.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
-			List<GenomeToProteinMapping> g2pMappings = variantRepository.getMappings(positions);
+			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappings(positions);
 			List <String> proteinAccessions = new ArrayList<>();
 			List <Integer> proteinPositions = new ArrayList<>();
 			g2pMappings.forEach(m -> {
 				proteinAccessions.add(m.getAccession());
 				proteinPositions.add(m.getIsoformPosition());
 			});
-			Map<String, List<EVEScore>> eveScoreMap = variantRepository.getEVEScores(proteinAccessions, proteinPositions)
+			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(proteinAccessions, proteinPositions)
 					.stream().collect(Collectors.groupingBy(EVEScore::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
@@ -167,7 +167,7 @@ public class MappingFetcher {
 		if (codonPositions == null || codonPositions.isEmpty())
 			codonPositions = new HashSet<>(Arrays.asList(1, 2, 3));
 
-		Map<String, List<GenomeToProteinMapping>> mappings = variantRepository.getMappings(input.getAccession(), input.getProteinPosition(), codonPositions)
+		Map<String, List<GenomeToProteinMapping>> mappings = protVarDataRepo.getMappings(input.getAccession(), input.getProteinPosition(), codonPositions)
 				.stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));
 
 		for (String key : mappings.keySet()) {
@@ -225,11 +225,11 @@ public class MappingFetcher {
 		}
 	}
 
-	private void addRsInputs(List<UserInput> validInputs, List<UserInput> invalidInputs, UserInput input, Map<String, List<Variant>> variantsMap) {
+	private void addRsInputs(List<UserInput> validInputs, List<UserInput> invalidInputs, UserInput input, Map<String, List<Dbsnp>> dbsnpMap) {
 		String id = input.getId();
-		List<Variant> rsInputVariants = variantsMap.get(id);
+		List<Dbsnp> rsInputVariants = dbsnpMap.get(id);
 		if (rsInputVariants != null && !rsInputVariants.isEmpty()) {
-			for (Variant v: rsInputVariants) {
+			for (Dbsnp v: rsInputVariants) {
 				for (String alt : v.getAlt().split(",")) {
 					UserInput newInput = UserInput.rsInput(id);
 					newInput.setChromosome(v.getChr());

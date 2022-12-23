@@ -7,7 +7,7 @@ import uk.ac.ebi.protvar.model.grc.Coordinate;
 import uk.ac.ebi.protvar.model.grc.Crossmap;
 import uk.ac.ebi.protvar.model.response.AssemblyMapping;
 import uk.ac.ebi.protvar.model.response.AssemblyMappingResponse;
-import uk.ac.ebi.protvar.repo.VariantsRepository;
+import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class AssemblyMappingFetcher {
 
-    private VariantsRepository variantRepository;
+    private ProtVarDataRepo protVarDataRepo;
 
 
     public AssemblyMappingResponse getMappings(List<String> inputs, Assembly from, Assembly to) {
@@ -39,7 +39,7 @@ public class AssemblyMappingFetcher {
                     }
                 });
 
-        Map<String, List<Crossmap>> groupedCrossmaps = variantRepository.getCrossmaps(fromCoordinates.stream().map(Coordinate::getPos).collect(Collectors.toList()), from.version)
+        Map<String, List<Crossmap>> groupedCrossmaps = protVarDataRepo.getCrossmaps(fromCoordinates.stream().map(Coordinate::getPos).collect(Collectors.toList()), from.version)
                 .stream().collect(Collectors.groupingBy(Crossmap::getGroupByChrAnd37Pos));
 
         assemblyMappings.stream().filter(mapping -> mapping.getFrom() != null)
