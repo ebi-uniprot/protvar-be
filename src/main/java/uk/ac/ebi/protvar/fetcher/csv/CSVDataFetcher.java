@@ -134,7 +134,7 @@ public class CSVDataFetcher {
 	}
 
 	String[] getCsvDataInvalidInput(UserInput input){
-		return concatNaOutputCols(List.of(input.getFormattedInputString(), input.getChromosome(), input.getStart().toString(), input.getId(),
+		return concatNaOutputCols(List.of(input.getFormattedInputString(), input.getChromosome(), input.getStartEmptyForNull(), input.getId(),
 			input.getRef(), input.getAlt(), input.getInvalidReason()));
 	}
 

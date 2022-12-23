@@ -41,6 +41,9 @@ public class Protein implements Cloneable {
 //	private String canonicalAccession;
 //	private List<String> canonicalIsoforms;
 	private List<DBReference> dbReferences;
+	private List<Pocket> pockets;
+	private List<Interface> interfaces;
+	private List<Foldx> foldxs;
 
 	@NoArgsConstructor
 	@Setter
