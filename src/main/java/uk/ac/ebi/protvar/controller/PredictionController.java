@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uk.ac.ebi.protvar.model.response.ConservScore;
 import uk.ac.ebi.protvar.model.response.Foldx;
 import uk.ac.ebi.protvar.model.response.Interaction;
 import uk.ac.ebi.protvar.model.response.Pocket;
@@ -94,5 +95,22 @@ public class PredictionController {
             @Parameter(example = "Q9UBZ4") @PathVariable String b) {
         String model = protVarDataRepo.getInteractionModel(a, b);
         return model;
+    }
+
+    /**
+     * Get conservation score.
+     *
+     * @param accession UniProt accession
+     * @param position  Amino acid position
+     * @return <code>ConservScore</code> information on accession
+     */
+    @Operation(summary = "- by accession and position")
+    @GetMapping(value = "/conserv/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ConservScore>> getConservScoresByAccAndPos(
+            @Parameter(example = "Q9NUW8") @PathVariable String accession,
+            @Parameter(example = "493") @PathVariable Integer position) {
+
+        List<ConservScore> scores = protVarDataRepo.getConservScores(accession, position);
+        return new ResponseEntity<>(scores, HttpStatus.OK);
     }
 }

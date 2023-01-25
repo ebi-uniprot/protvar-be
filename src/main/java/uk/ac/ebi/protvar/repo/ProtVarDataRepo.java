@@ -48,4 +48,7 @@ public interface ProtVarDataRepo {
 	List<Foldx> getFoldxs(String accession, Integer position);
 	List<Interaction> getInteractions(String accession, Integer resid);
 	String getInteractionModel(String a, String b);
+
+	// Conservation score
+	List<ConservScore> getConservScores(String acc, Integer pos);
 }

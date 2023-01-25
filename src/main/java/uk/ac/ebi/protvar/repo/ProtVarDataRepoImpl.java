@@ -72,6 +72,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private static final String SELECT_INTERACTION_MODEL = "SELECT pdb_model FROM af2complexes_interaction WHERE a=:a AND b=:b";
 
+
+	private static final String SELECT_CONSERV_SCORES = "SELECT * FROM CONSERV_SCORE WHERE acc=:acc " +
+			"AND pos=:pos";
+
 	private NamedParameterJdbcTemplate jdbcTemplate;
 	
 	@Override
@@ -230,5 +234,16 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			residList.add(residArr[i].intValue());
 		}
 		return residList;
+	}
+
+	public List<ConservScore> getConservScores(String acc, Integer pos) {
+		SqlParameterSource parameters = new MapSqlParameterSource("acc", acc)
+				.addValue("pos", pos);
+		return jdbcTemplate.query(SELECT_CONSERV_SCORES, parameters, (rs, rowNum) -> createConservScore(rs));
+	}
+
+	private ConservScore createConservScore(ResultSet rs) throws SQLException {
+		return new ConservScore(rs.getString("acc"), rs.getString("aa"),
+				rs.getInt("pos"), rs.getDouble("score"));
 	}
 }
