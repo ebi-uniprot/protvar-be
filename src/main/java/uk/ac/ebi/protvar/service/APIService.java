@@ -41,8 +41,12 @@ public class APIService {
 		Protein protein = proteinFetcher.fetch(accession, position);
 		if (protein != null) {
 			protein.setPockets(protVarDataRepo.getPockets(accession, position));
-			protein.setInterfaces(protVarDataRepo.getInterfaces(accession, position));
+			protein.setInteractions(protVarDataRepo.getInteractions(accession, position));
 			protein.setFoldxs(protVarDataRepo.getFoldxs(accession, position));
+			List<ConservScore> conservScores = protVarDataRepo.getConservScores(accession, position);
+			if (conservScores != null && conservScores.size() == 1) {
+				protein.setConservScore(conservScores.get(0).getScore());
+			}
 		}
 
 		return protein;
