@@ -9,17 +9,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uk.ac.ebi.protvar.model.response.ConservScore;
 import uk.ac.ebi.protvar.model.response.Foldx;
 import uk.ac.ebi.protvar.model.response.Interaction;
-import uk.ac.ebi.protvar.model.response.Interface;
 import uk.ac.ebi.protvar.model.response.Pocket;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 
 import javax.servlet.ServletContext;
 import java.util.List;
 
-@Tag(name = "Predictions", description = "Pockets and predicted interfaces and foldx predictions. Protein interactions " +
-        "with confidence/strength and trimmed pdb model.")
+@Tag(name = "Predictions", description = "Pockets, foldx and interactions.")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
@@ -33,24 +32,10 @@ public class PredictionController {
      * Pocket predictions based on the AF-DB monomeric structures using autosite.
      *
      * @param accession UniProt accession
+     * @param resid     Residue
      * @return <code>Pocket</code> information on accession
      */
-    @Operation(summary = "- by accession")
-    @GetMapping(value = "/pocket/{accession}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<Pocket>> getPocketsByAcc(
-            @Parameter(example = "Q9NUW8") @PathVariable String accession) {
-        List<Pocket> pockets = protVarDataRepo.getPockets(accession);
-        return new ResponseEntity<>(pockets, HttpStatus.OK);
-    }
-
-    /**
-     * Pocket predictions based on the AF-DB monomeric structures using autosite.
-     *
-     * @param accession UniProt accession
-     * @param resid     Amino acid position
-     * @return <code>Pocket</code> information on accession
-     */
-    @Operation(summary = "- by accession and resid")
+    @Operation(summary = "- by accession and residue")
     @GetMapping(value = "/pocket/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Pocket>> getPocketsByAccAndResid(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
@@ -58,23 +43,6 @@ public class PredictionController {
 
         List<Pocket> pockets = protVarDataRepo.getPockets(accession, resid);
         return new ResponseEntity<>(pockets, HttpStatus.OK);
-    }
-
-    /**
-     * Predicted interfaces.
-     *
-     * @param accession UniProt accession
-     * @param residue     Amino acid position
-     * @return <code>Interface</code> information on accession
-     */
-    @Operation(summary = "- by accession and residue")
-    @GetMapping(value = "/interface/{accession}/{residue}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<Interface>> getInterfacesByAccAndResid(
-            @Parameter(example = "Q9NUW8") @PathVariable String accession,
-            @Parameter(example = "493") @PathVariable Integer residue) {
-
-        List<Interface> interfaces = protVarDataRepo.getInterfaces(accession, residue);
-        return new ResponseEntity<>(interfaces, HttpStatus.OK);
     }
 
     /**
@@ -90,31 +58,31 @@ public class PredictionController {
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer position) {
 
-        List<Foldx> interfaces = protVarDataRepo.getFoldxs(accession, position);
-        return new ResponseEntity<>(interfaces, HttpStatus.OK);
+        List<Foldx> foldxs = protVarDataRepo.getFoldxs(accession, position);
+        return new ResponseEntity<>(foldxs, HttpStatus.OK);
     }
 
+
     /**
-     * Protein interactions confidence/strength.
+     * Predicted protein-protein interactions with strength/confidence of interaction.
      *
-     * @param a UniProt accession
-     * @param b UniProt accession
+     * @param accession UniProt accession
+     * @param resid     Residue
      * @return <code>Interaction</code> information on accession
      */
-    @Operation(summary = "- by accession pair")
-    @GetMapping(value = "/interaction/{a}/{b}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Interaction> getInteraction(
-            @Parameter(example = "Q9NUW8") @PathVariable String a,
-            @Parameter(example = "Q9UBZ4") @PathVariable String b) {
+    @Operation(summary = "- by accession and residue")
+    @GetMapping(value = "/interaction/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Interaction>> getInteractionsByAccAndResid(
+            @Parameter(example = "Q9NUW8") @PathVariable String accession,
+            @Parameter(example = "493") @PathVariable Integer resid) {
 
-        Interaction interaction = protVarDataRepo.getPairInteraction(a, b);
-        if (interaction != null && interaction.getModelUrl() != null) {
-            interaction.setModelUrl(context.getContextPath() + interaction.getModelUrl());
-        }
-        return new ResponseEntity<>(interaction, HttpStatus.OK);
+        List<Interaction> interactions = protVarDataRepo.getInteractions(accession, resid);
+        interactions.forEach(i -> i.setPdbModel(context.getContextPath() + i.getPdbModel()));
+        return new ResponseEntity<>(interactions, HttpStatus.OK);
     }
+
     /**
-     * Protein interactions trimmed pdb model.
+     * Trimmed pdb model for two interacting proteins.
      *
      * @param a UniProt accession
      * @param b UniProt accession
@@ -125,7 +93,24 @@ public class PredictionController {
     public @ResponseBody String getInteractionModel(
             @Parameter(example = "Q9NUW8") @PathVariable String a,
             @Parameter(example = "Q9UBZ4") @PathVariable String b) {
-        String model = protVarDataRepo.getPairInteractionModel(a, b);
+        String model = protVarDataRepo.getInteractionModel(a, b);
         return model;
+    }
+
+    /**
+     * Get conservation score.
+     *
+     * @param accession UniProt accession
+     * @param position  Amino acid position
+     * @return <code>ConservScore</code> information on accession
+     */
+    @Operation(summary = "- by accession and position")
+    @GetMapping(value = "/conserv/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ConservScore>> getConservScoresByAccAndPos(
+            @Parameter(example = "Q9NUW8") @PathVariable String accession,
+            @Parameter(example = "493") @PathVariable Integer position) {
+
+        List<ConservScore> scores = protVarDataRepo.getConservScores(accession, position);
+        return new ResponseEntity<>(scores, HttpStatus.OK);
     }
 }

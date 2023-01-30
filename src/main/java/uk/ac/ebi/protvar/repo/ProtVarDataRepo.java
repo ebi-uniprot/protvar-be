@@ -42,16 +42,13 @@ public interface ProtVarDataRepo {
 
 
 	//================================================================================
-	// Pockets, predicted interfaces, foldx predictions and protein interactions
+	// Pockets, foldxs, and protein interactions
 	//================================================================================
-	List<Pocket> getPockets(String accession);
 	List<Pocket> getPockets(String accession, Integer resid);
-	List<Interface> getInterfaces(String accession);
-	List<Interface> getInterfaces(String accession, Integer residue);
 	List<Foldx> getFoldxs(String accession, Integer position);
+	List<Interaction> getInteractions(String accession, Integer resid);
+	String getInteractionModel(String a, String b);
 
-	List<Pdockq> getPdockqs(String accession);
-
-	Interaction getPairInteraction(String a, String b);
-	String getPairInteractionModel(String a, String b);
+	// Conservation score
+	List<ConservScore> getConservScores(String acc, Integer pos);
 }

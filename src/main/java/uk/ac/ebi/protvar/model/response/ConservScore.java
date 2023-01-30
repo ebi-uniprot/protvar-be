@@ -4,15 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
 @Getter
 @Setter
 @AllArgsConstructor
-public class Interface {
-	private String protein;
-	private String chain;
-	private String pair;
-	private List<Integer> residues;
+public class ConservScore {
+
+	private String acc;
+	private String aa;
+	private Integer pos;
+	private Double score;
 
 }

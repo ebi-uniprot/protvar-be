@@ -62,17 +62,19 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	// search array contains one of some values (i.e. 24 or 25)
 	// SELECT * FROM af2_v3_human_pocketome WHERE struct_id='A0A075B6I1' AND resid && '{24, 25}';
 
-	private static final String SELECT_POCKETS_BY_ACC = "SELECT * FROM af2_v3_human_pocketome WHERE struct_id=:accession";
 	private static final String SELECT_POCKETS_BY_ACC_AND_RESID = "SELECT * FROM af2_v3_human_pocketome WHERE struct_id=:accession AND (:resid)=ANY(resid)";
 
-	private static final String SELECT_INTERFACES_BY_ACC = "SELECT * FROM af2complexes_interfaces WHERE protein=:accession";
-	private static final String SELECT_INTERFACES_BY_ACC_AND_RESIDUE = "SELECT * FROM af2complexes_interfaces WHERE protein=:accession AND (:residue)=ANY(residues)";
 	private static final String SELECT_FOLDXS_BY_ACC_AND_POS = "SELECT * FROM af2_snps_foldx WHERE protein_acc=:accession AND position=:position";
 
-	private static final String SELECT_PDOCKQ_BY_PAIR_LIKE = "SELECT * FROM af2complexes_pdockq WHERE pair LIKE :accession";
-	private static final String SELECT_PDB_BY_ACC = "SELECT * FROM af2complexes_pdb WHERE a=:accession";
-	private static final String SELECT_PDB_BY_A_AND_B = "SELECT a, b, pdockq FROM af2complexes_pdb WHERE a=:a AND b=:b";
-	private static final String SELECT_PDB_BY_A_AND_B_MODEL = "SELECT pdb_model FROM af2complexes_pdb WHERE a=:a AND b=:b";
+	private static final String SELECT_INTERACTIONS_BY_ACC_AND_RESID = "SELECT a, a_residues, b, b_residues, pdockq FROM af2complexes_interaction " +
+																		"WHERE (a=:accession AND (:resid)=ANY(a_residues)) " +
+																		"OR (b=:accession AND (:resid)=ANY(b_residues))";
+
+	private static final String SELECT_INTERACTION_MODEL = "SELECT pdb_model FROM af2complexes_interaction WHERE a=:a AND b=:b";
+
+
+	private static final String SELECT_CONSERV_SCORES = "SELECT * FROM CONSERV_SCORE WHERE acc=:acc " +
+			"AND pos=:pos";
 
 	private NamedParameterJdbcTemplate jdbcTemplate;
 	
@@ -181,27 +183,13 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	//================================================================================
-	// Pocket, interface, foldx, pdockq, pdb
+	// Pocket, foldx and interaction
 	//================================================================================
-	public List<Pocket> getPockets(String accession) {
-		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession);
-		return jdbcTemplate.query(SELECT_POCKETS_BY_ACC, parameters, (rs, rowNum) -> createPocket(rs));
-	}
+
 	public List<Pocket> getPockets(String accession, Integer resid) {
 		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
 				.addValue("resid", resid);
 		return jdbcTemplate.query(SELECT_POCKETS_BY_ACC_AND_RESID, parameters, (rs, rowNum) -> createPocket(rs));
-	}
-
-
-	public List<Interface> getInterfaces(String accession) {
-		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession);
-		return jdbcTemplate.query(SELECT_INTERFACES_BY_ACC, parameters, (rs, rowNum) -> createInterface(rs));
-	}
-	public List<Interface> getInterfaces(String accession, Integer residue) {
-		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
-				.addValue("residue", residue);
-		return jdbcTemplate.query(SELECT_INTERFACES_BY_ACC_AND_RESIDUE, parameters, (rs, rowNum) -> createInterface(rs));
 	}
 
 	public List<Foldx> getFoldxs(String accession, Integer position) {
@@ -210,22 +198,16 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return jdbcTemplate.query(SELECT_FOLDXS_BY_ACC_AND_POS, parameters, (rs, rowNum) -> createFoldx(rs));
 	}
 
-	public List<Pdockq> getPdockqs(String accession) {
-		SqlParameterSource parameters = new MapSqlParameterSource("accession", "%" +accession+ "%");
-		return jdbcTemplate.query(SELECT_PDOCKQ_BY_PAIR_LIKE, parameters, (rs, rowNum) -> createPdockq(rs));
+	public List<Interaction> getInteractions(String accession, Integer resid) {
+		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
+				.addValue("resid", resid);
+		return jdbcTemplate.query(SELECT_INTERACTIONS_BY_ACC_AND_RESID, parameters, (rs, rowNum) -> createInteraction(rs));
 	}
 
-	public Interaction getPairInteraction(String a, String b) {
+	public String getInteractionModel(String a, String b) {
 		SqlParameterSource parameters = new MapSqlParameterSource("a", a)
 				.addValue("b", b);
-		return jdbcTemplate.queryForObject(SELECT_PDB_BY_A_AND_B, parameters, (rs, rowNum) ->
-				new Interaction(rs.getString("a"), rs.getString("b"), rs.getDouble("pdockq")));
-	}
-
-	public String getPairInteractionModel(String a, String b) {
-		SqlParameterSource parameters = new MapSqlParameterSource("a", a)
-				.addValue("b", b);
-		return jdbcTemplate.queryForObject(SELECT_PDB_BY_A_AND_B_MODEL, parameters, (rs, rowNum) ->
+		return jdbcTemplate.queryForObject(SELECT_INTERACTION_MODEL, parameters, (rs, rowNum) ->
 				rs.getString("pdb_model"));
 	}
 
@@ -233,16 +215,16 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return new Pocket(rs.getString("struct_id"), rs.getDouble("energy"), rs.getDouble("energy_per_vol"),
 				rs.getDouble("score"), getResidueList(rs, "resid"));
 	}
-	private Interface createInterface(ResultSet rs) throws SQLException  {
-		return new Interface(rs.getString("protein"), rs.getString("chain"), rs.getString("pair"),
-				getResidueList(rs, "residues"));
-	}
+
 	private Foldx createFoldx(ResultSet rs) throws SQLException  {
 		return new Foldx(rs.getString("protein_acc"), (int)rs.getShort("position"), rs.getString("wild_type"),
 				rs.getString("mutated_type"), rs.getDouble("foldx_ddg"), rs.getDouble("plddt"));
 	}
-	private Pdockq createPdockq(ResultSet rs) throws SQLException  {
-		return new Pdockq(rs.getString("pair"), rs.getDouble("pdockq"));
+
+	private Interaction createInteraction(ResultSet rs) throws SQLException  {
+		return new Interaction(rs.getString("a"), getResidueList(rs, "a_residues"),
+				rs.getString("b"), getResidueList(rs, "b_residues"),
+				rs.getDouble("pdockq"));
 	}
 
 	private List<Integer> getResidueList(ResultSet rs, String fieldName) throws SQLException  {
@@ -254,4 +236,14 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return residList;
 	}
 
+	public List<ConservScore> getConservScores(String acc, Integer pos) {
+		SqlParameterSource parameters = new MapSqlParameterSource("acc", acc)
+				.addValue("pos", pos);
+		return jdbcTemplate.query(SELECT_CONSERV_SCORES, parameters, (rs, rowNum) -> createConservScore(rs));
+	}
+
+	private ConservScore createConservScore(ResultSet rs) throws SQLException {
+		return new ConservScore(rs.getString("acc"), rs.getString("aa"),
+				rs.getInt("pos"), rs.getDouble("score"));
+	}
 }
