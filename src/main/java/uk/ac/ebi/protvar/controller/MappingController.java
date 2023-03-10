@@ -53,7 +53,7 @@ MappingController {
   @Operation(summary = "- retrieve amino acid positions in proteins from a list of genomic coordinates (specified" +
           " in VCF or HGVS format), protein positions, or variant IDs")
   @PostMapping(value = "/mappings", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<MappingResponse> getGenomeProteinMappings(
+  public ResponseEntity<List<MappingResponse>> getGenomeProteinMappings(
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
     @ExampleObject(value = "[\"19 1010539 G C\",\"P80404 Gln56Arg\", \"rs1042779\"]"))})
     @RequestBody List<String> inputs,
@@ -72,7 +72,7 @@ MappingController {
       if (assembly == null) // invalid specified assembly
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
-    MappingResponse mappingResponse = service.getMappings(inputs, function, population, structure, assembly);
+    List<MappingResponse> mappingResponse = service.getMappings(inputs, function, population, structure, assembly);
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 

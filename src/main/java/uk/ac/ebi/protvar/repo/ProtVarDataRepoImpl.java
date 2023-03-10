@@ -48,11 +48,22 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			"and accession = :accession " +
 			"and codon_position in (:codonPositions) order by is_canonical desc";
 
+	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL2 = "select " +
+			"accession, protein_position, chromosome, genomic_position, allele, codon, reverse_strand, codon_position " +
+			"from genomic_protein_mapping where " +
+			"(accession, protein_position) in (:accPPosition) ";
+
 	private static final String SELECT_EVE_SCORES = "SELECT * FROM EVE_SCORE WHERE accession IN (:accessions) " +
 			"AND position IN (:positions)";
 
+	private static final String SELECT_EVE_SCORES2 = "SELECT * FROM EVE_SCORE " +
+			"WHERE (accession, position) IN (:protAccPositions) ";
+
 	private static final String SELECT_DBSNPS = "SELECT * FROM dbsnp WHERE id IN (:ids) ";
 	private static final String SELECT_CROSSMAPS = "SELECT * FROM crossmap WHERE grch{VER}_pos IN (:pos) ";
+
+	private static final String SELECT_CROSSMAPS2 = "SELECT * FROM crossmap " +
+			"WHERE (chr, grch37_pos) IN (:chrPos37) ";
 
 	// SQL syntax for array
 	// search for only one value
@@ -79,7 +90,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private NamedParameterJdbcTemplate jdbcTemplate;
 	
 	@Override
-	public List<CADDPrediction> getCADDPredictions(List<Long> positions) {
+	public List<CADDPrediction> getCADDPredictions(Set<Long> positions) {
 		SqlParameterSource parameters = new MapSqlParameterSource("position", positions);
 		return jdbcTemplate.query(SELECT_PREDICTIONS_BY_POSITIONS, parameters, (rs, rowNum) -> createPrediction(rs));
 	}
@@ -127,7 +138,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	@Override
-	public List<GenomeToProteinMapping> getMappings(List<Long> positions) {
+	public List<GenomeToProteinMapping> getMappings(Set<Long> positions) {
 		SqlParameterSource parameters = new MapSqlParameterSource("position", positions);
 
 		return jdbcTemplate.query(SELECT_MAPPINGS_BY_POSITION_SQL, parameters, (rs, rowNum) -> createMapping(rs))
@@ -149,12 +160,35 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
+	public List<GenomeToProteinMapping> getGenomicCoordsByProteinAccAndPos(List<Object[]> accPPosition) {
+		SqlParameterSource parameters = new MapSqlParameterSource("accPPosition", accPPosition);
+
+		return jdbcTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL2, parameters, (rs, rowNum) ->
+						GenomeToProteinMapping.builder()
+								.accession(rs.getString("accession"))
+								.chromosome(rs.getString("chromosome"))
+								.baseNucleotide(rs.getString("allele"))
+								.genomeLocation(rs.getLong("genomic_position"))
+								.isoformPosition(rs.getInt("protein_position"))
+								.codon(rs.getString("codon"))
+								.reverseStrand(rs.getBoolean("reverse_strand"))
+								.codonPosition(rs.getInt("codon_position")).build())
+				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
+	}
+
 	public List<EVEScore> getEVEScores(List<String> accessions, List<Integer> positions) {
 		if (accessions.isEmpty() || positions.isEmpty())
 			return new ArrayList<>();
 		SqlParameterSource parameters = new MapSqlParameterSource("accessions", accessions)
 				.addValue("positions", positions);
 		return jdbcTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
+	}
+
+	public List<EVEScore> getEVEScores(List<Object[]> protAccPositions) {
+		if (protAccPositions.isEmpty())
+			return new ArrayList<>();
+		SqlParameterSource parameters = new MapSqlParameterSource("protAccPositions", protAccPositions);
+		return jdbcTemplate.query(SELECT_EVE_SCORES2, parameters, (rs, rowNum) -> createEveScore(rs));
 	}
 
 	@Override
@@ -173,6 +207,15 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		String sql = SELECT_CROSSMAPS.replace("{VER}", from);
 		SqlParameterSource parameters = new MapSqlParameterSource("pos", positions);
 		return jdbcTemplate.query(sql, parameters, (rs, rowNum) ->
+				new Crossmap(rs.getString("chr"), rs.getLong("grch38_pos"), rs.getString("grch38_base"),
+						rs.getLong("grch37_pos"),rs.getString("grch37_base")));
+	}
+
+	public List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37) {
+		if (chrPos37.isEmpty())
+			return new ArrayList<>();
+		SqlParameterSource parameters = new MapSqlParameterSource("chrPos37", chrPos37);
+		return jdbcTemplate.query(SELECT_CROSSMAPS2, parameters, (rs, rowNum) ->
 				new Crossmap(rs.getString("chr"), rs.getLong("grch38_pos"), rs.getString("grch38_base"),
 						rs.getLong("grch37_pos"),rs.getString("grch37_base")));
 	}

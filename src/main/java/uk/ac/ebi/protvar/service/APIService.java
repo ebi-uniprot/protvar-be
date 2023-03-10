@@ -9,6 +9,7 @@ import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -29,9 +30,9 @@ public class APIService {
 		return mappingFetcher.getMapping(chromosome, position, id, refAllele, altAllele, options);
 	}
 
-	public MappingResponse getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, Assembly assembly) {
+	public List<MappingResponse> getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, Assembly assembly) {
 		if (inputs == null || inputs.isEmpty())
-			return new MappingResponse();
+			return new ArrayList<>();
 
 		List<OPTIONS> options = OptionBuilder.build(function, variation, structure);
 		return mappingFetcher.getMappings(inputs, options, assembly);

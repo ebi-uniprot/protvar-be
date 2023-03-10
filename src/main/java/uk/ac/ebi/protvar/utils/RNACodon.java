@@ -26,7 +26,7 @@ public enum RNACodon {
 
     public static final char[] RNA = new char[] {'A', 'C', 'G', 'U'};
     private AminoAcid aa;
-    private Map<Integer, List<RNACodon>> possibleVariants = new HashMap<>();
+    private Map<Integer, Set<RNACodon>> possibleVariants = new HashMap<>();
 
     public enum Change {
         SNV,
@@ -89,7 +89,7 @@ public enum RNACodon {
                 String firstPart = triplets.substring(0, pos);
                 String remainder = triplets.substring(pos+1);
 
-                List<RNACodon> variants = new ArrayList<>();
+                Set<RNACodon> variants = new HashSet<>();
                 for (char c : RNA) {
                     if (c != ref) {
                         variants.add(RNACodon.valueOf(firstPart + c + remainder));
@@ -100,27 +100,34 @@ public enum RNACodon {
         }
     }
 
-    public List<RNACodon> getSNVs(int pos) {
+    /*
+    get a set of possible SNVs for this RNA codon is the change is at position p
+     */
+    public Set<RNACodon> getSNVs(int pos) {
         return possibleVariants.get(pos);
     }
-    public List<RNACodon> getSNVs() {
+
+    /*
+    get a set of possible SNVs for this RNA codon
+     */
+    public Set<RNACodon> getSNVs() {
         return possibleVariants.values()
                 .stream()
-                .flatMap(List::stream)
-                .collect(Collectors.toList());
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
     }
 
-    public Set<AminoAcid> getVariantAAs(int pos) {
+    public Set<AminoAcid> getAltAAs(int pos) {
         Set<AminoAcid> aaSet = new HashSet<>();
         for (RNACodon snv : possibleVariants.get(pos))
             aaSet.add(snv.aa);
         return aaSet;
     }
 
-    public Set<AminoAcid> getVariantAAs() {
+    public Set<AminoAcid> getAltAAs() {
         Set<AminoAcid> aaSet = new HashSet<>();
         for (int pos : possibleVariants.keySet()) {
-            aaSet.addAll(getVariantAAs(pos));
+            aaSet.addAll(getAltAAs(pos));
         }
         return aaSet;
     }

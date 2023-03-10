@@ -1,33 +1,32 @@
-package uk.ac.ebi.protvar.parser;
+package uk.ac.ebi.protvar.input;
 
 import org.junit.jupiter.api.Test;
-import uk.ac.ebi.protvar.model.UserInput;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 
 import java.util.regex.Pattern;
 
-public class ProtACParserTest {
+public class ProteinInputTest {
 
     @Test
     void testProteinAccessionsList() {
-        assert(!ProtACParser.PROTEIN_ACCESSIONS.isEmpty());
-        assert(ProtACParser.PROTEIN_ACCESSIONS.contains("Q4ZIN3"));
+        assert(!ProteinInput.PROTEIN_ACCESSIONS.isEmpty());
+        assert(ProteinInput.PROTEIN_ACCESSIONS.contains("Q4ZIN3"));
     }
 
     @Test
     void testPatternAA1() {
         for (String c : AminoAcid.VALID_AA1) {
-            assert (Pattern.matches(ProtACParser.AA1, c));
+            assert (Pattern.matches(ProteinInput.AA1, c));
         }
     }
 
     @Test
     void testPatternAA3() {
         for (String c : AminoAcid.VALID_AA3) {
-            assert(Pattern.matches(ProtACParser.AA3, c));
+            assert(Pattern.matches(ProteinInput.AA3, c));
         }
-        assert(Pattern.matches(ProtACParser.AA3, "VAL"));
-        assert(!Pattern.matches(ProtACParser.AA3, "XXX"));
+        assert(Pattern.matches(ProteinInput.AA3, "VAL"));
+        assert(!Pattern.matches(ProteinInput.AA3, "XXX"));
     }
 
     @Test // ACC X 999 Y
@@ -85,19 +84,19 @@ public class ProtACParserTest {
 
     @Test
     void testUserInputAccPosYyy() {
-        UserInput userInput = ProtACParser.userInputFromLine("Q4ZIN3/558/Arg");
-        assert(userInput.getAccession().equals("Q4ZIN3"));
-        assert(userInput.getProteinPosition() == 558);
-        assert(userInput.getOneLetterRefAA() == null);
-        assert(userInput.getOneLetterAltAA().equals("R"));
+        ProteinInput userInput = new ProteinInput("Q4ZIN3/558/Arg");
+        assert(userInput.getAcc().equals("Q4ZIN3"));
+        assert(userInput.getPos() == 558);
+        assert(userInput.getRef() == null);
+        assert(userInput.getAlt().equals("R"));
     }
 
     private void assertUserInput(String input) {
-        UserInput userInput = ProtACParser.userInputFromLine(input);
-        assert(userInput.getAccession().equals("Q4ZIN3"));
-        assert(userInput.getProteinPosition() == 558);
-        assert(userInput.getOneLetterRefAA().equals("S"));
-        assert(userInput.getOneLetterAltAA().equals("R"));
+        ProteinInput userInput = new ProteinInput(input);
+        assert(userInput.getAcc().equals("Q4ZIN3"));
+        assert(userInput.getPos() == 558);
+        assert(userInput.getRef().equals("S"));
+        assert(userInput.getAlt().equals("R"));
     }
 
 }

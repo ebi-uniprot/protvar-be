@@ -19,7 +19,7 @@ import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
-import uk.ac.ebi.protvar.model.UserInput;
+import uk.ac.ebi.protvar.input.UserInput;
 
 @Service
 @AllArgsConstructor
@@ -108,9 +108,9 @@ public class CSVDataFetcher {
 	}
 
 	private List<String[]> buildCSVResult(List<String> inputList, List<OPTIONS> options) {
-		MappingResponse response = mappingFetcher.getMappings(inputList, options, null);
+		//MappingResponse response = mappingFetcher.getMappings(inputList, options, null);
 		List<String[]> csvOutput = new ArrayList<>();
-
+/*
 		response.getMappings().forEach(mapping -> {
 			String chr = mapping.getChromosome();
 			Long genomicLocation = mapping.getGeneCoordinateStart();
@@ -123,19 +123,17 @@ public class CSVDataFetcher {
 			else
 				genes.forEach(gene -> csvOutput.add(getCSVData(gene, chr, genomicLocation, varAllele, id, input, options)));
 		});
-		response.getInvalidInputs().forEach(input -> csvOutput.add(getCsvDataInvalidInput(input)));
+		response.getInvalidInputs().forEach(input -> csvOutput.add(getCsvDataInvalidInput(input)));*/
 		return csvOutput;
 	}
 
 	String[] getCsvDataMappingNotFound(String input){
 		UserInput p = UserInput.getInput(input);
-		return concatNaOutputCols(List.of(input, p.getChromosome(), p.getStart().toString(), CSVUtils.getValOrNA(p.getId()),
-			p.getRef(), p.getAlt(), Constants.NOTE_MAPPING_NOT_FOUND));
+		return concatNaOutputCols(List.of(input, Constants.NOTE_MAPPING_NOT_FOUND));
 	}
 
 	String[] getCsvDataInvalidInput(UserInput input){
-		return concatNaOutputCols(List.of(input.getFormattedInputString(), input.getChromosome(), input.getStartEmptyForNull(), input.getId(),
-			input.getRef(), input.getAlt(), input.getInvalidReason()));
+		return concatNaOutputCols(List.of(input.getInputStr(), input.getInvalidReasons()));
 	}
 
 	private String[] concatNaOutputCols(List<String> inputAndNotes){

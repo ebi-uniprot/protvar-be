@@ -1,10 +1,8 @@
 package uk.ac.ebi.protvar.utils;
 
 import lombok.Getter;
-import uk.ac.ebi.protvar.exception.UnexpectedUseCaseException;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Getter
 public enum AminoAcid {
@@ -49,13 +47,14 @@ public enum AminoAcid {
     private String name;
     private boolean extended;
 
-    private List<RNACodon> rnaCodons = new ArrayList<>();
+    private Set<RNACodon> rnaCodons = new HashSet<>();
     private Map<AminoAcid, Set<Integer>> altAACodonPositions = new HashMap<>();
 
     public final static Set<String> VALID_AA1 = new HashSet<>();
     public final static Set<String> VALID_AA3 = new HashSet<>();
 
     static {
+        // amino acid is encoded by the rna codons
         Arrays.stream(AminoAcid.standardValues())
                 .forEach(aminoAcid -> {
                     Arrays.stream(RNACodon.values()).forEach(rnaCodon -> {
@@ -67,9 +66,9 @@ public enum AminoAcid {
         Arrays.stream(AminoAcid.standardValues())
                 .forEach(aminoAcid -> {
                     aminoAcid.rnaCodons.stream().forEach(rnaCodon -> {
-                        for (Map.Entry<Integer, List<RNACodon>> entry : rnaCodon.getPossibleVariants().entrySet()) {
+                        for (Map.Entry<Integer, Set<RNACodon>> entry : rnaCodon.getPossibleVariants().entrySet()) {
                             Integer pos = entry.getKey();
-                            List<RNACodon> variantCodons = entry.getValue();
+                            Set<RNACodon> variantCodons = entry.getValue();
                             for (RNACodon variantCodon : variantCodons) {
                                 AminoAcid aa = variantCodon.getAa();
                                 if (aminoAcid.altAACodonPositions.containsKey(aa)) {
@@ -125,9 +124,9 @@ public enum AminoAcid {
         // get AA at each possible position
         Set<Integer> codonChangePositions = new HashSet<>();
         for (RNACodon codon : this.getRnaCodons()) {
-            Map<Integer, List<RNACodon>> variantMap = codon.getPossibleVariants();
+            Map<Integer, Set<RNACodon>> variantMap = codon.getPossibleVariants();
             for (Integer pos : variantMap.keySet()) {
-                List<RNACodon> variantCodons = variantMap.get(pos);
+                Set<RNACodon> variantCodons = variantMap.get(pos);
                 if (variantCodons.stream().filter(variantCodon -> variantCodon.getAa().equals(alt)).count() > 0)
                     codonChangePositions.add(pos);
             }
@@ -145,5 +144,10 @@ public enum AminoAcid {
         if (alt.equals(AminoAcid.TER))
             return "stop gained";
         return "missense";
+    }
+
+    public String description() {
+        return "XXX is encoded by X codons (x,y,z)" +
+                "There are x possible alternates for XXX incl. YYY, ZZZ";
     }
 }

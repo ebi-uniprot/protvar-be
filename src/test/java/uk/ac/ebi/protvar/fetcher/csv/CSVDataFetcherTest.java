@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
-import uk.ac.ebi.protvar.model.UserInput;
+import uk.ac.ebi.protvar.input.UserInput;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;

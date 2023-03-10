@@ -35,6 +35,10 @@ public class GenomeToProteinMapping implements Comparable<GenomeToProteinMapping
 		return this.chromosome + "-" + this.getGenomeLocation();
 	}
 
+	public String getGroupByProteinAccAndPos() {
+		return this.accession + "-" + this.isoformPosition;
+	}
+
 	@Override
 	public int compareTo(GenomeToProteinMapping o) {
 		return Boolean.compare(o.isCanonical, this.isCanonical);
