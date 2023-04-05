@@ -24,11 +24,6 @@ public class APIService {
 
 	private ProtVarDataRepo protVarDataRepo;
 
-	public GenomeProteinMapping getMapping(String chromosome, Long position, String id, String refAllele,
-                                         String altAllele, boolean function, boolean variation, boolean structure) {
-		List<OPTIONS> options = OptionBuilder.build(function, variation, structure);
-		return mappingFetcher.getMapping(chromosome, position, id, refAllele, altAllele, options);
-	}
 
 	public List<MappingResponse> getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, Assembly assembly) {
 		if (inputs == null || inputs.isEmpty())

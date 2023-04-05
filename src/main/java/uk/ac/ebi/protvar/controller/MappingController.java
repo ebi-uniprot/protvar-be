@@ -26,22 +26,6 @@ public class
 MappingController {
   private APIService service;
 
-  @Hidden
-  @GetMapping(value = "/mapping/{chromosome}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<GenomeProteinMapping> getGenomeProteinMapping(
-    @PathVariable String chromosome,
-    @PathVariable Long position,
-    @RequestParam String refAllele,
-    @RequestParam String altAllele,
-    @RequestParam(required = false, defaultValue = "false") boolean function,
-    @RequestParam(required = false, defaultValue = "false") boolean population,
-    @RequestParam(required = false, defaultValue = "false") boolean structure
-  ) {
-    GenomeProteinMapping mappings = service.getMapping(chromosome, position, "", refAllele, altAllele, function,
-      population, structure);
-    return new ResponseEntity<>(mappings, HttpStatus.OK);
-  }
-
   /**
    * Requires a list of genomic coordinate variant inputs in VCF format and returns mappings to all known isoforms
    * as a json object. Information including names, IDs and positions is included for transcripts and isoforms and

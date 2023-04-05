@@ -24,31 +24,6 @@ public class MappingFetcher {
 	private Mappings2GeneConverter mappingsConverter;
 
 	/**
-	 * @return - GenomeProteinMapping - Object containing genomic and protein data
-	 *         for a given chromosome and genomicLocation
-	 */
-	public GenomeProteinMapping getMapping(String chromosome, Long genomicLocation, String id, String allele,
-			String variantAllele, List<OPTIONS> options) {
-		List<GenomeToProteinMapping> mappings = protVarDataRepo.getMappings(chromosome, genomicLocation);
-		if (mappings == null || mappings.isEmpty())
-			return GenomeProteinMapping.builder().chromosome(chromosome).geneCoordinateStart(genomicLocation)
-					.geneCoordinateEnd(genomicLocation).id(id).userAllele(allele).variantAllele(variantAllele)
-					.genes(Collections.emptyList()).build();
-
-		List<CADDPrediction> predictions = protVarDataRepo.getCADDPredictions(Set.of(genomicLocation));
-
-		Double caddScore = null;
-		if (predictions != null && !predictions.isEmpty())
-			caddScore = predictions.get(0).getScore();
-
-		List<Gene> ensgMappingList = mappingsConverter.createGenes(mappings, allele, variantAllele, caddScore, null, options);
-
-		return GenomeProteinMapping.builder().chromosome(chromosome).geneCoordinateStart(genomicLocation).id(id)
-				.geneCoordinateEnd(genomicLocation).userAllele(allele).variantAllele(variantAllele)
-				.genes(ensgMappingList).build();
-	}
-
-	/**
 	 * Takes a list of input strings and return corresponding list of userInput objects
 	 * @param inputs
 	 * @return
