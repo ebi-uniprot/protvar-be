@@ -25,12 +25,12 @@ public class APIService {
 	private ProtVarDataRepo protVarDataRepo;
 
 
-	public List<MappingResponse> getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, Assembly assembly) {
+	public MappingResponse getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, String assemblyVersion) {
 		if (inputs == null || inputs.isEmpty())
-			return new ArrayList<>();
+			return new MappingResponse();
 
 		List<OPTIONS> options = OptionBuilder.build(function, variation, structure);
-		return mappingFetcher.getMappings(inputs, options, assembly);
+		return mappingFetcher.getMappings(inputs, options, assemblyVersion);
 	}
 
 	public Protein getProtein(String accession, int position) {
