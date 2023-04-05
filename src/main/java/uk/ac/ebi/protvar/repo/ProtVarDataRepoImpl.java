@@ -53,10 +53,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			"from genomic_protein_mapping where " +
 			"(accession, protein_position) in (:accPPosition) ";
 
-	private static final String SELECT_EVE_SCORES = "SELECT * FROM EVE_SCORE WHERE accession IN (:accessions) " +
-			"AND position IN (:positions)";
-
-	private static final String SELECT_EVE_SCORES2 = "SELECT * FROM EVE_SCORE " +
+	private static final String SELECT_EVE_SCORES = "SELECT * FROM EVE_SCORE " +
 			"WHERE (accession, position) IN (:protAccPositions) ";
 
 	private static final String SELECT_DBSNPS = "SELECT * FROM dbsnp WHERE id IN (:ids) ";
@@ -160,6 +157,20 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
+	public double getPercentageMatch(List<Object[]> chrPosRefList, String ver) {
+		String sql = "SELECT 100 * COUNT (DISTINCT (chr, grchVER_pos, grchVER_base)) / :num " +
+				"FROM crossmap " +
+				"WHERE (chr, grchVER_pos, grchVER_base) " +
+				"IN (:chrPosRef)";
+
+		sql = sql.replaceAll("VER", ver);
+
+		SqlParameterSource parameters = new MapSqlParameterSource("num", chrPosRefList.size())
+				.addValue("chrPosRef", chrPosRefList);
+
+		return jdbcTemplate.queryForObject(sql, parameters, Long.class);
+	}
+
 	public List<GenomeToProteinMapping> getGenomicCoordsByProteinAccAndPos(List<Object[]> accPPosition) {
 		SqlParameterSource parameters = new MapSqlParameterSource("accPPosition", accPPosition);
 
@@ -176,19 +187,11 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
-	public List<EVEScore> getEVEScores(List<String> accessions, List<Integer> positions) {
-		if (accessions.isEmpty() || positions.isEmpty())
-			return new ArrayList<>();
-		SqlParameterSource parameters = new MapSqlParameterSource("accessions", accessions)
-				.addValue("positions", positions);
-		return jdbcTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
-	}
-
-	public List<EVEScore> getEVEScores(List<Object[]> protAccPositions) {
+	public List<EVEScore> getEVEScores(Set<Object[]> protAccPositions) {
 		if (protAccPositions.isEmpty())
 			return new ArrayList<>();
 		SqlParameterSource parameters = new MapSqlParameterSource("protAccPositions", protAccPositions);
-		return jdbcTemplate.query(SELECT_EVE_SCORES2, parameters, (rs, rowNum) -> createEveScore(rs));
+		return jdbcTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
 	}
 
 	@Override

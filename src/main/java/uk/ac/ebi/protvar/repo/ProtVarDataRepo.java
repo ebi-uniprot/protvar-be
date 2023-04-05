@@ -27,8 +27,7 @@ public interface ProtVarDataRepo {
 	//================================================================================
 	// EVEScore
 	//================================================================================
-	List<EVEScore> getEVEScores(List<String> accessions, List<Integer> positions);
-	List<EVEScore> getEVEScores(List<Object[]> protAccPositions);
+	List<EVEScore> getEVEScores(Set<Object[]> protAccPositions);
 
 
 	//================================================================================
@@ -42,6 +41,7 @@ public interface ProtVarDataRepo {
 	//================================================================================
 	List<Crossmap> getCrossmaps(List<Long> positions, String from);
 	List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37);
+	double getPercentageMatch(List<Object[]> chrPosRefList, String ver);
 
 
 	//================================================================================
