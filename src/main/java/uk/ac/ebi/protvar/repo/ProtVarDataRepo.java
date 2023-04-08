@@ -1,7 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import uk.ac.ebi.protvar.model.grc.Crossmap;
-import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.model.data.*;
 
 import java.util.List;
 import java.util.Set;
