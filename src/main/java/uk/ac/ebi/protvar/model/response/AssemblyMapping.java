@@ -3,7 +3,6 @@ package uk.ac.ebi.protvar.model.response;
 import lombok.Getter;
 import lombok.Setter;
 import uk.ac.ebi.protvar.model.grc.Coordinate;
-import uk.ac.ebi.protvar.model.grc.Crossmap;
 
 @Getter
 @Setter
