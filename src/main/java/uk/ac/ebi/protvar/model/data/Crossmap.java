@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.model.grc;
+package uk.ac.ebi.protvar.model.data;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
