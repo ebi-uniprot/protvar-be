@@ -73,7 +73,7 @@ public class ProteinInput extends UserInput {
     String ref;
     String alt;
 
-    List<GenomicInput> genomicInputList = new ArrayList<>();
+    List<GenomicInput> derivedGenomicInputs = new ArrayList<>();
 
     public ProteinInput(String inputStr) {
         this.inputStr = inputStr;
@@ -81,13 +81,6 @@ public class ProteinInput extends UserInput {
         if (isValid()) {
             if (!PROTEIN_ACCESSIONS.contains(acc)) {
                 addInvalidReason(Constants.NOTE_INVALID_INPUT_NON_HUMAN_ACC + acc);
-            }
-            if (ref != null && alt != null) {
-                AminoAcid refAA = AminoAcid.fromOneLetter(ref);
-                AminoAcid altAA = AminoAcid.fromOneLetter(alt);
-                Set<Integer> changedPosSet = refAA.changedPositions(altAA);
-                if (changedPosSet == null || changedPosSet.isEmpty())
-                    addInvalidReason(Constants.NOTE_INVALID_INPUT_NON_SNV + String.format("%s -> %s not possible", refAA.formatted(), altAA.formatted()));
             }
         }
     }
@@ -188,8 +181,8 @@ public class ProteinInput extends UserInput {
                 + ", alt=" + alt + "]";
     }
 
-    public List<GenomeProteinMapping> getMappings() {
-        return genomicInputList.stream().map(GenomicInput::getMappings)
+    public List<GenomeProteinMapping> derivedGenomicInputsMappings() {
+        return derivedGenomicInputs.stream().map(GenomicInput::getMappings)
                 .flatMap(List::stream).collect(Collectors.toList());
     }
 }

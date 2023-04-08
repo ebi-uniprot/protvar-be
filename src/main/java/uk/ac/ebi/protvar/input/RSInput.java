@@ -12,7 +12,7 @@ public class RSInput extends UserInput {
     public static final String RS_ID_REGEX = "rs(\\d+)";
 
     String id;
-    List<GenomicInput> genomicInputList = new ArrayList<>();
+    List<GenomicInput> derivedGenomicInputs = new ArrayList<>();
 
     public RSInput(String inputStr) {
         this.inputStr = inputStr;
@@ -29,8 +29,9 @@ public class RSInput extends UserInput {
         return "RSInput [id=" + id + "]";
     }
 
-    public List<GenomeProteinMapping> getMappings() {
-        return genomicInputList.stream().map(GenomicInput::getMappings)
+
+    public List<GenomeProteinMapping> derivedGenomicInputsMappings() {
+        return derivedGenomicInputs.stream().map(GenomicInput::getMappings)
                 .flatMap(List::stream).collect(Collectors.toList());
     }
 }
