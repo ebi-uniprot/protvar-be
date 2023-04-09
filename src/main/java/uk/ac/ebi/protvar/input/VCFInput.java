@@ -27,10 +27,10 @@ public class VCFInput extends GenomicInput {
             this.pos = -1L;
             this.ref = Constants.NA;
             this.alt = Constants.NA;
-            this.addInvalidReason(Constants.NOTE_INVALID_INPUT_CHROMOSOME);
-            this.addInvalidReason(Constants.NOTE_INVALID_INPUT_POSITION);
-            this.addInvalidReason(Constants.NOTE_INVALID_INPUT_REF);
-            this.addInvalidReason(Constants.NOTE_INVALID_INPUT_ALT);
+            this.addError(Constants.NOTE_INVALID_INPUT_CHROMOSOME);
+            this.addError(Constants.NOTE_INVALID_INPUT_POSITION);
+            this.addError(Constants.NOTE_INVALID_INPUT_REF);
+            this.addError(Constants.NOTE_INVALID_INPUT_ALT);
         } else {
             parseInputStr();
         }
@@ -42,13 +42,13 @@ public class VCFInput extends GenomicInput {
         var userChromosome = Commons.trim(tokens.poll());
         String chromosome = convertChromosome(userChromosome);
         if (chromosome.equals(Constants.NA))
-            addInvalidReason(Constants.NOTE_INVALID_INPUT_CHROMOSOME + userChromosome);
+            addError(Constants.NOTE_INVALID_INPUT_CHROMOSOME + userChromosome);
         this.chr = chromosome;
 
         var userPosition = Commons.trim(tokens.poll());
         long position = convertPosition(userPosition);
         if (position <= 0)
-            addInvalidReason(Constants.NOTE_INVALID_INPUT_POSITION + userPosition);
+            addError(Constants.NOTE_INVALID_INPUT_POSITION + userPosition);
         this.pos = position;
 
         if (isIdExist(tokens)) {
@@ -67,14 +67,14 @@ public class VCFInput extends GenomicInput {
                 this.ref = token.toUpperCase();
             else {
                 this.ref = Constants.NA;
-                addInvalidReason(Constants.NOTE_INVALID_INPUT_REF + token);
+                addError(Constants.NOTE_INVALID_INPUT_REF + token);
             }
             token = Commons.trim(tokens.poll());
             if (isAllele(token))
                 this.alt = token.toUpperCase();
             else {
                 this.alt = Constants.NA;
-                addInvalidReason(Constants.NOTE_INVALID_INPUT_ALT + token);
+                addError(Constants.NOTE_INVALID_INPUT_ALT + token);
             }
         }
     }
@@ -110,10 +110,10 @@ public class VCFInput extends GenomicInput {
         invalid.ref = Constants.NA;
         invalid.alt = Constants.NA;
         invalid.inputStr = userInput;
-        invalid.addInvalidReason(Constants.NOTE_INVALID_INPUT_CHROMOSOME);
-        invalid.addInvalidReason(Constants.NOTE_INVALID_INPUT_POSITION);
-        invalid.addInvalidReason(Constants.NOTE_INVALID_INPUT_REF);
-        invalid.addInvalidReason(Constants.NOTE_INVALID_INPUT_ALT);
+        invalid.addError(Constants.NOTE_INVALID_INPUT_CHROMOSOME);
+        invalid.addError(Constants.NOTE_INVALID_INPUT_POSITION);
+        invalid.addError(Constants.NOTE_INVALID_INPUT_REF);
+        invalid.addError(Constants.NOTE_INVALID_INPUT_ALT);
         return invalid;
     }
 }

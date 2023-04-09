@@ -2,40 +2,53 @@ package uk.ac.ebi.protvar.input;
 
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import lombok.Getter;
 import lombok.Setter;
-import uk.ac.ebi.protvar.model.response.GenomeProteinMapping;
+import uk.ac.ebi.protvar.model.response.Message;
 
 /*                   UserInput
- *                   (inputStr)
+ *                   -inputStr
  *                   ^        ^
  *                  /type=gen  \______________.______________.
  *           GenomicInput                    |               |
- *           (id, chr,pos,ref,alt)           |               |
+ *           -chr,pos,id,ref,alt             |               |
+ *           -mappings,converted             |               |
  * subtype   /     |          \              |type=pro       |type=rs
  *    VCFInput  HGVSInput  GnomadInput  ProteinInput       RSInput
- *                                     (acc,pos,ref,alt)  (id)
- *                                         (expandedGenInputs)
+ *                                     -acc,pos,ref,alt    -id
+ *                                     - derivedGenInputs  -derivedGenInputs
  */
 @Getter
 @Setter
 public abstract class UserInput {
 	String inputStr;
 
-	private final List<String> invalidReasons = new ArrayList<>();
+	private final List<Message> messages = new ArrayList<>();
 
 	public abstract InputType getType();
-	public abstract List<GenomeProteinMapping> getMappings();
 
-	public void addInvalidReason(String invalidReason) {
-		this.invalidReasons.add(invalidReason);
+	public void addError(String text) {
+		this.messages.add(new Message(Message.MessageType.ERROR, text));
 	}
-	public String getInvalidReasons(){
-		return String.join("|", invalidReasons);
+	public void addWarning(String text) {
+		this.messages.add(new Message(Message.MessageType.WARN, text));
 	}
-	public boolean isValid(){
-		return invalidReasons.isEmpty();
+	public void addInfo(String text) {
+		this.messages.add(new Message(Message.MessageType.INFO, text));
+	}
+
+	public boolean hasError() {
+		return this.messages.stream().anyMatch(m -> m.getType() == Message.MessageType.ERROR);
+	}
+
+	public boolean isValid() {
+		return !hasError();
+	}
+
+	public List<String> getErrors() {
+		return messages.stream().filter(m ->  m.getType() == Message.MessageType.ERROR).map(m -> m.getText()).collect(Collectors.toList());
 	}
 
 	public static UserInput getInput(String input) {

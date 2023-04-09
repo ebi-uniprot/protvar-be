@@ -30,7 +30,7 @@ public class HGVSInput extends GenomicInput {
             this.alt = alt;
 
         } catch (InvalidInputException ex) {
-            this.addInvalidReason("Error parsing HGVS input string");
+            this.addError("Error parsing HGVS input string");
         }
     }
 

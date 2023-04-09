@@ -50,10 +50,10 @@ public class GenomicInput extends UserInput {
         invalid.ref = Constants.NA;
         invalid.alt = Constants.NA;
         invalid.inputStr = userInput;
-        invalid.addInvalidReason(Constants.NOTE_INVALID_INPUT_CHROMOSOME);
-        invalid.addInvalidReason(Constants.NOTE_INVALID_INPUT_POSITION);
-        invalid.addInvalidReason(Constants.NOTE_INVALID_INPUT_REF);
-        invalid.addInvalidReason(Constants.NOTE_INVALID_INPUT_ALT);
+        invalid.addError(Constants.NOTE_INVALID_INPUT_CHROMOSOME);
+        invalid.addError(Constants.NOTE_INVALID_INPUT_POSITION);
+        invalid.addError(Constants.NOTE_INVALID_INPUT_REF);
+        invalid.addError(Constants.NOTE_INVALID_INPUT_ALT);
         return invalid;
     }
 

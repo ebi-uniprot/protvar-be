@@ -78,10 +78,8 @@ public class ProteinInput extends UserInput {
     public ProteinInput(String inputStr) {
         this.inputStr = inputStr;
         parseInputStr();
-        if (isValid()) {
-            if (!PROTEIN_ACCESSIONS.contains(acc)) {
-                addInvalidReason(Constants.NOTE_INVALID_INPUT_NON_HUMAN_ACC + acc);
-            }
+        if (!PROTEIN_ACCESSIONS.contains(acc)) {
+            addError(Constants.NOTE_INVALID_INPUT_NON_HUMAN_ACC + acc);
         }
     }
 
@@ -93,7 +91,7 @@ public class ProteinInput extends UserInput {
     }
 
     private void setError() {
-        this.addInvalidReason("Error parsing Protein input string: " + inputStr);
+        this.addError("Error parsing Protein input string: " + inputStr);
     }
     private void parseInputStr() {
         String line = this.inputStr.trim().toUpperCase();

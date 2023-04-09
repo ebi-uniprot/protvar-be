@@ -18,7 +18,7 @@ public class GnomadInput extends GenomicInput {
             this.alt = inputArr[3];
         }
         catch (Exception ex) {
-            this.addInvalidReason("Error parsing gnomAD input string");
+            this.addError("Error parsing gnomAD input string");
         }
     }
 
