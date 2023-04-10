@@ -7,6 +7,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.model.api.*;
+import uk.ac.ebi.protvar.model.data.Foldx;
+import uk.ac.ebi.protvar.model.data.Interaction;
+import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.Protein;
@@ -14,20 +17,31 @@ import uk.ac.ebi.protvar.utils.CSVUtils;
 
 @Service
 public class CSVFunctionDataFetcher {
-
+	//private static final String CSV_HEADER_OUTPUT_FUNCTION = "Residue_function_(evidence),Region_function_(evidence),"
+	//	+ "Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,"
+	//	+ "Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)";
+	// NEW
+	// Predicted_pockets(energy;per_vol;score;resids),
+	// Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ)
+	// Foldx_prediction(foldxDdq;plddt)
+	// Conservation_score
 	public List<String> fetch(IsoFormMapping mapping) {
 		List<String> output = new ArrayList<>();
 		Protein proteinFunction = mapping.getReferenceFunction();
 		List<ProteinFeature> residueFeatures = proteinFunction.getFeatures().stream()
 				.filter(feature -> !"VARIANTS".equalsIgnoreCase(feature.getCategory()))
 				.filter(feature -> feature.getBegin() == feature.getEnd()).collect(Collectors.toList());
-		output.add(CSVUtils.getValOrNA(buildProteinFeature(residueFeatures)));
+		output.add(CSVUtils.getValOrNA(buildProteinFeature(residueFeatures))); //Residue_function_(evidence)
 		List<ProteinFeature> regionFeatures = proteinFunction.getFeatures().stream()
 				.filter(feature -> !"VARIANTS".equalsIgnoreCase(feature.getCategory()))
 				.filter(feature -> feature.getBegin() != feature.getEnd()).collect(Collectors.toList());
-		output.add(CSVUtils.getValOrNA(buildProteinFeature(regionFeatures)));
-		output.addAll(buildProteinDetails(proteinFunction));
-		output.addAll(buildComments(proteinFunction.getComments()));
+		output.add(CSVUtils.getValOrNA(buildProteinFeature(regionFeatures))); //Region_function_(evidence)
+		output.addAll(buildProteinDetails(proteinFunction)); //Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated
+		output.addAll(buildComments(proteinFunction.getComments())); //Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)
+		output.add(CSVUtils.getValOrNA(buildPredictedPockets(proteinFunction.getPockets())));
+		output.add(CSVUtils.getValOrNA(buildPredictedInteractions(proteinFunction.getInteractions())));
+		output.add(CSVUtils.getValOrNA(buildFoldxPrediction(proteinFunction.getFoldxs())));
+		output.add(CSVUtils.getValOrNA(proteinFunction.getConservScore()));
 		return output;
 	}
 
@@ -155,6 +169,59 @@ public class CSVFunctionDataFetcher {
 		});
 		return joiner.toString();
 	}
+
+	private String buildPredictedPockets(List<Pocket> pockets) {
+		if (pockets == null || pockets.isEmpty())
+			return "";
+
+		StringJoiner joiner = new StringJoiner("|");
+		pockets.forEach(pocket -> {
+			StringBuilder builder = new StringBuilder();
+			builder.append("Energy:").append(pocket.getEnergy());
+			builder.append(";EnergyPerVol:").append(pocket.getEnergyPerVol());
+			builder.append(";Score:").append(pocket.getScore());
+			builder.append(";Resid:").append(getResids(pocket.getResidList()));
+			joiner.add(builder.toString());
+		});
+		return joiner.toString();
+	}
+
+	private String buildPredictedInteractions(List<Interaction> interactions) {
+		if (interactions == null || interactions.isEmpty())
+			return "";
+
+		StringJoiner joiner = new StringJoiner("|");
+		interactions.forEach(interaction -> {
+
+			StringBuilder builder = new StringBuilder();
+			builder.append(interaction.getA()).append("-").append(interaction.getB());
+			builder.append(";A residues:").append(getResids(interaction.getAresidues()));
+			builder.append(";B residues:").append(getResids(interaction.getBresidues()));
+			builder.append(";pDockQ:").append(interaction.getPdockq());
+			joiner.add(builder.toString());
+		});
+		return joiner.toString();
+	}
+
+	private String getResids(List<Integer> resids) {
+		if (resids == null || resids.isEmpty())
+			return "-";
+		return resids.stream().map(String::valueOf).collect(Collectors.joining(" "));
+	}
+
+	private String buildFoldxPrediction(List<Foldx> foldxs) {
+		if (foldxs == null || foldxs.isEmpty())
+			return "";
+		StringJoiner joiner = new StringJoiner("|");
+		foldxs.forEach(foldx -> {
+			StringBuilder builder = new StringBuilder();
+			builder.append("foldxDdq:").append(foldx.getFoldxDdq());
+			builder.append(";plddt:").append(foldx.getPlddt());
+			joiner.add(builder.toString());
+		});
+		return joiner.toString();
+	}
+
 
 	private List<String> buildProteinDetails(Protein proteinFunction) {
 		List<String> proteinDetails = new ArrayList<>();
