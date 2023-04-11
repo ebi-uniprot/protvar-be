@@ -64,7 +64,7 @@ public abstract class UserInput {
 			return new ProteinInput(input);
 		if (VCFInput.startsWithChromo(input))
 			return new VCFInput(input);
-		return GenomicInput.invalidGenomicInput(input); // default (or most common) input is expected to be genomic, so
-														// let's assume any invalid input is of GenomicInput type.
+		return GenomicInput.invalidInput(input); // default (or most common) input is expected to be genomic, so
+												// let's assume any invalid input is of GenomicInput type.
 	}
 }

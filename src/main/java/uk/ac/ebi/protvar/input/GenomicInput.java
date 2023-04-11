@@ -43,17 +43,10 @@ public class GenomicInput extends UserInput {
         return this.chr + "-" + this.pos;
     }
 
-    public static UserInput invalidGenomicInput(String userInput){
+    public static UserInput invalidInput(String userInput){
         GenomicInput invalid = new GenomicInput();
-        invalid.chr = Constants.NA;
-        invalid.pos = -1L;
-        invalid.ref = Constants.NA;
-        invalid.alt = Constants.NA;
         invalid.inputStr = userInput;
-        invalid.addError(Constants.NOTE_INVALID_INPUT_CHROMOSOME);
-        invalid.addError(Constants.NOTE_INVALID_INPUT_POSITION);
-        invalid.addError(Constants.NOTE_INVALID_INPUT_REF);
-        invalid.addError(Constants.NOTE_INVALID_INPUT_ALT);
+        invalid.addError("Error parsing user input");
         return invalid;
     }
 

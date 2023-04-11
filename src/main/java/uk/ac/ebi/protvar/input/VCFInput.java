@@ -22,18 +22,7 @@ public class VCFInput extends GenomicInput {
 
     public VCFInput(String inputStr) {
         this.inputStr = inputStr;
-        if (inputStr == null || inputStr.trim().isEmpty()) {
-            this.chr = Constants.NA;
-            this.pos = -1L;
-            this.ref = Constants.NA;
-            this.alt = Constants.NA;
-            this.addError(Constants.NOTE_INVALID_INPUT_CHROMOSOME);
-            this.addError(Constants.NOTE_INVALID_INPUT_POSITION);
-            this.addError(Constants.NOTE_INVALID_INPUT_REF);
-            this.addError(Constants.NOTE_INVALID_INPUT_ALT);
-        } else {
-            parseInputStr();
-        }
+        parseInputStr();
     }
 
     private void parseInputStr() {
@@ -103,17 +92,4 @@ public class VCFInput extends GenomicInput {
         return InputType.Gen.VCF;
     }
 
-    public static VCFInput invalidVCFInput(String userInput){
-        VCFInput invalid = new VCFInput(userInput);
-        invalid.chr = Constants.NA;
-        invalid.pos = -1L;
-        invalid.ref = Constants.NA;
-        invalid.alt = Constants.NA;
-        invalid.inputStr = userInput;
-        invalid.addError(Constants.NOTE_INVALID_INPUT_CHROMOSOME);
-        invalid.addError(Constants.NOTE_INVALID_INPUT_POSITION);
-        invalid.addError(Constants.NOTE_INVALID_INPUT_REF);
-        invalid.addError(Constants.NOTE_INVALID_INPUT_ALT);
-        return invalid;
-    }
 }

@@ -91,7 +91,7 @@ public class ProteinInput extends UserInput {
     }
 
     private void setError() {
-        this.addError("Error parsing Protein input string: " + inputStr);
+        this.addError("Error parsing Protein input string");
     }
     private void parseInputStr() {
         String line = this.inputStr.trim().toUpperCase();
