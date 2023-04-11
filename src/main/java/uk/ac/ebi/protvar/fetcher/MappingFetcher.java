@@ -5,12 +5,16 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.input.*;
+import uk.ac.ebi.protvar.model.data.CADDPrediction;
+import uk.ac.ebi.protvar.model.data.Dbsnp;
+import uk.ac.ebi.protvar.model.data.EVEScore;
+import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.grc.Assembly;
-import uk.ac.ebi.protvar.model.grc.Crossmap;
+import uk.ac.ebi.protvar.model.data.Crossmap;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
-import uk.ac.ebi.protvar.utils.Constants;
+import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.utils.RNACodon;
 
 import java.util.*;
@@ -28,7 +32,7 @@ public class MappingFetcher {
 	 * @param inputs
 	 * @return
 	 */
-	public List<UserInput> getUserInputs(List<String> inputs) {
+	public List<UserInput> processUserInputs(List<String> inputs) {
 		List<UserInput> userInputs = new ArrayList<>();
 		inputs.stream().map(String::trim)
 				.filter(i -> !i.isEmpty())
@@ -42,10 +46,9 @@ public class MappingFetcher {
 	/**
 	 * 
 	 * @param inputs is list of input string in various formats - VCF, HGVS, Protein, dbSNP ID, gnomAD
-	 * @return - List of GenomeProteinMapping - Object containing genomic and
-	 *         protein data for a given user input
+	 * @return MappingResponse
 	 */
-	public List<MappingResponse> getMappings(List<String> inputs, List<OPTIONS> options, Assembly assembly) {
+	public MappingResponse getMappings(List<String> inputs, List<OPTIONS> options, String assemblyVersion) {
 		/**
 		 * Steps
 		 *	I	parse input string - each input will be either one of the following
@@ -68,10 +71,17 @@ public class MappingFetcher {
 		 *		Protein & RS inputs can also have multiple outputs per input
 		 */
 
-		List<MappingResponse> results = new ArrayList<>();
+		MappingResponse response = new MappingResponse();
+		List<Message> messages = new ArrayList<>();
+		response.setMessages(messages);
 
 		// Step I
-		List<UserInput> userInputs = getUserInputs(inputs);
+		List<UserInput> userInputs = processUserInputs(inputs);
+		response.setInputs(userInputs);
+
+		String inputSummary = inputSummary(userInputs);
+		messages.add(new Message(Message.MessageType.INFO, inputSummary));
+
 
 		// Step II - List<UserInput> to Map<InputType, List<UserInput>>
 		Map<InputType, List<UserInput>> groupedInputs = userInputs.stream().filter(UserInput::isValid).collect(Collectors.groupingBy(UserInput::getType));
@@ -79,31 +89,64 @@ public class MappingFetcher {
 		// genomic inputs - VCF, HGVS, gnomAD
 		if (groupedInputs.containsKey(InputType.GEN)) {
 			List<UserInput> genomicInputs = groupedInputs.get(InputType.GEN);
+			boolean allGenomic = groupedInputs.size() == 1;
 
-			if (assembly != null && assembly == Assembly.GRCH37)
+			/**   assembly
+			 *   |    |    \
+			 *   v    v     \
+			 *  null auto    v
+			 *   |    |     37or38
+			 *   | detect   |    |  \
+			 *   | |   \    |    |  /undetermined(assumes)
+			 *    \ \   v   v    v  v
+			 *     \ \  is37 ..> is38
+			 *      \_\___________^
+			 *
+			 *        ..> converts to
+			 */
+
+			// null | auto | 37or38
+			Assembly assembly = null;
+
+			if (assemblyVersion == null) {
+				messages.add(new Message(Message.MessageType.WARN, "Unspecified assembly version; defaulting to GRCh38. "));
+				assembly = Assembly.GRCH38;
+			} else {
+				if (assemblyVersion.equalsIgnoreCase("AUTO")) {
+					if (allGenomic) {
+						assembly = determineInputBuild(genomicInputs, messages); // -> 37 or 38
+					}
+					else {
+						messages.add(new Message(Message.MessageType.WARN, "Assembly auto-detect works for all-genomic inputs only; defaulting to GRCh38. "));
+						assembly = Assembly.GRCH38;
+					}
+				} else {
+					assembly = Assembly.of(assemblyVersion);
+					if (assembly == null) {
+						messages.add(new Message(Message.MessageType.WARN, "Unable to determine assembly version; defaulting to GRCh38. "));
+						assembly = Assembly.GRCH38;
+					}
+				}
+			}
+
+			if (assembly == Assembly.GRCH37) {
+				messages.add(new Message(Message.MessageType.INFO, "Converting GRCh37 to GRCh38. "));
 				processGenomicInputs(genomicInputs);
+			}
+
 		}
 
-		// auto-detect
-		// if all inputs is GEN and auto-detect selected
-		// select distinct chr,grch38_pos,grch38_base from crossmap where (chr,grch38_pos,grch38_base) IN (('X',149498202,'C'),
-		//('10',43118436,'A'),
-		//('2',233760498,'G'))
-		// >50% matches - assumes 38 (msg X% of the genomic inputs matches GRCh38 build)
-		// else
-		// select distinct chr,grch37_pos,grch37_base from crossmap where (chr,grch37_pos,grch37_base) IN (('X',149498202,'C'),
-		//('10',43118436,'A'),
-		//('2',233760498,'G'))
-		// 100 inputs (34 genomic, 23 protein, 34 rs, x invalid)
-		//
-
 		// RS inputs
-		if (groupedInputs.containsKey(InputType.RS))
-			processRSInputs(groupedInputs.get(InputType.RS));
+		if (groupedInputs.containsKey(InputType.RS)) {
+			List<UserInput> rsInputs = groupedInputs.get(InputType.RS);
+			processRSInputs(rsInputs);
+		}
 
 		// Protein inputs
-		if (groupedInputs.containsKey(InputType.PRO))
-			processProteinInputs(groupedInputs.get(InputType.PRO));
+		if (groupedInputs.containsKey(InputType.PRO)) {
+			List<UserInput> proteinInputs = groupedInputs.get(InputType.PRO);
+			processProteinInputs(proteinInputs);
+		}
 
 		// get all genomic positions
 		Set<Long> gPositions = new HashSet<>();
@@ -111,11 +154,11 @@ public class MappingFetcher {
 			if (i instanceof GenomicInput) {
 				gPositions.add(((GenomicInput) i).getPos());
 			} else if (i instanceof RSInput) {
-				for (GenomicInput gInput :((RSInput) i).getGenomicInputList()) {
+				for (GenomicInput gInput :((RSInput) i).getDerivedGenomicInputs()) {
 					gPositions.add(gInput.getPos());
 				}
 			} else if (i instanceof ProteinInput) {
-				for (GenomicInput gInput :((ProteinInput) i).getGenomicInputList()) {
+				for (GenomicInput gInput :((ProteinInput) i).getDerivedGenomicInputs()) {
 					gPositions.add(gInput.getPos());
 				}
 			}
@@ -132,7 +175,7 @@ public class MappingFetcher {
 			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappings(gPositions);
 
 			// get all protein accessions and positions from retrieved mappings
-			List<Object[]> protAccPositions = new ArrayList<>();
+			Set<Object[]> protAccPositions = new HashSet<>();
 			g2pMappings.forEach(m -> {
 				protAccPositions.add(new Object[]{m.getAccession(), m.getIsoformPosition()});
 			});
@@ -151,9 +194,9 @@ public class MappingFetcher {
 				if (input instanceof GenomicInput) {
 					gInputs.add((GenomicInput) input);
 				} else if (input instanceof RSInput) {
-					gInputs.addAll(((RSInput) input).getGenomicInputList());
+					gInputs.addAll(((RSInput) input).getDerivedGenomicInputs());
 				} else if (input instanceof ProteinInput) {
-					gInputs.addAll(((ProteinInput) input).getGenomicInputList());
+					gInputs.addAll(((ProteinInput) input).getDerivedGenomicInputs());
 				}
 
 				gInputs.forEach(gInput -> {
@@ -168,27 +211,46 @@ public class MappingFetcher {
 					if (mappingList != null)
 						ensgMappingList = mappingsConverter.createGenes(mappingList, gInput.getRef(), gInput.getAlt(), caddScore, eveScoreMap, options);
 
-					GenomeProteinMapping mapping = GenomeProteinMapping.builder().chromosome(gInput.getChr())
-							.geneCoordinateStart(gInput.getPos()).id(gInput.getId()).geneCoordinateEnd(gInput.getPos())
-							.userAllele(gInput.getRef()).variantAllele(gInput.getAlt()).genes(ensgMappingList)
-							.input(gInput.getInputStr()).build();
+					GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
 					gInput.getMappings().add(mapping);
 				});
 			});
 
 		}
+		return response;
+	}
 
+	// select distinct chr,grch38_pos,grch38_base from crossmap where (chr,grch38_pos,grch38_base) IN (('X',149498202,'C'),
+	//('10',43118436,'A'),
+	//('2',233760498,'G'))
+	private Assembly determineInputBuild(List<UserInput> genomicInputs, List<Message> messages) {
 
-		userInputs.stream().forEach(i -> {
-			results.add(new MappingResponse(i.getInputStr(), i.getMappings()));
+		List<Object[]> chrPosRefList = new ArrayList<>();
+		genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
+			chrPosRefList.add(new Object[]{input.getChr(), input.getPos(), input.getRef()});
 		});
 
-
-
-		//List<GenomeProteinMapping> listOfMappings = userInputs.stream().map(UserInput::getMappings).flatMap(List::stream).collect(Collectors.toList());
-		//response.setMappings(listOfMappings);
-
-		return results;
+		double percentage38 = protVarDataRepo.getPercentageMatch(chrPosRefList, "38");
+		if (percentage38 > 50) { // assumes 38
+			messages.add(new Message(Message.MessageType.INFO, String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs). ", percentage38)));
+			return Assembly.GRCH38;
+		} else {
+			double percentage37 = protVarDataRepo.getPercentageMatch(chrPosRefList, "37");
+			if (percentage37 > 50) { // assumes 37
+				messages.add(new Message(Message.MessageType.INFO, String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs). ", percentage37)));
+				return Assembly.GRCH37;
+			} else {
+				String msg = String.format("Undetermined assembly version (%.2f%% GRCh38 match, %.2f%% GRCh37 match). ", percentage38, percentage37);
+				if (percentage37 > percentage38) {
+					messages.add(new Message(Message.MessageType.INFO, msg + " Assuming GRCh37. "));
+					return Assembly.GRCH37;
+				}
+				else {
+					messages.add(new Message(Message.MessageType.INFO, msg + " Assuming GRCh38. "));
+					return Assembly.GRCH38;
+				}
+			}
+		}
 	}
 
 	/**
@@ -215,12 +277,12 @@ public class MappingFetcher {
 			Long pos = input.getPos();
 			List<Crossmap> crossmaps = groupedCrossmaps.get(chr+"-"+pos);
 			if (crossmaps == null || crossmaps.isEmpty()) {
-				input.addInvalidReason(String.format("No equivalent GRCh38 coordinate found for GRCh37 coordinate (%s,%s)", chr, pos));
+				input.addError("No GRCh38 equivalent found for input coordinate. ");
 			} else if (crossmaps.size()==1) {
 				input.setPos(crossmaps.get(0).getGrch38Pos());
 				input.setConverted(true);
 			} else {
-				input.addInvalidReason(String.format("Multiple GRCh38 equivalents found for GRCh37 coordinate (%s,%s)", chr, pos));
+				input.addError("Multiple GRCh38 equivalents found for input coordinate. ");
 			}
 		});
 	}
@@ -248,12 +310,12 @@ public class MappingFetcher {
 						newInput.setAlt(alt);
 						newInput.setId(id);
 						newInput.setInputStr(input.getInputStr());
-						input.getGenomicInputList().add(newInput);
+						input.getDerivedGenomicInputs().add(newInput);
 					}
 				});
 			}
 			else {
-				input.addInvalidReason(String.format("Variant ID %s not found", id));
+				input.addError("Could not map RS ID to genomic coordinate(s).");
 			}
 		});
 	}
@@ -275,7 +337,7 @@ public class MappingFetcher {
 	"P22309"	"71"	"2"	"233760500"	"A"	"ggA"	"false"	"3"
 
 	Check 2
-	- does GGA encodes Gly?
+	- does GGA encodes Gly(G)?
 
 	Determining the single gCoord from the 3 gCoords representing the aa (Gly/GGA)
 	i.e. determining the codon position (1,2, or 3)
@@ -299,7 +361,6 @@ public class MappingFetcher {
 		-> add each to genomic input list
 
 	 */
-
 	private void processProteinInputs(List<UserInput> proteinInputs) {
 		// 1. get all the accessions and positions
 		List<Object[]> accPPosition = new ArrayList<>();
@@ -311,10 +372,11 @@ public class MappingFetcher {
 		Map<String, List<GenomeToProteinMapping>> gCoords = protVarDataRepo.getGenomicCoordsByProteinAccAndPos(accPPosition)
 						.stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupByProteinAccAndPos));
 
-		// 3. now for each protein input,
-		// a. first check if refAA/altAA possible via SNP
-		// b.
+		// 3. we expect each protein input to have 3 genomic coordinates (in normal cases),
+		//	which we will try to pin down to one, if possible, based on the user inputs
 		proteinInputs.stream().map(i -> (ProteinInput) i).forEach(input -> {
+
+
 			AminoAcid refAA = AminoAcid.fromOneLetter(input.getRef());
 			AminoAcid altAA = AminoAcid.fromOneLetter(input.getAlt());
 
@@ -324,36 +386,39 @@ public class MappingFetcher {
 			}
 
 			if (!possibleAltAAs.contains(altAA)) {
-				// it is not possible to go from refAA to altAA via SNP.
-				input.addInvalidReason(String.format("It is not possible to go from %s to %s via SNP", refAA.name(), altAA.name()));
-				return;
+				input.addInfo(String.format("%s to %s is a non-SNV. ", refAA.name(), altAA.name()));
 			}
 
 			// ref -> alt change is only possible by a SNV change at these
-			// positions (e.g. {1}, {2}, {1,2}, etc
+			// positions e.g. {1}, {2}, {1,2}, etc
 			final Set<Integer> codonPositions = refAA.changedPositions(altAA);
-			//if (codonPositions == null || codonPositions.isEmpty())
+			//if (codonPositions == null || codonPositions.isEmpty()) // means ref->alt AA not possible via SNV?
 			//	codonPositions = new HashSet<>(Arrays.asList(1, 2, 3));
 
 			String key = input.getAcc() +"-"+ input.getPos();
 			List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
 			Set<String> seen = new HashSet<>();
+
 			if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
 				gCoordsForProtein.forEach(gCoord -> {
+					String gCoordChr = gCoord.getChromosome();
+					Long gCoordPos = gCoord.getGenomeLocation();
+					String gCoordRefAllele = gCoord.getBaseNucleotide();
+					//String gCoordAcc = gCoord.getAccession();
+					//Integer gCoordProteinPos = gCoord.getIsoformPosition();
+					String gCoordRefAA = gCoord.getAa();
+					String gCoordCodon = gCoord.getCodon(); //should code for/translate into refAA
+					Integer gCoordCodonPos = gCoord.getCodonPosition();
+					Boolean gCoordIsReverse = gCoord.isReverseStrand();
 
-					String curr = gCoord.getChromosome() + "-" + gCoord.getGenomeLocation() + "-" + gCoord.getBaseNucleotide();
+					String curr = gCoordChr + "-" + gCoordPos + "-" + gCoordRefAllele;
 					if (seen.contains(curr)) return;
 					seen.add(curr);
 
 					if (codonPositions != null && !codonPositions.isEmpty()
-						&& !codonPositions.contains(gCoord.getCodonPosition())) return;
+						&& !codonPositions.contains(gCoordCodonPos)) return;
 
-					String refAllele = gCoord.getBaseNucleotide();
-					boolean isReverse = gCoord.isReverseStrand();
-					String codon = gCoord.getCodon().toUpperCase();
-
-					RNACodon refRNACodon = RNACodon.valueOf(codon);
-					int codonPosition = gCoord.getCodonPosition();
+					RNACodon refRNACodon = RNACodon.valueOf(gCoordCodon.toUpperCase());
 
 					Set<RNACodon> altRNACodons_ = refRNACodon.getSNVs().stream()
 							.filter(c -> c.getAa().equals(altAA))
@@ -363,9 +428,9 @@ public class MappingFetcher {
 						return;
 					}
 
-					char charAtCodonPos = refRNACodon.name().charAt(codonPosition-1); // = refAllele?
+					char charAtCodonPos = refRNACodon.name().charAt(gCoordCodonPos-1); // = refAllele?
 					List<RNACodon> altRNACodons = altRNACodons_.stream()
-							.filter(c -> c.name().charAt(codonPosition-1) != charAtCodonPos)
+							.filter(c -> c.name().charAt(gCoordCodonPos-1) != charAtCodonPos)
 							.collect(Collectors.toList());
 
 					if (altRNACodons.isEmpty()) {
@@ -378,27 +443,24 @@ public class MappingFetcher {
 					}
 
 					for (String altAllele : altAlleles) {
-						altAllele = isReverse ? RNACodon.reverse(altAllele) : altAllele;
+						altAllele = gCoordIsReverse ? RNACodon.reverse(altAllele) : altAllele;
 						altAllele = altAllele.replace('U', 'T');
 						GenomicInput gInput = new GenomicInput();
-						gInput.setChr(gCoord.getChromosome());
-						gInput.setPos(gCoord.getGenomeLocation());
-						gInput.setRef(refAllele);
+						gInput.setChr(gCoordChr);
+						gInput.setPos(gCoordPos);
+						gInput.setRef(gCoordRefAllele);
 						gInput.setAlt(altAllele);
 						gInput.setInputStr(input.getInputStr());
-						input.getGenomicInputList().add(gInput);
+						input.getDerivedGenomicInputs().add(gInput);
+						if (!refAA.getOneLetter().equalsIgnoreCase(gCoordRefAA))
+							input.getMessages().add(new Message(Message.MessageType.WARN, "User reference and mapping record AA mismatch ("+refAA.name()+" vs. "+refRNACodon.name()+")"));
 					}
-
-					if (input.getGenomicInputList().isEmpty()) {
-						input.addInvalidReason(String.format("Could not map protein (%s, %d) to genomic coordinates", input.getAcc(), input.getPos()));
-					}
-
 				});
 			}
-			else {
-				input.addInvalidReason(String.format("Could not map protein (%s, %d) to genomic coordinates", input.getAcc(), input.getPos()));
-			}
 
+			if (input.getDerivedGenomicInputs().isEmpty()) {
+				input.addError("Could not map Protein input to genomic coordinate(s).");
+			}
 		});
 
 	}
@@ -422,4 +484,25 @@ public class MappingFetcher {
 		return null;
 	}
 
+	public String inputSummary(List<UserInput> userInputs) {
+		String inputSummary = String.format("Processed %d input%s ", userInputs.size(), FetcherUtils.pluralise(userInputs.size()));
+		int[] counts = {0,0,0,0}; //genomic, protein, rs, !valid
+
+		userInputs.stream().forEach(input -> {
+			if (input.getType() == InputType.GEN) counts[0]++;
+			else if (input.getType() == InputType.PRO) counts[1]++;
+			else if (input.getType() == InputType.RS) counts[2]++;
+
+			if (!input.isValid()) counts[3]++;
+		});
+		List<String> inputTypes = new ArrayList<>();
+		if (counts[0] > 0) inputTypes.add(String.format("%d genomic", counts[0]));
+		if (counts[1] > 0) inputTypes.add(String.format("%d protein", counts[1]));
+		if (counts[2] > 0) inputTypes.add(String.format("%d RS ID", counts[2]));
+
+		if (inputTypes.size() > 1) inputSummary += "(" + String.join(", ", inputTypes) + "). ";
+
+		if (counts[3] > 0) inputSummary += String.format("%d input%s %s not valid. ", counts[3], FetcherUtils.pluralise(counts[3]), FetcherUtils.isOrAre(counts[3]));
+		return inputSummary;
+	}
 }
