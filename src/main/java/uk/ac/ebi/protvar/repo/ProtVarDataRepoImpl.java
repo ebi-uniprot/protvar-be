@@ -48,7 +48,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			"and codon_position in (:codonPositions) order by is_canonical desc";
 
 	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL2 = "select " +
-			"accession, protein_position, chromosome, genomic_position, allele, codon, reverse_strand, codon_position " +
+			"chromosome, genomic_position, allele, accession, protein_position, protein_seq, codon, codon_position, reverse_strand  " +
 			"from genomic_protein_mapping where " +
 			"(accession, protein_position) in (:accPPosition) ";
 
@@ -175,14 +175,15 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 		return jdbcTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL2, parameters, (rs, rowNum) ->
 						GenomeToProteinMapping.builder()
-								.accession(rs.getString("accession"))
 								.chromosome(rs.getString("chromosome"))
-								.baseNucleotide(rs.getString("allele"))
 								.genomeLocation(rs.getLong("genomic_position"))
+								.baseNucleotide(rs.getString("allele"))
+								.accession(rs.getString("accession"))
 								.isoformPosition(rs.getInt("protein_position"))
+								.aa(rs.getString("protein_seq"))
 								.codon(rs.getString("codon"))
-								.reverseStrand(rs.getBoolean("reverse_strand"))
-								.codonPosition(rs.getInt("codon_position")).build())
+								.codonPosition(rs.getInt("codon_position"))
+								.reverseStrand(rs.getBoolean("reverse_strand")).build())
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
