@@ -14,15 +14,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class VCFInputTest {
-  @ParameterizedTest
-  @NullAndEmptySource
-  void emptyLineIsInvalidObject(String input) {
-    VCFInput userInput = new VCFInput(input);
-    assertEquals(userInput.getChr(), Constants.NA);
-    assertEquals(userInput.getPos(), -1L);
-    assertEquals(userInput.getRef(), Constants.NA);
-    assertEquals(userInput.getAlt(), Constants.NA);
-  }
 
   @Test
   void minimumInput() {
@@ -51,7 +42,7 @@ class VCFInputTest {
   void onlyChromProvided(String input) {
     VCFInput userInput = new VCFInput(input);
     assertInput(false, input, input.toUpperCase(), -1L, Constants.NA, Constants.NA, Constants.NA, input.toUpperCase() + "--1", userInput);
-    assertEquals("Position should be a number |Invalid reference |Invalid alternative ", userInput.getInvalidReasons());
+    assertEquals("Position should be a number |Invalid reference |Invalid alternative ", String.join("|", userInput.getErrors()));
   }
 
   @ParameterizedTest
@@ -61,7 +52,7 @@ class VCFInputTest {
     String[] tokens = input.split(" ");
     assertInput(false, input, tokens[0].toUpperCase(), Long.parseLong(tokens[1]), Constants.NA, Constants.NA, Constants.NA,
       tokens[0].toUpperCase() + "-" + tokens[1], userInput);
-    assertEquals("Invalid reference |Invalid alternative ", userInput.getInvalidReasons());
+    assertEquals("Invalid reference |Invalid alternative ", String.join("|", userInput.getErrors()));
   }
 
   @ParameterizedTest
@@ -71,7 +62,7 @@ class VCFInputTest {
     String[] tokens = input.split(" ");
     assertInput(false, input, tokens[0].toUpperCase(), Long.parseLong(tokens[1]), tokens[2], Constants.NA, Constants.NA,
       tokens[0].toUpperCase() + "-" + tokens[1], userInput);
-    assertEquals("Invalid reference |Invalid alternative ", userInput.getInvalidReasons());
+    assertEquals("Invalid reference |Invalid alternative ", String.join("|", userInput.getErrors()));
   }
 
   @ParameterizedTest
@@ -81,7 +72,7 @@ class VCFInputTest {
     String[] tokens = input.split(" ");
     assertInput(false, input, tokens[0].toUpperCase(), Long.parseLong(tokens[1]), Constants.NA, tokens[2], Constants.NA,
       tokens[0].toUpperCase() + "-" + tokens[1], userInput);
-    assertEquals("Invalid alternative ", userInput.getInvalidReasons());
+    assertEquals("Invalid alternative ", String.join("|", userInput.getErrors()));
   }
 
   @ParameterizedTest
@@ -91,7 +82,7 @@ class VCFInputTest {
     String[] tokens = input.split(" ");
     assertInput(false, input, tokens[0].toUpperCase(), Long.parseLong(tokens[1]), tokens[2], tokens[3].toUpperCase(), Constants.NA,
       tokens[0].toUpperCase() + "-" + tokens[1], userInput);
-    assertEquals("Invalid alternative ", userInput.getInvalidReasons());
+    assertEquals("Invalid alternative ", String.join("|", userInput.getErrors()));
   }
 
   @ParameterizedTest
@@ -99,7 +90,7 @@ class VCFInputTest {
   void invalidChromValidPosition(String input, String chr, Long pos) {
     VCFInput userInput = new VCFInput(input);
     assertInput(false, input, Constants.NA, pos, Constants.NA, Constants.NA, Constants.NA, "N/A-" + pos, userInput);
-    assertEquals("Invalid chromosome "+chr+"|Invalid reference |Invalid alternative ", userInput.getInvalidReasons());
+    assertEquals("Invalid chromosome "+chr+"|Invalid reference |Invalid alternative ", String.join("|", userInput.getErrors()));
   }
 
   @ParameterizedTest
@@ -108,7 +99,7 @@ class VCFInputTest {
     VCFInput userInput = new VCFInput(input);
     String[] tokens = input.split(" ");
     assertInput(false, input, tokens[0], -1L, Constants.NA, Constants.NA, Constants.NA, tokens[0]+"--1", userInput);
-    assertEquals("Position should be a number "+tokens[1]+"|Invalid reference |Invalid alternative ", userInput.getInvalidReasons());
+    assertEquals("Position should be a number "+tokens[1]+"|Invalid reference |Invalid alternative ", String.join("|", userInput.getErrors()));
   }
 
   @Test
