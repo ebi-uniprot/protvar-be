@@ -15,7 +15,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import uk.ac.ebi.protvar.model.PDBeRequest;
-import uk.ac.ebi.protvar.model.UserInput;
+import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.api.DataServiceCoordinate;
 import uk.ac.ebi.protvar.model.api.DataServiceProtein;
 import uk.ac.ebi.protvar.model.api.DataServiceVariation;
@@ -70,7 +70,7 @@ public class AppTestConfig {
 
 				return null;
 			}
-
+/*
 			@Override
 			public DataServiceCoordinate[] getGene(UserInput userInput) {
 				try {
@@ -84,7 +84,7 @@ public class AppTestConfig {
 				}
 				return null;
 
-			}
+			}*/
 
 			@Override
 			public Object[] getPDBe(List<PDBeRequest> requests) {

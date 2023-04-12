@@ -20,7 +20,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriBuilder;
 
 import uk.ac.ebi.protvar.model.PDBeRequest;
-import uk.ac.ebi.protvar.model.UserInput;
+import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.api.DataServiceCoordinate;
 import uk.ac.ebi.protvar.model.api.DataServiceProtein;
 import uk.ac.ebi.protvar.model.api.DataServiceVariation;
@@ -85,14 +85,14 @@ public class UniprotAPIRepoImpl implements UniprotAPIRepo {
 				DataServiceProtein[].class);
 		return response.getBody();
 	}
-
+/*
 	@Override
 	public DataServiceCoordinate[] getGene(UserInput userInput) {
 		logger.info("Calling gene: {}", userInput);
 		DefaultUriBuilderFactory handler = (DefaultUriBuilderFactory) this.coordinateRestTemplate
 				.getUriTemplateHandler();
 		MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
-		queryParams.add(PARAM_CHROMOSOME, userInput.getChromosome());
+		queryParams.add(PARAM_CHROMOSOME, userInput.getChr());
 		String location = userInput.getStart() + "-" + userInput.getStart();
 		queryParams.add(PARAM_LOCATION, location);
 		queryParams.add(PARAM_TAXID, TAX_ID_HUMAN);
@@ -101,7 +101,7 @@ public class UniprotAPIRepoImpl implements UniprotAPIRepo {
 		ResponseEntity<DataServiceCoordinate[]> response = this.coordinateRestTemplate.getForEntity(uriBuilder.build(),
 				DataServiceCoordinate[].class);
 		return response.getBody();
-	}
+	}*/
 
 	@Override
 	public DataServiceCoordinate[] getCoordinateByAccession(String accession) {

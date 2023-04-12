@@ -9,9 +9,9 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
-import uk.ac.ebi.protvar.model.response.EVEScore;
+import uk.ac.ebi.protvar.model.data.EVEScore;
 import uk.ac.ebi.protvar.model.response.Gene;
-import uk.ac.ebi.protvar.model.response.GenomeToProteinMapping;
+import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.utils.ReverseCompliment;
 

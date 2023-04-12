@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.model.response;
+package uk.ac.ebi.protvar.model.data;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -33,6 +33,10 @@ public class GenomeToProteinMapping implements Comparable<GenomeToProteinMapping
 
 	public String getGroupBy() {
 		return this.chromosome + "-" + this.getGenomeLocation();
+	}
+
+	public String getGroupByProteinAccAndPos() {
+		return this.accession + "-" + this.isoformPosition;
 	}
 
 	@Override

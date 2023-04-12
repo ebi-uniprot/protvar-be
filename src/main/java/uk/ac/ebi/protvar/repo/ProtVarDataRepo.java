@@ -1,7 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import uk.ac.ebi.protvar.model.grc.Crossmap;
-import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.model.data.*;
 
 import java.util.List;
 import java.util.Set;
@@ -13,20 +12,21 @@ public interface ProtVarDataRepo {
 	//================================================================================
 
 	List<GenomeToProteinMapping> getMappings(String chromosome, Long position);
-	List<GenomeToProteinMapping> getMappings(List<Long> positions);
+	List<GenomeToProteinMapping> getMappings(Set<Long> positions);
 	List<GenomeToProteinMapping> getMappings(String accession, Long proteinPosition, Set<Integer> codonPositions);
+	List<GenomeToProteinMapping> getGenomicCoordsByProteinAccAndPos(List<Object[]> accPPosition);
 
 
 	//================================================================================
 	// CADDPrediction
 	//================================================================================
-	List<CADDPrediction> getCADDPredictions(List<Long> positions);
+	List<CADDPrediction> getCADDPredictions(Set<Long> positions);
 
 
 	//================================================================================
 	// EVEScore
 	//================================================================================
-	List<EVEScore> getEVEScores(List<String> accessions, List<Integer> positions);
+	List<EVEScore> getEVEScores(Set<Object[]> protAccPositions);
 
 
 	//================================================================================
@@ -39,6 +39,8 @@ public interface ProtVarDataRepo {
 	// Crossmap
 	//================================================================================
 	List<Crossmap> getCrossmaps(List<Long> positions, String from);
+	List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37);
+	double getPercentageMatch(List<Object[]> chrPosRefList, String ver);
 
 
 	//================================================================================

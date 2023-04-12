@@ -26,4 +26,17 @@ public class FetcherUtils {
     }
     return "";
   }
+
+  public static String pluralise(int qty) {
+    if (qty > 1) {
+      return "s";
+    }
+    return "";
+  }
+  public static String isOrAre(int qty) {
+    if (qty > 1) {
+      return "are";
+    }
+    return "is";
+  }
 }

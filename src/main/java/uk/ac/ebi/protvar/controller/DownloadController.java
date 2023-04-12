@@ -1,28 +1,30 @@
 package uk.ac.ebi.protvar.controller;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-
-import javax.servlet.http.HttpServletResponse;
-
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
 import uk.ac.ebi.protvar.builder.OptionBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CSVDataFetcher;
+import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.utils.FileUtils;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.FileInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
 
 @Tag(name = "Generate Variant Annotation Files",
@@ -37,6 +39,8 @@ import uk.ac.ebi.protvar.utils.FileUtils;
 @AllArgsConstructor
 public class DownloadController implements WebMvcConfigurer {
   private CSVDataFetcher csvDataFetcher;
+
+  private DownloadService downloadService;
 
   /**
    * Users submit a path to a genomic coordinates variants file in VCF format on their local machine and annotations
@@ -123,6 +127,31 @@ public class DownloadController implements WebMvcConfigurer {
     response.addHeader("Content-Type", "application/csv");
     response.addHeader("Content-Disposition", "attachment; filename=ProtVar.csv");
     csvDataFetcher.downloadCSVResult(inputs, options, response);
+  }
+
+  @GetMapping(value = "/download/{id}")
+  @ResponseBody
+  public ResponseEntity<?> downloadFile(
+          @Parameter(example = "cc3b5e1a21fd") @PathVariable("id") String id) {
+
+    FileInputStream fileInputStream = downloadService.getFileResource(id);
+    if (fileInputStream == null)
+      return new ResponseEntity<>("File not found", HttpStatus.NOT_FOUND);
+
+    InputStreamResource resource = new InputStreamResource(fileInputStream);
+
+      String contentType = "application/csv";
+      String headerValue = "attachment; filename=" + id + ".csv";
+
+      return ResponseEntity.ok()
+              .contentType(MediaType.parseMediaType(contentType))
+              .header(HttpHeaders.CONTENT_DISPOSITION, headerValue)
+              .body(resource);
+  }
+
+  @PostMapping(value = "/download/status", produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<Map<String,Integer>> downloadStatus(@RequestBody List<String> ids) {
+    return new ResponseEntity<>(downloadService.getDownloadStatus(ids), HttpStatus.OK);
   }
 
 }

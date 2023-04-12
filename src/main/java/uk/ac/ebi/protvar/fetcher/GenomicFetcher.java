@@ -14,7 +14,7 @@ import uk.ac.ebi.protvar.converter.CoordinateAPI2GeneConverter;
 import uk.ac.ebi.protvar.exception.ServiceException;
 import uk.ac.ebi.protvar.model.Gene;
 import uk.ac.ebi.protvar.model.LocationRange;
-import uk.ac.ebi.protvar.model.UserInput;
+import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.api.DataServiceCoordinate;
 import uk.ac.ebi.protvar.repo.UniprotAPIRepo;
 
@@ -27,9 +27,9 @@ public class GenomicFetcher {
 
 	private UniprotAPIRepo uniprotAPIRepo;
 	private CoordinateAPI2GeneConverter converter;
-
+/*
 	public Map<String, Gene> fetch(final UserInput pInput) throws ServiceException {
-		logger.info("Processing Gene -> {}", pInput.getFormattedInputString());
+		logger.info("Processing Gene -> {}", pInput.getInputString());
 		DataServiceCoordinate[] dataServiceCoordinates;
 		Map<String, Gene> accessionGeneMap = new HashMap<>();
 		try {
@@ -44,7 +44,7 @@ public class GenomicFetcher {
 			accessionGeneMap.put(dsc.getAccession(), gene);
 		}
 		return accessionGeneMap;
-	}
+	}*/
 
 	public Map<String, List<Gene>> searchGene(final String geneName, final String chromosome, final int offset,
 			final int pageSize, final String location) {

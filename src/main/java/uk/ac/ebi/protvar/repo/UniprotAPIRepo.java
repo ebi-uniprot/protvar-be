@@ -3,7 +3,7 @@ package uk.ac.ebi.protvar.repo;
 import java.util.List;
 
 import uk.ac.ebi.protvar.model.PDBeRequest;
-import uk.ac.ebi.protvar.model.UserInput;
+import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.api.DataServiceCoordinate;
 import uk.ac.ebi.protvar.model.api.DataServiceProtein;
 import uk.ac.ebi.protvar.model.api.DataServiceVariation;
@@ -15,7 +15,7 @@ public interface UniprotAPIRepo {
 
 	DataServiceProtein[] getProtein(String accessions);
 
-	DataServiceCoordinate[] getGene(UserInput userInput);
+	//DataServiceCoordinate[] getGene(UserInput userInput);
 
 	Object[] getPDBe(List<PDBeRequest> requests);
 

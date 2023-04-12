@@ -14,7 +14,7 @@ spec:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: protvar-logs
+  name: protvar-pvc
 spec:
   storageClassName: standard-nfs-production
   accessModes:
@@ -47,6 +47,8 @@ spec:
           volumeMounts:
             - name: protvar-be-logs
               mountPath: /var/log
+            - name: protvar-data
+              mountPath: /data
           env:
             - name: logging.file.path
               value: /var/log
@@ -76,7 +78,10 @@ spec:
       volumes:
         - name: protvar-be-logs
           persistentVolumeClaim:
-            claimName: protvar-logs
+            claimName: protvar-pvc
+        - name: protvar-data
+          persistentVolumeClaim:
+            claimName: protvar-pvc
       imagePullSecrets:
         - name: protvar-be-gitlab-registry-ci # created by deploy script using env variables Provided by GitLab, this allows K8s to connect to dockerhub.ebi.ac.uk
         - name: protvar-be-gitlab-registry-to # using token if exist

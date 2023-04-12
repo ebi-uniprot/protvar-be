@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.builder.OptionBuilder;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.*;
+import uk.ac.ebi.protvar.model.data.ConservScore;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
@@ -23,18 +24,13 @@ public class APIService {
 
 	private ProtVarDataRepo protVarDataRepo;
 
-	public GenomeProteinMapping getMapping(String chromosome, Long position, String id, String refAllele,
-                                         String altAllele, boolean function, boolean variation, boolean structure) {
-		List<OPTIONS> options = OptionBuilder.build(function, variation, structure);
-		return mappingFetcher.getMapping(chromosome, position, id, refAllele, altAllele, options);
-	}
 
-	public MappingResponse getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, Assembly assembly) {
+	public MappingResponse getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, String assemblyVersion) {
 		if (inputs == null || inputs.isEmpty())
 			return new MappingResponse();
 
 		List<OPTIONS> options = OptionBuilder.build(function, variation, structure);
-		return mappingFetcher.getMappings(inputs, options, assembly);
+		return mappingFetcher.getMappings(inputs, options, assemblyVersion);
 	}
 
 	public Protein getProtein(String accession, int position) {
