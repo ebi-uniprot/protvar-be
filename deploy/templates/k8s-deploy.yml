@@ -45,9 +45,9 @@ spec:
           ports:
             - containerPort: 8080 # default port for springboot
           volumeMounts:
-            - name: protvar-be-logs
+            - name: protvar-vol
               mountPath: /var/log
-            - name: protvar-data
+            - name: protvar-vol
               mountPath: /data
           env:
             - name: logging.file.path
@@ -76,10 +76,7 @@ spec:
             limits:
               memory: "512Mi"
       volumes:
-        - name: protvar-be-logs
-          persistentVolumeClaim:
-            claimName: protvar-pvc
-        - name: protvar-data
+        - name: protvar-vol
           persistentVolumeClaim:
             claimName: protvar-pvc
       imagePullSecrets:
