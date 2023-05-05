@@ -41,4 +41,12 @@ public class FileUtils {
       }
     }
   }
+
+  public static void tryDelete(Path path) {
+    try {
+      Files.deleteIfExists(path);
+    } catch (IOException e) {
+      logger.warn("Couldn't delete file: "+ path.getFileName().toString());
+    }
+  }
 }
