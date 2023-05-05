@@ -18,12 +18,14 @@ public class CSVZipWriter implements Closeable {
   public final CSVWriter writer;
   private final ZipOutputStream zos;
 
-  public CSVZipWriter() throws IOException {
-    logger.debug("Using temp directory: " + System.getProperty("java.io.tmpdir"));
-    path = Files.createTempFile("result", ".zip");
+  public CSVZipWriter(String dir, String id) throws IOException {
+    logger.debug("Using directory: " + dir);
+    String unzippedFileName = id + ".csv";
+    String zippedFileName = unzippedFileName + ".zip";
+    path = Path.of(dir, zippedFileName);
     logger.debug("Result File created at : " + path);
     zos = new ZipOutputStream(Files.newOutputStream(path));
-    ZipEntry entry = new ZipEntry("result-ProtVar.csv");
+    ZipEntry entry = new ZipEntry(unzippedFileName);
     zos.putNextEntry(entry);
     writer = new CSVWriter(new OutputStreamWriter(zos));
   }
