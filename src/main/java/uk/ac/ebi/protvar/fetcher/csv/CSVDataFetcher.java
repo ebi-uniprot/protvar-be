@@ -1,7 +1,9 @@
 package uk.ac.ebi.protvar.fetcher.csv;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -11,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.opencsv.CSVWriter;
@@ -18,6 +21,7 @@ import com.opencsv.CSVWriter;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.model.data.EVEClass;
 import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.utils.*;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
@@ -53,34 +57,40 @@ public class CSVDataFetcher {
 	private CSVPopulationDataFetcher populationFetcher;
 	private CSVStructureDataFetcher csvStructureDataFetcher;
 
-	public void sendCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName) throws Exception {
+	private DownloadService downloadService;
+
+	//@Async("taskExecutor")
+	public void writeCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
 		try {
-			sendCSVResult(inputs.stream(), options, email, jobName);
+			writeCSVResult(inputs.stream(), options, email, jobName, download);
 		} catch (Exception e) {
 			Email.sendErr(email, jobName, inputs);
 			throw reportError(email, jobName, e);
 		}
 	}
 
-	public void sendCSVResult(Path path, List<OPTIONS> options, String email, String jobName) throws Exception {
+	//@Async("taskExecutor")
+	public void writeCSVResult(Path path, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
 		try(BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path.toFile())))) {
-      sendCSVResult(br.lines(), options, email, jobName);
+      writeCSVResult(br.lines(), options, email, jobName, download);
     }catch (Exception e) {
 			Email.sendErr(email, jobName, path);
 			throw reportError(email, jobName, e);
+		}finally {
+			Files.delete(path);
 		}
 	}
 
 	private Exception reportError(String email, String jobName, Exception e) {
-		var detail = "Download failed user:" + email + " job:" + jobName;
+		var detail = "Download job failed:" + jobName;
 		logger.error(detail, e);
-		Email.reportException("user:" + email + " job:" + jobName, detail, e);
+		Email.reportException(" job:" + jobName, detail, e);
 		return new Exception("Your request failed, check your email for details");
 	}
 
-	private void sendCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName) throws Exception {
+	private void zipWriteCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
 		List<String> inputList = new ArrayList<>();
-		var zip = new CSVZipWriter();
+		var zip = new CSVZipWriter(downloadService.getDownloadDir(), download.getDownloadId());
 		zip.writer.writeNext(CSV_HEADER.split(","));
 		inputs.forEach(line -> processInput(options, inputList, zip.writer, line));
 		if (!inputList.isEmpty()) {
@@ -88,7 +98,31 @@ public class CSVDataFetcher {
 			zip.writer.writeAll(contentList);
 		}
 		zip.close();
-		Email.send(email, jobName, zip.path);
+		if (Commons.notNullNotEmpty(email))
+			Email.notify(email, jobName, download.getUrl());
+	}
+	private void writeCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
+		List<String> inputList = new ArrayList<>();
+
+		Path filePath = Paths.get(downloadService.getDownloadDir(), download.getDownloadId() + ".csv");
+		String fileName = filePath.toString();
+
+		// write csv
+		try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(filePath));
+			 CSVWriter writer = new CSVWriter(outputStreamWriter)) {
+			writer.writeNext(CSV_HEADER.split(","));
+			inputs.forEach(line -> processInput(options, inputList, writer, line));
+			if (!inputList.isEmpty()) {
+				List<String[]> contentList = buildCSVResult(inputList, options);
+				writer.writeAll(contentList);
+			}
+		}
+
+		// zip csv
+		FileUtils.zipFile(fileName, fileName + ".zip");
+
+		if (Commons.notNullNotEmpty(email))
+			Email.notify(email, jobName, download.getUrl());
 	}
 
 	private void processInput(List<OPTIONS> options, List<String> inputList, CSVWriter csvOutput, String input) {
@@ -213,9 +247,9 @@ public class CSVDataFetcher {
 		StringBuilder eve = new StringBuilder();
 		eve.append(mapping.getEveScore().toString());
 		if (mapping.getEveClass() != null) {
-			String eveClass = EVEClass.fromNum(mapping.getEveClass()).getVal();
-			if (eveClass != null) {
-				eve.append(" (").append(eveClass).append(")");
+			EVEClass eveClass = EVEClass.fromNum(mapping.getEveClass());
+			if (eveClass != null && eveClass.getVal() != null) {
+				eve.append(" (").append(eveClass.getVal()).append(")");
 			}
 		}
 		return eve.toString();
