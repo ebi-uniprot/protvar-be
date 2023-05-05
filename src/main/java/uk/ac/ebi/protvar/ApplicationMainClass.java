@@ -18,7 +18,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.context.request.RequestContextListener;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -48,10 +47,6 @@ public class ApplicationMainClass {
 		SpringApplication.run(ApplicationMainClass.class, args);
 	}
 
-	@Bean
-	public RequestContextListener requestContextListener() {
-		return new RequestContextListener();
-	}
 
 	@Bean
 	public Executor taskExecutor() {
