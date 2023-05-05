@@ -1,0 +1,15 @@
+Dear user,
+
+Your results from ProtVar have been processed, please use the following link to download the file.
+%s
+
+This file can be opened directly in MS Excel or LibreOffice or any spreadsheet software.
+
+For descriptions of each column and what value it contain please see below link
+https://github.com/ebi-uniprot/protvar-be/blob/main/docs/csv-output-version1.md
+
+For any additional queries please feel free to contact us.
+
+Thank you for using ProtVar.
+ProtVar Team
+protvar@ebi.ac.uk
