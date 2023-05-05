@@ -59,33 +59,33 @@ public class CSVDataFetcher {
 
 	private DownloadService downloadService;
 
-	//@Async("taskExecutor")
-	public void writeCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
+	@Async
+	public void writeCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) {
 		try {
 			writeCSVResult(inputs.stream(), options, email, jobName, download);
 		} catch (Exception e) {
 			Email.sendErr(email, jobName, inputs);
-			throw reportError(email, jobName, e);
+			reportError(email, jobName, e);
 		}
 	}
 
-	//@Async("taskExecutor")
-	public void writeCSVResult(Path path, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
-		try(BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path.toFile())))) {
-      writeCSVResult(br.lines(), options, email, jobName, download);
-    }catch (Exception e) {
+	@Async
+	public void writeCSVResult(Path path, List<OPTIONS> options, String email, String jobName, Download download) {
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path.toFile())))) {
+			writeCSVResult(br.lines(), options, email, jobName, download);
+		} catch (Exception e) {
 			Email.sendErr(email, jobName, path);
-			throw reportError(email, jobName, e);
-		}finally {
-			Files.delete(path);
+			reportError(email, jobName, e);
+		} finally {
+			FileUtils.tryDelete(path);
 		}
 	}
 
-	private Exception reportError(String email, String jobName, Exception e) {
+	private void reportError(String email, String jobName, Exception e) {
 		var detail = "Download job failed:" + jobName;
 		logger.error(detail, e);
 		Email.reportException(" job:" + jobName, detail, e);
-		return new Exception("Your request failed, check your email for details");
+		//return new Exception("Your request failed, check your email for details");
 	}
 
 	private void zipWriteCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
