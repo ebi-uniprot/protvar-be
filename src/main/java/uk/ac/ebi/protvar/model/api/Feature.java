@@ -8,23 +8,24 @@ import lombok.Data;
 
 @Data
 public class Feature {
-	private long begin;
-	private long end;
-	private String cytogeneticBand;
 	private String type;
 	private String ftId;
-	private String codon;
-	private List<Prediction> predictions = new ArrayList<>();
-	private String wildType;
 	private String alternativeSequence;
+	private long begin;
+	private long end;
 	private List<DSVDbReferenceObject> xrefs = new ArrayList<>();
 	private List<Evidence> evidences = new ArrayList<>();
-	private DSVSourceTypeEnum sourceType;
+	private String cytogeneticBand;
 	private String genomicLocation;
+	private String codon;
 	private String consequenceType;
-	
-	private List<DSVAssociation> association = new ArrayList<>();
+	private String wildType;
+	private List<Prediction> predictions = new ArrayList<>();
 	private List<DSVClinicalSignificance> clinicalSignificances = new ArrayList<>();
+	private List<DSVAssociation> association = new ArrayList<>();
+	private DSVSourceTypeEnum sourceType;
+
+
 	private List<DSVPopulationFrequency> populationFrequencies = new ArrayList<>();
 
 	public String getSignificances() {

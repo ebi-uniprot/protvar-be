@@ -1,6 +1,7 @@
 package uk.ac.ebi.protvar;
 
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Executor;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.ExternalDocumentation;
@@ -13,9 +14,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.context.annotation.RequestScope;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -26,7 +28,8 @@ import org.springframework.retry.support.RetryTemplate;
 import uk.ac.ebi.protvar.cache.RestTemplateCache;
 
 @SpringBootApplication
-@CrossOrigin //
+@CrossOrigin
+@EnableAsync
 public class ApplicationMainClass {
 	@Value(("${variation.api}"))
 	private String variationAPI;
@@ -42,6 +45,17 @@ public class ApplicationMainClass {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ApplicationMainClass.class, args);
+	}
+
+	@Bean
+	public Executor taskExecutor() {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(2);
+		executor.setMaxPoolSize(2);
+		executor.setQueueCapacity(500);
+		executor.setThreadNamePrefix("Async-");
+		executor.initialize();
+		return executor;
 	}
 
 	@Bean
@@ -62,7 +76,7 @@ public class ApplicationMainClass {
 	}
 
 	@Bean
-	@RequestScope
+	//@RequestScope
 	public RestTemplate variantRestTemplate() {
 		RestTemplate restTemplate = new RestTemplateCache();
 		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
@@ -71,7 +85,7 @@ public class ApplicationMainClass {
 	}
 
 	@Bean
-	@RequestScope
+	//@RequestScope
 	public RestTemplate proteinRestTemplate() {
 		RestTemplate restTemplate = new RestTemplateCache();
 		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
@@ -80,7 +94,7 @@ public class ApplicationMainClass {
 	}
 
 	@Bean
-	@RequestScope
+	//@RequestScope
 	public RestTemplate coordinateRestTemplate() {
 		RestTemplate restTemplate = new RestTemplateCache();
 		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
@@ -89,7 +103,7 @@ public class ApplicationMainClass {
 	}
 
 	@Bean
-	@RequestScope
+	//@RequestScope
 	public RestTemplate pdbeRestTemplate() {
 		RestTemplate restTemplate = new RestTemplateCache();
 		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));

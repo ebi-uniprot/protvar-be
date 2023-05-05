@@ -1,27 +1,39 @@
 package uk.ac.ebi.protvar.service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.model.response.Download;
+import uk.ac.ebi.protvar.utils.Commons;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class DownloadService {
-
     @Value(("${protvar.data}"))
     private String downloadDir;
 
+    public String getDownloadDir() {
+        return downloadDir;
+    }
+    public Download newDownload(String type) {
+        Download download = new Download(type);
+        download.setRequested(LocalDateTime.now());
+        download.setDownloadId(UUID.randomUUID().toString());
+        download.setStatus(-1);
+        download.setUrl(Commons.DOWNLOAD_RESULTS_URL + download.getDownloadId());
+        return download;
+    }
+
     public FileInputStream getFileResource(String id) {
-        String fileName = downloadDir + "/" + id + ".csv";
+        String fileName = downloadDir + "/" + id + ".csv.zip";
         FileInputStream fileInputStream;
         try {
             fileInputStream = new FileInputStream(fileName);
@@ -36,9 +48,9 @@ public class DownloadService {
         Map<String, Integer> resultMap = new LinkedHashMap<>();
         ids.stream().forEach(id -> {
             String fileName = downloadDir + "/" + id + ".csv";
-            if (Files.exists(Paths.get(fileName)))
+            if (Files.exists(Paths.get(fileName + ".zip")))
                 resultMap.put(id, 1);
-            else if (Files.exists(Paths.get(fileName + ".tmp")))
+            else if (Files.exists(Paths.get(fileName)))
                 resultMap.put(id, 0);
             else
                 resultMap.put(id, -1);
