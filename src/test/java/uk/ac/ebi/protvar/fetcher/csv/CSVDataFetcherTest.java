@@ -16,7 +16,7 @@ class CSVDataFetcherTest {
 
   private static final int TOTAL_CSV_COLUMNS = 41;
   CSVDataFetcher mockDeps = new CSVDataFetcher(mock(MappingFetcher.class), mock(CSVFunctionDataFetcher.class),
-    mock(CSVPopulationDataFetcher.class), mock(CSVStructureDataFetcher.class), mock(DownloadService.class));
+    mock(CSVPopulationDataFetcher.class), mock(CSVStructureDataFetcher.class), "");
 
   @Nested
   class Header {

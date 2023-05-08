@@ -1,17 +1,10 @@
 package uk.ac.ebi.protvar.utils;
 
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
-
 import java.util.*;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class Commons {
-
-  public final static String BASE_URL =
-          ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
-  public final static String DOWNLOAD_RESULTS_URL = BASE_URL + "/download/";
 
   private Commons() {
   }

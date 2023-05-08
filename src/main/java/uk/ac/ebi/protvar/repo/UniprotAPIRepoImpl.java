@@ -27,7 +27,7 @@ import uk.ac.ebi.protvar.model.api.DataServiceVariation;
 import uk.ac.ebi.protvar.model.response.PDBeStructure;
 
 @Repository
-@RequestScope
+//@RequestScope
 @AllArgsConstructor
 public class UniprotAPIRepoImpl implements UniprotAPIRepo {
 	private static final Logger logger = LoggerFactory.getLogger(UniprotAPIRepoImpl.class);

@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +22,6 @@ import com.opencsv.CSVWriter;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.model.data.EVEClass;
 import uk.ac.ebi.protvar.model.response.*;
-import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.utils.*;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
@@ -57,7 +57,8 @@ public class CSVDataFetcher {
 	private CSVPopulationDataFetcher populationFetcher;
 	private CSVStructureDataFetcher csvStructureDataFetcher;
 
-	private DownloadService downloadService;
+	private String downloadDir;
+
 
 	@Async
 	public void writeCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) {
@@ -90,7 +91,7 @@ public class CSVDataFetcher {
 
 	private void zipWriteCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
 		List<String> inputList = new ArrayList<>();
-		var zip = new CSVZipWriter(downloadService.getDownloadDir(), download.getDownloadId());
+		var zip = new CSVZipWriter(downloadDir, download.getDownloadId());
 		zip.writer.writeNext(CSV_HEADER.split(","));
 		inputs.forEach(line -> processInput(options, inputList, zip.writer, line));
 		if (!inputList.isEmpty()) {
@@ -104,7 +105,7 @@ public class CSVDataFetcher {
 	private void writeCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
 		List<String> inputList = new ArrayList<>();
 
-		Path filePath = Paths.get(downloadService.getDownloadDir(), download.getDownloadId() + ".csv");
+		Path filePath = Paths.get(downloadDir, download.getDownloadId() + ".csv");
 		String fileName = filePath.toString();
 
 		// write csv

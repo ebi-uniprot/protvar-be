@@ -19,6 +19,7 @@ import uk.ac.ebi.protvar.model.response.Download;
 import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.utils.FileUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.FileInputStream;
 import java.nio.file.Path;
 import java.util.List;
@@ -58,16 +59,18 @@ public class DownloadController implements WebMvcConfigurer {
    */
   @Operation(summary = "– submit mappings download request using file input.")
   @PostMapping(value = "/download/fileInput", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<?> download(
-          @RequestParam MultipartFile file,
-          @RequestParam(required = false) String email,
-          @RequestParam(required = false) String jobName,
-          @RequestParam(required = false, defaultValue = "false") boolean function,
-          @RequestParam(required = false, defaultValue = "false") boolean population,
-          @RequestParam(required = false, defaultValue = "false") boolean structure) throws Exception {
+  public ResponseEntity<?> download(HttpServletRequest request,
+                                    @RequestParam MultipartFile file,
+                                    @RequestParam(required = false) String email,
+                                    @RequestParam(required = false) String jobName,
+                                    @RequestParam(required = false, defaultValue = "false") boolean function,
+                                    @RequestParam(required = false, defaultValue = "false") boolean population,
+                                    @RequestParam(required = false, defaultValue = "false") boolean structure) throws Exception {
     List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
     Download download = downloadService.newDownload("FILE");
     download.setJobName(jobName);
+    String downloadUrl = request.getRequestURL().toString().replaceAll("fileInput", download.getDownloadId());
+    download.setUrl(downloadUrl);
     Path newFile = FileUtils.writeFile(file);
     csvDataFetcher.writeCSVResult(newFile, options, email, jobName, download);
     return new ResponseEntity<>(download, HttpStatus.OK);
@@ -90,7 +93,7 @@ public class DownloadController implements WebMvcConfigurer {
    */
   @Operation(summary = "– download mappings using file or text input.")
   @PostMapping(value = "/download/textInput", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<?> download(
+  public ResponseEntity<?> download(HttpServletRequest request,
           @RequestBody List<String> inputs,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName,
@@ -100,6 +103,8 @@ public class DownloadController implements WebMvcConfigurer {
     List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
     Download download = downloadService.newDownload("TEXT");
     download.setJobName(jobName);
+    String downloadUrl = request.getRequestURL().toString().replaceAll("textInput", download.getDownloadId());
+    download.setUrl(downloadUrl);
     csvDataFetcher.writeCSVResult(inputs, options, email, jobName, download);
     return new ResponseEntity<>(download, HttpStatus.OK);
   }

@@ -1,9 +1,8 @@
 package uk.ac.ebi.protvar.service;
 
-import org.springframework.beans.factory.annotation.Value;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.model.response.Download;
-import uk.ac.ebi.protvar.utils.Commons;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -16,19 +15,15 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@AllArgsConstructor
 public class DownloadService {
-    @Value(("${protvar.data}"))
     private String downloadDir;
 
-    public String getDownloadDir() {
-        return downloadDir;
-    }
     public Download newDownload(String type) {
         Download download = new Download(type);
         download.setRequested(LocalDateTime.now());
         download.setDownloadId(UUID.randomUUID().toString());
         download.setStatus(-1);
-        download.setUrl(Commons.DOWNLOAD_RESULTS_URL + download.getDownloadId());
         return download;
     }
 
