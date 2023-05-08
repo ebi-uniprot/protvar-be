@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.service.APIService;
 
@@ -77,14 +78,14 @@ public class AnnotationController {
    *
    * @param accession Uniprot accession
    * @param position  Amino acid position
-   * @return List of <code>PDBeStructure</code> Mappings from UniProt position to position in all relevant PDB structures
+   * @return List of <code>PDBeStructureResidue</code> Mappings from UniProt position to position in all relevant PDB structures
    */
   @Operation(summary = "- retrieve mappings of protein position to structures")
   @GetMapping(value = "/structure/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<List<PDBeStructure>> getStructure(
+  public ResponseEntity<List<PDBeStructureResidue>> getStructure(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
-    List<PDBeStructure> object = service.getStructure(accession, position);
+    List<PDBeStructureResidue> object = service.getStructure(accession, position);
     return new ResponseEntity<>(object, HttpStatus.OK);
   }
 }

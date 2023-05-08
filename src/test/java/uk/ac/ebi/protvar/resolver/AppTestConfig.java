@@ -1,26 +1,20 @@
 package uk.ac.ebi.protvar.resolver;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import uk.ac.ebi.protvar.model.PDBeRequest;
-import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.api.DataServiceCoordinate;
 import uk.ac.ebi.protvar.model.api.DataServiceProtein;
 import uk.ac.ebi.protvar.model.api.DataServiceVariation;
-import uk.ac.ebi.protvar.model.response.PDBeStructure;
 import uk.ac.ebi.protvar.repo.UniprotAPIRepo;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 @Configuration
 @Profile({ "test" })
@@ -85,7 +79,7 @@ public class AppTestConfig {
 				return null;
 
 			}*/
-
+			/*
 			@Override
 			public Object[] getPDBe(List<PDBeRequest> requests) {
 				try {
@@ -98,7 +92,7 @@ public class AppTestConfig {
 					e.printStackTrace();
 				}
 				return null;
-			}
+			}*/
 
 			@Override
 			public DataServiceVariation[] getVariationByAccession(String accession, String location) {
@@ -118,11 +112,6 @@ public class AppTestConfig {
 				}
 
 				return null;
-			}
-
-			@Override
-			public String getUniproAccession(String accession) {
-				return "P68431";
 			}
 
 			@Override
@@ -156,11 +145,6 @@ public class AppTestConfig {
 				return null;
 			}
 
-			@Override
-			public List<PDBeStructure> getPDBeStructure(String accession, int aaPosition) {
-				// TODO Auto-generated method stub
-				return null;
-			}
 		};
 	}
 }
