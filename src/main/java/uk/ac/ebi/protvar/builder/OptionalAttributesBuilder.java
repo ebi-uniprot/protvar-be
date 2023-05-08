@@ -5,13 +5,13 @@ import java.util.List;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.fetcher.PDBeFetcher;
 import uk.ac.ebi.protvar.fetcher.ProteinFetcher;
 import uk.ac.ebi.protvar.fetcher.VariationFetcher;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
-import uk.ac.ebi.protvar.model.response.PDBeStructure;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.Protein;
 import uk.ac.ebi.protvar.model.response.Variation;
@@ -41,7 +41,7 @@ public class OptionalAttributesBuilder {
 	private void buildStructure(String accession, int isoformPostion, boolean isStructure,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
 		if (isStructure) {
-			List<PDBeStructure> proteinStructure = pdbeFetcher.fetchByAccession(accession, isoformPostion);
+			List<PDBeStructureResidue> proteinStructure = pdbeFetcher.fetch(accession, isoformPostion);
 			builder.proteinStructure(proteinStructure);
 		} else {
 			String uri = buildUri(STRUCTURE_API, accession, isoformPostion);

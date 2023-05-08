@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import uk.ac.ebi.pdbe.cache.PDBeCache;
 
 import java.util.concurrent.Executor;
 
@@ -33,6 +34,13 @@ public class ApplicationMainClass {
 	@Bean
 	public String downloadDir() {
 		return protVarData;
+	}
+
+	@Bean
+	public PDBeCache pdBeCache() {
+		PDBeCache pdBeCache = new PDBeCache(downloadDir());
+		//pdBeCache.initialize();
+		return pdBeCache;
 	}
 
 	@Bean

@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar.service;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.builder.OptionBuilder;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.*;
@@ -52,8 +53,8 @@ public class APIService {
 		return populationFetcher.fetchPopulationObservation(accession, position + "-" + position);
 	}
 
-	public List<PDBeStructure> getStructure(String accession, int position) {
-		return pdbeFetcher.fetchByAccession(accession, position);
+	public List<PDBeStructureResidue> getStructure(String accession, int position) {
+		return pdbeFetcher.fetch(accession, position);
 	}
 
 	public AssemblyMappingResponse getAssemblyMapping(List<String> inputs, Assembly from, Assembly to) {

@@ -1,9 +1,5 @@
 package uk.ac.ebi.protvar.repo;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,10 +8,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.util.LinkedMultiValueMap;
@@ -23,15 +16,14 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriBuilder;
-
-import uk.ac.ebi.protvar.utils.TestUtils;
-import uk.ac.ebi.protvar.model.PDBeRequest;
-import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.api.DataServiceCoordinate;
 import uk.ac.ebi.protvar.model.api.DataServiceProtein;
 import uk.ac.ebi.protvar.model.api.DataServiceVariation;
+import uk.ac.ebi.protvar.utils.TestUtils;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.io.IOException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
@@ -64,8 +56,6 @@ public class UniprotAPIRepoImplTest {
 	@Mock
 	RestTemplate coordinateRestTemplate;
 
-	@Mock
-	RestTemplate pdbeRestTemplate;
 
 	@InjectMocks
 	UniprotAPIRepoImpl uniprotAPIRepo;
@@ -195,64 +185,6 @@ public class UniprotAPIRepoImplTest {
 
 		DataServiceCoordinate[] dsc = uniprotAPIRepo.getCoordinateByAccession(accession);
 		assertEquals(1, dsc.length);
-	}
-
-	@Test
-	void testGetStructure() throws Exception {
-		ResponseEntity<Object[]> pdbeResp = new ResponseEntity<>(
-				TestUtils.getStructure("src/test/resources/jsons/pdbe.json"), HttpStatus.OK);
-
-		HttpHeaders headers = new HttpHeaders();
-		headers.setAccept(List.of(MediaType.APPLICATION_JSON));
-		headers.setContentType(MediaType.APPLICATION_JSON);
-		PDBeRequest request = new PDBeRequest();
-		request.setAccession("P21802");
-		request.setPositions(List.of("493"));
-		List<PDBeRequest> requests = new ArrayList<>();
-		requests.add(request);
-		HttpEntity<List<PDBeRequest>> requestEntity = new HttpEntity<>(requests, headers);
-
-		DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory("");
-		Mockito.when(pdbeRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
-		UriBuilder uriBuilder = uriBuilderFactory.builder().path("graph-api/protvar/summary_stats");
-
-		Mockito.when(pdbeRestTemplate.postForEntity(uriBuilder.build(), requestEntity, Object[].class))
-				.thenReturn(pdbeResp);
-		Object[] pdbe = uniprotAPIRepo.getPDBe(requests);
-		assertEquals(4, pdbe.length);
-	}
-
-	@Test
-	void testGetUniprotAccession() throws Exception {
-		Object pdbeResp = TestUtils.getMapping("src/test/resources/pdbe_mapping.json");
-		ResponseEntity<Object> mappingRes = new ResponseEntity<>(pdbeResp, HttpStatus.OK);
-
-		String accession = "6n0d";
-
-		DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory("");
-		Mockito.when(pdbeRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
-		UriBuilder uriBuilder = uriBuilderFactory.builder().path("api/mappings/uniprot/").path(accession);
-
-		Mockito.when(pdbeRestTemplate.getForEntity(uriBuilder.build(), Object.class)).thenReturn(mappingRes);
-		String uniprotAccession = uniprotAPIRepo.getUniproAccession(accession);
-		assertEquals("Q9NUW8", uniprotAccession);
-
-	}
-
-	@Test
-	void testGetUniprotNullAccession() {
-		ResponseEntity<Object> mappingRes = null;
-
-		String accession = "6n0d";
-
-		DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory("");
-		Mockito.when(pdbeRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
-		UriBuilder uriBuilder = uriBuilderFactory.builder().path("api/mappings/uniprot/").path(accession);
-
-		Mockito.when(pdbeRestTemplate.getForEntity(uriBuilder.build(), Object.class)).thenReturn(mappingRes);
-		String uniprotAccession = uniprotAPIRepo.getUniproAccession(accession);
-		assertNull(uniprotAccession);
-
 	}
 
 }

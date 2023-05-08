@@ -9,6 +9,8 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
+import uk.ac.ebi.pdbe.api.PDBeAPI;
+import uk.ac.ebi.pdbe.api.PDBeAPIImpl;
 import uk.ac.ebi.protvar.cache.RestTemplateCache;
 
 import java.nio.charset.StandardCharsets;
@@ -62,6 +64,12 @@ public class RestTemplateConfig {
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeAPI));
         return restTemplate;
+    }
+
+    @Bean
+    public PDBeAPI pdBeAPI() {
+        PDBeAPI pdBeAPI = new PDBeAPIImpl(pdbeRestTemplate());
+        return pdBeAPI;
     }
 
     @Bean
