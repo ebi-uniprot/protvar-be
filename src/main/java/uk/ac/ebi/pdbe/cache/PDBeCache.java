@@ -92,7 +92,7 @@ public class PDBeCache {
         Gson gson = builder.create();
 
         File bz2Cache = ResourceUtils.getFile("classpath:pdbe.tar.bz2");
-        Path tarCache = Paths.get("pdbe.tar");
+        Path tarCache = Files.createTempFile(null, null); //Paths.get("pdbe.tar");
         try (InputStream fin = new FileInputStream(bz2Cache);
         BufferedInputStream in = new BufferedInputStream(fin);
         OutputStream out = Files.newOutputStream(tarCache);

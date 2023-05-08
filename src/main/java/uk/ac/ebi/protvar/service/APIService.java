@@ -54,7 +54,7 @@ public class APIService {
 	}
 
 	public List<PDBeStructureResidue> getStructure(String accession, int position) {
-		return pdbeFetcher.fetchByAccession(accession, position);
+		return pdbeFetcher.fetch(accession, position);
 	}
 
 	public AssemblyMappingResponse getAssemblyMapping(List<String> inputs, Assembly from, Assembly to) {

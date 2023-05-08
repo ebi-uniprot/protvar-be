@@ -23,7 +23,7 @@ public class PDBeFetcher {
 	 * 
 	 * @return - Map of accession and PDB object. Empty map if no data found
 	 */
-	public List<PDBeStructureResidue> fetchByAccession(String accession, int position) {
+	public List<PDBeStructureResidue> fetch(String accession, int position) {
 		if (CACHE) {
 			logger.info("Fetching from PDBe cache");
 			return pdBeCache.get(accession, position);

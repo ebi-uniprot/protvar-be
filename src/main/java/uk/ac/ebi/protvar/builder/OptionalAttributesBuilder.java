@@ -41,7 +41,7 @@ public class OptionalAttributesBuilder {
 	private void buildStructure(String accession, int isoformPostion, boolean isStructure,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
 		if (isStructure) {
-			List<PDBeStructureResidue> proteinStructure = pdbeFetcher.fetchByAccession(accession, isoformPostion);
+			List<PDBeStructureResidue> proteinStructure = pdbeFetcher.fetch(accession, isoformPostion);
 			builder.proteinStructure(proteinStructure);
 		} else {
 			String uri = buildUri(STRUCTURE_API, accession, isoformPostion);
