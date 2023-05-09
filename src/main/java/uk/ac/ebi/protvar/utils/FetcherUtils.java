@@ -1,7 +1,7 @@
 package uk.ac.ebi.protvar.utils;
 
-import uk.ac.ebi.protvar.model.api.DSPSource;
-import uk.ac.ebi.protvar.model.api.Evidence;
+import uk.ac.ebi.uniprot.common.model.DSPSource;
+import uk.ac.ebi.uniprot.common.model.Evidence;
 
 import java.util.List;
 import java.util.Map;

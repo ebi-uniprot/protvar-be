@@ -22,7 +22,7 @@ import java.util.List;
 @CrossOrigin
 @AllArgsConstructor
 public class AssemblyMappingController {
-    private APIService service;
+    private APIService apiService;
 
     /**
      * Requires a list of genomic coordinates (chromosome and genomic position pairs) and input/output assembly versions.
@@ -49,7 +49,7 @@ public class AssemblyMappingController {
 
         if (fromAssembly != null && toAssembly != null
                 && fromAssembly != toAssembly) {
-            AssemblyMappingResponse result = service.getAssemblyMapping(inputs, fromAssembly, toAssembly);
+            AssemblyMappingResponse result = apiService.getAssemblyMapping(inputs, fromAssembly, toAssembly);
             return new ResponseEntity<>(result, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

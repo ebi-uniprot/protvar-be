@@ -7,9 +7,9 @@ import java.nio.file.Path;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import uk.ac.ebi.protvar.model.api.DataServiceCoordinate;
-import uk.ac.ebi.protvar.model.api.DataServiceProtein;
-import uk.ac.ebi.protvar.model.api.DataServiceVariation;
+import uk.ac.ebi.uniprot.coordinates.model.DataServiceCoordinate;
+import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
+import uk.ac.ebi.uniprot.variation.model.DataServiceVariation;
 
 public class TestUtils {
 

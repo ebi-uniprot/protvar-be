@@ -10,13 +10,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.converter.CoordinateAPI2GeneConverter;
-import uk.ac.ebi.protvar.exception.ServiceException;
+import uk.ac.ebi.protvar.converter.CoordinatesAPI2GeneConverter;
 import uk.ac.ebi.protvar.model.Gene;
 import uk.ac.ebi.protvar.model.LocationRange;
-import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.model.api.DataServiceCoordinate;
-import uk.ac.ebi.protvar.repo.UniprotAPIRepo;
+import uk.ac.ebi.uniprot.coordinates.api.CoordinatesAPI;
+import uk.ac.ebi.uniprot.coordinates.model.DataServiceCoordinate;
 
 @Service
 @AllArgsConstructor
@@ -25,8 +23,8 @@ public class GenomicFetcher {
 	private static final Logger logger = LoggerFactory.getLogger(GenomicFetcher.class);
 	private static final String COORDINATE_API_ERROR = "Coordinate API error";
 
-	private UniprotAPIRepo uniprotAPIRepo;
-	private CoordinateAPI2GeneConverter converter;
+	private CoordinatesAPI2GeneConverter converter;
+	private CoordinatesAPI coordinatesAPI;
 /*
 	public Map<String, Gene> fetch(final UserInput pInput) throws ServiceException {
 		logger.info("Processing Gene -> {}", pInput.getInputString());
@@ -49,7 +47,7 @@ public class GenomicFetcher {
 	public Map<String, List<Gene>> searchGene(final String geneName, final String chromosome, final int offset,
 			final int pageSize, final String location) {
 		Map<String, List<Gene>> accessionGenesMap = new HashMap<>();
-		DataServiceCoordinate[] dscs = uniprotAPIRepo.getCoordinates(geneName, chromosome, offset, pageSize, location);
+		DataServiceCoordinate[] dscs = coordinatesAPI.getCoordinates(geneName, chromosome, offset, pageSize, location);
 		for (DataServiceCoordinate dsc : dscs) {
 			List<Gene> genes = new ArrayList<>();
 			List<LocationRange> ranges = new ArrayList<>();

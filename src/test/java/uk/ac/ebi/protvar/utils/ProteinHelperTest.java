@@ -9,18 +9,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import uk.ac.ebi.protvar.model.api.DataServiceProtein;
-import uk.ac.ebi.protvar.converter.ProteinAPI2ProteinConverter;
+import uk.ac.ebi.protvar.resolver.AppTestConfig;
+import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
+import uk.ac.ebi.protvar.converter.ProteinsAPI2ProteinConverter;
 import uk.ac.ebi.protvar.model.response.Protein;
 
 @ExtendWith(SpringExtension.class)
-@SpringBootTest
+@SpringBootTest(classes = { AppTestConfig.class })
 public class ProteinHelperTest {
 
 	@Test
 	public void testSwissProtCanonical() throws IOException {
 		DataServiceProtein[] dsp = TestUtils.getProtein("src/test/resources/protein_E7EPD8.json");
-		ProteinAPI2ProteinConverter converter = new ProteinAPI2ProteinConverter();
+		ProteinsAPI2ProteinConverter converter = new ProteinsAPI2ProteinConverter();
 
 		Protein protein = converter.fetch(dsp[0]);
 		protein.setType("Swiss-Prot");
@@ -32,7 +33,7 @@ public class ProteinHelperTest {
 	@Test
 	public void testCanonicalFalse() throws IOException {
 		DataServiceProtein[] dsp = TestUtils.getProtein("src/test/resources/protein_E7EPD8.json");
-		ProteinAPI2ProteinConverter converter = new ProteinAPI2ProteinConverter();
+		ProteinsAPI2ProteinConverter converter = new ProteinsAPI2ProteinConverter();
 		Protein protein = converter.fetch(dsp[0]);
 		System.out.println("Protein: " + protein);
 //		assertNull(protein.getCanonicalAccession());
@@ -42,7 +43,7 @@ public class ProteinHelperTest {
 	@Test
 	public void testNonSwissProtCanonical() throws IOException {
 		DataServiceProtein[] dsp = TestUtils.getProtein("src/test/resources/jsons/protein.json");
-		ProteinAPI2ProteinConverter converter = new ProteinAPI2ProteinConverter();
+		ProteinsAPI2ProteinConverter converter = new ProteinsAPI2ProteinConverter();
 		Protein protein = converter.fetch(dsp[1]);
 //		protein.getDbReferences().get(0).setIsoform("G3V2F4-1");
 //		protein.setCanonicalIsoforms(Arrays.asList("G3V2F4-1"));
