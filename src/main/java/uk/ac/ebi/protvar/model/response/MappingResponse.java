@@ -1,15 +1,13 @@
 package uk.ac.ebi.protvar.model.response;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import java.util.*;
 import lombok.Getter;
 import lombok.Setter;
-import uk.ac.ebi.protvar.model.UserInput;
+import uk.ac.ebi.protvar.input.UserInput;
 
 @Setter
 @Getter
 public class MappingResponse {
-	List<GenomeProteinMapping> mappings = new ArrayList<>();
-	List<UserInput> invalidInputs = new ArrayList<>();
+	List<UserInput> inputs;
+	List<Message> messages;
 }

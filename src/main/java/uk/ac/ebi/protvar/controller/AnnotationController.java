@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
+import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.service.APIService;
 
@@ -24,7 +25,7 @@ import uk.ac.ebi.protvar.service.APIService;
 @CrossOrigin
 @AllArgsConstructor
 public class AnnotationController {
-  private APIService service;
+  private APIService apiService;
 
   /**
    * Returns functional information relevant to the input residue in the UniProt canonical isoform, the region
@@ -42,7 +43,7 @@ public class AnnotationController {
   public ResponseEntity<Protein> getFunction(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
-    Protein protein = service.getProtein(accession, position);
+    Protein protein = apiService.getProtein(accession, position);
     return new ResponseEntity<>(protein, HttpStatus.OK);
   }
 
@@ -64,7 +65,7 @@ public class AnnotationController {
   public ResponseEntity<PopulationObservation> getPopulationObservation(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
-    PopulationObservation variations = service.getPopulationObservation(accession, position);
+    PopulationObservation variations = apiService.getPopulationObservation(accession, position);
     return new ResponseEntity<>(variations, HttpStatus.OK);
   }
 
@@ -77,14 +78,14 @@ public class AnnotationController {
    *
    * @param accession Uniprot accession
    * @param position  Amino acid position
-   * @return List of <code>PDBeStructure</code> Mappings from UniProt position to position in all relevant PDB structures
+   * @return List of <code>PDBeStructureResidue</code> Mappings from UniProt position to position in all relevant PDB structures
    */
   @Operation(summary = "- retrieve mappings of protein position to structures")
   @GetMapping(value = "/structure/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<List<PDBeStructure>> getStructure(
+  public ResponseEntity<List<PDBeStructureResidue>> getStructure(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
-    List<PDBeStructure> object = service.getStructure(accession, position);
+    List<PDBeStructureResidue> object = apiService.getStructure(accession, position);
     return new ResponseEntity<>(object, HttpStatus.OK);
   }
 }

@@ -31,6 +31,9 @@ public class Email {
   public static void send(String email, String jobName, Path outputFile) {
     send(email, null, "ProtVar results: " + jobName, getSuccessBody(), jobName + "-ProtVar.zip", outputFile);
   }
+  public static void notify(String email, String jobName, String url) {
+    send(email, null, "ProtVar results: " + jobName, getNotifyBody(url), null, null);
+  }
 
   public static void sendErr(String email, String jobName, List<String> inputs) {
     var body = getErrorBody() + "\n\n" + String.join("\n", inputs);
@@ -57,15 +60,22 @@ public class Email {
       MimeMessage message = emailSender.createMimeMessage();
       MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-      helper.setTo(to);
+      if (Commons.notNullNotEmpty(to)) {
+        helper.setTo(to);
+        if (Commons.notNullNotEmpty(cc))
+          helper.setCc(cc);
+      } else {
+        helper.setTo(cc);
+      }
+
       helper.setFrom(FROM);
       helper.setSubject(subject);
       helper.setText(body);
-      if (Commons.notNullNotEmpty(cc))
-        helper.setCc(cc);
 
-      FileSystemResource file = new FileSystemResource(outputFile);
-      helper.addAttachment(attachmentName, file);
+      if (attachmentName != null && outputFile != null) {
+        FileSystemResource file = new FileSystemResource(outputFile);
+        helper.addAttachment(attachmentName, file);
+      }
       emailSender.send(message);
     } catch (Exception e) {
       throw new UnexpectedUseCaseException("Not able to send email", e);
@@ -75,12 +85,16 @@ public class Email {
   private static void send(String to, String cc, String subject, String body) {
     try {
       SimpleMailMessage message = new SimpleMailMessage();
-      message.setTo(to);
+      if (Commons.notNullNotEmpty(to)) {
+        message.setTo(to);
+        if (Commons.notNullNotEmpty(cc))
+          message.setCc(cc);
+      } else {
+        message.setTo(cc);
+      }
       message.setFrom(FROM);
       message.setSubject(subject);
       message.setText(body);
-      if (Commons.notNullNotEmpty(cc))
-        message.setCc(cc);
       emailSender.send(message);
     } catch (Exception e) {
       throw new UnexpectedUseCaseException("Not able to send email", e);
@@ -99,6 +113,18 @@ public class Email {
       }
     }
     return successBody;
+  }
+
+  private static String getNotifyBody(String url) {
+    var stream = Email.class.getClassLoader().getResourceAsStream("notifyEmailBody.txt");
+    String body;
+    try {
+      body = new String(stream.readAllBytes());
+    } catch (IOException e) {
+      body = String.format("Please find you ProtVar results at %s", url);
+    }
+    body = String.format(body, url);
+    return body;
   }
 
   private static String getErrorBody() {

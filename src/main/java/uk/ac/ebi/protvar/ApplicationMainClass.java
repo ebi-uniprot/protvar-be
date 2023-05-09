@@ -1,7 +1,5 @@
 package uk.ac.ebi.protvar;
 
-import java.nio.charset.StandardCharsets;
-
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -10,38 +8,50 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.context.annotation.RequestScope;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
-import org.springframework.web.util.DefaultUriBuilderFactory;
-import org.springframework.retry.policy.SimpleRetryPolicy;
-import org.springframework.retry.support.RetryTemplate;
+import uk.ac.ebi.pdbe.cache.PDBeCache;
 
-import uk.ac.ebi.protvar.cache.RestTemplateCache;
+import java.util.concurrent.Executor;
 
 @SpringBootApplication
-@CrossOrigin //
+@CrossOrigin
+@EnableAsync
 public class ApplicationMainClass {
-	@Value(("${variation.api}"))
-	private String variationAPI;
 
-	@Value(("${protein.api}"))
-	private String proteinAPI;
-
-	@Value(("${coordinate.api}"))
-	private String coordinateAPI;
-
-	@Value(("${pdbe.api}"))
-	private String pdbeAPI;
+	@Value(("${protvar.data}"))
+	private String protVarData;
 
 	public static void main(String[] args) {
 		SpringApplication.run(ApplicationMainClass.class, args);
+	}
+
+	@Bean
+	public String downloadDir() {
+		return protVarData;
+	}
+
+	@Bean
+	public PDBeCache pdbeCache() {
+		PDBeCache pdbeCache = new PDBeCache(downloadDir());
+		//pdBeCache.initialize();
+		return pdbeCache;
+	}
+
+	@Bean
+	public Executor taskExecutor() {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(2);
+		executor.setMaxPoolSize(2);
+		executor.setQueueCapacity(500);
+		executor.setThreadNamePrefix("Async-");
+		executor.initialize();
+		return executor;
 	}
 
 	@Bean
@@ -59,59 +69,6 @@ public class ApplicationMainClass {
 		config.addAllowedMethod("PATCH");
 		source.registerCorsConfiguration("/**", config);
 		return new CorsFilter(source);
-	}
-
-	@Bean
-	@RequestScope
-	public RestTemplate variantRestTemplate() {
-		RestTemplate restTemplate = new RestTemplateCache();
-		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-		restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(variationAPI));
-		return restTemplate;
-	}
-
-	@Bean
-	@RequestScope
-	public RestTemplate proteinRestTemplate() {
-		RestTemplate restTemplate = new RestTemplateCache();
-		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-		restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinAPI));
-		return restTemplate;
-	}
-
-	@Bean
-	@RequestScope
-	public RestTemplate coordinateRestTemplate() {
-		RestTemplate restTemplate = new RestTemplateCache();
-		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-		restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(coordinateAPI));
-		return restTemplate;
-	}
-
-	@Bean
-	@RequestScope
-	public RestTemplate pdbeRestTemplate() {
-		RestTemplate restTemplate = new RestTemplateCache();
-		restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-		restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeAPI));
-		return restTemplate;
-	}
-
-	@Bean
-	RestTemplateCustomizer retryRestTemplateCustomizer() {
-		return restTemplate -> restTemplate.getInterceptors().add((request, body, execution) -> {
-
-			RetryTemplate retryTemplate = new RetryTemplate();
-			retryTemplate.setRetryPolicy(new SimpleRetryPolicy(3));
-			try {
-				return retryTemplate.execute(context -> {
-					System.out.println("start retrying ....");
-					return execution.execute(request, body);
-				});
-			} catch (Throwable throwable) {
-				throw new RuntimeException(throwable);
-			}
-		});
 	}
 
 	@Bean

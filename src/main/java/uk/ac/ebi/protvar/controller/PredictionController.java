@@ -9,10 +9,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.ac.ebi.protvar.model.response.ConservScore;
-import uk.ac.ebi.protvar.model.response.Foldx;
-import uk.ac.ebi.protvar.model.response.Interaction;
-import uk.ac.ebi.protvar.model.response.Pocket;
+import uk.ac.ebi.protvar.model.data.ConservScore;
+import uk.ac.ebi.protvar.model.data.Foldx;
+import uk.ac.ebi.protvar.model.data.Interaction;
+import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 
 import javax.servlet.ServletContext;

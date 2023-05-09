@@ -8,10 +8,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import uk.ac.ebi.protvar.model.api.DBReference;
-import uk.ac.ebi.protvar.model.api.DSPComment;
-import uk.ac.ebi.protvar.model.api.DSPSequence;
-import uk.ac.ebi.protvar.model.api.ProteinFeature;
+import uk.ac.ebi.uniprot.proteins.model.DBReference;
+import uk.ac.ebi.uniprot.proteins.model.DSPComment;
+import uk.ac.ebi.uniprot.proteins.model.DSPSequence;
+import uk.ac.ebi.uniprot.proteins.model.ProteinFeature;
+import uk.ac.ebi.protvar.model.data.Foldx;
+import uk.ac.ebi.protvar.model.data.Interaction;
+import uk.ac.ebi.protvar.model.data.Pocket;
 
 @NoArgsConstructor
 @Setter

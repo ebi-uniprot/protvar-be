@@ -1,6 +1,5 @@
 package uk.ac.ebi.protvar.controller;
 
-import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,8 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.ac.ebi.protvar.model.grc.Assembly;
-import uk.ac.ebi.protvar.model.response.GenomeProteinMapping;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.service.APIService;
 
@@ -24,23 +21,7 @@ import java.util.List;
 @AllArgsConstructor
 public class
 MappingController {
-  private APIService service;
-
-  @Hidden
-  @GetMapping(value = "/mapping/{chromosome}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<GenomeProteinMapping> getGenomeProteinMapping(
-    @PathVariable String chromosome,
-    @PathVariable Long position,
-    @RequestParam String refAllele,
-    @RequestParam String altAllele,
-    @RequestParam(required = false, defaultValue = "false") boolean function,
-    @RequestParam(required = false, defaultValue = "false") boolean population,
-    @RequestParam(required = false, defaultValue = "false") boolean structure
-  ) {
-    GenomeProteinMapping mappings = service.getMapping(chromosome, position, "", refAllele, altAllele, function,
-      population, structure);
-    return new ResponseEntity<>(mappings, HttpStatus.OK);
-  }
+  private APIService apiService;
 
   /**
    * Requires a list of genomic coordinate variant inputs in VCF format and returns mappings to all known isoforms
@@ -63,16 +44,10 @@ MappingController {
     @RequestParam(required = false, defaultValue = "false") boolean population,
     @Parameter(description = "Include structural annotations in results")
     @RequestParam(required = false, defaultValue = "false") boolean structure,
-    @Parameter(description = "Human genome assembly version. For e.g. GRCh38/h38/38 or GRCh37/h37/37. Default GRCh38")
-    @RequestParam(required = false) String version
+    @Parameter(description = "Human genome assembly version. For e.g. GRCh38/h38/38, GRCh37/h37/37 or AUTO. If unspecified or cannot determine version, defaults to GRCh38")
+    @RequestParam(required = false) String assembly
   ) {
-    Assembly assembly = null;
-    if (version != null) {
-      assembly = Assembly.of(version);
-      if (assembly == null) // invalid specified assembly
-        return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-    }
-    MappingResponse mappingResponse = service.getMappings(inputs, function, population, structure, assembly);
+    MappingResponse mappingResponse = apiService.getMappings(inputs, function, population, structure, assembly);
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 

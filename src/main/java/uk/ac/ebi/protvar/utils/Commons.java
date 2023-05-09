@@ -1,7 +1,6 @@
 package uk.ac.ebi.protvar.utils;
 
 import java.util.*;
-
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 

@@ -7,16 +7,16 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.utils.CSVUtils;
-import uk.ac.ebi.protvar.model.response.PDBeStructure;
 
 @Service
 public class CSVStructureDataFetcher {
 
-	public String fetch(List<PDBeStructure> proteinStructure) {
+	public String fetch(List<PDBeStructureResidue> proteinStructure) {
 		StringJoiner structure = new StringJoiner("|");
-		Map<String, List<PDBeStructure>> pdbAccessionMap = proteinStructure.stream()
-				.collect(Collectors.groupingBy(PDBeStructure::getPdb_id));
+		Map<String, List<PDBeStructureResidue>> pdbAccessionMap = proteinStructure.stream()
+				.collect(Collectors.groupingBy(PDBeStructureResidue::getPdb_id));
 
 		pdbAccessionMap.forEach((key, v) -> {
 			StringBuilder builder = new StringBuilder();
@@ -34,7 +34,7 @@ public class CSVStructureDataFetcher {
 		return CSVUtils.getValOrNA(structure.toString());
 	}
 
-	private String buildChain(List<PDBeStructure> structures) {
+	private String buildChain(List<PDBeStructureResidue> structures) {
 		StringJoiner structure = new StringJoiner(",");
 		if (structures != null && !structures.isEmpty())
 			structures.forEach(str -> structure.add(str.getChain_id() + str.getStart()));

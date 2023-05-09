@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.grc.Coordinate;
-import uk.ac.ebi.protvar.model.grc.Crossmap;
+import uk.ac.ebi.protvar.model.data.Crossmap;
 import uk.ac.ebi.protvar.model.response.AssemblyMapping;
 import uk.ac.ebi.protvar.model.response.AssemblyMappingResponse;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
