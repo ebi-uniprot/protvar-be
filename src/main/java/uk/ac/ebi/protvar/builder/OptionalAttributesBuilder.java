@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.fetcher.PDBeFetcher;
-import uk.ac.ebi.protvar.fetcher.ProteinFetcher;
+import uk.ac.ebi.protvar.fetcher.ProteinsFetcher;
 import uk.ac.ebi.protvar.fetcher.VariationFetcher;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
@@ -26,7 +26,7 @@ public class OptionalAttributesBuilder {
 	private static final String POPULATION_API = "population";
 
 	private VariationFetcher variationFetcher;
-	private ProteinFetcher proteinFetcher;
+	private ProteinsFetcher proteinsFetcher;
 	private PDBeFetcher pdbeFetcher;
 
 	public void build(String accession, long genomicLocation, int isoformPostion, List<OPTIONS> options,
@@ -52,7 +52,7 @@ public class OptionalAttributesBuilder {
 	private void buildFunction(String accession, int isoformPostion, boolean isFunction,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
 		if (isFunction) {
-			Protein protein = proteinFetcher.fetch(accession, isoformPostion);
+			Protein protein = proteinsFetcher.fetch(accession, isoformPostion);
 			builder.referenceFunction(protein);
 		} else {
 			String uri = buildUri(FUNCTION_API, accession, isoformPostion);

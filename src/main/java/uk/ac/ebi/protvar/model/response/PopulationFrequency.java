@@ -4,7 +4,6 @@ import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
-import uk.ac.ebi.protvar.model.Frequency;
 
 @Getter
 @Setter

@@ -6,7 +6,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.model.api.*;
 import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
@@ -14,6 +13,7 @@ import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.Protein;
 import uk.ac.ebi.protvar.utils.CSVUtils;
+import uk.ac.ebi.uniprot.proteins.model.*;
 
 @Service
 public class CSVFunctionDataFetcher {

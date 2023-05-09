@@ -21,7 +21,7 @@ import java.util.List;
 @AllArgsConstructor
 public class
 MappingController {
-  private APIService service;
+  private APIService apiService;
 
   /**
    * Requires a list of genomic coordinate variant inputs in VCF format and returns mappings to all known isoforms
@@ -47,7 +47,7 @@ MappingController {
     @Parameter(description = "Human genome assembly version. For e.g. GRCh38/h38/38, GRCh37/h37/37 or AUTO. If unspecified or cannot determine version, defaults to GRCh38")
     @RequestParam(required = false) String assembly
   ) {
-    MappingResponse mappingResponse = service.getMappings(inputs, function, population, structure, assembly);
+    MappingResponse mappingResponse = apiService.getMappings(inputs, function, population, structure, assembly);
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 

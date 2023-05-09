@@ -37,10 +37,10 @@ public class ApplicationMainClass {
 	}
 
 	@Bean
-	public PDBeCache pdBeCache() {
-		PDBeCache pdBeCache = new PDBeCache(downloadDir());
+	public PDBeCache pdbeCache() {
+		PDBeCache pdbeCache = new PDBeCache(downloadDir());
 		//pdBeCache.initialize();
-		return pdBeCache;
+		return pdbeCache;
 	}
 
 	@Bean

@@ -5,7 +5,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.model.api.DSVDbReferenceObject;
+import uk.ac.ebi.uniprot.variation.model.DSVDbReferenceObject;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;

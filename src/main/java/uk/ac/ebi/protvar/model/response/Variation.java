@@ -9,12 +9,12 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 import lombok.Getter;
 import lombok.Setter;
-import uk.ac.ebi.protvar.model.api.DSVAssociation;
-import uk.ac.ebi.protvar.model.api.DSVClinicalSignificance;
-import uk.ac.ebi.protvar.model.api.DSVDbReferenceObject;
-import uk.ac.ebi.protvar.model.api.DSVPopulationFrequency;
-import uk.ac.ebi.protvar.model.api.Evidence;
-import uk.ac.ebi.protvar.model.api.Prediction;
+import uk.ac.ebi.uniprot.variation.model.DSVAssociation;
+import uk.ac.ebi.uniprot.variation.model.DSVClinicalSignificance;
+import uk.ac.ebi.uniprot.variation.model.DSVDbReferenceObject;
+import uk.ac.ebi.uniprot.variation.model.DSVPopulationFrequency;
+import uk.ac.ebi.uniprot.common.model.Evidence;
+import uk.ac.ebi.uniprot.variation.model.Prediction;
 
 import static uk.ac.ebi.protvar.utils.Commons.upperFirstRemainingLower;
 

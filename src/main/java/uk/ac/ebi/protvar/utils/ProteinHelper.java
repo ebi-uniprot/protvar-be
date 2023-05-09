@@ -3,7 +3,7 @@ package uk.ac.ebi.protvar.utils;
 import java.util.ArrayList;
 import java.util.List;
 
-import uk.ac.ebi.protvar.model.api.ProteinFeature;
+import uk.ac.ebi.uniprot.proteins.model.ProteinFeature;
 
 public class ProteinHelper {
 

@@ -15,8 +15,8 @@ import java.util.List;
 public class PDBeFetcher {
 	private static final Logger logger = LoggerFactory.getLogger(PDBeFetcher.class);
 	private static final boolean CACHE = true;
-	private PDBeAPI pdBeAPI;
-	private PDBeCache pdBeCache;
+	private PDBeAPI pdbeAPI;
+	private PDBeCache pdbeCache;
 
 
 	/**
@@ -26,8 +26,8 @@ public class PDBeFetcher {
 	public List<PDBeStructureResidue> fetch(String accession, int position) {
 		if (CACHE) {
 			logger.info("Fetching from PDBe cache");
-			return pdBeCache.get(accession, position);
+			return pdbeCache.get(accession, position);
 		}
-		return pdBeAPI.get(accession, position);
+		return pdbeAPI.get(accession, position);
 	}
 }

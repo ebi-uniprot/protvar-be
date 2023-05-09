@@ -5,8 +5,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.exception.UnexpectedUseCaseException;
-import uk.ac.ebi.protvar.model.api.DSVAssociation;
-import uk.ac.ebi.protvar.model.api.Feature;
+import uk.ac.ebi.uniprot.variation.model.DSVAssociation;
+import uk.ac.ebi.uniprot.variation.model.Feature;
 import uk.ac.ebi.protvar.model.response.Variation;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 

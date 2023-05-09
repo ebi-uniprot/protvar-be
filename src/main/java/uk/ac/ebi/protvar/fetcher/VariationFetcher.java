@@ -9,10 +9,10 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.converter.VariationAPI2VariationConverter;
-import uk.ac.ebi.protvar.model.api.DataServiceVariation;
+import uk.ac.ebi.uniprot.variation.api.VariationAPI;
+import uk.ac.ebi.uniprot.variation.model.DataServiceVariation;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.Variation;
-import uk.ac.ebi.protvar.repo.UniprotAPIRepo;
 
 import static uk.ac.ebi.protvar.utils.Commons.notNullNotEmpty;
 
@@ -20,10 +20,10 @@ import static uk.ac.ebi.protvar.utils.Commons.notNullNotEmpty;
 @AllArgsConstructor
 public class VariationFetcher {
 	private VariationAPI2VariationConverter converter;
-	private UniprotAPIRepo uniprotAPIRepo;
+	private VariationAPI variationAPI;
 
 	public List<Variation> fetchByAccession(String uniprotAccession, String proteinLocation) {
-		DataServiceVariation[] dsv = uniprotAPIRepo.getVariationByAccession(uniprotAccession, proteinLocation);
+		DataServiceVariation[] dsv = variationAPI.getVariationByAccession(uniprotAccession, proteinLocation);
 		if (isNotEmpty(dsv)) {
 			return dsv[0].getFeatures().stream()
 				.filter(Objects::nonNull)

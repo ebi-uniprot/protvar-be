@@ -17,8 +17,8 @@ import java.util.List;
 @AllArgsConstructor
 public class APIService {
 
-	private VariationFetcher populationFetcher;
-	private ProteinFetcher proteinFetcher;
+	private VariationFetcher variationFetcher;
+	private ProteinsFetcher proteinsFetcher;
 	private PDBeFetcher pdbeFetcher;
 	private MappingFetcher mappingFetcher;
 	private AssemblyMappingFetcher assemblyMappingFetcher;
@@ -35,7 +35,7 @@ public class APIService {
 	}
 
 	public Protein getProtein(String accession, int position) {
-		Protein protein = proteinFetcher.fetch(accession, position);
+		Protein protein = proteinsFetcher.fetch(accession, position);
 		if (protein != null) {
 			protein.setPockets(protVarDataRepo.getPockets(accession, position));
 			protein.setInteractions(protVarDataRepo.getInteractions(accession, position));
@@ -50,7 +50,7 @@ public class APIService {
 	}
 
 	public PopulationObservation getPopulationObservation(String accession, int position) {
-		return populationFetcher.fetchPopulationObservation(accession, position + "-" + position);
+		return variationFetcher.fetchPopulationObservation(accession, position + "-" + position);
 	}
 
 	public List<PDBeStructureResidue> getStructure(String accession, int position) {
