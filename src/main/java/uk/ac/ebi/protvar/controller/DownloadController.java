@@ -46,7 +46,7 @@ public class DownloadController implements WebMvcConfigurer {
    * Submit a download request using file input. This endpoint returns a job ID, and the download process is launched
    * in the background. If an email address is specified, a notification is sent when the result file is ready to be
    * downloaded. The download status can be checked using the `/download/status` endpoint. The result file can be
-   * downloaded using the `/download/{id}` with the job ID from this request.
+   * downloaded using the `/download/{id}` endpoint with the job ID from this request.
    *
    * @param file
    * @param email
@@ -80,7 +80,7 @@ public class DownloadController implements WebMvcConfigurer {
    * Submit a download request using text input. This endpoint returns a job ID, and the download process is launched
    * in the background. If an email address is specified, a notification is sent when the result file is ready to be
    * downloaded. The download status can be checked using the `/download/status` endpoint. The result file can be
-   * downloaded using the `/download/{id}` with the job ID from this request.
+   * downloaded using the `/download/{id}` endpoint with the job ID from this request.
    *
    * @param inputs
    * @param email
@@ -109,6 +109,12 @@ public class DownloadController implements WebMvcConfigurer {
     return new ResponseEntity<>(download, HttpStatus.OK);
   }
 
+  /**
+   * Download results as CSV file.
+   * @param id
+   * @return
+   */
+  @Operation(summary = "– download results using job/download `id`.")
   @GetMapping(value = "/download/{id}")
   @ResponseBody
   public ResponseEntity<?> downloadFile(
@@ -129,6 +135,12 @@ public class DownloadController implements WebMvcConfigurer {
               .body(resource);
   }
 
+  /**
+   * Check download status.
+   * @param ids
+   * @return
+   */
+  @Operation(summary = "– C of a list of job/download IDs.")
   @PostMapping(value = "/download/status", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Map<String,Integer>> downloadStatus(@RequestBody List<String> ids) {
     return new ResponseEntity<>(downloadService.getDownloadStatus(ids), HttpStatus.OK);
