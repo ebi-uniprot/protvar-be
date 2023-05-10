@@ -49,6 +49,9 @@ public class VariationFetcher {
 
 	private void cacheAPIResponse(Set<String> accessionLocations) {
 		Map<String, List<Variation>> variationMap = new ConcurrentHashMap<>();
+		for (String k: accessionLocations) {
+			variationMap.put(k, new ArrayList<>());
+		}
 
 		try {
 			DataServiceVariation[] dataServiceVariations = variationAPI.getVariationAccessionLocations(String.join("|", accessionLocations));
@@ -63,12 +66,14 @@ public class VariationFetcher {
 							.filter(v -> notNullNotEmpty(v.getWildType()))
 							.forEach(v -> {
 								String key = dsv.getAccession() + ":" + v.getBegin();
-								variationMap.put(key, new ArrayList<>(Arrays.asList(v)));
+								if (variationMap.containsKey(key)) {
+									variationMap.get(key).add(v);
+								}
 							});
-					logger.info("Caching Variation: {}", String.join(",", variationMap.keySet()));
-					// update cache
-					cache.putAll(variationMap);
 				}
+				logger.info("Caching Variation: {}", String.join(",", accessionLocations));
+				// update cache
+				cache.putAll(variationMap);
 			}
 		}
 		catch (Exception ex) {
