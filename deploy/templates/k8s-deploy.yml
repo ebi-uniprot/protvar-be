@@ -71,10 +71,10 @@ spec:
             periodSeconds: 3 # perform a readiness probe every 3 seconds
           resources:
             requests:
-              memory: "256Mi"
+              memory: "4Gi"
               cpu: "500m"
             limits:
-              memory: "512Mi"
+              memory: "6Gi"
       volumes:
         - name: protvar-vol
           persistentVolumeClaim:
