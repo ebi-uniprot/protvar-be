@@ -34,16 +34,45 @@ public class VariationAPIImpl implements VariationAPI {
     }
 
     @Override
-    public DataServiceVariation[] getVariationByAccession(String accession, String location) {
-        logger.info("Calling colocated variation: {}", accession);
+    public DataServiceVariation[] getVariation(String accession, int location) {
         DefaultUriBuilderFactory handler = (DefaultUriBuilderFactory) this.variantRestTemplate.getUriTemplateHandler();
         MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
         queryParams.add(Common.PARAM_TAXID, Common.TAX_ID_HUMAN);
         queryParams.add(Common.PARAM_ACCESSION, accession);
-        if (location != null) {
-            queryParams.add(Common.PARAM_LOCATION, location);
-        }
+        queryParams.add(Common.PARAM_LOCATION, String.valueOf(location));
         UriBuilder uriBuilder = handler.builder().queryParams(queryParams);
+        logger.info("Variation API call: {}", uriBuilder.build());
+        ResponseEntity<DataServiceVariation[]> response = this.variantRestTemplate.getForEntity(uriBuilder.build(),
+                DataServiceVariation[].class);
+        return response.getBody();
+    }
+
+
+
+    @Override
+    public DataServiceVariation[] getVariation(String accessions) {
+        DefaultUriBuilderFactory handler = (DefaultUriBuilderFactory) this.variantRestTemplate.getUriTemplateHandler();
+        UriBuilder uriBuilder = handler.builder().queryParam(Common.PARAM_ACCESSION, accessions).queryParam(Common.PARAM_TAXID,
+                Common.TAX_ID_HUMAN);
+        logger.info("Variation API call: {}", uriBuilder.build());
+        ResponseEntity<DataServiceVariation[]> response = this.variantRestTemplate.getForEntity(uriBuilder.build(),
+                DataServiceVariation[].class);
+        return response.getBody();
+    }
+
+
+
+    /**
+     * URI structure
+     * BASE/accession_locations/ACC1:POS1|ACC2:POS2
+     * @param accLocs
+     * @return
+     */
+    @Override
+    public DataServiceVariation[] getVariationAccessionLocations(String accLocs) {
+        DefaultUriBuilderFactory handler = (DefaultUriBuilderFactory) this.variantRestTemplate.getUriTemplateHandler();
+        UriBuilder uriBuilder = handler.builder().path("accession_locations/").path(accLocs);
+        logger.info("Variation API call: {}", uriBuilder.build());
         ResponseEntity<DataServiceVariation[]> response = this.variantRestTemplate.getForEntity(uriBuilder.build(),
                 DataServiceVariation[].class);
         return response.getBody();

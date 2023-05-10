@@ -22,7 +22,6 @@ public class ProteinsAPI2ProteinConverter {
 	private static final Logger logger = LoggerFactory.getLogger(ProteinsAPI2ProteinConverter.class);
 
 	public Protein fetch(DataServiceProtein dsp) {
-		logger.info("Processing accession: {}", dsp.getAccession());
 		Protein protein = new Protein();
 		protein.setAccession(dsp.getAccession());
 		protein.setName(buildName(dsp.getProtein().getRecommendedName()));

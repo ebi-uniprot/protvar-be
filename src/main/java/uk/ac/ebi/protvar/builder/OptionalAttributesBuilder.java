@@ -63,8 +63,7 @@ public class OptionalAttributesBuilder {
 	private void buildPopulationObservation(String accession, int isoformPostion, boolean isVariation, long genomicLocation,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
 		if (isVariation) {
-			String proteinLocation = isoformPostion + Constants.SPLITTER + isoformPostion;
-			List<Variation> variations = variationFetcher.fetchByAccession(accession, proteinLocation);
+			List<Variation> variations = variationFetcher.fetch(accession, isoformPostion);
 			PopulationObservation populationObservation = new PopulationObservation();
 			populationObservation.setProteinColocatedVariant(variations);
 			builder.populationObservations(populationObservation);

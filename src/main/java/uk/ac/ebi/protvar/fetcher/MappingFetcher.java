@@ -1,6 +1,8 @@
 package uk.ac.ebi.protvar.fetcher;
 
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
@@ -23,9 +25,14 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 public class MappingFetcher {
+	private static final Logger logger = LoggerFactory.getLogger(MappingFetcher.class);
 
 	private ProtVarDataRepo protVarDataRepo;
 	private Mappings2GeneConverter mappingsConverter;
+
+	private ProteinsFetcher proteinsFetcher;
+
+	private VariationFetcher variationFetcher;
 
 	/**
 	 * Takes a list of input strings and return corresponding list of userInput objects
@@ -175,10 +182,23 @@ public class MappingFetcher {
 			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappings(gPositions);
 
 			// get all protein accessions and positions from retrieved mappings
+			Set<String> canonicalAccessions = new HashSet<>();
+			Set<String> canonicalAccessionLocations = new HashSet<>();
 			Set<Object[]> protAccPositions = new HashSet<>();
 			g2pMappings.forEach(m -> {
 				protAccPositions.add(new Object[]{m.getAccession(), m.getIsoformPosition()});
+				if (m.isCanonical()) {
+					canonicalAccessions.add(m.getAccession());
+					canonicalAccessionLocations.add(m.getAccession() + ":" + m.getIsoformPosition());
+				}
 			});
+
+			if (options.contains(OPTIONS.FUNCTION)) {
+				proteinsFetcher.prefetch(canonicalAccessions);
+			}
+			if (options.contains(OPTIONS.POPULATION)) {
+				variationFetcher.prefetch(canonicalAccessionLocations);
+			}
 
 			// retrieve EVE scores
 			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(protAccPositions)
@@ -200,19 +220,24 @@ public class MappingFetcher {
 				}
 
 				gInputs.forEach(gInput -> {
-					List<GenomeToProteinMapping> mappingList = map.get(gInput.getGroupBy());
-					List<CADDPrediction> caddScores = predictionMap.get(gInput.getGroupBy());
+					try {
+						List<GenomeToProteinMapping> mappingList = map.get(gInput.getGroupBy());
+						List<CADDPrediction> caddScores = predictionMap.get(gInput.getGroupBy());
 
-					Double caddScore = null;
-					if (caddScores != null && !caddScores.isEmpty())
-						caddScore = getCaddScore(caddScores, gInput.getAlt());
+						Double caddScore = null;
+						if (caddScores != null && !caddScores.isEmpty())
+							caddScore = getCaddScore(caddScores, gInput.getAlt());
 
-					List<Gene> ensgMappingList = Collections.emptyList();
-					if (mappingList != null)
-						ensgMappingList = mappingsConverter.createGenes(mappingList, gInput.getRef(), gInput.getAlt(), caddScore, eveScoreMap, options);
+						List<Gene> ensgMappingList = Collections.emptyList();
+						if (mappingList != null)
+							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput.getRef(), gInput.getAlt(), caddScore, eveScoreMap, options);
 
-					GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
-					gInput.getMappings().add(mapping);
+						GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
+						gInput.getMappings().add(mapping);
+					} catch (Exception ex) {
+						gInput.getErrors().add("An exception occurred while processing this input");
+						logger.error(ex.getMessage());
+					}
 				});
 			});
 
