@@ -58,11 +58,11 @@ public class VariationAPIImplTest {
         DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory("");
         Mockito.when(variantRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
         UriBuilder uriBuilder = uriBuilderFactory.builder().queryParam(Common.PARAM_TAXID, Common.TAX_ID_HUMAN)
-                .queryParam(Common.PARAM_ACCESSION, "P21802").queryParam(Common.PARAM_LOCATION, "89993420-89993420");
+                .queryParam(Common.PARAM_ACCESSION, "P21802").queryParam(Common.PARAM_LOCATION, 89993420);
 
         Mockito.when(variantRestTemplate.getForEntity(uriBuilder.build(), DataServiceVariation[].class))
                 .thenReturn(varResp);
-        DataServiceVariation[] dsv = variationAPI.getVariationByAccession("P21802", "89993420-89993420");
+        DataServiceVariation[] dsv = variationAPI.getVariation("P21802", 89993420);
         assertEquals(4, dsv.length);
     }
 }

@@ -137,10 +137,10 @@ public class DownloadController implements WebMvcConfigurer {
 
   /**
    * Check download status.
-   * @param ids
+   * @param ids a list of job/download IDs
    * @return
    */
-  @Operation(summary = "– C of a list of job/download IDs.")
+  @Operation(summary = "– Check the download status of a list of job/download IDs.")
   @PostMapping(value = "/download/status", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Map<String,Integer>> downloadStatus(@RequestBody List<String> ids) {
     return new ResponseEntity<>(downloadService.getDownloadStatus(ids), HttpStatus.OK);
