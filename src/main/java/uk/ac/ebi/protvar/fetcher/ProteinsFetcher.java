@@ -16,7 +16,9 @@ import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
 import uk.ac.ebi.uniprot.proteins.model.ProteinFeature;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -45,10 +47,12 @@ public class ProteinsFetcher {
 
 		notCachedAccessionsPartitions.stream().parallel().forEach(accessionsSet -> {
 			DataServiceProtein[] dataServiceProteins = proteinsAPI.getProtein(String.join(",", accessionsSet));
+			Map<String, DataServiceProtein> proteinsMap = new ConcurrentHashMap<>();
 			for (DataServiceProtein dsp : dataServiceProteins) {
-				logger.info("Caching Protein: {}", dsp.getAccession());
-				dspCache.put(dsp.getAccession(), dsp);
+				proteinsMap.put(dsp.getAccession(), dsp);
 			}
+			logger.info("Caching Protein: {}", String.join(",", proteinsMap.keySet()));
+			dspCache.putAll(proteinsMap);
 		});
 	}
 
