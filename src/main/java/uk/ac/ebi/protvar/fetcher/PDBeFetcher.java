@@ -25,7 +25,7 @@ public class PDBeFetcher {
 	 */
 	public List<PDBeStructureResidue> fetch(String accession, int position) {
 		if (CACHE) {
-			logger.info("Fetching from PDBe cache");
+			//logger.info("Fetching from PDBe cache");
 			return pdbeCache.get(accession, position);
 		}
 		return pdbeAPI.get(accession, position);
