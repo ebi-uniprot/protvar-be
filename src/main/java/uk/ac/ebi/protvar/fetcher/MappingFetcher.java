@@ -27,6 +27,10 @@ public class MappingFetcher {
 	private ProtVarDataRepo protVarDataRepo;
 	private Mappings2GeneConverter mappingsConverter;
 
+	private ProteinsFetcher proteinsFetcher;
+
+	private VariationFetcher variationFetcher;
+
 	/**
 	 * Takes a list of input strings and return corresponding list of userInput objects
 	 * @param inputs
@@ -175,10 +179,23 @@ public class MappingFetcher {
 			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappings(gPositions);
 
 			// get all protein accessions and positions from retrieved mappings
+			Set<String> canonicalAccessions = new HashSet<>();
+			Set<String> canonicalAccessionLocations = new HashSet<>();
 			Set<Object[]> protAccPositions = new HashSet<>();
 			g2pMappings.forEach(m -> {
 				protAccPositions.add(new Object[]{m.getAccession(), m.getIsoformPosition()});
+				if (m.isCanonical()) {
+					canonicalAccessions.add(m.getAccession());
+					canonicalAccessionLocations.add(m.getAccession() + ":" + m.getIsoformPosition());
+				}
 			});
+
+			if (options.contains(OPTIONS.FUNCTION)) {
+				proteinsFetcher.prefetch(canonicalAccessions);
+			}
+			if (options.contains(OPTIONS.POPULATION)) {
+				//variationFetcher.prefetch(canonicalAccessionLocations);
+			}
 
 			// retrieve EVE scores
 			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(protAccPositions)
