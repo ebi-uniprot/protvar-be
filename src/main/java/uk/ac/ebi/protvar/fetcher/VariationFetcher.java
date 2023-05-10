@@ -1,24 +1,22 @@
 package uk.ac.ebi.protvar.fetcher;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import java.util.function.Predicate;
-
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import lombok.AllArgsConstructor;
+import org.mapdb.HTreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
 import uk.ac.ebi.protvar.converter.VariationAPI2VariationConverter;
+import uk.ac.ebi.protvar.model.response.PopulationObservation;
+import uk.ac.ebi.protvar.model.response.Variation;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.variation.api.VariationAPI;
 import uk.ac.ebi.uniprot.variation.model.DataServiceVariation;
-import uk.ac.ebi.protvar.model.response.PopulationObservation;
-import uk.ac.ebi.protvar.model.response.Variation;
 import uk.ac.ebi.uniprot.variation.model.Feature;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static uk.ac.ebi.protvar.utils.Commons.notNullNotEmpty;
 
@@ -26,17 +24,19 @@ import static uk.ac.ebi.protvar.utils.Commons.notNullNotEmpty;
 @AllArgsConstructor
 public class VariationFetcher {
 	private static final Logger logger = LoggerFactory.getLogger(VariationFetcher.class);
-	private final Cache<String, List<Variation>> cache = CacheBuilder.newBuilder().build();
+	//private final Cache<String, List<Variation>> cache = CacheBuilder.newBuilder().build();
 
 	private VariationAPI2VariationConverter converter;
 	private VariationAPI variationAPI;
+
+	private HTreeMap<String, List<Variation>> cache;
 
 	/**
 	 * Prefetch data from Variation API and cache in application for
 	 * subsequent retrieval.
 	 */
 	public void prefetch(Set<String> accessionLocations) {
-		Set<String> cached = cache.asMap().keySet();
+		Set<String> cached = cache./*asMap().*/keySet();
 
 		// check accession-location in variation cache
 		Set<String> notCached = accessionLocations.stream().filter(Predicate.not(cached::contains)).collect(Collectors.toSet());
@@ -83,15 +83,13 @@ public class VariationFetcher {
 
 	public List<Variation> fetch(String uniprotAccession, int proteinLocation) {
 		String key = uniprotAccession + ":" + proteinLocation;
-		List<Variation> variations = cache.getIfPresent(key);
-		if (variations != null)
-			return variations;
+		if (cache.containsKey(key))
+			return cache.get(key);
 
 		cacheAPIResponse(new HashSet<>(Arrays.asList(key)));
 
-		variations = cache.getIfPresent(key);
-		if (variations != null)
-			return variations;
+		if (cache.containsKey(key))
+			return cache.get(key);
 
 		return Collections.emptyList();
 	}
