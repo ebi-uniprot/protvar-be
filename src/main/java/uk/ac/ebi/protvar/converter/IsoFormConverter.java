@@ -65,8 +65,6 @@ public class IsoFormConverter {
 		AminoAcid refAA = AminoAcid.fromOneLetter(genomeToProteinMapping.getAa());
 		AminoAcid variantAA = RNACodon.valueOf(variantCodon.toUpperCase()).getAa();
 
-		EVEScore eveScore = calcEveScore(genomeToProteinMapping, eveScoreMap, variantAA);
-
 		String consequences = AminoAcid.getConsequence(refAA, variantAA);
 
 		IsoFormMapping.IsoFormMappingBuilder builder = IsoFormMapping.builder()
@@ -80,12 +78,15 @@ public class IsoFormConverter {
 				.canonicalAccession(canonicalAccession).canonical(isCanonical(accession, canonicalAccession))
 				.isoformPosition(genomeToProteinMapping.getIsoformPosition()).translatedSequences(ensps)
 				.consequences(consequences).proteinName(genomeToProteinMapping.getProteinName());
-		if (eveScore != null) {
-			builder.eveScore(eveScore.getScore());
-			builder.eveClass(eveScore.getEveClass().getNum());
-		}
-		if (isCanonical(accession, canonicalAccession))
+
+		if (isCanonical(accession, canonicalAccession)) {
+			EVEScore eveScore = calcEveScore(genomeToProteinMapping, eveScoreMap, variantAA);
+			if (eveScore != null) {
+				builder.eveScore(eveScore.getScore());
+				builder.eveClass(eveScore.getEveClass().getNum());
+			}
 			optionalAttributeBuilder.build(accession, genomicLocation, genomeToProteinMapping.getIsoformPosition(), options, builder);
+		}
 		return builder.build();
 	}
 

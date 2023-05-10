@@ -10,10 +10,10 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +25,7 @@ import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
+import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
 
 @Service
 @AllArgsConstructor
@@ -50,7 +51,7 @@ public class CSVDataFetcher {
 
 	static final String CSV_HEADER = CSV_HEADER_INPUT + Constants.COMMA + CSV_HEADER_NOTES + Constants.COMMA + CSV_HEADER_OUTPUT;
 
-	private static final int PAGE_SIZE = 500;
+	private static final int PAGE_SIZE = 1000;
 
 	private MappingFetcher mappingFetcher;
 	private CSVFunctionDataFetcher functionDataFetcher;
@@ -63,7 +64,7 @@ public class CSVDataFetcher {
 	@Async
 	public void writeCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) {
 		try {
-			writeCSVResult(inputs.stream(), options, email, jobName, download);
+			processInput(inputs, options, email, jobName, download);
 		} catch (Exception e) {
 			Email.sendErr(email, jobName, inputs);
 			reportError(email, jobName, e);
@@ -72,8 +73,8 @@ public class CSVDataFetcher {
 
 	@Async
 	public void writeCSVResult(Path path, List<OPTIONS> options, String email, String jobName, Download download) {
-		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(path.toFile())))) {
-			writeCSVResult(br.lines(), options, email, jobName, download);
+		try (Stream<String> lines = Files.lines(path)) {
+			processInput(lines.collect(Collectors.toList()), options, email, jobName, download);
 		} catch (Exception e) {
 			Email.sendErr(email, jobName, path);
 			reportError(email, jobName, e);
@@ -89,6 +90,7 @@ public class CSVDataFetcher {
 		//return new Exception("Your request failed, check your email for details");
 	}
 
+	/*
 	private void zipWriteCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
 		List<String> inputList = new ArrayList<>();
 		var zip = new CSVZipWriter(downloadDir, download.getDownloadId());
@@ -101,9 +103,9 @@ public class CSVDataFetcher {
 		zip.close();
 		if (Commons.notNullNotEmpty(email))
 			Email.notify(email, jobName, download.getUrl());
-	}
-	private void writeCSVResult(Stream<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
-		List<String> inputList = new ArrayList<>();
+	}*/
+	private void processInput(List<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
+		List<List<String>> inputPartitions = Lists.partition(inputs, PAGE_SIZE);
 
 		Path filePath = Paths.get(downloadDir, download.getDownloadId() + ".csv");
 		String fileName = filePath.toString();
@@ -112,11 +114,17 @@ public class CSVDataFetcher {
 		try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(filePath));
 			 CSVWriter writer = new CSVWriter(outputStreamWriter)) {
 			writer.writeNext(CSV_HEADER.split(","));
-			inputs.forEach(line -> processInput(options, inputList, writer, line));
-			if (!inputList.isEmpty()) {
-				List<String[]> contentList = buildCSVResult(inputList, options);
-				writer.writeAll(contentList);
-			}
+			// v1
+			//inputPartitions.parallelStream().forEachOrdered(partition -> {
+			//	List<String[]> resultList = buildCSVResult(partition, options);
+			//	writer.writeAll(resultList);
+			//});
+			// v2
+			//List<List <String[]>> resultParts = inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, options)).collect(Collectors.toList());
+			//resultParts.stream().forEach(writer::writeAll);
+			// v3
+			inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, options))
+					.forEach(writer::writeAll);
 		}
 
 		// zip csv
@@ -124,15 +132,6 @@ public class CSVDataFetcher {
 
 		if (Commons.notNullNotEmpty(email))
 			Email.notify(email, jobName, download.getUrl());
-	}
-
-	private void processInput(List<OPTIONS> options, List<String> inputList, CSVWriter csvOutput, String input) {
-		if (inputList.size() >= PAGE_SIZE) {
-			List<String[]> contentList = buildCSVResult(inputList, options);
-			csvOutput.writeAll(contentList);
-			inputList.clear();
-		}
-		inputList.add(input);
 	}
 
 	public void downloadCSVResult(List<String> inputs, List<OPTIONS> options, HttpServletResponse response) throws IOException {
