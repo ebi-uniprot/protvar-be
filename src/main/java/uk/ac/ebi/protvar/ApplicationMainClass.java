@@ -59,6 +59,7 @@ public class ApplicationMainClass {
 
 	private DB newDB(String dbFile) {
 		DB db = DBMaker.fileDB(dbFile)
+				.closeOnJvmShutdown()
 				.fileMmapEnable()
 				.allocateStartSize(1024*1024*1024) // 1GB
 				.allocateIncrement(256 * 1024*1024) // 256MB
