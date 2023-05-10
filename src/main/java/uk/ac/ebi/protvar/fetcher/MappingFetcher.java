@@ -194,7 +194,7 @@ public class MappingFetcher {
 				proteinsFetcher.prefetch(canonicalAccessions);
 			}
 			if (options.contains(OPTIONS.POPULATION)) {
-				//variationFetcher.prefetch(canonicalAccessionLocations);
+				variationFetcher.prefetch(canonicalAccessionLocations);
 			}
 
 			// retrieve EVE scores

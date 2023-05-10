@@ -21,9 +21,9 @@ public class ProteinsAPIImpl implements ProteinsAPI {
     @Override
     public DataServiceProtein[] getProtein(String accessions) {
         DefaultUriBuilderFactory handler = (DefaultUriBuilderFactory) this.proteinRestTemplate.getUriTemplateHandler();
-        logger.info("Calling protein for accessions -> {}", accessions);
         UriBuilder uriBuilder = handler.builder().queryParam(Common.PARAM_ACCESSION, accessions).queryParam(Common.PARAM_TAXID,
                 Common.TAX_ID_HUMAN);
+        logger.info("Proteins API call: {}", uriBuilder.build());
         ResponseEntity<DataServiceProtein[]> response = this.proteinRestTemplate.getForEntity(uriBuilder.build(),
                 DataServiceProtein[].class);
         return response.getBody();

@@ -78,7 +78,7 @@ public class AppTestConfig {
 			}
 
 			@Override
-			public DataServiceVariation[] getVariationByAccession(String accession, String location) {
+			public DataServiceVariation[] getVariation(String accession, int location) {
 				try {
 					String variationJsonFile = "src/test/resources/variation.json";
 					if ("P68431".equalsIgnoreCase(accession)) {
@@ -95,6 +95,16 @@ public class AppTestConfig {
 				}
 
 				return null;
+			}
+
+			@Override
+			public DataServiceVariation[] getVariation(String accessions) {
+				return new DataServiceVariation[0];
+			}
+
+			@Override
+			public DataServiceVariation[] getVariationAccessionLocations(String accLocs) {
+				return new DataServiceVariation[0];
 			}
 		};
 	}
