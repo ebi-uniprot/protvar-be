@@ -1,12 +1,13 @@
 package uk.ac.ebi.uniprot.proteins.model;
 
+import java.io.Serializable;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class DataServiceProtein {
+public class DataServiceProtein implements Serializable {
 	private String accession;
 	private String id;
 	private String proteinExistence;

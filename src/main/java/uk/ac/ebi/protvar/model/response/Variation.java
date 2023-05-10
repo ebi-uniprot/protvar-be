@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.model.response;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,7 +21,7 @@ import static uk.ac.ebi.protvar.utils.Commons.upperFirstRemainingLower;
 
 @Getter
 @Setter
-public class Variation {
+public class Variation implements Serializable {
 	@JsonIgnore
 	private long begin;
 	@JsonIgnore

@@ -1,5 +1,6 @@
 package uk.ac.ebi.uniprot.proteins.model;
 
+import java.io.Serializable;
 import java.util.List;
 
 import lombok.Getter;
@@ -8,7 +9,7 @@ import uk.ac.ebi.uniprot.common.model.Evidence;
 
 @Getter
 @Setter
-public class ProteinFeature {
+public class ProteinFeature implements Serializable {
 	private int begin;
 	private int end;
 	private String description;
