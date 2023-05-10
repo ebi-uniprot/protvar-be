@@ -16,6 +16,7 @@ test:
   extends: .mvn
   stage: test
   script:
+    - mkdir -p /data
     - mvn clean verify
 
 build:
