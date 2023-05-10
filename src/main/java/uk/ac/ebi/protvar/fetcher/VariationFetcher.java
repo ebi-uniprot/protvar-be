@@ -29,14 +29,14 @@ public class VariationFetcher {
 	private VariationAPI2VariationConverter converter;
 	private VariationAPI variationAPI;
 
-	private HTreeMap<String, List<Variation>> cache;
+	private HTreeMap<String, List<Variation>> variationCache;
 
 	/**
 	 * Prefetch data from Variation API and cache in application for
 	 * subsequent retrieval.
 	 */
 	public void prefetch(Set<String> accessionLocations) {
-		Set<String> cached = cache./*asMap().*/keySet();
+		Set<String> cached = variationCache./*asMap().*/keySet();
 
 		// check accession-location in variation cache
 		Set<String> notCached = accessionLocations.stream().filter(Predicate.not(cached::contains)).collect(Collectors.toSet());
@@ -73,7 +73,7 @@ public class VariationFetcher {
 				}
 				logger.info("Caching Variation: {}", String.join(",", accessionLocations));
 				// update cache
-				cache.putAll(variationMap);
+				variationCache.putAll(variationMap);
 			}
 		}
 		catch (Exception ex) {
@@ -83,13 +83,13 @@ public class VariationFetcher {
 
 	public List<Variation> fetch(String uniprotAccession, int proteinLocation) {
 		String key = uniprotAccession + ":" + proteinLocation;
-		if (cache.containsKey(key))
-			return cache.get(key);
+		if (variationCache.containsKey(key))
+			return variationCache.get(key);
 
 		cacheAPIResponse(new HashSet<>(Arrays.asList(key)));
 
-		if (cache.containsKey(key))
-			return cache.get(key);
+		if (variationCache.containsKey(key))
+			return variationCache.get(key);
 
 		return Collections.emptyList();
 	}
