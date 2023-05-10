@@ -182,26 +182,24 @@ public class MappingFetcher {
 			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappings(gPositions);
 
 			// get all protein accessions and positions from retrieved mappings
+			Set<Object[]> canonicalAccessionPositions = new HashSet<>();
 			Set<String> canonicalAccessions = new HashSet<>();
 			Set<String> canonicalAccessionLocations = new HashSet<>();
-			Set<Object[]> protAccPositions = new HashSet<>();
-			g2pMappings.forEach(m -> {
-				protAccPositions.add(new Object[]{m.getAccession(), m.getIsoformPosition()});
-				if (m.isCanonical()) {
-					canonicalAccessions.add(m.getAccession());
-					canonicalAccessionLocations.add(m.getAccession() + ":" + m.getIsoformPosition());
-				}
+			g2pMappings.stream().filter(GenomeToProteinMapping::isCanonical).forEach(m -> {
+				canonicalAccessionPositions.add(new Object[]{m.getAccession(), m.getIsoformPosition()});
+				canonicalAccessions.add(m.getAccession());
+				canonicalAccessionLocations.add(m.getAccession() + ":" + m.getIsoformPosition());
 			});
 
-			if (options.contains(OPTIONS.FUNCTION)) {
-				proteinsFetcher.prefetch(canonicalAccessions);
-			}
-			if (options.contains(OPTIONS.POPULATION)) {
-				variationFetcher.prefetch(canonicalAccessionLocations);
-			}
+			options.parallelStream().forEach(o -> {
+				if (o.equals(OPTIONS.FUNCTION))
+					proteinsFetcher.prefetch(canonicalAccessions);
+				if (o.equals(OPTIONS.POPULATION))
+					variationFetcher.prefetch(canonicalAccessionLocations);
+			});
 
 			// retrieve EVE scores
-			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(protAccPositions)
+			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(canonicalAccessionPositions)
 					.stream().collect(Collectors.groupingBy(EVEScore::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
