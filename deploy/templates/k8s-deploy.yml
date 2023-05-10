@@ -21,7 +21,7 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 5Gi
+      storage: 10Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -71,10 +71,10 @@ spec:
             periodSeconds: 3 # perform a readiness probe every 3 seconds
           resources:
             requests:
-              memory: "4Gi"
+              memory: "2Gi"
               cpu: "500m"
             limits:
-              memory: "6Gi"
+              memory: "4Gi"
       volumes:
         - name: protvar-vol
           persistentVolumeClaim:
