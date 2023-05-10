@@ -40,7 +40,7 @@ public class ApplicationConfig {
     @Bean
     //@RequestScope
     public RestTemplate variantRestTemplate() {
-        RestTemplate restTemplate = new RestTemplateCache();
+        RestTemplate restTemplate = new RestTemplate();// new RestTemplateCache();
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(variationURL));
         return restTemplate;
@@ -49,7 +49,7 @@ public class ApplicationConfig {
     @Bean
     //@RequestScope
     public RestTemplate proteinRestTemplate() {
-        RestTemplate restTemplate = new RestTemplateCache();
+        RestTemplate restTemplate = new RestTemplate();//new RestTemplateCache();
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinsURL));
         return restTemplate;
