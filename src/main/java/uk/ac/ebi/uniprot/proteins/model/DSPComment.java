@@ -1,5 +1,6 @@
 package uk.ac.ebi.uniprot.proteins.model;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
@@ -8,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(Include.NON_NULL)
 
-public class DSPComment {
+public class DSPComment implements Serializable {
   // WEBRESOURCE MISCELLANEOUS DISEASE FUNCTION SUBUNIT INTERACTION SUBCELLULAR_LOCATION ALTERNATIVE_PRODUCTS
   // TISSUE_SPECIFICITY DEVELOPMENTAL_STAGE INDUCTION DOMAIN PTM
 	private String type;

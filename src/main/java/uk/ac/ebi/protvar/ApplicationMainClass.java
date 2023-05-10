@@ -5,6 +5,9 @@ import io.swagger.v3.oas.models.ExternalDocumentation;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
+import org.mapdb.HTreeMap;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,7 +19,10 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import uk.ac.ebi.pdbe.cache.PDBeCache;
+import uk.ac.ebi.protvar.model.response.Variation;
+import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
 
+import java.util.List;
 import java.util.concurrent.Executor;
 
 @SpringBootApplication
@@ -34,6 +40,31 @@ public class ApplicationMainClass {
 	@Bean
 	public String downloadDir() {
 		return protVarData;
+	}
+
+	@Bean
+	public HTreeMap<String, DataServiceProtein> proteinsCache() {
+		String dbFile = protVarData + "/MAPDB_PROTEINS";
+		DB db = newDB(dbFile);
+		HTreeMap<String, DataServiceProtein> cache = (HTreeMap<String, DataServiceProtein>) db.hashMap("proteins").createOrOpen();
+		return cache;
+	}
+	@Bean
+	public HTreeMap<String, List<Variation>> variationCache() {
+		String dbFile = protVarData + "/MAPDB_VARIATION";
+		DB db = newDB(dbFile);
+		HTreeMap<String, List<Variation>> cache = (HTreeMap<String, List<Variation>>) db.hashMap("variation").createOrOpen();
+		return cache;
+	}
+
+	private DB newDB(String dbFile) {
+		DB db = DBMaker.fileDB(dbFile)
+				.fileMmapEnable()
+				.allocateStartSize(1024*1024*1024) // 1GB
+				.allocateIncrement(256 * 1024*1024) // 256MB
+				.transactionEnable()
+				.make();
+		return db;
 	}
 
 	@Bean
