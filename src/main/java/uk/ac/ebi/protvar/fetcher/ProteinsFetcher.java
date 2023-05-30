@@ -7,7 +7,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.protvar.converter.ProteinsAPI2ProteinConverter;
+import uk.ac.ebi.protvar.model.data.ConservScore;
 import uk.ac.ebi.protvar.model.response.Protein;
+import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.utils.ProteinHelper;
 import uk.ac.ebi.uniprot.proteins.api.ProteinsAPI;
@@ -34,6 +36,8 @@ public class ProteinsFetcher {
 
 	private ProteinsAPI2ProteinConverter converter;
 	private ProteinsAPI proteinsAPI;
+
+	private ProtVarDataRepo protVarDataRepo;
 
 	private HTreeMap<String, DataServiceProtein> dspCache;
 
@@ -85,6 +89,14 @@ public class ProteinsFetcher {
 				List<ProteinFeature> features = ProteinHelper.filterFeatures(protein.getFeatures(), position, position);
 				protein.setFeatures(features);
 				protein.setPosition(position);
+				// add novel predictions
+				protein.setPockets(protVarDataRepo.getPockets(accession, position));
+				protein.setInteractions(protVarDataRepo.getInteractions(accession, position));
+				protein.setFoldxs(protVarDataRepo.getFoldxs(accession, position));
+				List<ConservScore> conservScores = protVarDataRepo.getConservScores(accession, position);
+				if (conservScores != null && conservScores.size() == 1) {
+					protein.setConservScore(conservScores.get(0).getScore());
+				}
 				return protein;
 			}
 		}

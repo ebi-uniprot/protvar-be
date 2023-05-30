@@ -23,8 +23,6 @@ public class APIService {
 	private MappingFetcher mappingFetcher;
 	private AssemblyMappingFetcher assemblyMappingFetcher;
 
-	private ProtVarDataRepo protVarDataRepo;
-
 
 	public MappingResponse getMappings(List<String> inputs, boolean function, boolean variation, boolean structure, String assemblyVersion) {
 		if (inputs == null || inputs.isEmpty())
@@ -36,16 +34,6 @@ public class APIService {
 
 	public Protein getProtein(String accession, int position) {
 		Protein protein = proteinsFetcher.fetch(accession, position);
-		if (protein != null) {
-			protein.setPockets(protVarDataRepo.getPockets(accession, position));
-			protein.setInteractions(protVarDataRepo.getInteractions(accession, position));
-			protein.setFoldxs(protVarDataRepo.getFoldxs(accession, position));
-			List<ConservScore> conservScores = protVarDataRepo.getConservScores(accession, position);
-			if (conservScores != null && conservScores.size() == 1) {
-				protein.setConservScore(conservScores.get(0).getScore());
-			}
-		}
-
 		return protein;
 	}
 
