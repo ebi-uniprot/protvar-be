@@ -11,10 +11,7 @@ import uk.ac.ebi.protvar.model.data.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
@@ -187,11 +184,25 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
-	public List<EVEScore> getEVEScores(Set<Object[]> protAccPositions) {
-		if (protAccPositions.isEmpty())
-			return new ArrayList<>();
-		SqlParameterSource parameters = new MapSqlParameterSource("protAccPositions", protAccPositions);
-		return jdbcTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
+	public List<EVEScore> getEVEScores(Set<String> protAccPositions) {
+		Set<Object[]> protAccPositionsObjSet = new HashSet<>();
+		for (String accPos : protAccPositions) {
+			String[] arr = accPos.split(":");
+			if (arr.length == 2) {
+				String acc = arr[0];
+				try {
+					int pos = Integer.parseInt(arr[1]);
+					protAccPositionsObjSet.add(new Object[]{acc, pos });
+				} catch (NumberFormatException ex) {
+					// do nothing
+				}
+			}
+		}
+		if (protAccPositionsObjSet.size() > 0) {
+			SqlParameterSource parameters = new MapSqlParameterSource("protAccPositions", protAccPositionsObjSet);
+			return jdbcTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
+		}
+		return new ArrayList<>();
 	}
 
 	@Override

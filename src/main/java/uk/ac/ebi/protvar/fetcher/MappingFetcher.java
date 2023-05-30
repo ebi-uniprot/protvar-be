@@ -182,11 +182,9 @@ public class MappingFetcher {
 			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappings(gPositions);
 
 			// get all protein accessions and positions from retrieved mappings
-			Set<Object[]> canonicalAccessionPositions = new HashSet<>();
 			Set<String> canonicalAccessions = new HashSet<>();
 			Set<String> canonicalAccessionLocations = new HashSet<>();
 			g2pMappings.stream().filter(GenomeToProteinMapping::isCanonical).forEach(m -> {
-				canonicalAccessionPositions.add(new Object[]{m.getAccession(), m.getIsoformPosition()});
 				canonicalAccessions.add(m.getAccession());
 				canonicalAccessionLocations.add(m.getAccession() + ":" + m.getIsoformPosition());
 			});
@@ -199,7 +197,7 @@ public class MappingFetcher {
 			});
 
 			// retrieve EVE scores
-			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(canonicalAccessionPositions)
+			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(canonicalAccessionLocations)
 					.stream().collect(Collectors.groupingBy(EVEScore::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()

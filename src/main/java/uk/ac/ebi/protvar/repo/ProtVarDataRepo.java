@@ -26,7 +26,7 @@ public interface ProtVarDataRepo {
 	//================================================================================
 	// EVEScore
 	//================================================================================
-	List<EVEScore> getEVEScores(Set<Object[]> protAccPositions);
+	List<EVEScore> getEVEScores(Set<String> protAccPositions);
 
 
 	//================================================================================
