@@ -68,7 +68,8 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private static final String SELECT_POCKETS_BY_ACC_AND_RESID = "SELECT * FROM af2_v3_human_pocketome WHERE struct_id=:accession AND (:resid)=ANY(resid)";
 
-	private static final String SELECT_FOLDXS_BY_ACC_AND_POS = "SELECT * FROM af2_snps_foldx WHERE protein_acc=:accession AND position=:position";
+	private static final String SELECT_FOLDXS_BY_ACC_AND_POS = "SELECT * FROM afdb_foldx WHERE protein_acc=:accession AND position=:position";
+	private static final String SELECT_FOLDXS_BY_ACC_AND_POS_VARIANT = "SELECT * FROM afdb_foldx WHERE protein_acc=:accession AND position=:position AND mutated_type=:variantAA";
 
 	private static final String SELECT_INTERACTIONS_BY_ACC_AND_RESID = "SELECT a, a_residues, b, b_residues, pdockq FROM af2complexes_interaction " +
 																		"WHERE (a=:accession AND (:resid)=ANY(a_residues)) " +
@@ -249,10 +250,20 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return jdbcTemplate.query(SELECT_POCKETS_BY_ACC_AND_RESID, parameters, (rs, rowNum) -> createPocket(rs));
 	}
 
-	public List<Foldx> getFoldxs(String accession, Integer position) {
-		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
-				.addValue("position", position);
-		return jdbcTemplate.query(SELECT_FOLDXS_BY_ACC_AND_POS, parameters, (rs, rowNum) -> createFoldx(rs));
+	public List<Foldx> getFoldxs(String accession, Integer position, String variantAA) {
+		SqlParameterSource parameters;
+		String query;
+		if (variantAA != null && !variantAA.isEmpty()) {
+			parameters = new MapSqlParameterSource("accession", accession)
+					.addValue("position", position)
+					.addValue("variantAA", variantAA);
+			query = SELECT_FOLDXS_BY_ACC_AND_POS_VARIANT;
+		} else {
+			parameters = new MapSqlParameterSource("accession", accession)
+					.addValue("position", position);
+			query = SELECT_FOLDXS_BY_ACC_AND_POS;
+		}
+		return jdbcTemplate.query(query, parameters, (rs, rowNum) -> createFoldx(rs));
 	}
 
 	public List<Interaction> getInteractions(String accession, Integer resid) {

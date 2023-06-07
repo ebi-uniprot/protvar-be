@@ -69,7 +69,7 @@ public class ProteinsFetcher {
 	 * 
 	 * @return Protein
 	 */
-	public Protein fetch(String accession, int position) {
+	public Protein fetch(String accession, int position, String variantAA) {
 
 		if (!StringUtils.isEmpty(accession)) {
 
@@ -92,7 +92,7 @@ public class ProteinsFetcher {
 				// add novel predictions
 				protein.setPockets(protVarDataRepo.getPockets(accession, position));
 				protein.setInteractions(protVarDataRepo.getInteractions(accession, position));
-				protein.setFoldxs(protVarDataRepo.getFoldxs(accession, position));
+				protein.setFoldxs(protVarDataRepo.getFoldxs(accession, position, variantAA));
 				List<ConservScore> conservScores = protVarDataRepo.getConservScores(accession, position);
 				if (conservScores != null && conservScores.size() == 1) {
 					protein.setConservScore(conservScores.get(0).getScore());

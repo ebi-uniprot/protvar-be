@@ -6,10 +6,8 @@ import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.builder.OptionBuilder;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.*;
-import uk.ac.ebi.protvar.model.data.ConservScore;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.*;
-import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 
 import java.util.List;
 
@@ -32,8 +30,8 @@ public class APIService {
 		return mappingFetcher.getMappings(inputs, options, assemblyVersion);
 	}
 
-	public Protein getProtein(String accession, int position) {
-		Protein protein = proteinsFetcher.fetch(accession, position);
+	public Protein getProtein(String accession, int position, String variantAA) {
+		Protein protein = proteinsFetcher.fetch(accession, position, variantAA);
 		return protein;
 	}
 

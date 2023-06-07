@@ -47,7 +47,7 @@ public interface ProtVarDataRepo {
 	// Pockets, foldxs, and protein interactions
 	//================================================================================
 	List<Pocket> getPockets(String accession, Integer resid);
-	List<Foldx> getFoldxs(String accession, Integer position);
+	List<Foldx> getFoldxs(String accession, Integer position, String variantAA);
 	List<Interaction> getInteractions(String accession, Integer resid);
 	String getInteractionModel(String a, String b);
 
