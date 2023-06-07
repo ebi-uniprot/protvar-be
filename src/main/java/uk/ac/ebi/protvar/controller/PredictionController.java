@@ -14,6 +14,7 @@ import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.utils.AminoAcid;
 
 import javax.servlet.ServletContext;
 import java.util.List;
@@ -49,16 +50,17 @@ public class PredictionController {
      * Foldx predictions based on AFDB.
      *
      * @param accession UniProt accession
-     * @param position     Amino acid position
+     * @param position  Amino acid position
+     * @param variantAA Optional, 1- or 3-letter symbol for variant amino acid
      * @return <code>Foldx</code> information on accession
      */
     @Operation(summary = "- by accession and position")
     @GetMapping(value = "/foldx/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Foldx>> getFoldxsByAccAndPos(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
-            @Parameter(example = "493") @PathVariable Integer position) {
-
-        List<Foldx> foldxs = protVarDataRepo.getFoldxs(accession, position);
+            @Parameter(example = "493") @PathVariable Integer position,
+            @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
+        List<Foldx> foldxs = protVarDataRepo.getFoldxs(accession, position, AminoAcid.oneLetter(variantAA));
         return new ResponseEntity<>(foldxs, HttpStatus.OK);
     }
 

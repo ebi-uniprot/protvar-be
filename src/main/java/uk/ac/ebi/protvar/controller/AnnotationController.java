@@ -9,14 +9,12 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.service.APIService;
+import uk.ac.ebi.protvar.utils.AminoAcid;
 
 @Tag(name = "Individual Amino Acid Annotations", description = "Retrieve specific amino acid annotations\n\n\n" +
   "All three endpoints retrieve annotation data based on the residue position in the canonical isoform. " +
@@ -36,14 +34,16 @@ public class AnnotationController {
    *
    * @param accession UniProt accession
    * @param position  Amino acid position
+   * @param variantAA Optional, 1- or 3-letter symbol for variant amino acid
    * @return <code>Protein</code> information on accession
    */
   @Operation(summary = "- functional annotations for an amino acid")
   @GetMapping(value = "/function/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Protein> getFunction(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
-    @Parameter(example = "493") @PathVariable("position") int position) {
-    Protein protein = apiService.getProtein(accession, position);
+    @Parameter(example = "493") @PathVariable("position") int position,
+    @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
+    Protein protein = apiService.getProtein(accession, position, AminoAcid.oneLetter(variantAA));
     return new ResponseEntity<>(protein, HttpStatus.OK);
   }
 
