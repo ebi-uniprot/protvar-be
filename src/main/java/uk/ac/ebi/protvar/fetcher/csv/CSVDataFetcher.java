@@ -62,9 +62,9 @@ public class CSVDataFetcher {
 
 
 	@Async
-	public void writeCSVResult(List<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) {
+	public void writeCSVResult(List<String> inputs, String assembly, List<OPTIONS> options, String email, String jobName, Download download) {
 		try {
-			processInput(inputs, options, email, jobName, download);
+			processInput(inputs, assembly, options, email, jobName, download);
 		} catch (Exception e) {
 			Email.sendErr(email, jobName, inputs);
 			reportError(email, jobName, e);
@@ -72,9 +72,9 @@ public class CSVDataFetcher {
 	}
 
 	@Async
-	public void writeCSVResult(Path path, List<OPTIONS> options, String email, String jobName, Download download) {
+	public void writeCSVResult(Path path, String assembly, List<OPTIONS> options, String email, String jobName, Download download) {
 		try (Stream<String> lines = Files.lines(path)) {
-			processInput(lines.collect(Collectors.toList()), options, email, jobName, download);
+			processInput(lines.collect(Collectors.toList()), assembly, options, email, jobName, download);
 		} catch (Exception e) {
 			Email.sendErr(email, jobName, path);
 			reportError(email, jobName, e);
@@ -104,7 +104,7 @@ public class CSVDataFetcher {
 		if (Commons.notNullNotEmpty(email))
 			Email.notify(email, jobName, download.getUrl());
 	}*/
-	private void processInput(List<String> inputs, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
+	private void processInput(List<String> inputs, String assembly, List<OPTIONS> options, String email, String jobName, Download download) throws Exception {
 		List<List<String>> inputPartitions = Lists.partition(inputs, PAGE_SIZE);
 
 		Path filePath = Paths.get(downloadDir, download.getDownloadId() + ".csv");
@@ -123,7 +123,7 @@ public class CSVDataFetcher {
 			//List<List <String[]>> resultParts = inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, options)).collect(Collectors.toList());
 			//resultParts.stream().forEach(writer::writeAll);
 			// v3
-			inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, options))
+			inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, assembly, options))
 					.forEach(writer::writeAll);
 		}
 
@@ -138,14 +138,14 @@ public class CSVDataFetcher {
 		PrintWriter outStream = response.getWriter();
 		CSVWriter writer = new CSVWriter(new BufferedWriter(outStream));
 		writer.writeNext(CSV_HEADER.split(","));
-		List<String[]> contentList = buildCSVResult(inputs, options);
+		List<String[]> contentList = buildCSVResult(inputs, null, options);
 		writer.writeAll(contentList);
 		writer.flush();
 		writer.close();
 	}
 
-	private List<String[]> buildCSVResult(List<String> inputList, List<OPTIONS> options) {
-		MappingResponse response = mappingFetcher.getMappings(inputList, options, null);
+	private List<String[]> buildCSVResult(List<String> inputList, String assembly, List<OPTIONS> options) {
+		MappingResponse response = mappingFetcher.getMappings(inputList, options, assembly);
 		List<String[]> csvOutput = new ArrayList<>();
 
 		response.getInputs().forEach(input -> {
