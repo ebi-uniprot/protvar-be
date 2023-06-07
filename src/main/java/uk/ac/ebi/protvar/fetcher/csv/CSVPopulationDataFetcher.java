@@ -19,15 +19,20 @@ public class CSVPopulationDataFetcher {
 
 	public List<String> fetch(PopulationObservation populationObservations, String refAA, String variantAA,
 			Long genomicLocation) {
-		List<Variation> variants = populationObservations.getProteinColocatedVariant().stream()
-				.filter(feature -> refAA.equalsIgnoreCase(feature.getWildType())
-						&& variantAA.equalsIgnoreCase(feature.getAlternativeSequence())
-						&& genomicLocation == ExtractUtils.extractLocation(feature.getGenomicLocation()))
-				.collect(Collectors.toList());
+		List<Variation> variants = new ArrayList<>();
+		List<Variation> colocatedVariants = new ArrayList<>();
+		populationObservations.getProteinColocatedVariant().forEach(feature -> {
+			Long featureGenLocation = ExtractUtils.extractLocation(feature.getGenomicLocation());
+			if (genomicLocation.equals(featureGenLocation)) {
+				if (refAA.equalsIgnoreCase(feature.getWildType()) &&
+						variantAA.equalsIgnoreCase(feature.getAlternativeSequence())) {
+					variants.add(feature);
+				}
+			} else {
+				colocatedVariants.add(feature);
+			}
+		});
 
-		List<Variation> colocatedVariants = populationObservations.getProteinColocatedVariant().stream()
-				.filter(feature -> genomicLocation != ExtractUtils.extractLocation(feature.getGenomicLocation()))
-				.collect(Collectors.toList());
 		List<String> csv = new ArrayList<>();
 		if (variants.isEmpty()) {
 			csv.addAll(List.of(Constants.NA, Constants.NA, Constants.NA, Constants.NA));
