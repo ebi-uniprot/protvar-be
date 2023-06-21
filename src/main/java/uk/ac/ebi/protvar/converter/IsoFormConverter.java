@@ -85,7 +85,7 @@ public class IsoFormConverter {
 				builder.eveScore(eveScore.getScore());
 				builder.eveClass(eveScore.getEveClass().getNum());
 			}
-			optionalAttributeBuilder.build(accession, genomicLocation, genomeToProteinMapping.getIsoformPosition(), options, builder);
+			optionalAttributeBuilder.build(accession, genomicLocation, variantAA.getOneLetter(), genomeToProteinMapping.getIsoformPosition(), options, builder);
 		}
 		return builder.build();
 	}

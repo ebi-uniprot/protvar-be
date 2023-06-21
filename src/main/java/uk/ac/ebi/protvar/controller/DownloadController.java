@@ -65,14 +65,15 @@ public class DownloadController implements WebMvcConfigurer {
                                     @RequestParam(required = false) String jobName,
                                     @RequestParam(required = false, defaultValue = "false") boolean function,
                                     @RequestParam(required = false, defaultValue = "false") boolean population,
-                                    @RequestParam(required = false, defaultValue = "false") boolean structure) throws Exception {
+                                    @RequestParam(required = false, defaultValue = "false") boolean structure,
+                                    @RequestParam(required = false) String assembly) throws Exception {
     List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
     Download download = downloadService.newDownload("FILE");
     download.setJobName(jobName);
     String downloadUrl = request.getRequestURL().toString().replaceAll("fileInput", download.getDownloadId());
     download.setUrl(downloadUrl);
     Path newFile = FileUtils.writeFile(file);
-    csvDataFetcher.writeCSVResult(newFile, options, email, jobName, download);
+    csvDataFetcher.writeCSVResult(newFile, assembly, options, email, jobName, download);
     return new ResponseEntity<>(download, HttpStatus.OK);
   }
 
@@ -99,13 +100,14 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false) String jobName,
           @RequestParam(required = false, defaultValue = "false") boolean function,
           @RequestParam(required = false, defaultValue = "false") boolean population,
-          @RequestParam(required = false, defaultValue = "false") boolean structure) throws Exception {
+          @RequestParam(required = false, defaultValue = "false") boolean structure,
+          @RequestParam(required = false) String assembly) throws Exception {
     List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
     Download download = downloadService.newDownload("TEXT");
     download.setJobName(jobName);
     String downloadUrl = request.getRequestURL().toString().replaceAll("textInput", download.getDownloadId());
     download.setUrl(downloadUrl);
-    csvDataFetcher.writeCSVResult(inputs, options, email, jobName, download);
+    csvDataFetcher.writeCSVResult(inputs, assembly, options, email, jobName, download);
     return new ResponseEntity<>(download, HttpStatus.OK);
   }
 

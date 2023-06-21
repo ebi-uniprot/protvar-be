@@ -29,11 +29,11 @@ public class OptionalAttributesBuilder {
 	private ProteinsFetcher proteinsFetcher;
 	private PDBeFetcher pdbeFetcher;
 
-	public void build(String accession, long genomicLocation, int isoformPostion, List<OPTIONS> options,
+	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion, List<OPTIONS> options,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
 		buildPopulationObservation(accession, isoformPostion, options.contains(OPTIONS.POPULATION), genomicLocation, builder);
 
-		buildFunction(accession, isoformPostion, options.contains(OPTIONS.FUNCTION), builder);
+		buildFunction(accession, isoformPostion, variantAA, options.contains(OPTIONS.FUNCTION), builder);
 
 		buildStructure(accession, isoformPostion, options.contains(OPTIONS.STRUCTURE), builder);
 	}
@@ -49,10 +49,10 @@ public class OptionalAttributesBuilder {
 		}
 	}
 
-	private void buildFunction(String accession, int isoformPostion, boolean isFunction,
+	private void buildFunction(String accession, int isoformPostion, String variantAA, boolean isFunction,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
 		if (isFunction) {
-			Protein protein = proteinsFetcher.fetch(accession, isoformPostion);
+			Protein protein = proteinsFetcher.fetch(accession, isoformPostion, variantAA);
 			builder.referenceFunction(protein);
 		} else {
 			String uri = buildUri(FUNCTION_API, accession, isoformPostion);

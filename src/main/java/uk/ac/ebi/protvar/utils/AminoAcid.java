@@ -111,11 +111,38 @@ public enum AminoAcid {
 
     public static AminoAcid fromOneLetter(String oneLetter) {
         for (AminoAcid aa : AminoAcid.values()) {
-            if (aa.getOneLetter().equals(oneLetter))
+            if (aa.getOneLetter().equalsIgnoreCase(oneLetter))
                 return aa;
         }
         //throw new UnexpectedUseCaseException(oneLetter + " is invalid one letter amino acid");
         return AminoAcid.UNK;
+    }
+    public static AminoAcid fromThreeLetter(String threeLetter) {
+        for (AminoAcid aa : AminoAcid.values()) {
+            if (aa.getThreeLetters().equalsIgnoreCase(threeLetter))
+                return aa;
+        }
+        //throw new UnexpectedUseCaseException(oneLetter + " is invalid one letter amino acid");
+        return AminoAcid.UNK;
+    }
+
+    public static AminoAcid fromOneOrThreeLetter(String str) {
+        for (AminoAcid aa : AminoAcid.values()) {
+            if (aa.getOneLetter().equalsIgnoreCase(str) || aa.getThreeLetters().equalsIgnoreCase(str))
+                return aa;
+        }
+        //throw new UnexpectedUseCaseException(oneLetter + " is invalid one letter amino acid");
+        return AminoAcid.UNK;
+    }
+
+    public static String oneLetter(String str) {
+        if (str != null && !str.isEmpty()) {
+            AminoAcid aa = AminoAcid.fromOneOrThreeLetter(str);
+            if (aa != null && aa != AminoAcid.UNK) {
+                return aa.getOneLetter();
+            }
+        }
+        return null;
     }
 
     public Set<Integer> getChangePos(AminoAcid alt) {
