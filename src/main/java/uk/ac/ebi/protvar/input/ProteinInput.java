@@ -60,6 +60,8 @@ public class ProteinInput extends UserInput {
     public final static String PATTERN_ACC_pdotXXX999YYY = ACCESSION + "#" + PATTERN_pdotXXX999YYY;
     public final static String PATTERN_ACC_999_YYY = ACCESSION + "#" + POSITION + "#" + AA3;
 
+    // TODO read protein accessions and save to tbl during mapping import
+    // then read from tbl on app init
     public final static String PROTEINS_FILE = "proteins.txt";
     public static Set<String> PROTEIN_ACCESSIONS;
     static {
