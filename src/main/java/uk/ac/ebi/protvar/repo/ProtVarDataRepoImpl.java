@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.repo;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -275,8 +276,14 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	public String getInteractionModel(String a, String b) {
 		SqlParameterSource parameters = new MapSqlParameterSource("a", a)
 				.addValue("b", b);
-		return jdbcTemplate.queryForObject(SELECT_INTERACTION_MODEL, parameters, (rs, rowNum) ->
-				rs.getString("pdb_model"));
+		try {
+			return jdbcTemplate.queryForObject(SELECT_INTERACTION_MODEL, parameters, (rs, rowNum) ->
+					rs.getString("pdb_model"));
+		}
+		catch (EmptyResultDataAccessException e) {
+			LOGGER.warn("getInteractionModel returned empty result");
+		}
+		return null;
 	}
 
 	private Pocket createPocket(ResultSet rs) throws SQLException  {
