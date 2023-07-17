@@ -190,7 +190,7 @@ public class CSVDataFetcher {
 	}
 
 	String[] getCsvDataMappingNotFound(String input){
-		UserInput p = UserInput.getInput(input);
+		//UserInput p = UserInput.getInput(input);
 		return concatNaOutputCols(List.of(input, Constants.NOTE_MAPPING_NOT_FOUND));
 	}
 
