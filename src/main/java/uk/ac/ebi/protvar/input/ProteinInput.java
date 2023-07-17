@@ -80,7 +80,7 @@ public class ProteinInput extends UserInput {
     public ProteinInput(String inputStr) {
         this.inputStr = inputStr;
         parseInputStr();
-        if (!PROTEIN_ACCESSIONS.contains(acc)) {
+        if (!validUPAccession(acc)) {
             addError(Constants.NOTE_INVALID_INPUT_NON_HUMAN_ACC + acc);
         }
     }
@@ -165,6 +165,10 @@ public class ProteinInput extends UserInput {
 
     public static boolean validAccession(String acc) {
         return Pattern.matches(ACCESSION, acc);
+    }
+
+    public static boolean validUPAccession(String acc) {
+        return PROTEIN_ACCESSIONS.contains(acc);
     }
 
     public static boolean startsWithAccession(String input) {
