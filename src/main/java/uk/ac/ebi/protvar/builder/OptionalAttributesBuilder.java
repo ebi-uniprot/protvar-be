@@ -56,6 +56,9 @@ public class OptionalAttributesBuilder {
 			builder.referenceFunction(protein);
 		} else {
 			String uri = buildUri(FUNCTION_API, accession, isoformPostion);
+			if (variantAA != null && !variantAA.isEmpty()) {
+				uri += "?variantAA=" + variantAA;
+			}
 			builder.referenceFunctionUri(uri);
 		}
 	}
