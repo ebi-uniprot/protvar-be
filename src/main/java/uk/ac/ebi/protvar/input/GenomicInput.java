@@ -87,4 +87,14 @@ public class GenomicInput extends UserInput {
     public List<GenomeProteinMapping> getMappings() {
         return this.mappings;
     }
+
+
+    public static boolean startsWithChromo(String input, String sep) {
+        String[] params = input.split(sep);
+        if (params.length > 0){
+            String p1 = params[0].toUpperCase();
+            return CHROMO_1_23.contains(p1) || CHROMO_X_Y.contains(p1) || CHROMO_MT.contains(p1);
+        }
+        return false;
+    }
 }

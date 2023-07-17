@@ -67,14 +67,8 @@ public class VCFInput extends GenomicInput {
             }
         }
     }
-
     public static boolean startsWithChromo(String input) {
-        String[] params = input.split(FIELD_SEPERATOR);
-        if (params.length > 0){
-            String p1 = params[0].toUpperCase();
-            return CHROMO_1_23.contains(p1) || CHROMO_X_Y.contains(p1) || CHROMO_MT.contains(p1);
-        }
-        return false;
+        return GenomicInput.startsWithChromo(input, FIELD_SEPERATOR);
     }
     public static boolean isIdExist(LinkedList<String> remainingTokens) {
         if(remainingTokens.isEmpty())
