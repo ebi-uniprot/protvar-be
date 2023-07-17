@@ -15,6 +15,11 @@ import java.util.stream.Stream;
 @Getter
 @Setter
 public class GenomicInput extends UserInput {
+
+    public static final String CHR = "(2[0-2]|1[0-9]|[1-9]|X|Y)";
+    public static final String POS = "(\\d+)";
+    public static final String DNA = "(A|T|C|G)";
+
     public static final List<String> VALID_ALLELES = List.of("A", "C", "G", "T");
     public static final List<String> CHROMO_1_23 = IntStream.range(1,23).mapToObj(String::valueOf).collect(Collectors.toList());
     public static final List<String> CHROMO_X_Y = List.of("X","Y");

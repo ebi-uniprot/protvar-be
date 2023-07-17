@@ -5,11 +5,13 @@ import uk.ac.ebi.protvar.model.response.GenomeProteinMapping;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Getter
 public class RSInput extends UserInput {
-    public static final String RS_ID_REGEX = "rs(\\d+)";
+    public static final String RS_PREFIX = "rs";
+    public static final String RS_ID_REGEX = RS_PREFIX + "(\\d+)";
 
     String id;
     List<GenomicInput> derivedGenomicInputs = new ArrayList<>();
@@ -33,5 +35,14 @@ public class RSInput extends UserInput {
     public List<GenomeProteinMapping> derivedGenomicInputsMappings() {
         return derivedGenomicInputs.stream().map(GenomicInput::getMappings)
                 .flatMap(List::stream).collect(Collectors.toList());
+    }
+
+
+    public static boolean isValid(String input) {
+        return Pattern.matches(RSInput.RS_ID_REGEX, input);
+    }
+
+    public static boolean startsWithPrefix(String input) {
+        return input.toLowerCase().startsWith(RS_PREFIX);
     }
 }

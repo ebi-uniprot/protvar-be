@@ -1,12 +1,12 @@
 package uk.ac.ebi.protvar.input;
 
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import lombok.Getter;
 import lombok.Setter;
 import uk.ac.ebi.protvar.model.response.Message;
+
 
 /*                   UserInput
  *                   -inputStr
@@ -51,14 +51,22 @@ public abstract class UserInput {
 		return messages.stream().filter(m ->  m.getType() == Message.MessageType.ERROR).map(m -> m.getText()).collect(Collectors.toList());
 	}
 
+	/**
+	 *
+	 * @param input	Null and empty inputs will have been filtered before calling this function.
+	 *             Input string will have been trimmed as well.
+	 * @return
+	 */
 	public static UserInput getInput(String input) {
-		if (input == null)
+
+
+		if (input == null || input.isEmpty())
 			return null;
-		if (Pattern.matches(RSInput.RS_ID_REGEX, input))
+		if (RSInput.isValid(input))
 			return new RSInput(input);
-		if (Pattern.matches(GnomadInput.GNOMAD_ID_REGEX, input))
+		if (GnomadInput.isValid(input))
 			return new GnomadInput(input);
-		if (input.startsWith(HGVSInput.HGVS_PREFIX))
+		if (HGVSInput.startsWithPrefix(input))
 			return new HGVSInput(input);
 		if (ProteinInput.startsWithAccession(input))
 			return new ProteinInput(input);

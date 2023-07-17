@@ -7,7 +7,9 @@ import uk.ac.ebi.protvar.utils.ExtractUtils;
 
 public class HGVSInput extends GenomicInput {
 
-    public static final String HGVS_PREFIX = "NC_";
+    public static final String HGVS_GENOMIC_PREFIX = "NC_"; // Genomic - Complete genomic molecule, usually reference assembly
+    public static final String HGVS_CODING_PREFIX = "NM_"; // mRNA - Protein-coding transcripts (usually curated) e.g. NM_001145445.1
+    public static final String HGVS_PROTEIN_PREFIX = "NP_"; // Protein - Associated with an NM_ or NC_ accession e.g. NP_001138917.1
 
     public HGVSInput(String inputStr) {
         try {
@@ -36,5 +38,14 @@ public class HGVSInput extends GenomicInput {
 
     public InputType.Gen getGenType() {
         return InputType.Gen.HGVS;
+    }
+
+    public static boolean startsWithPrefix(String input) {
+        if (input.toUpperCase().startsWith(HGVS_GENOMIC_PREFIX)
+              //  || input.toUpperCase().startsWith(HGVS_CODING_PREFIX)
+              //  || input.toUpperCase().startsWith(HGVS_PROTEIN_PREFIX)
+        )
+            return true;
+        return false;
     }
 }
