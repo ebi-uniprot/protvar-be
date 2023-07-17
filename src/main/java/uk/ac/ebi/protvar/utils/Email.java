@@ -18,7 +18,7 @@ import java.util.Optional;
 @Component
 public class Email {
   private static final String FROM = "protvar@ebi.ac.uk";
-  private static final String DEVELOPER_GROUP = "protvar@ebi.ac.uk";
+  private static final String DEVELOPER_GROUP = "prabhat@ebi.ac.uk";
   private static JavaMailSender emailSender;
   private static String successBody = "";
   private static String errorBody = "";
