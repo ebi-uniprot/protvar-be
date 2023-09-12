@@ -42,6 +42,7 @@ spec:
       containers:
         - name: protvar-be
           image: dockerhub.ebi.ac.uk/uniprot/deployment/mirror-protvar-be:{{ .Values.imageTag }}
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080 # default port for springboot
           volumeMounts:
