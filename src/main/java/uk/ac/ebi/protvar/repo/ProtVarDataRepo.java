@@ -11,16 +11,16 @@ public interface ProtVarDataRepo {
 	// GenomeToProteinMapping
 	//================================================================================
 
-	List<GenomeToProteinMapping> getMappings(String chromosome, Long position);
-	List<GenomeToProteinMapping> getMappings(Set<Long> positions);
-	List<GenomeToProteinMapping> getMappings(String accession, Long proteinPosition, Set<Integer> codonPositions);
+	List<GenomeToProteinMapping> getMappings(String chromosome, Integer position);
+	List<GenomeToProteinMapping> getMappings(Set<Integer> positions);
+	List<GenomeToProteinMapping> getMappings(String accession, Integer proteinPosition, Set<Integer> codonPositions);
 	List<GenomeToProteinMapping> getGenomicCoordsByProteinAccAndPos(List<Object[]> accPPosition);
 
 
 	//================================================================================
 	// CADDPrediction
 	//================================================================================
-	List<CADDPrediction> getCADDPredictions(Set<Long> positions);
+	List<CADDPrediction> getCADDPredictions(Set<Integer> positions);
 
 
 	//================================================================================
@@ -38,7 +38,7 @@ public interface ProtVarDataRepo {
 	//================================================================================
 	// Crossmap
 	//================================================================================
-	List<Crossmap> getCrossmaps(List<Long> positions, String from);
+	List<Crossmap> getCrossmaps(List<Integer> positions, String from);
 	List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37);
 	double getPercentageMatch(List<Object[]> chrPosRefList, String ver);
 

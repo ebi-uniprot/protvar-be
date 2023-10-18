@@ -85,18 +85,18 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private NamedParameterJdbcTemplate jdbcTemplate;
 	
 	@Override
-	public List<CADDPrediction> getCADDPredictions(Set<Long> positions) {
+	public List<CADDPrediction> getCADDPredictions(Set<Integer> positions) {
 		SqlParameterSource parameters = new MapSqlParameterSource("position", positions);
 		return jdbcTemplate.query(SELECT_PREDICTIONS_BY_POSITIONS, parameters, (rs, rowNum) -> createPrediction(rs));
 	}
 
 	private CADDPrediction createPrediction(ResultSet rs) throws SQLException {
-		return new CADDPrediction(rs.getString("chromosome"), rs.getLong("position"), rs.getString("allele"),
+		return new CADDPrediction(rs.getString("chromosome"), rs.getInt("position"), rs.getString("allele"),
 				rs.getString("altallele"), rs.getDouble("rawscores"), rs.getDouble("scores"));
 	}
 
 	@Override
-	public List<GenomeToProteinMapping> getMappings(String chromosome, Long position) {
+	public List<GenomeToProteinMapping> getMappings(String chromosome, Integer position) {
 		SqlParameterSource parameters = new MapSqlParameterSource("position", position).addValue("chromosome",
 				chromosome);
 
@@ -111,7 +111,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private GenomeToProteinMapping createMapping(ResultSet rs) throws SQLException {
 		return GenomeToProteinMapping.builder()
 				.chromosome(rs.getString("chromosome"))
-				.genomeLocation(rs.getLong("genomic_position"))
+				.genomeLocation(rs.getInt("genomic_position"))
 				.isoformPosition(rs.getInt("protein_position"))
 				.baseNucleotide(rs.getString("allele"))
 				.aa(rs.getString("protein_seq"))
@@ -133,13 +133,13 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	@Override
-	public List<GenomeToProteinMapping> getMappings(Set<Long> positions) {
+	public List<GenomeToProteinMapping> getMappings(Set<Integer> positions) {
 		SqlParameterSource parameters = new MapSqlParameterSource("position", positions);
 
 		return jdbcTemplate.query(SELECT_MAPPINGS_BY_POSITION_SQL, parameters, (rs, rowNum) -> createMapping(rs))
 			.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
-	public List<GenomeToProteinMapping> getMappings(String accession, Long proteinPosition, Set<Integer> codonPositions) {
+	public List<GenomeToProteinMapping> getMappings(String accession, Integer proteinPosition, Set<Integer> codonPositions) {
 		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
 				.addValue("proteinPosition", proteinPosition)
 				.addValue("codonPositions", codonPositions);
@@ -147,7 +147,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 						GenomeToProteinMapping.builder()
 								.chromosome(rs.getString("chromosome"))
 								.baseNucleotide(rs.getString("allele"))
-								.genomeLocation(rs.getLong("genomic_position"))
+								.genomeLocation(rs.getInt("genomic_position"))
 								.isoformPosition(rs.getInt("protein_position"))
 								.codon(rs.getString("codon"))
 								.reverseStrand(rs.getBoolean("reverse_strand"))
@@ -166,7 +166,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		SqlParameterSource parameters = new MapSqlParameterSource("num", chrPosRefList.size())
 				.addValue("chrPosRef", chrPosRefList);
 
-		return jdbcTemplate.queryForObject(sql, parameters, Long.class);
+		return jdbcTemplate.queryForObject(sql, parameters, Integer.class);
 	}
 
 	public List<GenomeToProteinMapping> getGenomicCoordsByProteinAccAndPos(List<Object[]> accPPosition) {
@@ -175,7 +175,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return jdbcTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL2, parameters, (rs, rowNum) ->
 						GenomeToProteinMapping.builder()
 								.chromosome(rs.getString("chromosome"))
-								.genomeLocation(rs.getLong("genomic_position"))
+								.genomeLocation(rs.getInt("genomic_position"))
 								.baseNucleotide(rs.getString("allele"))
 								.accession(rs.getString("accession"))
 								.isoformPosition(rs.getInt("protein_position"))
@@ -216,15 +216,15 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				new Dbsnp(rs.getString("chr"), rs.getLong("pos"), rs.getString("id"),
 						rs.getString("ref"),rs.getString("alt")));
 	}
-
-	public List<Crossmap> getCrossmaps(List<Long> positions, String from) {
+*/
+	public List<Crossmap> getCrossmaps(List<Integer> positions, String from) {
 		if (positions.isEmpty())
 			return new ArrayList<>();
 		String sql = SELECT_CROSSMAPS.replace("{VER}", from);
 		SqlParameterSource parameters = new MapSqlParameterSource("pos", positions);
 		return jdbcTemplate.query(sql, parameters, (rs, rowNum) ->
-				new Crossmap(rs.getString("chr"), rs.getLong("grch38_pos"), rs.getString("grch38_base"),
-						rs.getLong("grch37_pos"),rs.getString("grch37_base")));
+				new Crossmap(rs.getString("chr"), rs.getInt("grch38_pos"), rs.getString("grch38_base"),
+						rs.getInt("grch37_pos"),rs.getString("grch37_base")));
 	}
 
 	public List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37) {
@@ -232,8 +232,8 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			return new ArrayList<>();
 		SqlParameterSource parameters = new MapSqlParameterSource("chrPos37", chrPos37);
 		return jdbcTemplate.query(SELECT_CROSSMAPS2, parameters, (rs, rowNum) ->
-				new Crossmap(rs.getString("chr"), rs.getLong("grch38_pos"), rs.getString("grch38_base"),
-						rs.getLong("grch37_pos"),rs.getString("grch37_base")));
+				new Crossmap(rs.getString("chr"), rs.getInt("grch38_pos"), rs.getString("grch38_base"),
+						rs.getInt("grch37_pos"),rs.getString("grch37_base")));
 	}
 
 	private EVEScore createEveScore(ResultSet rs) throws SQLException {
@@ -292,7 +292,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	private Foldx createFoldx(ResultSet rs) throws SQLException  {
-		return new Foldx(rs.getString("protein_acc"), (int)rs.getShort("position"), rs.getString("wild_type"),
+		return new Foldx(rs.getString("protein_acc"), rs.getInt("position"), rs.getString("wild_type"),
 				rs.getString("mutated_type"), rs.getDouble("foldx_ddg"), rs.getDouble("plddt"));
 	}
 
@@ -303,12 +303,8 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	private List<Integer> getResidueList(ResultSet rs, String fieldName) throws SQLException  {
-		Short[] residArr = (Short[])  rs.getArray(fieldName).getArray();
-		List<Integer> residList = new ArrayList<>();
-		for (int i=0; i<residArr.length; ++i) {
-			residList.add(residArr[i].intValue());
-		}
-		return residList;
+		Integer[] residArr = (Integer[])  rs.getArray(fieldName).getArray();
+		return Arrays.asList(residArr);
 	}
 
 	public List<ConservScore> getConservScores(String acc, Integer pos) {

@@ -10,7 +10,7 @@ import lombok.Setter;
 public class Dbsnp {
 
     private String chr;
-    private Long pos;
+    private Integer pos;
     private String id;
     private String ref;
     private String alt;
