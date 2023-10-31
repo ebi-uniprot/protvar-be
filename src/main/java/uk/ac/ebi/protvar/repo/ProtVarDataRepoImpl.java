@@ -24,9 +24,6 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private static final String SELECT_PREDICTIONS_BY_POSITIONS = "select chromosome, position, allele, altallele, rawscores, scores "
 			+ "from CADD_PREDICTION where position in (:position)";
 
-	private static final String[] chromosomes = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13",
-			"14", "15", "16", "17", "18", "19", "20", "21", "22", "X", "Y" };
-
 	private static final String SELECT_MAPPINGS_SQL = "select " +
 			"chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, reverse_strand, " +
 			"ensg, ensg_ver, ensp, ensp_ver, enst, enst_ver, " +
@@ -50,10 +47,18 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			"from genomic_protein_mapping where " +
 			"(accession, protein_position) in (:accPPosition) ";
 
+	// TODO CHECK - SQL Query Optimization for Large IN Queries
+	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL3 = "select " +
+			"chromosome, genomic_position, allele, accession, protein_position, protein_seq, codon, codon_position, reverse_strand  " +
+			"from genomic_protein_mapping " +
+			"inner join ( " +
+			"values ? ) as t(acc,pos) " +
+			"on t.acc=accession and t.pos=protein_position ";
+
 	private static final String SELECT_EVE_SCORES = "SELECT * FROM EVE_SCORE " +
 			"WHERE (accession, position) IN (:protAccPositions) ";
 
-	private static final String SELECT_DBSNPS = "SELECT * FROM dbsnp WHERE id IN (:ids) ";
+	//private static final String SELECT_DBSNPS = "SELECT * FROM dbsnp WHERE id IN (:ids) ";
 	private static final String SELECT_CROSSMAPS = "SELECT * FROM crossmap WHERE grch{VER}_pos IN (:pos) ";
 
 	private static final String SELECT_CROSSMAPS2 = "SELECT * FROM crossmap " +
@@ -206,14 +211,14 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		}
 		return new ArrayList<>();
 	}
-
+/*
 	@Override
 	public List<Dbsnp> getDbsnps(List<String> ids) {
 		if (ids.isEmpty())
 			return new ArrayList<>();
 		SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
 		return jdbcTemplate.query(SELECT_DBSNPS, parameters, (rs, rowNum) ->
-				new Dbsnp(rs.getString("chr"), rs.getLong("pos"), rs.getString("id"),
+				new Dbsnp(rs.getString("chr"), rs.getInt("pos"), rs.getString("id"),
 						rs.getString("ref"),rs.getString("alt")));
 	}
 */
