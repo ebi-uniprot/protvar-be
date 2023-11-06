@@ -69,19 +69,8 @@ public class MappingFetcher {
 	public MappingResponse getMappings(List<String> inputs, List<OPTIONS> options, String assemblyVersion) {
 		/**
 		 * Steps
-		 *	I	parse input string - each input will be either one of the following
-		 *			1. RS			- valid (matches regex == valid, but may nt map to a gcoord.)
-		 *			2. gnomAD		- valid (matches regex == valid)
-		 *			3. HGVS			- valid or invalid (e.g. starts with NC_ but couldn't parse remaining params)
-		 *			4. Protein		- valid or invalid (e.g. starts with a protein accession, but remaining params invalid)
-		 *			5. VCF			- valid or invalid (e.g. missing param or invalid param type)
 		 *
 		 *	II	group by input type
-		 *		1. VCF, HGVS and gnomAD inputs, no extra step unless h37 specified
-		 *			if h37, retrieve converted coordinates
-		 *			mark input as "converted"
-		 *		2. RS inputs, get genomic coordinates, h38 assumed, no conversion  -> dbsnp tbl lookup to obtain (0..*) genomic coords
-		 *		3. Protein inputs, get genomic coordinates, h38 assumed, no conversion -> mapping tbl lookup to obtain (0..*) genomic coords
 		 *
 		 *	III build response map for each input
 		 *		each input -> [] of possible output
@@ -93,16 +82,36 @@ public class MappingFetcher {
 		List<Message> messages = new ArrayList<>();
 		response.setMessages(messages);
 
-		// Step I
+		// Step 1a - parse input strings into UserInput objects
 		List<UserInput> userInputs = parseUserInputStrIntoObject(inputs);
 		response.setInputs(userInputs);
 
+		// Step 1b - generate input summary
 		String inputSummary = inputSummary(userInputs);
 		messages.add(new Message(Message.MessageType.INFO, inputSummary));
 
 
-		// Step II - List<UserInput> to Map<InputType, List<UserInput>>
-		Map<Type, List<UserInput>> groupedInputs = userInputs.stream().filter(UserInput::isValid).collect(Collectors.groupingBy(UserInput::getType));
+		// Step 2 - group user inputs into input type: List<UserInput> -> Map<Type, List<UserInput>>
+		Map<Type, List<UserInput>> groupedInputs = userInputs.stream().filter(UserInput::isValid) // filter out any invalid inputs
+				.collect(Collectors.groupingBy(UserInput::getType));
+
+		// Type			Format									Required processing
+		// GENOMIC		VCF, HGVS_GEN, GNOMAD, CUSTOM_GEN		if onlyGenomicInput && h37 build specified, convert coords
+		// CODING 		HGVS_CODING								refseq NM_ mapping ??
+		// PROTEIN		HGVS_PROT, CUSTOM_PROT					get genomic coords (0..*) from g2p_mapping tbl
+		// ID			DBSNP, CLINVAR, COSMIC					get genomic coords (0..*) from dbsnp/clinvar/cosmic tbl
+
+		// Step 3 - process each input type
+
+
+		// GenomicInputProcessor
+		// ProteinInputProcessor
+		// IDInputProcessor
+		// CodingInputProcessor
+
+
+
+
 
 		// TODO
 		// for genomic input,
@@ -180,31 +189,21 @@ public class MappingFetcher {
 			pro2Gen.convert(proteinInputs);
 		}
 
-		// get all genomic positions
-		Set<Integer> gPositions = new HashSet<>();
-		userInputs.stream().forEach(i -> {
-			if (i instanceof GenomicInput) {
-				gPositions.add(((GenomicInput) i).getPos());
-			} else if (i instanceof DbsnpID) {
-				for (GenomicInput gInput :((DbsnpID) i).getDerivedGenomicInputs()) {
-					gPositions.add(gInput.getPos());
-				}
-			} else if (i instanceof ProteinInput) {
-				for (GenomicInput gInput :((ProteinInput) i).getDerivedGenomicInputs()) {
-					gPositions.add(gInput.getPos());
-				}
-			}
+		// get all chrPos combination
+
+		List<Object[]> chrPosList = new ArrayList<>();
+		userInputs.stream().forEach(userInput -> {
+			chrPosList.addAll(userInput.chrPos());
 		});
 
-		if (!gPositions.isEmpty()) {
+		if (!chrPosList.isEmpty()) {
 
 			// retrieve CADD predictions
-			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDPredictions(gPositions)
+			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosList)
 					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
 			// retrieve main mappings
-
-			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappings(gPositions);
+			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosList);
 
 			// get all protein accessions and positions from retrieved mappings
 			Set<String> canonicalAccessions = new HashSet<>();
@@ -231,14 +230,7 @@ public class MappingFetcher {
 			userInputs.stream().filter(UserInput::isValid).forEach(input -> {
 
 				List<GenomicInput> gInputs = new ArrayList<>();
-
-				if (input instanceof GenomicInput) {
-					gInputs.add((GenomicInput) input);
-				} else if (input instanceof DbsnpID) {
-					gInputs.addAll(((DbsnpID) input).getDerivedGenomicInputs());
-				} else if (input instanceof ProteinInput) {
-					gInputs.addAll(((ProteinInput) input).getDerivedGenomicInputs());
-				}
+				gInputs.addAll(input.genInputs());
 
 				gInputs.forEach(gInput -> {
 					try {

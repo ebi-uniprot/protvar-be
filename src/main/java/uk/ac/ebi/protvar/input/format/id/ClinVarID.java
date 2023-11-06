@@ -8,12 +8,21 @@ import uk.ac.ebi.protvar.utils.RegexUtils;
 
 import java.util.regex.Pattern;
 
+/**
+ * ClinVar Accession and version
+ * SCV000000000.0  -> submission    X
+ * RCV000000000.0  -> condition     /
+ * VCV000000000.0  -> variant       /
+ */
 public class ClinVarID extends IDInput {
+
     private static final Logger LOGGER = LoggerFactory.getLogger(ClinVarID.class);
-    // SCV000000000.0
-    // RCV000000000.0
-    // VCV000000000.0
-    public static final String PREFIX = "(SCV|RCV|VCV)";
+    public static final String RCV = "RCV";
+    public static final String VCV = "VCV";
+
+
+    public static final int PREFIX_LEN = 3;
+    public static final String PREFIX = String.format("(%s|%s)", RCV, VCV);
     public static final String REGEX = PREFIX + "(\\d+)(\\.\\d+)?";
 
     public ClinVarID(String inputStr) {
@@ -22,7 +31,7 @@ public class ClinVarID extends IDInput {
     }
 
     public static boolean startsWithPrefix(String input) {
-        return Pattern.matches("^"+PREFIX, input.toUpperCase());
+        return Pattern.matches("^"+PREFIX+"(.*)$", input.toUpperCase());
     }
 
     public static ClinVarID parse(String input) {
@@ -43,4 +52,6 @@ public class ClinVarID extends IDInput {
     public String toString() {
         return String.format("ClinVarID [id=%s]", getId());
     }
+
+
 }

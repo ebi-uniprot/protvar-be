@@ -183,4 +183,14 @@ public class ProteinInput extends UserInput {
         return derivedGenomicInputs.stream().map(GenomicInput::getMappings)
                 .flatMap(List::stream).collect(Collectors.toList());
     }
+
+    @Override
+    public List<Object[]> chrPos() {
+        return chrPosForDerivedGenomicInputs(derivedGenomicInputs);
+    }
+
+    @Override
+    public List<GenomicInput> genInputs() {
+        return derivedGenomicInputs;
+    }
 }

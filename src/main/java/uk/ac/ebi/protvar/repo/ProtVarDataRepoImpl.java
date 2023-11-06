@@ -21,31 +21,18 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProtVarDataRepoImpl.class);
 
-	private static final String SELECT_PREDICTIONS_BY_POSITIONS = "select chromosome, position, allele, altallele, rawscores, scores "
-			+ "from CADD_PREDICTION where position in (:position)";
+	private static final List EMPTY_RESULT = new ArrayList<>();
 
-	private static final String SELECT_MAPPINGS_SQL = "select " +
-			"chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, reverse_strand, " +
-			"ensg, ensg_ver, ensp, ensp_ver, enst, enst_ver, " +
-			"ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name " +
-			"from genomic_protein_mapping where chromosome = :chromosome and genomic_position = :position  order by is_canonical desc";
-	
-	private static final String SELECT_MAPPINGS_BY_POSITION_SQL = "select " +
-			"chromosome, protein_position, protein_seq, genomic_position, allele, codon, accession, reverse_strand, " +
-			"ensg, ensg_ver, ensp, ensp_ver, enst, enst_ver, " +
-			"ense, patch_name, is_match, gene_name, codon_position, is_canonical, is_mane_select, protein_name " +
-			"from genomic_protein_mapping where genomic_position in (:position)  order by is_canonical desc";
+	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN = "select * from cadd_prediction "
+			+ "where (chromosome, position) in (:chrPosList)";
 
-	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL = "select " +
-			"chromosome, allele, genomic_position, protein_position, codon, reverse_strand, codon_position " +
-			"from genomic_protein_mapping where protein_position = :proteinPosition " +
-			"and accession = :accession " +
-			"and codon_position in (:codonPositions) order by is_canonical desc";
+	private static final String SELECT_FROM_MAPPING_WHERE_CHR_POS_IN = "select * from genomic_protein_mapping " +
+			"where (chromosome, genomic_position) in (:chrPosList) order by is_canonical desc";
 
-	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL2 = "select " +
+	private static final String SELECT_FROM_MAPPING_WHERE_ACC_POS_IN = "select " +
 			"chromosome, genomic_position, allele, accession, protein_position, protein_seq, codon, codon_position, reverse_strand  " +
 			"from genomic_protein_mapping where " +
-			"(accession, protein_position) in (:accPPosition) ";
+			"(accession, protein_position) in (:accPosList) ";
 
 	// TODO CHECK - SQL Query Optimization for Large IN Queries
 	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL3 = "select " +
@@ -88,11 +75,13 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			"AND pos=:pos";
 
 	private NamedParameterJdbcTemplate jdbcTemplate;
-	
+
 	@Override
-	public List<CADDPrediction> getCADDPredictions(Set<Integer> positions) {
-		SqlParameterSource parameters = new MapSqlParameterSource("position", positions);
-		return jdbcTemplate.query(SELECT_PREDICTIONS_BY_POSITIONS, parameters, (rs, rowNum) -> createPrediction(rs));
+	public List<CADDPrediction> getCADDByChrPos(List<Object[]> chrPosList) {
+		if (chrPosList == null || chrPosList.isEmpty())
+			return EMPTY_RESULT;
+		SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
+		return jdbcTemplate.query(SELECT_FROM_CADD_WHERE_CHR_POS_IN, parameters, (rs, rowNum) -> createPrediction(rs));
 	}
 
 	private CADDPrediction createPrediction(ResultSet rs) throws SQLException {
@@ -101,16 +90,13 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	@Override
-	public List<GenomeToProteinMapping> getMappings(String chromosome, Integer position) {
-		SqlParameterSource parameters = new MapSqlParameterSource("position", position).addValue("chromosome",
-				chromosome);
+	public List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList) {
+		if (chrPosList == null || chrPosList.isEmpty())
+			return EMPTY_RESULT;
+		SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
 
-		return jdbcTemplate.query(SELECT_MAPPINGS_SQL, parameters, (rs, rowNum) -> createMapping(rs))
-			.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
-	}
-
-	private String ensXVersion(String ens, String ver) {
-		return (ens == null ? "" : ens) + "." + (ver == null ? "" : ver);
+		return jdbcTemplate.query(SELECT_FROM_MAPPING_WHERE_CHR_POS_IN, parameters, (rs, rowNum) -> createMapping(rs))
+				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
 	private GenomeToProteinMapping createMapping(ResultSet rs) throws SQLException {
@@ -137,26 +123,26 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				.build();
 	}
 
-	@Override
-	public List<GenomeToProteinMapping> getMappings(Set<Integer> positions) {
-		SqlParameterSource parameters = new MapSqlParameterSource("position", positions);
-
-		return jdbcTemplate.query(SELECT_MAPPINGS_BY_POSITION_SQL, parameters, (rs, rowNum) -> createMapping(rs))
-			.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
+	private String ensXVersion(String ens, String ver) {
+		return (ens == null ? "" : ens) + "." + (ver == null ? "" : ver);
 	}
-	public List<GenomeToProteinMapping> getMappings(String accession, Integer proteinPosition, Set<Integer> codonPositions) {
-		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
-				.addValue("proteinPosition", proteinPosition)
-				.addValue("codonPositions", codonPositions);
-		return jdbcTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL, parameters, (rs, rowNum) ->
+
+	public List<GenomeToProteinMapping> getMappingsByAccPos(List<Object[]> accPosList) {
+		if (accPosList == null || accPosList.isEmpty())
+			return EMPTY_RESULT;
+		SqlParameterSource parameters = new MapSqlParameterSource("accPPosition", accPosList);
+
+		return jdbcTemplate.query(SELECT_FROM_MAPPING_WHERE_ACC_POS_IN, parameters, (rs, rowNum) ->
 						GenomeToProteinMapping.builder()
 								.chromosome(rs.getString("chromosome"))
-								.baseNucleotide(rs.getString("allele"))
 								.genomeLocation(rs.getInt("genomic_position"))
+								.baseNucleotide(rs.getString("allele"))
+								.accession(rs.getString("accession"))
 								.isoformPosition(rs.getInt("protein_position"))
+								.aa(rs.getString("protein_seq"))
 								.codon(rs.getString("codon"))
-								.reverseStrand(rs.getBoolean("reverse_strand"))
-								.codonPosition(rs.getInt("codon_position")).build())
+								.codonPosition(rs.getInt("codon_position"))
+								.reverseStrand(rs.getBoolean("reverse_strand")).build())
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
@@ -172,23 +158,6 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				.addValue("chrPosRef", chrPosRefList);
 
 		return jdbcTemplate.queryForObject(sql, parameters, Integer.class);
-	}
-
-	public List<GenomeToProteinMapping> getGenomicCoordsByProteinAccAndPos(List<Object[]> accPPosition) {
-		SqlParameterSource parameters = new MapSqlParameterSource("accPPosition", accPPosition);
-
-		return jdbcTemplate.query(SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL2, parameters, (rs, rowNum) ->
-						GenomeToProteinMapping.builder()
-								.chromosome(rs.getString("chromosome"))
-								.genomeLocation(rs.getInt("genomic_position"))
-								.baseNucleotide(rs.getString("allele"))
-								.accession(rs.getString("accession"))
-								.isoformPosition(rs.getInt("protein_position"))
-								.aa(rs.getString("protein_seq"))
-								.codon(rs.getString("codon"))
-								.codonPosition(rs.getInt("codon_position"))
-								.reverseStrand(rs.getBoolean("reverse_strand")).build())
-				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
 	public List<EVEScore> getEVEScores(Set<String> protAccPositions) {

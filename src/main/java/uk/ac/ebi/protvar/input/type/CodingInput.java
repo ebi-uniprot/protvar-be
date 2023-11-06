@@ -18,12 +18,20 @@ public class CodingInput extends UserInput {
     String ref;
     String alt;
 
-    // output or result of input
-    List<GenomeProteinMapping> mappings = new ArrayList<>();
+    List<GenomicInput> derivedGenomicInputs = new ArrayList<>();
 
     public CodingInput(String inputStr) {
         setType(Type.CODING);
         setInputStr(inputStr);
     }
 
+    @Override
+    public List<Object[]> chrPos() {
+        return chrPosForDerivedGenomicInputs(derivedGenomicInputs);
+    }
+
+    @Override
+    public List<GenomicInput> genInputs() {
+        return derivedGenomicInputs;
+    }
 }

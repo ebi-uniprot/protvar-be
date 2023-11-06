@@ -34,4 +34,15 @@ public class IDInput extends UserInput {
         return "ID [id=" + id + "]";
     }
 
+    @Override
+    public List<Object[]> chrPos() {
+        return chrPosForDerivedGenomicInputs(derivedGenomicInputs);
+    }
+
+
+    @Override
+    public List<GenomicInput> genInputs() {
+        return derivedGenomicInputs;
+    }
+
 }

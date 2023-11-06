@@ -11,7 +11,15 @@ import java.util.regex.Pattern;
 public class CosmicID extends IDInput {
     private static final Logger LOGGER = LoggerFactory.getLogger(CosmicID.class);
 
-    public static final String PREFIX = "(COSV|COSM|COSN)";
+    // New ID prefix
+    public static final String COSV = "COSV";
+    // Legacy ID prefixes
+    public static final String COSM = "COSM";
+    public static final String COSN = "COSN";
+
+    public static final int PREFIX_LEN = 4;
+
+    public static final String PREFIX = String.format("(%s|%s|%s)", COSV,COSM,COSN);
     public static final String REGEX = PREFIX + "(\\d+)";
 
     public CosmicID(String inputStr) {
@@ -20,7 +28,7 @@ public class CosmicID extends IDInput {
     }
 
     public static boolean startsWithPrefix(String input) {
-        return Pattern.matches("^"+PREFIX, input.toUpperCase());
+        return Pattern.matches("^"+PREFIX+"(.*)$", input.toUpperCase());
     }
 
     public static CosmicID parse(String input) {

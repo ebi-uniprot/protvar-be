@@ -10,17 +10,14 @@ public interface ProtVarDataRepo {
 	//================================================================================
 	// GenomeToProteinMapping
 	//================================================================================
-
-	List<GenomeToProteinMapping> getMappings(String chromosome, Integer position);
-	List<GenomeToProteinMapping> getMappings(Set<Integer> positions);
-	List<GenomeToProteinMapping> getMappings(String accession, Integer proteinPosition, Set<Integer> codonPositions);
-	List<GenomeToProteinMapping> getGenomicCoordsByProteinAccAndPos(List<Object[]> accPPosition);
+	List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList);
+	List<GenomeToProteinMapping> getMappingsByAccPos(List<Object[]> accPosList);
 
 
 	//================================================================================
 	// CADDPrediction
 	//================================================================================
-	List<CADDPrediction> getCADDPredictions(Set<Integer> positions);
+	List<CADDPrediction> getCADDByChrPos(List<Object[]> chrPosList);
 
 
 	//================================================================================

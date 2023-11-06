@@ -289,4 +289,17 @@ public class GenomicInput extends UserInput {
                 && this.id.equals(g.id)
                 && this.getInputStr().equals(g.getInputStr());
     }
+
+    @Override
+    public List<Object[]> chrPos() {
+        List<Object[]> chrPosList = new ArrayList<>();
+        if (this.chr != null && this.pos != null)
+            chrPosList.add(new Object[]{this.chr, this.pos});
+        return chrPosList;
+    }
+
+    @Override
+    public List<GenomicInput> genInputs() {
+        return List.of(this);
+    }
 }

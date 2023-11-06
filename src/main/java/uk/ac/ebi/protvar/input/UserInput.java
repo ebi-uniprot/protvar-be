@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.input;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
@@ -127,5 +128,37 @@ public abstract class UserInput {
 		}
 		return GenomicInput.invalidInput(inputStr); // default (or most common) input is expected to be genomic, so
 												// let's assume any invalid input is of GenomicInput type.
+	}
+
+	@JsonIgnore
+	public String getClinVarIDPrefix() {
+		if (this instanceof ClinVarID
+				&& ((ClinVarID)this).getId() != null
+				&& ((ClinVarID)this).getId().length() > ClinVarID.PREFIX_LEN) {
+			return ((ClinVarID)this).getId().substring(0, ClinVarID.PREFIX_LEN);
+		}
+		return "";
+	}
+
+	@JsonIgnore
+	public String getCosmicIDPrefix() {
+		if (this instanceof CosmicID
+				&& ((CosmicID)this).getId() != null
+				&& ((CosmicID)this).getId().length() > CosmicID.PREFIX_LEN) {
+			return ((CosmicID)this).getId().substring(0, CosmicID.PREFIX_LEN);
+		}
+		return "";
+	}
+
+	abstract public List<Object[]> chrPos();
+	abstract public List<GenomicInput> genInputs();
+
+	protected List<Object[]> chrPosForDerivedGenomicInputs(List<GenomicInput> derivedGenomicInputs) {
+		List<Object[]> chrPosList = new ArrayList<>();
+		for (GenomicInput genomicInput : derivedGenomicInputs) {
+			if (genomicInput.getChr() != null && genomicInput.getPos() != null)
+				chrPosList.add(new Object[]{genomicInput.getChr(), genomicInput.getPos()});
+		}
+		return chrPosList;
 	}
 }
