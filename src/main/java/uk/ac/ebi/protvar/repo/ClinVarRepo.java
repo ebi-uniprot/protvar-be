@@ -6,7 +6,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.model.data.ClinVar;
-import uk.ac.ebi.protvar.model.data.Cosmic;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -21,20 +20,20 @@ public class ClinVarRepo {
     public static final String SELECT_CLINVAR_WHERE_RCV_IN = "SELECT DISTINCT * FROM clinvar WHERE rcv in (:rcv)";
     public static final String SELECT_CLINVAR_WHERE_VCV_IN = "SELECT DISTINCT * FROM clinvar WHERE vcv in (:vcv)";
 
-    private NamedParameterJdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public List<ClinVar> getByRCV(Set<String> rcv) {
         if (rcv == null || rcv.isEmpty())
             return new ArrayList<>();
         SqlParameterSource parameters = new MapSqlParameterSource("rcv", rcv);
-        return jdbcTemplate.query(SELECT_CLINVAR_WHERE_RCV_IN, parameters, (rs, rowNum) -> createClinVar(rs));
+        return namedParameterJdbcTemplate.query(SELECT_CLINVAR_WHERE_RCV_IN, parameters, (rs, rowNum) -> createClinVar(rs));
     }
 
     public List<ClinVar> getByVCV(Set<String> vcv) {
         if (vcv == null || vcv.isEmpty())
             return new ArrayList<>();
         SqlParameterSource parameters = new MapSqlParameterSource("vcv", vcv);
-        return jdbcTemplate.query(SELECT_CLINVAR_WHERE_VCV_IN, parameters, (rs, rowNum) -> createClinVar(rs));
+        return namedParameterJdbcTemplate.query(SELECT_CLINVAR_WHERE_VCV_IN, parameters, (rs, rowNum) -> createClinVar(rs));
     }
 
     private ClinVar createClinVar(ResultSet rs) throws SQLException {
