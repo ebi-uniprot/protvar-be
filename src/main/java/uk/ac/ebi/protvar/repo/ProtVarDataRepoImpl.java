@@ -23,27 +23,28 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private static final List EMPTY_RESULT = new ArrayList<>();
 
+	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN_ = "select * from cadd_prediction "
+			+ "where (chromosome, position) in (:chrPosSet)";
+
+	// SQL query optimised for large "IN" input
 	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN = "select * from cadd_prediction "
-			+ "where (chromosome, position) in (:chrPosList)";
+			+ "inner join (values :chrPosSet) as t(chr,pos) "
+			+ "on t.chr=chromosome and t.pos=position ";
 
-	private static final String SELECT_FROM_MAPPING_WHERE_CHR_POS_IN = "select * from genomic_protein_mapping " +
-			"where (chromosome, genomic_position) in (:chrPosList) order by is_canonical desc";
+	private static final String SELECT_FROM_MAPPING_WHERE_CHR_POS_IN = "select * from genomic_protein_mapping "
+			+ "inner join (values :chrPosSet) as t(chr,pos) "
+			+ "on t.chr=chromosome and t.pos=genomic_position "
+			+ "order by is_canonical desc ";
 
-	private static final String SELECT_FROM_MAPPING_WHERE_ACC_POS_IN = "select " +
-			"chromosome, genomic_position, allele, accession, protein_position, protein_seq, codon, codon_position, reverse_strand  " +
-			"from genomic_protein_mapping where " +
-			"(accession, protein_position) in (:accPosList) ";
+	private static final String SELECT_FROM_MAPPING_WHERE_ACC_POS_IN = "select "
+			+ "chromosome, genomic_position, allele, accession, protein_position, protein_seq, codon, codon_position, reverse_strand  "
+			+ "from genomic_protein_mapping "
+			+ "inner join (values :accPosSet) as t(acc,pos) "
+			+ "on t.acc=accession and t.pos=protein_position ";
 
-	// TODO CHECK - SQL Query Optimization for Large IN Queries
-	private static final String SELECT_MAPPING_BY_ACCESSION_AND_POSITIONS_SQL3 = "select " +
-			"chromosome, genomic_position, allele, accession, protein_position, protein_seq, codon, codon_position, reverse_strand  " +
-			"from genomic_protein_mapping " +
-			"inner join ( " +
-			"values ? ) as t(acc,pos) " +
-			"on t.acc=accession and t.pos=protein_position ";
-
-	private static final String SELECT_EVE_SCORES = "SELECT * FROM EVE_SCORE " +
-			"WHERE (accession, position) IN (:protAccPositions) ";
+	private static final String SELECT_FROM_EVE_WHERE_ACC_POS_IN = "select * from eve_score "
+			+ "inner join (values :accPosSet) as t(acc,pos) "
+			+ "on t.acc=accession and t.pos=position ";
 
 	//private static final String SELECT_DBSNPS = "SELECT * FROM dbsnp WHERE id IN (:ids) ";
 	private static final String SELECT_CROSSMAPS = "SELECT * FROM crossmap WHERE grch{VER}_pos IN (:pos) ";
@@ -77,10 +78,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private NamedParameterJdbcTemplate jdbcTemplate;
 
 	@Override
-	public List<CADDPrediction> getCADDByChrPos(List<Object[]> chrPosList) {
-		if (chrPosList == null || chrPosList.isEmpty())
+	public List<CADDPrediction> getCADDByChrPos(Set<Object[]> chrPosSet) {
+		if (chrPosSet == null || chrPosSet.isEmpty())
 			return EMPTY_RESULT;
-		SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
+		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
 		return jdbcTemplate.query(SELECT_FROM_CADD_WHERE_CHR_POS_IN, parameters, (rs, rowNum) -> createPrediction(rs));
 	}
 
@@ -90,10 +91,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	@Override
-	public List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList) {
-		if (chrPosList == null || chrPosList.isEmpty())
+	public List<GenomeToProteinMapping> getMappingsByChrPos(Set<Object[]> chrPosSet) {
+		if (chrPosSet == null || chrPosSet.isEmpty())
 			return EMPTY_RESULT;
-		SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
+		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
 
 		return jdbcTemplate.query(SELECT_FROM_MAPPING_WHERE_CHR_POS_IN, parameters, (rs, rowNum) -> createMapping(rs))
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
@@ -127,10 +128,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return (ens == null ? "" : ens) + "." + (ver == null ? "" : ver);
 	}
 
-	public List<GenomeToProteinMapping> getMappingsByAccPos(List<Object[]> accPosList) {
-		if (accPosList == null || accPosList.isEmpty())
+	public List<GenomeToProteinMapping> getMappingsByAccPos(Set<Object[]> accPosSet) {
+		if (accPosSet == null || accPosSet.isEmpty())
 			return EMPTY_RESULT;
-		SqlParameterSource parameters = new MapSqlParameterSource("accPPosition", accPosList);
+		SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
 
 		return jdbcTemplate.query(SELECT_FROM_MAPPING_WHERE_ACC_POS_IN, parameters, (rs, rowNum) ->
 						GenomeToProteinMapping.builder()
@@ -160,25 +161,12 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return jdbcTemplate.queryForObject(sql, parameters, Integer.class);
 	}
 
-	public List<EVEScore> getEVEScores(Set<String> protAccPositions) {
-		Set<Object[]> protAccPositionsObjSet = new HashSet<>();
-		for (String accPos : protAccPositions) {
-			String[] arr = accPos.split(":");
-			if (arr.length == 2) {
-				String acc = arr[0];
-				try {
-					int pos = Integer.parseInt(arr[1]);
-					protAccPositionsObjSet.add(new Object[]{acc, pos });
-				} catch (NumberFormatException ex) {
-					// do nothing
-				}
-			}
+	public List<EVEScore> getEVEScores(Set<Object[]> accPosSet) {
+		if (accPosSet.size() > 0) {
+			SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
+			return jdbcTemplate.query(SELECT_FROM_EVE_WHERE_ACC_POS_IN, parameters, (rs, rowNum) -> createEveScore(rs));
 		}
-		if (protAccPositionsObjSet.size() > 0) {
-			SqlParameterSource parameters = new MapSqlParameterSource("protAccPositions", protAccPositionsObjSet);
-			return jdbcTemplate.query(SELECT_EVE_SCORES, parameters, (rs, rowNum) -> createEveScore(rs));
-		}
-		return new ArrayList<>();
+		return EMPTY_RESULT;
 	}
 /*
 	@Override

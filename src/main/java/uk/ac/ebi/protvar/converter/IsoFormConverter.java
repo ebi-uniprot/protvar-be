@@ -35,7 +35,8 @@ public class IsoFormConverter {
 	}
 
 	public List<IsoFormMapping> createIsoforms(List<GenomeToProteinMapping> mappingList, String refAlleleUser,
-											   String variantAllele, Map<String, List<EVEScore>> eveScoreMap, List<OPTIONS> options) {
+											   String variantAllele, Map<String, List<EVEScore>> eveScoreMap,
+											   Map<String, List<Variation>> variationMap, List<OPTIONS> options) {
 		String canonicalAccession = mappingList.stream().filter(GenomeToProteinMapping::isCanonical)
 				.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
 
@@ -43,14 +44,14 @@ public class IsoFormConverter {
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getAccession));
 
 		return accessionMapping.keySet().stream()
-				.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), eveScoreMap, options))
+				.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), eveScoreMap, variationMap, options))
 				.sorted().collect(Collectors.toList());
 
 	}
 
 	private IsoFormMapping createIsoform(String refAlleleUser, String variantAllele, String canonicalAccession,
 			String accession, List<GenomeToProteinMapping> g2pAccessionMapping, Map<String, List<EVEScore>> eveScoreMap,
-										 List<OPTIONS> options) {
+			Map<String, List<Variation>> variationMap, List<OPTIONS> options) {
 		GenomeToProteinMapping genomeToProteinMapping = g2pAccessionMapping.get(0);
 
 		boolean strand = genomeToProteinMapping.isReverseStrand();
@@ -85,7 +86,7 @@ public class IsoFormConverter {
 				builder.eveScore(eveScore.getScore());
 				builder.eveClass(eveScore.getEveClass().getNum());
 			}
-			optionalAttributeBuilder.build(accession, genomicLocation, variantAA.getOneLetter(), genomeToProteinMapping.getIsoformPosition(), options, builder);
+			optionalAttributeBuilder.build(accession, genomicLocation, variantAA.getOneLetter(), genomeToProteinMapping.getIsoformPosition(), variationMap, options, builder);
 		}
 		return builder.build();
 	}

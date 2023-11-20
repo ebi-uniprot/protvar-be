@@ -1,6 +1,7 @@
 package uk.ac.ebi.protvar.fetcher;
 
 import lombok.AllArgsConstructor;
+import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +10,6 @@ import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.cache.UniprotEntryCache;
 import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.input.*;
-import uk.ac.ebi.protvar.input.format.id.DbsnpID;
 import uk.ac.ebi.protvar.input.mapper.ID2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
@@ -191,37 +191,39 @@ public class MappingFetcher {
 
 		// get all chrPos combination
 
-		List<Object[]> chrPosList = new ArrayList<>();
+		Set<Object[]> chrPosSet = new HashSet<>();
 		userInputs.stream().forEach(userInput -> {
-			chrPosList.addAll(userInput.chrPos());
+			chrPosSet.addAll(userInput.chrPos());
 		});
 
-		if (!chrPosList.isEmpty()) {
+		if (!chrPosSet.isEmpty()) {
 
 			// retrieve CADD predictions
-			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosList)
+			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosSet)
 					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
 			// retrieve main mappings
-			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosList);
+			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosSet);
 
 			// get all protein accessions and positions from retrieved mappings
 			Set<String> canonicalAccessions = new HashSet<>();
-			Set<String> canonicalAccessionLocations = new HashSet<>();
+			Set<Object[]> accPosSet = new HashSet<>();
 			g2pMappings.stream().filter(GenomeToProteinMapping::isCanonical).forEach(m -> {
 				canonicalAccessions.add(m.getAccession());
-				canonicalAccessionLocations.add(m.getAccession() + ":" + m.getIsoformPosition());
+				accPosSet.add(new Object[] {m.getAccession(), m.getIsoformPosition()});
 			});
+
+			final Map<String, List<Variation>> variationMap = options.contains(OPTIONS.POPULATION) ? variationFetcher.prefetchdb(accPosSet) : new HashedMap();
 
 			options.parallelStream().forEach(o -> {
 				if (o.equals(OPTIONS.FUNCTION))
 					proteinsFetcher.prefetch(canonicalAccessions);
-				if (o.equals(OPTIONS.POPULATION))
-					variationFetcher.prefetch(canonicalAccessionLocations);
+				//if (o.equals(OPTIONS.POPULATION))
+				//	variationFetcher.prefetch(canonicalAccessionLocations);
 			});
 
 			// retrieve EVE scores
-			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(canonicalAccessionLocations)
+			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(accPosSet)
 					.stream().collect(Collectors.groupingBy(EVEScore::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
@@ -243,7 +245,7 @@ public class MappingFetcher {
 
 						List<Gene> ensgMappingList = Collections.emptyList();
 						if (mappingList != null)
-							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput.getRef(), gInput.getAlt(), caddScore, eveScoreMap, options);
+							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput.getRef(), gInput.getAlt(), caddScore, eveScoreMap, variationMap, options);
 
 						GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
 						gInput.getMappings().add(mapping);

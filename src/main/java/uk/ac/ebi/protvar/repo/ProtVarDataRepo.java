@@ -10,21 +10,20 @@ public interface ProtVarDataRepo {
 	//================================================================================
 	// GenomeToProteinMapping
 	//================================================================================
-	List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList);
-	List<GenomeToProteinMapping> getMappingsByAccPos(List<Object[]> accPosList);
+	List<GenomeToProteinMapping> getMappingsByChrPos(Set<Object[]> chrPosSet);
+	List<GenomeToProteinMapping> getMappingsByAccPos(Set<Object[]> accPosList);
 
 
 	//================================================================================
 	// CADDPrediction
 	//================================================================================
-	List<CADDPrediction> getCADDByChrPos(List<Object[]> chrPosList);
+	List<CADDPrediction> getCADDByChrPos(Set<Object[]> chrPosSet);
 
 
 	//================================================================================
 	// EVEScore
 	//================================================================================
-	List<EVEScore> getEVEScores(Set<String> protAccPositions);
-
+	List<EVEScore> getEVEScores(Set<Object[]> accPosSet);
 
 	//================================================================================
 	// DBSNP

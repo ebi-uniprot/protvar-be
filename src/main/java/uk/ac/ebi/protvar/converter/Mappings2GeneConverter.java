@@ -13,6 +13,7 @@ import uk.ac.ebi.protvar.model.data.EVEScore;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
+import uk.ac.ebi.protvar.model.response.Variation;
 import uk.ac.ebi.protvar.utils.ReverseCompliment;
 
 @Service
@@ -24,7 +25,8 @@ public class Mappings2GeneConverter {
 	private IsoFormConverter isformConverter;
 
 	public List<Gene> createGenes(List<GenomeToProteinMapping> mappings, String allele, String variantAllele,
-								  Double caddScore, Map<String, List<EVEScore>> eveScoreMap, List<OPTIONS> options) {
+								  Double caddScore, Map<String, List<EVEScore>> eveScoreMap,
+								  Map<String, List<Variation>> variationMap, List<OPTIONS> options) {
 
 		Map<String, List<GenomeToProteinMapping>> ensgMappings = mappings.stream()
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getEnsg));
@@ -39,7 +41,7 @@ public class Mappings2GeneConverter {
 			String userAllele = getUserAllele(allele, genomeToProteinMapping.isReverseStrand());
 
 			List<IsoFormMapping> accMappings = isformConverter.createIsoforms(mappingList, userAllele, variantAllele,
-					eveScoreMap, options);
+					eveScoreMap, variationMap, options);
 
 			return Gene.builder().ensg(ensg).reverseStrand(genomeToProteinMapping.isReverseStrand())
 					.geneName(genomeToProteinMapping.getGeneName())

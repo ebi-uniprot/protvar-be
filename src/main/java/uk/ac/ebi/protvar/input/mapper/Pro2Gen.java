@@ -63,13 +63,13 @@ codon position = 1
  */
     public void convert(List<UserInput> proteinInputs) {
         // 1. get all the accessions and positions
-        List<Object[]> accPosList = new ArrayList<>();
+        Set<Object[]> accPosSet = new HashSet<>();
         proteinInputs.stream().map(i -> (ProteinInput) i).forEach(input -> {
-            accPosList.add(new Object[]{input.getAcc(), input.getPos()});
+            accPosSet.add(new Object[]{input.getAcc(), input.getPos()});
         });
 
         // 2. get all the relevant db records by accessions and positions
-        Map<String, List<GenomeToProteinMapping>> gCoords = protVarDataRepo.getMappingsByAccPos(accPosList)
+        Map<String, List<GenomeToProteinMapping>> gCoords = protVarDataRepo.getMappingsByAccPos(accPosSet)
                 .stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupByProteinAccAndPos));
 
         // 3. we expect each protein input to have 3 genomic coordinates (in normal cases),
