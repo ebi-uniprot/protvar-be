@@ -38,7 +38,7 @@ public class Variation implements Serializable {
 	//should be number
 	//greater than 0
 	//never be null
-	private String genomicLocation;
+	private List<String> genomicLocation;
 
 	@JsonInclude(Include.NON_NULL)
 	private List<Variation> colocatedVariants;
@@ -56,5 +56,12 @@ public class Variation implements Serializable {
 
 	public String getAlternativeSequence() {
 		return upperFirstRemainingLower(alternativeSequence);
+	}
+
+	// Override default getter to return a singleton value
+	public String getGenomicLocation() {
+		if (genomicLocation != null && !genomicLocation.isEmpty())
+			return genomicLocation.get(0);
+		return null;
 	}
 }
