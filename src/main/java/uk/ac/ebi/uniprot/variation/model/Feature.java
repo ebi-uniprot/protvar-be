@@ -17,7 +17,7 @@ public class Feature {
 	private List<DSVDbReferenceObject> xrefs = new ArrayList<>();
 	private List<Evidence> evidences = new ArrayList<>();
 	private String cytogeneticBand;
-	private String genomicLocation;
+	private List<String> genomicLocation;
 	private String codon;
 	private String consequenceType;
 	private String wildType;
