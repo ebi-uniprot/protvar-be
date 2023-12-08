@@ -7,7 +7,7 @@ class HGVSpTest {
     @Test
     void testValid3LetterAA() {
         HGVSp userInput = HGVSp.parse("NP_003997.1:p.Arg490Ser");
-        assert(userInput.getAcc().equals("NP_003997.1"));
+        assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 490);
         assert(userInput.getRef().equals("Arg"));
         assert(userInput.getAlt().equals("Ser"));
@@ -16,7 +16,7 @@ class HGVSpTest {
     @Test
     void testValid1LetterAA() {
         HGVSp userInput = HGVSp.parse("NP_003997.1:p.R490S");
-        assert(userInput.getAcc().equals("NP_003997.1"));
+        assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 490);
         assert(userInput.getRef().equals("R"));
         assert(userInput.getAlt().equals("S"));
@@ -25,7 +25,7 @@ class HGVSpTest {
     @Test
     void testValid3LetterAA_Ter() {
         HGVSp userInput = HGVSp.parse("NP_003997.1:p.Trp87Ter");
-        assert(userInput.getAcc().equals("NP_003997.1"));
+        assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 87);
         assert(userInput.getRef().equals("Trp"));
         assert(userInput.getAlt().equals("Ter"));
@@ -34,7 +34,7 @@ class HGVSpTest {
     @Test
     void testValid3LetterAA_StopCodon() {
         HGVSp userInput = HGVSp.parse("NP_003997.1:p.Trp78*");
-        assert(userInput.getAcc().equals("NP_003997.1"));
+        assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 78);
         assert(userInput.getRef().equals("Trp"));
         assert(userInput.getAlt().equals("*"));
@@ -43,7 +43,7 @@ class HGVSpTest {
     @Test
     void testValid1LetterAA_StopCodon() {
         HGVSp userInput = HGVSp.parse("NP_003997.1:p.W87*");
-        assert(userInput.getAcc().equals("NP_003997.1"));
+        assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 87);
         assert(userInput.getRef().equals("W"));
         assert(userInput.getAlt().equals("*"));
@@ -53,7 +53,7 @@ class HGVSpTest {
     void testInvalid3and1LetterAA() {
         HGVSp userInput = HGVSp.parse("NP_003997.1:p.Arg87S");
 
-        assert(userInput.getAcc() == null);
+        assert(userInput.getRsAcc() == null);
         assert(userInput.getPos() == null);
         assert(userInput.getRef() == null);
         assert(userInput.getAlt() == null);

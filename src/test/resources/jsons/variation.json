@@ -98,7 +98,7 @@
 					}
 				],
 				"cytogeneticBand": "14q32.11",
-				"genomicLocation": "NC_000014.9:g.89993420A>G",
+				"genomicLocation": [ "NC_000014.9:g.89993420A>G" ],
 				"locations": [
 					{
 						"loc": "p.His493Arg",
@@ -340,7 +340,7 @@
 					}
 				],
 				"cytogeneticBand": "14q32.11",
-				"genomicLocation": "NC_000014.9:g.89993420A>G",
+				"genomicLocation": [ "NC_000014.9:g.89993420A>G" ],
 				"locations": [
 					{
 						"loc": "p.His493Arg",
@@ -582,7 +582,7 @@
 					}
 				],
 				"cytogeneticBand": "14q32.11",
-				"genomicLocation": "NC_000014.9:g.89993420A>G",
+				"genomicLocation": [ "NC_000014.9:g.89993420A>G" ],
 				"locations": [
 					{
 						"loc": "p.His134Arg",
@@ -824,7 +824,7 @@
 					}
 				],
 				"cytogeneticBand": "14q32.11",
-				"genomicLocation": "NC_000014.9:g.89993420A>G",
+				"genomicLocation": [ "NC_000014.9:g.89993420A>G" ],
 				"locations": [
 					{
 						"loc": "p.His493Arg",
