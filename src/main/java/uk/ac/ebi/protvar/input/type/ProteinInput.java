@@ -91,7 +91,7 @@ public class ProteinInput extends UserInput {
 
     List<GenomicInput> derivedGenomicInputs = new ArrayList<>();
 
-    protected ProteinInput(String inputStr) {
+    public ProteinInput(String inputStr) {
         setType(Type.PROTEIN);
         setFormat(Format.CUSTOM_PROT);
         setInputStr(inputStr);
