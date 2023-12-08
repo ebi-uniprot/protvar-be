@@ -40,7 +40,7 @@ public class VariationRepo {
     }
 
     public Map<String, List<Feature>> getFeatureMap(Set<Object[]> accPosSet) {
-        if (accPosSet != null && !accPosSet.isEmpty())
+        if (accPosSet == null || accPosSet.isEmpty())
             return new HashedMap();
 
         SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
