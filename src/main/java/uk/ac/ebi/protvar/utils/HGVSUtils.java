@@ -12,8 +12,7 @@ public class HGVSUtils {
     public static final String COLON = ":";
     public static final String SUB_SIGN = ">";
     public static boolean maybeHGVS(String prefix, String scheme, String input) {
-        String in = input.toUpperCase();
-        return in.startsWith(prefix) && in.contains(scheme);
+        return input.toUpperCase().startsWith(prefix) && input.contains(scheme);
     }
 
     /**
