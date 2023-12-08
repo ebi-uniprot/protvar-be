@@ -3,7 +3,6 @@ package uk.ac.ebi.protvar.input.type;
 import lombok.Getter;
 import lombok.Setter;
 import uk.ac.ebi.protvar.input.*;
-import uk.ac.ebi.protvar.input.format.id.DbsnpID;
 import uk.ac.ebi.protvar.model.response.GenomeProteinMapping;
 
 import java.util.ArrayList;
