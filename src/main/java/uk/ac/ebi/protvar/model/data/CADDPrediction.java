@@ -6,7 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CADDPrediction {
-	public CADDPrediction(String chromosome, Long position, String referenceAllele, String altAllele, double rawScore,
+	public CADDPrediction(String chromosome, Integer position, String referenceAllele, String altAllele, double rawScore,
 			double score) {
 		super();
 		this.chromosome = chromosome;
@@ -17,7 +17,7 @@ public class CADDPrediction {
 		this.score = score;
 	}
 	private String chromosome;
-	private Long position;
+	private Integer position;
 	private String referenceAllele;
 	private String altAllele;
 	private double rawScore;

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.converter.VariationAPI2VariationConverter;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.Variation;
+import uk.ac.ebi.protvar.repo.VariationRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.variation.api.VariationAPI;
 import uk.ac.ebi.uniprot.variation.model.DataServiceVariation;
@@ -27,7 +28,8 @@ public class VariationFetcher {
 	//private final Cache<String, List<Variation>> cache = CacheBuilder.newBuilder().build();
 
 	private VariationAPI2VariationConverter converter;
-	private VariationAPI variationAPI;
+	private VariationAPI variationAPI; // from API
+	private VariationRepo variationRepo; // from Repo i.e. ProtVar DB tbl
 
 	private HTreeMap<String, List<Variation>> variationCache;
 
@@ -101,11 +103,30 @@ public class VariationFetcher {
 	}
 
 	public PopulationObservation fetchPopulationObservation(String accession, int proteinLocation) {
-		List<Variation> variations = fetch(accession, proteinLocation);
-
+		//List<Variation> variations = fetch(accession, proteinLocation);
+		List<Variation> variations = fetchdb(accession, proteinLocation);
 		PopulationObservation populationObservation = new PopulationObservation();
 		populationObservation.setProteinColocatedVariant(variations);
 		return populationObservation;
+	}
+
+	public Map<String, List<Variation>> prefetchdb(Set<Object[]> accPosSet) {
+		Map<String, List<Feature>> featureMap = variationRepo.getFeatureMap(accPosSet);
+		Map<String, List<Variation>> varMap = featureMap.entrySet()
+				.stream()
+				.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().stream()
+						.filter(Objects::nonNull)
+						.map(converter::convert)
+						.collect(Collectors.toList())));
+		return varMap;
+	}
+
+	private List<Variation> fetchdb(String accession, int proteinLocation) {
+		List<Feature> features = variationRepo.getFeatures(accession, proteinLocation);
+		return features.stream()
+				.filter(Objects::nonNull)
+				.map(converter::convert)
+				.collect(Collectors.toList());
 	}
 
 }

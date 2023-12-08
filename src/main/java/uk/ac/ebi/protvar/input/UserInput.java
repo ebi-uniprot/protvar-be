@@ -1,33 +1,48 @@
 package uk.ac.ebi.protvar.input;
 
 import java.util.*;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
+import uk.ac.ebi.protvar.input.format.coding.HGVSc;
+import uk.ac.ebi.protvar.input.format.genomic.Gnomad;
+import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
+import uk.ac.ebi.protvar.input.format.id.ClinVarID;
+import uk.ac.ebi.protvar.input.format.id.CosmicID;
+import uk.ac.ebi.protvar.input.format.id.DbsnpID;
+import uk.ac.ebi.protvar.input.format.genomic.VCF;
+import uk.ac.ebi.protvar.input.format.protein.HGVSp;
+import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.response.Message;
 
-/*                   UserInput
- *                   -inputStr
- *                   ^        ^
- *                  /type=gen  \______________.______________.
- *           GenomicInput                    |               |
- *           -chr,pos,id,ref,alt             |               |
- *           -mappings,converted             |               |
- * subtype   /     |          \              |type=pro       |type=rs
- *    VCFInput  HGVSInput  GnomadInput  ProteinInput       RSInput
- *                                     -acc,pos,ref,alt    -id
- *                                     - derivedGenInputs  -derivedGenInputs
+/**
+ *                            UserInput
+ *                            ^ ^  ^ ^
+ *                           /  |  |  \___________________
+ *                    ______/   |  |__________           |
+ *                   |          |            |           |
+ *  Type          Genomic    Coding       Protein      ID/Ref
+ *  (props)    chr,pos,(id),             acc,pos       id
+ *             ref,alt,mappings          ref,alt_aa
+ *                  |           |            |           |
+ *  Format        Custom      HGVSc       Custom       DBSNP, ClinVar
+ *                VCF            \        HGVSc        COSMIC
+ *                HGVSg           \         |         /
+ *                GnomAD           \        |        /
+ *                                   derivedGenInputs
  */
 @Getter
 @Setter
 public abstract class UserInput {
+
 	String inputStr;
+	Type type;
+	Format format;
 
 	private final List<Message> messages = new ArrayList<>();
-
-	public abstract InputType getType();
 
 	public void addError(String text) {
 		this.messages.add(new Message(Message.MessageType.ERROR, text));
@@ -51,20 +66,99 @@ public abstract class UserInput {
 		return messages.stream().filter(m ->  m.getType() == Message.MessageType.ERROR).map(m -> m.getText()).collect(Collectors.toList());
 	}
 
-	public static UserInput getInput(String input) {
-		if (input == null)
+
+	/**
+	 * Parse input string into a UserInput object.
+	 * @param inputStr	Null and empty inputs will have been filtered before calling this function.
+	 *             Input string will have been trimmed as well.
+	 * @return
+	 */
+	public static UserInput getInput(String inputStr) {
+		if (inputStr == null || inputStr.isEmpty())
 			return null;
-		if (Pattern.matches(RSInput.RS_ID_REGEX, input))
-			return new RSInput(input);
-		if (Pattern.matches(GnomadInput.GNOMAD_ID_REGEX, input))
-			return new GnomadInput(input);
-		if (input.startsWith(HGVSInput.HGVS_PREFIX))
-			return new HGVSInput(input);
-		if (ProteinInput.startsWithAccession(input))
-			return new ProteinInput(input);
-		if (VCFInput.startsWithChromo(input))
-			return new VCFInput(input);
-		return GenomicInput.invalidInput(input); // default (or most common) input is expected to be genomic, so
+
+		// Steps:
+		// LEVEL 1 (first-level) CHECK
+		// Only check if input meets "general" pattern for a specific type for e.g. if input starts with a certain
+		// prefix, for e.g. XX, we assume it is of a specific type.
+		// This happens at the top-level "if" condition below, before using the appropriate parser for full parsing.
+		// LEVEL 2 (second-level) CHECK
+		// Full parsing of input string to extract all attributes happens in L2.
+		// Here we may find that we are dealing with a specific input type, but it doesn't full parse (or contain all
+		// the info we require)
+
+		// ID/ref checks - these should be single-word input
+		if (DbsnpID.startsWithPrefix(inputStr)) {
+			return DbsnpID.parse(inputStr);
+		}
+		else if (ClinVarID.startsWithPrefix(inputStr)) {
+			return ClinVarID.parse(inputStr);
+		}
+		else if (CosmicID.startsWithPrefix(inputStr)) {
+			return CosmicID.parse(inputStr);
+		}
+		// HGVS checks - should also be single-word input
+		else if (HGVSg.maybeHGVSg(inputStr)) { //  just because check on startsWithPrefix isn't enough
+			return HGVSg.parse(inputStr);
+		}
+		else if (HGVSc.maybeHGVSc(inputStr)) {
+			return HGVSc.parse(inputStr);
+		}
+		else if (HGVSp.maybeHGVSp(inputStr)) {
+			return HGVSp.parse(inputStr);
+		}
+		// GNOMAD ID check - again this is a single-word ('-' separated) input
+		else if (Gnomad.isValid(inputStr)) {
+			return Gnomad.parse(inputStr);
+		}
+		// Remaining input formats at this point
+		// - custom protein -> always starts with an accession
+		// - VCF and generic/custom genomic -> always starts with a chr
+		else if (ProteinInput.startsWithAccession(inputStr)) {
+			return ProteinInput.parse(inputStr);
+		}
+		else if (GenomicInput.startsWithChromo(inputStr)) {
+			// VCF if input sticks to strict format, otherwise, maybe custom
+			if (VCF.isValid(inputStr)) {
+				return VCF.parse(inputStr);
+			}
+			else if (GenomicInput.isValid(inputStr)) {
+				return GenomicInput.parse(inputStr);
+			}
+		}
+		return GenomicInput.invalidInput(inputStr); // default (or most common) input is expected to be genomic, so
 												// let's assume any invalid input is of GenomicInput type.
+	}
+
+	@JsonIgnore
+	public String getClinVarIDPrefix() {
+		if (this instanceof ClinVarID
+				&& ((ClinVarID)this).getId() != null
+				&& ((ClinVarID)this).getId().length() > ClinVarID.PREFIX_LEN) {
+			return ((ClinVarID)this).getId().substring(0, ClinVarID.PREFIX_LEN);
+		}
+		return "";
+	}
+
+	@JsonIgnore
+	public String getCosmicIDPrefix() {
+		if (this instanceof CosmicID
+				&& ((CosmicID)this).getId() != null
+				&& ((CosmicID)this).getId().length() > CosmicID.PREFIX_LEN) {
+			return ((CosmicID)this).getId().substring(0, CosmicID.PREFIX_LEN);
+		}
+		return "";
+	}
+
+	abstract public List<Object[]> chrPos();
+	abstract public List<GenomicInput> genInputs();
+
+	protected List<Object[]> chrPosForDerivedGenomicInputs(List<GenomicInput> derivedGenomicInputs) {
+		List<Object[]> chrPosList = new ArrayList<>();
+		for (GenomicInput genomicInput : derivedGenomicInputs) {
+			if (genomicInput.getChr() != null && genomicInput.getPos() != null)
+				chrPosList.add(new Object[]{genomicInput.getChr(), genomicInput.getPos()});
+		}
+		return chrPosList;
 	}
 }

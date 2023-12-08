@@ -1,10 +1,16 @@
 package uk.ac.ebi.protvar;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
@@ -19,6 +25,7 @@ import uk.ac.ebi.uniprot.proteins.api.ProteinsAPIImpl;
 import uk.ac.ebi.uniprot.variation.api.VariationAPI;
 import uk.ac.ebi.uniprot.variation.api.VariationAPIImpl;
 
+import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 
 @Configuration
@@ -36,6 +43,34 @@ public class ApplicationConfig {
     @Value(("${pdbe.best-structures.api.url}"))
     private String pdbeURL;
 
+
+    @Bean(name = "dataSource")
+    @ConfigurationProperties("spring.datasource")
+    @Primary
+    public DataSource dataSource(){
+        return DataSourceBuilder.create().build();
+    }
+
+    @Bean(name = "ensemblDataSource")
+    @ConfigurationProperties("spring.ensembldatasource")
+    public DataSource ensemblDataSource(){
+        return DataSourceBuilder.create().build();
+    }
+
+    @Bean
+    public JdbcTemplate jdbcTemplate(@Qualifier("dataSource") DataSource dataSource) {
+        return new JdbcTemplate(dataSource);
+    }
+
+    @Bean
+    public NamedParameterJdbcTemplate namedParameterJdbcTemplate(@Qualifier("dataSource") DataSource dataSource) {
+        return new NamedParameterJdbcTemplate(dataSource);
+    }
+
+    @Bean
+    public JdbcTemplate ensemblJdbcTemplate(@Qualifier("ensemblDataSource") DataSource ensemblDataSource) {
+        return new JdbcTemplate(ensemblDataSource);
+    }
 
     @Bean
     //@RequestScope

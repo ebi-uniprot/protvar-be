@@ -8,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class Coordinate {
     public String chr;
-    public Long pos;
+    public Integer pos;
     public String base;
 
     public Coordinate(String chr) {
@@ -20,7 +20,7 @@ public class Coordinate {
         if (cols.length == 2) {
             try {
                 Coordinate coordinate = new Coordinate(cols[0]);
-                coordinate.setPos(Long.parseLong(cols[1]));
+                coordinate.setPos(Integer.parseInt(cols[1]));
                 return coordinate;
             } catch (NumberFormatException ex) {
                 return null;

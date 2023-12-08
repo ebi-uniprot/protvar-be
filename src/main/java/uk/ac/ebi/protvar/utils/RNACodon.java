@@ -23,8 +23,8 @@ public enum RNACodon {
     GUC, GCC, GAC, GGC,
     GUA, GCA, GAA, GGA,
     GUG, GCG, GAG, GGG;
-
-    public static final char[] RNA = new char[] {'A', 'C', 'G', 'U'};
+    public static final Set<String> RNA_LETTERS = new HashSet<>(Arrays.asList("A", "C", "G", "U"));
+    ;
     private AminoAcid aa;
     private Map<Integer, Set<RNACodon>> possibleVariants = new HashMap<>();
 
@@ -78,9 +78,9 @@ public enum RNACodon {
             /*    pos   1   2   3
                   ref   U   U   U
                   alt  ~U  ~U  ~U  (~U=ACG)
-            UUU   ->  _UU U_U UU_
-                      _UU U_U UU_
-                      _UU U_U UU_
+            UUU   ->  AUU UAU UUA
+                      CUU UCU UUC
+                      GUU UGU UUG
 
              */
             for (int pos = 0; pos < 3; pos++) {
@@ -90,9 +90,9 @@ public enum RNACodon {
                 String remainder = triplets.substring(pos+1);
 
                 Set<RNACodon> variants = new HashSet<>();
-                for (char c : RNA) {
-                    if (c != ref) {
-                        variants.add(RNACodon.valueOf(firstPart + c + remainder));
+                for (String s : RNA_LETTERS) {
+                    if (!s.equals(String.valueOf(ref))) {
+                        variants.add(RNACodon.valueOf(firstPart + s + remainder));
                     }
                 }
                 codon.possibleVariants.put(pos+1, variants);

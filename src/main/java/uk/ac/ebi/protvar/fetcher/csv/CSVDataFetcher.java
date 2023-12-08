@@ -20,18 +20,22 @@ import org.springframework.stereotype.Service;
 import com.opencsv.CSVWriter;
 
 import uk.ac.ebi.protvar.input.*;
+import uk.ac.ebi.protvar.input.format.id.DbsnpID;
+import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.data.EVEClass;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
-import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
 
 @Service
 @AllArgsConstructor
 public class CSVDataFetcher {
 
 	private final Logger logger = LoggerFactory.getLogger(CSVDataFetcher.class);
+
+	private static final String MAPPING_NOT_FOUND = "Mapping not found";
 
 	private static final String CSV_HEADER_INPUT = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele";
 	private static final String CSV_HEADER_NOTES = "Notes";
@@ -149,18 +153,21 @@ public class CSVDataFetcher {
 		List<String[]> csvOutput = new ArrayList<>();
 
 		response.getInputs().forEach(input -> {
-			if (input.getType() == InputType.GEN) {
+			if (input.getType() == Type.GENOMIC) {
 				GenomicInput genInput = (GenomicInput) input;
 				addGenInputMappingsToOutput(genInput, genInput.getMappings(), csvOutput, options);
 			}
-			else if (input.getType() == InputType.PRO) {
+			else if (input.getType() == Type.CODING) {
+				// TODO
+			}
+			else if (input.getType() == Type.PROTEIN) {
 				ProteinInput proInput = (ProteinInput) input;
 				proInput.getDerivedGenomicInputs().forEach(gInput -> {
 					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
 				});
 			}
-			else if (input.getType() == InputType.RS) {
-				RSInput rsInput = (RSInput) input;
+			else if (input.getType() == Type.ID) {
+				DbsnpID rsInput = (DbsnpID) input;
 				rsInput.getDerivedGenomicInputs().forEach(gInput -> {
 					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
 				});
@@ -176,7 +183,7 @@ public class CSVDataFetcher {
 	private void addGenInputMappingsToOutput(GenomicInput gInput, List<GenomeProteinMapping> mappings, List<String[]> csvOutput, List<OPTIONS> options) {
 
 		String chr = gInput.getChr();
-		Long genomicLocation = gInput.getPos();
+		Integer genomicLocation = gInput.getPos();
 		String varAllele = gInput.getAlt();
 		String id = gInput.getId();
 		String input = gInput.getInputStr();
@@ -190,8 +197,8 @@ public class CSVDataFetcher {
 	}
 
 	String[] getCsvDataMappingNotFound(String input){
-		UserInput p = UserInput.getInput(input);
-		return concatNaOutputCols(List.of(input, Constants.NOTE_MAPPING_NOT_FOUND));
+		//UserInput p = UserInput.getInput(input);
+		return concatNaOutputCols(List.of(input, MAPPING_NOT_FOUND));
 	}
 
 	String[] getCsvDataInvalidInput(UserInput input){
@@ -204,7 +211,7 @@ public class CSVDataFetcher {
 		return valList.toArray(String[]::new);
 	}
 
-	private String[] getCSVData(Gene gene, String chr, Long genomicLocation, String varAllele, String id, String input, List<OPTIONS> options) {
+	private String[] getCSVData(Gene gene, String chr, Integer genomicLocation, String varAllele, String id, String input, List<OPTIONS> options) {
 		String cadd = null;
 		if (gene.getCaddScore() != null)
 			cadd = gene.getCaddScore().toString();

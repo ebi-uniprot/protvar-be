@@ -42,6 +42,7 @@ spec:
       containers:
         - name: protvar-be
           image: dockerhub.ebi.ac.uk/uniprot/deployment/mirror-protvar-be:{{ .Values.imageTag }}
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080 # default port for springboot
           volumeMounts:
@@ -61,14 +62,14 @@ spec:
             httpGet:
               path: /ProtVar/api/actuator/health/liveness
               port: 8080
-            initialDelaySeconds: 4 # wait 4 seconds before performing the first liveness probe
-            periodSeconds: 5 # perform a liveness probe every 5 seconds
+            initialDelaySeconds: 10 # wait 4 seconds before performing the first liveness probe
+            periodSeconds: 10 # perform a liveness probe every 5 seconds
           readinessProbe:
             httpGet:
               path: /ProtVar/api/actuator/health/readiness
               port: 8080
-            initialDelaySeconds: 5 # wait 5 seconds before performing the first readiness probe
-            periodSeconds: 3 # perform a readiness probe every 3 seconds
+            initialDelaySeconds: 10 # wait 5 seconds before performing the first readiness probe
+            periodSeconds: 10 # perform a readiness probe every 3 seconds
           resources:
             requests:
               memory: "2Gi"
