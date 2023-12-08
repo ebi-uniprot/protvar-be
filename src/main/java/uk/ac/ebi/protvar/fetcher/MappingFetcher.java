@@ -13,12 +13,14 @@ import uk.ac.ebi.protvar.input.mapper.ID2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
 import uk.ac.ebi.protvar.input.processor.BuildConverter;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.model.Coord;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
 import uk.ac.ebi.protvar.model.data.EVEScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.*;
@@ -192,11 +194,15 @@ public class MappingFetcher {
 
 			// get all protein accessions and positions from retrieved mappings
 			Set<String> canonicalAccessions = new HashSet<>();
-			Set<Object[]> accPosSet = new HashSet<>();
+			Set<Coord.Prot> protCoords = new HashSet<>();
 			g2pMappings.stream().filter(GenomeToProteinMapping::isCanonical).forEach(m -> {
-				canonicalAccessions.add(m.getAccession());
-				accPosSet.add(new Object[] {m.getAccession(), m.getIsoformPosition()});
+				if (!Commons.nullOrEmpty(m.getAccession())) {
+					canonicalAccessions.add(m.getAccession());
+					if (Commons.notNull(m.getIsoformPosition()))
+						protCoords.add(new Coord.Prot(m.getAccession(), m.getIsoformPosition()));
+				}
 			});
+			Set<Object[]> accPosSet = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toSet());
 
 			final Map<String, List<Variation>> variationMap = options.contains(OPTIONS.POPULATION) ? variationFetcher.prefetchdb(accPosSet) : new HashedMap();
 
