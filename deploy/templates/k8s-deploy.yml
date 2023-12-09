@@ -92,8 +92,8 @@ data:
   JAVA_TOOL_OPTIONS: >-
     -Dhttp.proxyPort=3128 -Dhttp.proxySet=true -Dhttps.proxyPort=3128 -Dhttps.proxySet=true
     -Dhttp.nonProxyHosts=localhost|127.0.0.1|.cluster.local {{ .Values.jvmOptions }}
-  spring.datasource.url: {{ .Values.env.dbURL }}
-  spring.datasource.username: {{ .Values.env.dbUser }}
+  app.datasource.url: {{ .Values.env.dbURL }}
+  app.datasource.username: {{ .Values.env.dbUser }}
   spring.mail.host: {{ .Values.env.emailSMTP }}
 ---
 apiVersion: v1
@@ -101,4 +101,4 @@ kind: Secret
 metadata:
   name: protvar-be-secret
 data:
-  spring.datasource.password: {{ .Values.env.dbPassword }}
+  app.datasource.password: {{ .Values.env.dbPassword }}
