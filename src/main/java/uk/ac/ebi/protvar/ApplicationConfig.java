@@ -49,21 +49,14 @@ public class ApplicationConfig {
     @Bean
     @Primary
     @ConfigurationProperties("app.datasource")
-    public DataSourceProperties mainDataSourceProperties() {
-        return new DataSourceProperties();
-    }
-
-    @Bean(name = "dataSource")
-    @ConfigurationProperties("app.datasource.configuration")
-    @Primary
     public HikariDataSource dataSource() {
-        return mainDataSourceProperties().initializeDataSourceBuilder().type(HikariDataSource.class).build();
+        return DataSourceBuilder.create().type(HikariDataSource.class).build();
     }
 
-    @Bean(name = "ensemblDataSource")
+    @Bean
     @ConfigurationProperties("ensembl.datasource")
-    public DataSource ensemblDataSource(){
-        return DataSourceBuilder.create().build();
+    public HikariDataSource ensemblDataSource(){
+        return DataSourceBuilder.create().type(HikariDataSource.class).build();
     }
 
     @Bean
