@@ -45,18 +45,17 @@ public class ApplicationConfig {
     @Value(("${pdbe.best-structures.api.url}"))
     private String pdbeURL;
 
-
     @Bean
     @Primary
     @ConfigurationProperties("app.datasource")
-    public HikariDataSource dataSource() {
-        return DataSourceBuilder.create().type(HikariDataSource.class).build();
+    public DataSource dataSource(){
+        return DataSourceBuilder.create().build();
     }
 
     @Bean
     @ConfigurationProperties("ensembl.datasource")
-    public HikariDataSource ensemblDataSource(){
-        return DataSourceBuilder.create().type(HikariDataSource.class).build();
+    public DataSource ensemblDataSource(){
+        return DataSourceBuilder.create().build();
     }
 
     @Bean
