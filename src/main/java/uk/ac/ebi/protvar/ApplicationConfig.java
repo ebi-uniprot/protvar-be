@@ -1,7 +1,9 @@
 package uk.ac.ebi.protvar;
 
+import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.boot.web.client.RestTemplateCustomizer;
@@ -44,11 +46,17 @@ public class ApplicationConfig {
     private String pdbeURL;
 
 
-    @Bean(name = "dataSource")
-    @ConfigurationProperties("spring.datasource")
+    @Bean
     @Primary
-    public DataSource dataSource(){
-        return DataSourceBuilder.create().build();
+    @ConfigurationProperties("spring.datasource")
+    public DataSourceProperties primaryDataSourceProperties() {
+        return new DataSourceProperties();
+    }
+
+    @Bean(name = "dataSource")
+    @Primary
+    public HikariDataSource dataSource() {
+        return primaryDataSourceProperties().initializeDataSourceBuilder().type(HikariDataSource.class).build();
     }
 
     @Bean(name = "ensemblDataSource")
