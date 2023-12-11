@@ -51,13 +51,13 @@ public class ApplicationConfig {
     public DataSource dataSource(){
         return DataSourceBuilder.create().build();
     }
-
+/*
     @Bean
     @ConfigurationProperties("ensembl.datasource")
     public DataSource ensemblDataSource(){
         return DataSourceBuilder.create().build();
     }
-
+*/
     @Bean
     public JdbcTemplate jdbcTemplate(@Qualifier("dataSource") DataSource dataSource) {
         return new JdbcTemplate(dataSource);
@@ -67,12 +67,12 @@ public class ApplicationConfig {
     public NamedParameterJdbcTemplate namedParameterJdbcTemplate(@Qualifier("dataSource") DataSource dataSource) {
         return new NamedParameterJdbcTemplate(dataSource);
     }
-
+/*
     @Bean
     public JdbcTemplate ensemblJdbcTemplate(@Qualifier("ensemblDataSource") DataSource ensemblDataSource) {
         return new JdbcTemplate(ensemblDataSource);
     }
-
+*/
     @Bean
     //@RequestScope
     public RestTemplate variantRestTemplate() {
