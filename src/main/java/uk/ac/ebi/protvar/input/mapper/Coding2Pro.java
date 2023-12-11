@@ -4,9 +4,10 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
+import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * HGVS coding dna format
@@ -22,14 +23,17 @@ import java.util.List;
 @Service
 @AllArgsConstructor
 public class Coding2Pro {
-    UniprotRefseqMapper uniprotRefseqMapper;
+    UniprotRefseqRepo uniprotRefseqRepo;
 
     public void convert(List<UserInput> codingInputs) {
+        Set<String> rsAccs = codingInputs.stream()
+                .map(i -> ((HGVSc) i).getAcc()).collect(Collectors.toSet());
+        Map<String, List<String>> rsAccsMap = uniprotRefseqRepo.getRefSeqUniprotMap(rsAccs);
 
         codingInputs.stream().map(i -> (HGVSc) i).forEach(cDNAProt -> {
 
 
-            List<String> uniprotAccs = uniprotRefseqMapper.getUniprotAccs(cDNAProt.getAcc());
+            List<String> uniprotAccs = rsAccsMap.get(cDNAProt.getAcc());
             if (uniprotAccs != null && uniprotAccs.size() > 0){
                 int[] protAndCodonPos = coding2ProteinPosition(cDNAProt.getPos());
                 if (protAndCodonPos.length == 2) {

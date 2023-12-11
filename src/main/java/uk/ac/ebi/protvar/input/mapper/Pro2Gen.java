@@ -12,6 +12,7 @@ import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.utils.RNACodon;
 
@@ -27,7 +28,7 @@ public class Pro2Gen {
     @Autowired
     UniprotEntryCache uniprotEntryCache;
 
-    private UniprotRefseqMapper uniprotRefseqMapper;
+    private UniprotRefseqRepo uniprotRefseqRepo;
 
     /*
 e.g. Protein input
@@ -75,11 +76,16 @@ codon position = 1
         // 1. get all the accessions and positions
         Set<Object[]> accPosSet = new HashSet<>();
 
+
+        Set<String> rsAccs = proteinInputs.stream().filter(i -> i instanceof HGVSp)
+                .map(i -> ((HGVSp) i).getRsAcc()).collect(Collectors.toSet());
+        Map<String, List<String>> rsAccsMap = uniprotRefseqRepo.getRefSeqUniprotMap(rsAccs);
+
         for (UserInput input : proteinInputs) {
 
             if (input instanceof HGVSp) {
                 HGVSp hgvsProt = ((HGVSp) input);
-            List<String> uniprotAccs = uniprotRefseqMapper.getUniprotAccs(hgvsProt.getRsAcc());
+            List<String> uniprotAccs = rsAccsMap.get(hgvsProt.getRsAcc());
             if (uniprotAccs != null && uniprotAccs.size() > 0){
                 List<String> head =  uniprotAccs.subList(0, 1);
                 List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());

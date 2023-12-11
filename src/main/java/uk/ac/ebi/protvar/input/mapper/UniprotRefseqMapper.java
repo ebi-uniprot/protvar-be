@@ -156,7 +156,7 @@ public class UniprotRefseqMapper {
             return uniprotRefseqMap.get(refseqAcc);
         return null;
     }
-    @EventListener(classes = ApplicationStartedEvent.class )
+    //@EventListener(classes = ApplicationStartedEvent.class )
     public void load() {
         LOGGER.info("Loading Uniprot-Refseq map");
         boolean success = tryLoadFromProtVarTbl();
