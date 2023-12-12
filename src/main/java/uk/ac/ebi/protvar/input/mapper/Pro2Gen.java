@@ -253,7 +253,7 @@ codon position = 1
                 //if (codonPositions == null || codonPositions.isEmpty()) // means ref->alt AA not possible via SNV?
                 //	codonPositions = new HashSet<>(Arrays.asList(1, 2, 3));
 
-                String key = input.getAcc() + "-" + input.getPos();
+                String key = Commons.joinWithDash(input.getAcc(), input.getPos());
                 List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
                 Set<String> seen = new HashSet<>();
 
@@ -313,7 +313,7 @@ codon position = 1
                             input.getDerivedGenomicInputs().add(gInput);
                             if (!refAA.getOneLetter().equalsIgnoreCase(gCoordRefAA)) {
                                 if (!mismatchMsg) {
-                                    input.getMessages().add(new Message(Message.MessageType.WARN, String.format("Reference amino acid mis-match (expecting %s at protein position %d, not %s)", refRNACodon.name(), gCoordPos, refAA.name())));
+                                    input.getMessages().add(new Message(Message.MessageType.WARN, String.format("Reference amino acid mis-match (expecting %s at protein position %d, not %s)", refRNACodon.getAa().getThreeLetters(), input.getPos(), refAA.getThreeLetters())));
                                     mismatchMsg = true;
                                 }
                             }
