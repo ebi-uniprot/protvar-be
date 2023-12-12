@@ -129,7 +129,7 @@ public class MappingFetcher {
 			Assembly assembly = null;
 
 			if (assemblyVersion == null) {
-				messages.add(new Message(Message.MessageType.WARN, "Unspecified assembly version; defaulting to GRCh38. "));
+				messages.add(new Message(Message.MessageType.WARN, "Unspecified assembly version; defaulting to GRCh38"));
 				assembly = Assembly.GRCH38;
 			} else {
 				if (assemblyVersion.equalsIgnoreCase("AUTO")) {
@@ -137,20 +137,20 @@ public class MappingFetcher {
 						assembly = buildConverter.determineBuild(genomicInputs, messages); // -> 37 or 38
 					}
 					else {
-						messages.add(new Message(Message.MessageType.WARN, "Assembly auto-detect works for all-genomic inputs only; defaulting to GRCh38. "));
+						messages.add(new Message(Message.MessageType.WARN, "Assembly auto-detect works for all-genomic inputs only; defaulting to GRCh38"));
 						assembly = Assembly.GRCH38;
 					}
 				} else {
 					assembly = Assembly.of(assemblyVersion);
 					if (assembly == null) {
-						messages.add(new Message(Message.MessageType.WARN, "Unable to determine assembly version; defaulting to GRCh38. "));
+						messages.add(new Message(Message.MessageType.WARN, "Unable to determine assembly version; defaulting to GRCh38"));
 						assembly = Assembly.GRCH38;
 					}
 				}
 			}
 
 			if (assembly == Assembly.GRCH37) {
-				messages.add(new Message(Message.MessageType.INFO, "Converting GRCh37 to GRCh38. "));
+				messages.add(new Message(Message.MessageType.INFO, "Converting GRCh37 to GRCh38"));
 				buildConverter.convert(genomicInputs);
 			}
 		}
@@ -287,10 +287,10 @@ public class MappingFetcher {
 		if (counts[2] > 0) inputTypes.add(String.format("%d protein", counts[2]));
 		if (counts[3] > 0) inputTypes.add(String.format("%d ID", counts[3]));
 
-		if (inputTypes.size() > 0) inputSummary += "(" + String.join(", ", inputTypes) + "). ";
+		if (inputTypes.size() > 0) inputSummary += "(" + String.join(", ", inputTypes) + ")";
 
 		if (invalidInputs.size() > 0) {
-			inputSummary += String.format("%d input%s %s not valid. ", invalidInputs.size(), FetcherUtils.pluralise(invalidInputs.size()), FetcherUtils.isOrAre(invalidInputs.size()));
+			inputSummary += String.format("%d input%s %s not valid", invalidInputs.size(), FetcherUtils.pluralise(invalidInputs.size()), FetcherUtils.isOrAre(invalidInputs.size()));
 			LOGGER.warn(Arrays.toString(invalidInputs.toArray()));
 		}
 

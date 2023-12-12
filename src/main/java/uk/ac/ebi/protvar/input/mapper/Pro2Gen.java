@@ -95,7 +95,7 @@ codon position = 1
                 accPosSet.add(new Object[]{head.get(0), hgvsProt.getPos()});
 
                 if (tail != null && tail.size() > 1) {
-                    hgvsProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession.", Arrays.toString(uniprotAccs.toArray())));
+                    hgvsProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession", Arrays.toString(uniprotAccs.toArray())));
                 }
                 if (!uniprotEntryCache.isValidEntry(hgvsProt.getAcc())) {
                     hgvsProt.addWarning("Invalid mapped accession " + hgvsProt.getAcc());
@@ -224,7 +224,7 @@ codon position = 1
                                     // 2. ref/alt should be via SNV
 
                                     if (!AminoAcid.isSNV(refAA, altAA)) {
-                                        input.addInfo(String.format("%s to %s is a non-SNV. ", refAA.name(), userAltAA.name()));
+                                        input.addInfo(String.format("Can't go from %s to %s via a SNV", refAA.name(), userAltAA.name()));
                                     }
                                 }
                             }
@@ -234,7 +234,7 @@ codon position = 1
                 }
 
                 if (input.getDerivedGenomicInputs().isEmpty() && input.getMessages().isEmpty()) {
-                    input.addError("Could not map HGVSp. input to genomic coordinate(s).");
+                    input.addError("Could not map HGVSp. input to genomic coordinate(s)");
                 }
 
             } else if(i instanceof ProteinInput) {
@@ -244,7 +244,7 @@ codon position = 1
                 AminoAcid altAA = AminoAcid.fromOneLetter(input.getAlt());
 
                 if (!AminoAcid.isSNV(refAA, altAA)) {
-                    input.addInfo(String.format("%s to %s is a non-SNV. ", refAA.name(), altAA.name()));
+                    input.addInfo(String.format("Can't go from %s to %s via a SNV", refAA.name(), altAA.name()));
                 }
 
                 // ref -> alt change is only possible by a SNV change at these
@@ -300,6 +300,8 @@ codon position = 1
                             altAlleles.add(snvDiff(refRNACodon, altRNACodon));
                         }
 
+                        boolean mismatchMsg = false;
+
                         for (String altAllele : altAlleles) {
                             altAllele = gCoordIsReverse ? RNACodon.reverse(altAllele) : altAllele;
                             altAllele = altAllele.replace('U', 'T');
@@ -309,14 +311,18 @@ codon position = 1
                             gInput.setRef(gCoordRefAllele);
                             gInput.setAlt(altAllele);
                             input.getDerivedGenomicInputs().add(gInput);
-                            if (!refAA.getOneLetter().equalsIgnoreCase(gCoordRefAA))
-                                input.getMessages().add(new Message(Message.MessageType.WARN, "User reference and mapping record AA mismatch (" + refAA.name() + " vs. " + refRNACodon.name() + ")"));
+                            if (!refAA.getOneLetter().equalsIgnoreCase(gCoordRefAA)) {
+                                if (!mismatchMsg) {
+                                    input.getMessages().add(new Message(Message.MessageType.WARN, String.format("Reference amino acid mis-match (expecting %s at protein position %d, not %s)", refRNACodon.name(), gCoordPos, refAA.name())));
+                                    mismatchMsg = true;
+                                }
+                            }
                         }
                     });
                 }
 
                 if (input.getDerivedGenomicInputs().isEmpty() && input.getMessages().isEmpty()) {
-                    input.addError("Could not map Protein input to genomic coordinate(s).");
+                    input.addError("Could not map Protein input to genomic coordinate(s)");
                 }
             } else if (i instanceof HGVSc) {
                 HGVSc input = (HGVSc) i;
@@ -354,7 +360,7 @@ codon position = 1
                 }
 
                 if (input.getDerivedGenomicInputs().isEmpty() && input.getMessages().isEmpty()) {
-                    input.addError("Could not map cDNA input to genomic coordinate(s).");
+                    input.addError("Could not map cDNA input to genomic coordinate(s)");
                 }
             }
         });

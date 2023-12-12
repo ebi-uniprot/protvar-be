@@ -72,7 +72,7 @@ public class ID2Gen {
                         });
                     }
                     else {
-                        input.addError("Could not get mapping for DBSNP ID.");
+                        input.addError("Could not get mapping for DBSNP ID");
                     }
                 });
     }
@@ -105,7 +105,7 @@ public class ID2Gen {
                 addDerivedGenomicInputs(clinvarVCVMap.get(id), input);
             }
             if (input.getDerivedGenomicInputs().isEmpty()) {
-                input.addError("Could not get mapping for ClinVar ID.");
+                input.addError("Could not get mapping for ClinVar ID");
             }
         }
     }

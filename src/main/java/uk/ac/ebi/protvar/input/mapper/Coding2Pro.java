@@ -48,7 +48,7 @@ public class Coding2Pro {
                     }
 
                     if (tail != null && tail.size() > 1) {
-                        cDNAProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession.", Arrays.toString(uniprotAccs.toArray())));
+                        cDNAProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession", Arrays.toString(uniprotAccs.toArray())));
                     }
                 }
             } else {

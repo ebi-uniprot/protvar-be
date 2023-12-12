@@ -44,12 +44,12 @@ public class BuildConverter {
             Integer pos = input.getPos();
             List<Crossmap> crossmaps = groupedCrossmaps.get(chr+"-"+pos);
             if (crossmaps == null || crossmaps.isEmpty()) {
-                input.addError("No GRCh38 equivalent found for input coordinate. ");
+                input.addError("No GRCh38 equivalent found for input coordinate");
             } else if (crossmaps.size()==1) {
                 input.setPos(crossmaps.get(0).getGrch38Pos());
                 input.setConverted(true);
             } else {
-                input.addError("Multiple GRCh38 equivalents found for input coordinate. ");
+                input.addError("Multiple GRCh38 equivalents found for input coordinate");
             }
         });
     }
@@ -66,21 +66,21 @@ public class BuildConverter {
 
         double percentage38 = protVarDataRepo.getPercentageMatch(chrPosRefList, "38");
         if (percentage38 > 50) { // assumes 38
-            messages.add(new Message(Message.MessageType.INFO, String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs). ", percentage38)));
+            messages.add(new Message(Message.MessageType.INFO, String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs)", percentage38)));
             return Assembly.GRCH38;
         } else {
             double percentage37 = protVarDataRepo.getPercentageMatch(chrPosRefList, "37");
             if (percentage37 > 50) { // assumes 37
-                messages.add(new Message(Message.MessageType.INFO, String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs). ", percentage37)));
+                messages.add(new Message(Message.MessageType.INFO, String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs)", percentage37)));
                 return Assembly.GRCH37;
             } else {
-                String msg = String.format("Undetermined assembly version (%.2f%% GRCh38 match, %.2f%% GRCh37 match). ", percentage38, percentage37);
+                String msg = String.format("Undetermined assembly version (%.2f%% GRCh38 match, %.2f%% GRCh37 match)", percentage38, percentage37);
                 if (percentage37 > percentage38) {
-                    messages.add(new Message(Message.MessageType.INFO, msg + " Assuming GRCh37. "));
+                    messages.add(new Message(Message.MessageType.INFO, msg + " Assuming GRCh37"));
                     return Assembly.GRCH37;
                 }
                 else {
-                    messages.add(new Message(Message.MessageType.INFO, msg + " Assuming GRCh38. "));
+                    messages.add(new Message(Message.MessageType.INFO, msg + " Assuming GRCh38"));
                     return Assembly.GRCH38;
                 }
             }
