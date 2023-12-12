@@ -58,10 +58,12 @@ public abstract class UserInput {
 		return this.messages.stream().anyMatch(m -> m.getType() == Message.MessageType.ERROR);
 	}
 
+	@JsonIgnore
 	public boolean isValid() {
 		return !hasError();
 	}
 
+	@JsonIgnore
 	public List<String> getErrors() {
 		return messages.stream().filter(m ->  m.getType() == Message.MessageType.ERROR).map(m -> m.getText()).collect(Collectors.toList());
 	}

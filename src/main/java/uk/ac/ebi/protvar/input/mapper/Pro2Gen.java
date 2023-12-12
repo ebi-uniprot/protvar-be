@@ -14,6 +14,7 @@ import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.protvar.utils.RNACodon;
 
 import java.util.*;
@@ -168,8 +169,7 @@ codon position = 1
                         Integer gCoordPos = gCoord.getGenomeLocation();
                         String gCoordRefAllele = gCoord.getBaseNucleotide();
 
-                        String curr = getNonNullString(gCoordChr) + "-" + getNonNullInt(gCoordPos) + "-"
-                                + getNonNullString(gCoordRefAllele);
+                        String curr = Commons.joinWithDash(gCoordChr, gCoordPos, gCoordRefAllele);
                         if (seen.contains(curr)) return;
                         seen.add(curr);
 
@@ -340,8 +340,7 @@ codon position = 1
                             return;
                         }
 
-                        String curr = getNonNullString(gCoordChr) + "-" + getNonNullInt(gCoordPos) + "-"
-                                + getNonNullString(gCoordRefAllele);
+                        String curr = Commons.joinWithDash(gCoordChr, gCoordPos, gCoordRefAllele);
                         if (seen.contains(curr)) return;
                         seen.add(curr);
 
@@ -364,17 +363,6 @@ codon position = 1
 
     private Set<String> getAlternates(String ref) {
         return RNACodon.RNA_LETTERS.stream().filter(s -> !s.equals(ref)).collect(Collectors.toSet());
-    }
-
-    private String getNonNullString(String value) {
-        return value == null ? "" : value;
-    }
-    private String getNonNullInt(Integer value) {
-        return value == null ? "" : value.toString();
-    }
-
-    private void processProteinInput() {
-
     }
 
     private String snvDiff(RNACodon c1, RNACodon c2) {

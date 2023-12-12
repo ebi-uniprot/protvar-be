@@ -197,4 +197,19 @@ public class Commons {
       map.put(key, value);
     }
   }
+
+  public static String getNonNullString(String value) {
+    return value == null ? "" : value;
+  }
+  public static String getNonNullInt(Integer value) {
+    return value == null ? "" : value.toString();
+  }
+
+  public static String joinWithDash(Object... params) {
+    StringJoiner str = new StringJoiner("-");
+    for (Object param : params) {
+      str.add(param == null ? "" : param.toString());
+    }
+    return str.toString();
+  }
 }

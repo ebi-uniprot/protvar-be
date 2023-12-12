@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.input.type;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.Logger;
@@ -257,11 +258,7 @@ public class GenomicInput extends UserInput {
     }
 
     public String groupByChrAndPos() {
-        return this.chr + "-" + this.pos;
-    }
-
-    public String getGroupBy() {
-        return groupByChrAndPos();
+        return Commons.joinWithDash(this.chr, this.pos);
     }
 
     // Overriding equals() to compare two Genomic objects

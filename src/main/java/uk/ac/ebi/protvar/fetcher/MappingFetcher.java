@@ -227,8 +227,8 @@ public class MappingFetcher {
 
 				gInputs.forEach(gInput -> {
 					try {
-						List<GenomeToProteinMapping> mappingList = map.get(gInput.getGroupBy());
-						List<CADDPrediction> caddScores = predictionMap.get(gInput.getGroupBy());
+						List<GenomeToProteinMapping> mappingList = map.get(gInput.groupByChrAndPos());
+						List<CADDPrediction> caddScores = predictionMap.get(gInput.groupByChrAndPos());
 
 						Double caddScore = null;
 						if (caddScores != null && !caddScores.isEmpty())

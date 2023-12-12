@@ -753,4 +753,24 @@ class CommonsTest {
       }
     }
   }
+
+  @Test
+  public void testjoinWithDash() {
+    assertEquals(Commons.joinWithDash("X", 0), "X-0");
+    assertEquals(Commons.joinWithDash("X", Integer.valueOf(0)), "X-0");
+    assertEquals(Commons.joinWithDash(null, 0), "-0");
+    assertEquals(Commons.joinWithDash("X", null), "X-");
+    assertEquals(Commons.joinWithDash(null, null), "-");
+
+    assertEquals(Commons.joinWithDash(null, null), "-");
+
+    assertEquals(Commons.joinWithDash("1", 16598213, "R"), "1-16598213-R");
+    assertEquals(Commons.joinWithDash(null, 16598213, "R"), "-16598213-R");
+    assertEquals(Commons.joinWithDash("1", null, "R"), "1--R");
+    assertEquals(Commons.joinWithDash("1", 16598213, null), "1-16598213-");
+    assertEquals(Commons.joinWithDash(null, null, "R"), "--R");
+    assertEquals(Commons.joinWithDash("1", null, null), "1--");
+    assertEquals(Commons.joinWithDash(null, 16598213, null), "-16598213-");
+    assertEquals(Commons.joinWithDash(null, null, null), "--");
+  }
 }
