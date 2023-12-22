@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: "{{ .Values.namespace }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  serviceName: redis-service
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - args:
+            - --appendonly
+            - "yes"
+          command:
+            - redis-server
+          image: redis:7.2.3-alpine
+          name: redis
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - mountPath: /data
+              name: redis-data
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+            memory: 100Mi
+        storageClassName: standard-nfs-production

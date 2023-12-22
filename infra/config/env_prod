@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -a
+DEPLOYMENT_ENV=prod
+K8S_CLUSTER=team-admin-hh-wp-webadmin-34
+K8S_NAMESPACE=protvar
+set +a
