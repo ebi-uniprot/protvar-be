@@ -14,7 +14,7 @@ spec:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: protvar-pvc
+  name: protvar-be-storage-claim
 spec:
   storageClassName: standard-nfs-production
   accessModes:
@@ -46,13 +46,11 @@ spec:
           ports:
             - containerPort: 8080 # default port for springboot
           volumeMounts:
-            - name: protvar-vol
-              mountPath: /var/log
-            - name: protvar-vol
+            - name: protvar-be-storage
               mountPath: /data
           env:
             - name: logging.file.path
-              value: /var/log
+              value: /data
           envFrom:
             - secretRef:
                 name: protvar-be-secret
@@ -77,9 +75,9 @@ spec:
             limits:
               memory: "4Gi"
       volumes:
-        - name: protvar-vol
+        - name: protvar-be-storage
           persistentVolumeClaim:
-            claimName: protvar-pvc
+            claimName: protvar-be-storage-claim
       imagePullSecrets:
         - name: protvar-be-gitlab-registry-ci # created by deploy script using env variables Provided by GitLab, this allows K8s to connect to dockerhub.ebi.ac.uk
         - name: protvar-be-gitlab-registry-to # using token if exist
