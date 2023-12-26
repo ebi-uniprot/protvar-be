@@ -66,7 +66,7 @@ public class CSVDataFetcher {
 
 
 	@Async
-	public void writeCSVResult(List<String> inputs, String assembly, List<OPTIONS> options, String email, String jobName, Download download) {
+	public void writeCSVResult(List<String> inputs, List<OPTIONS> options, String assembly, String email, String jobName, Download download) {
 		try {
 			processInput(inputs, assembly, options, email, jobName, download);
 		} catch (Exception e) {
@@ -76,7 +76,7 @@ public class CSVDataFetcher {
 	}
 
 	@Async
-	public void writeCSVResult(Path path, String assembly, List<OPTIONS> options, String email, String jobName, Download download) {
+	public void writeCSVResult(Path path, List<OPTIONS> options, String assembly, String email, String jobName, Download download) {
 		try (Stream<String> lines = Files.lines(path)) {
 			processInput(lines.collect(Collectors.toList()), assembly, options, email, jobName, download);
 		} catch (Exception e) {
