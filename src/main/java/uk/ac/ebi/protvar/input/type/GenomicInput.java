@@ -1,6 +1,5 @@
 package uk.ac.ebi.protvar.input.type;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.Logger;
@@ -30,7 +29,7 @@ public class GenomicInput extends UserInput {
     // TODO - in protvar-import
     // make MT the default Mitochondrion
     // [X] in be code
-    // [ ] in protvar-import
+    // [X] in protvar-import
     // [X] in db tbl
     //    [X] change genomic_protein_mapping.chromosome column from VARCHAR(15) to VARCHAR(2)
     //        SELECT DISTINCT chromosome FROM genomic_protein_mapping;
