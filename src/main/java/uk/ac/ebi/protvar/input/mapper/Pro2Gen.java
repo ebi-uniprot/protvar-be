@@ -341,7 +341,15 @@ codon position = 1
                         String gCoordRefAllele = gCoord.getBaseNucleotide();
                         Integer gCoordCodonPos = gCoord.getCodonPosition();
 
-                        if (!(gCoordRefAllele.equals(input.getRef()) &&
+                        String cdnaRef = input.getRef();
+                        String cdnaAlt = input.getAlt();
+
+                        if (gCoord.isReverseStrand()) {
+                            cdnaRef = reverseDNA(cdnaRef);
+                            cdnaAlt = reverseDNA(cdnaAlt);
+                        }
+
+                        if (!(gCoordRefAllele.equals(cdnaRef) &&
                                 gCoordCodonPos.equals(input.getDerivedCodonPos()))) {
                             return;
                         }
@@ -354,7 +362,7 @@ codon position = 1
                         gInput.setChr(gCoordChr);
                         gInput.setPos(gCoordPos);
                         gInput.setRef(gCoordRefAllele);
-                        gInput.setAlt(input.getAlt());
+                        gInput.setAlt(cdnaAlt);
                         input.getDerivedGenomicInputs().add(gInput);
                     });
                 }
@@ -365,6 +373,21 @@ codon position = 1
             }
         });
 
+    }
+
+    private String reverseDNA(String dna) {
+        String reverseStr = "";
+        for (char c : dna.toCharArray()) {
+            if (c == 'A')
+                reverseStr += 'T';
+            else if (c == 'T')
+                reverseStr += 'A';
+            else if (c == 'C')
+                reverseStr += 'G';
+            else if (c == 'G')
+                reverseStr += 'C';
+        }
+        return reverseStr;
     }
 
     private Set<String> getAlternates(String ref) {
