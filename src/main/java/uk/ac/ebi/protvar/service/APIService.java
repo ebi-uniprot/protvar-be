@@ -30,6 +30,9 @@ public class APIService {
 		return mappingFetcher.getMappings(inputs, options, assemblyVersion);
 	}
 
+	public MappingResponse getMappings(String accession, Integer position) {
+		return mappingFetcher.getMappings(accession, position);
+	}
 	public Protein getProtein(String accession, int position, String variantAA) {
 		Protein protein = proteinsFetcher.fetch(accession, position, variantAA);
 		return protein;

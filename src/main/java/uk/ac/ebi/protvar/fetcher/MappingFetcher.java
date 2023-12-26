@@ -63,6 +63,11 @@ public class MappingFetcher {
 		return userInputs;
 	}
 
+	public MappingResponse getMappings(String accession, Integer position) {
+		MappingResponse response = new MappingResponse();
+		return response;
+	}
+
 	/**
 	 * 
 	 * @param inputs is list of input string in various formats - VCF, HGVS, Protein, dbSNP ID, gnomAD

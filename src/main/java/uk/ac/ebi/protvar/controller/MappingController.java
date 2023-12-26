@@ -51,4 +51,14 @@ MappingController {
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 
+
+  @Operation(summary = "genomic-to-protein mappings for provided UniProt accession and optional position (WORK IN PROGRESS)")
+  @GetMapping(value = { "/mappings/{accession}", "/mappings/{accession}/{position}" })
+  // TODO try protein with 88AA - https://www.uniprot.org/uniprotkb/Q9UHP9
+  public ResponseEntity<MappingResponse> getGenomeProteinMappings(
+          @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
+          @Parameter(example = "493") @PathVariable(value = "position", required = false) Integer position) {
+    MappingResponse mappingResponse = apiService.getMappings(accession, position);
+    return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
+  }
 }
