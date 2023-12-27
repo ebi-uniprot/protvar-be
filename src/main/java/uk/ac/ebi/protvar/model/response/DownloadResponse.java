@@ -7,15 +7,11 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
-public class Download {
+public class DownloadResponse {
     String inputType;
     LocalDateTime requested;
     String downloadId;
     int status;
-    String url;
     String jobName;
-
-    public Download(String type) {
-        this.inputType = type;
-    }
+    String url;
 }
