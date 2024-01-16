@@ -16,7 +16,7 @@ apiVersion: v1
 metadata:
   name: protvar-be-storage-claim
 spec:
-  storageClassName: standard-nfs-production
+  storageClassName: local-storage
   accessModes:
     - ReadWriteOnce
   resources:
