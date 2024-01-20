@@ -8,20 +8,22 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.input.*;
+import uk.ac.ebi.protvar.input.format.genomic.Gnomad;
+import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
+import uk.ac.ebi.protvar.input.format.genomic.VCF;
 import uk.ac.ebi.protvar.input.mapper.Coding2Pro;
 import uk.ac.ebi.protvar.input.mapper.ID2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
-import uk.ac.ebi.protvar.input.processor.BuildConverter;
+import uk.ac.ebi.protvar.input.processor.BuildConversion;
+import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.Coord;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
 import uk.ac.ebi.protvar.model.data.EVEScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
-import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.utils.Commons;
-import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 public class MappingFetcher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MappingFetcher.class);
 
+	private InputProcessor inputProcessor;
 	private ProtVarDataRepo protVarDataRepo;
 
 	private ID2Gen id2Gen;
@@ -41,148 +44,43 @@ public class MappingFetcher {
 
 	private VariationFetcher variationFetcher;
 
-	private BuildConverter buildConverter;
+	private BuildConversion buildConversion;
 
 	private Coding2Pro coding2Pro;
 
-
-
-	/**
-	 * Takes a list of input strings and return corresponding list of userInput objects
-	 * @param inputs
-	 * @return
-	 */
-	public List<UserInput> parseInputStrIntoObject(List<String> inputs) {
-		List<UserInput> userInputs = new ArrayList<>();
-		inputs.stream().map(String::trim)
-				.filter(i -> !i.isEmpty())
-				.filter(i -> !i.startsWith("#")).forEach(input -> {
-					UserInput pInput = UserInput.getInput(input);
-					userInputs.add(pInput);
-				});
-		return userInputs;
-	}
-
-	public MappingResponse getMappings(String accession, Integer position) {
+	private MappingResponse initMappingResponse(List<UserInput> userInputs) {
 		MappingResponse response = new MappingResponse();
+		List<Message> messages = new ArrayList<>();
+		response.setMessages(messages);
+		response.setInputs(userInputs);
+		String inputSummary = inputProcessor.summary(userInputs);
+		messages.add(new Message(Message.MessageType.INFO, inputSummary));
 		return response;
 	}
 
 	/**
-	 * 
-	 * @param inputs is list of input string in various formats - VCF, HGVS, Protein, dbSNP ID, gnomAD
+	 *
+	 * @param userInputs is list of user inputs
 	 * @return MappingResponse
 	 */
-	public MappingResponse getMappings(List<String> inputs, List<OPTIONS> options, String assemblyVersion) {
-		MappingResponse response = new MappingResponse();
-		List<Message> messages = new ArrayList<>();
-		response.setMessages(messages);
+	public MappingResponse getMappings(List<UserInput> userInputs, List<OPTIONS> options, String assemblyVersion) {
+		MappingResponse response = initMappingResponse(userInputs);
 
-		// Step 1a - parse input strings into UserInput objects - of specific type and format
-		List<UserInput> userInputs = parseInputStrIntoObject(inputs);
-		response.setInputs(userInputs);
-
-		// Step 1b - generate input summary
-		String inputSummary = inputSummary(userInputs);
-		messages.add(new Message(Message.MessageType.INFO, inputSummary));
-
-
-		// Step 2 - group user inputs into input type: List<UserInput> -> Map<Type, List<UserInput>>
 		Map<Type, List<UserInput>> groupedInputs = userInputs.stream().filter(UserInput::isValid) // filter out any invalid inputs
 				.collect(Collectors.groupingBy(UserInput::getType));
 
-		// note:
-		// - all non-genomic input is ultimately mapped to one or more genomic inputs
-		// - each genomic input will return a list of mappings (output)
+		buildConversion.process(groupedInputs, assemblyVersion, response);
 
-		// Type			Format									Required processing
-		// GENOMIC		VCF, HGVS_GEN, GNOMAD, CUSTOM_GEN		if onlyGenomicInput && h37 build specified, convert coords
-		// CODING 		HGVS_CODING								refseq NM_ mapping ??
-		// PROTEIN		HGVS_PROT, CUSTOM_PROT					get genomic coords (0..*) from g2p_mapping tbl
-		// ID			DBSNP, CLINVAR, COSMIC					get genomic coords (0..*) from dbsnp/clinvar/cosmic tbl
+		// ID to genomic coords conversion
+		id2Gen.convert(groupedInputs);
 
-		// Step 3 - process each input type
+		// cDNA to protein inputs conversion
+		coding2Pro.convert(groupedInputs);
 
-		// TODO
-		// for genomic input,
-		// if both ref and alt provided, check ref equals db ref
-		// if only one base provided, check if base equals ref,
-		//    if yes, use 3 alt bases i.e. add new genomic input to results
-		//    if not, assume base provided is alt, use db ref as ref
-		// if no base provided, use db ref + 3 alt bases
-
-		// genomic inputs - VCF, HGVS_GEN, GNOMAD, CUSTOM_GEN
-		if (groupedInputs.containsKey(Type.GENOMIC)) {
-			List<UserInput> genomicInputs = groupedInputs.get(Type.GENOMIC);
-			boolean allGenomic = groupedInputs.size() == 1;
-
-			/**   assembly
-			 *   |    |    \
-			 *   v    v     \
-			 *  null auto    v
-			 *   |    |     37or38
-			 *   | detect   |    |  \
-			 *   | |   \    |    |  /undetermined(assumes)
-			 *    \ \   v   v    v  v
-			 *     \ \  is37 ..> is38
-			 *      \_\___________^
-			 *
-			 *        ..> converts to
-			 */
-
-			// null | auto | 37or38
-			Assembly assembly = null;
-
-			if (assemblyVersion == null) {
-				messages.add(new Message(Message.MessageType.WARN, "Unspecified assembly version; defaulting to GRCh38"));
-				assembly = Assembly.GRCH38;
-			} else {
-				if (assemblyVersion.equalsIgnoreCase("AUTO")) {
-					if (allGenomic) {
-						assembly = buildConverter.determineBuild(genomicInputs, messages); // -> 37 or 38
-					}
-					else {
-						messages.add(new Message(Message.MessageType.WARN, "Assembly auto-detect works for all-genomic inputs only; defaulting to GRCh38"));
-						assembly = Assembly.GRCH38;
-					}
-				} else {
-					assembly = Assembly.of(assemblyVersion);
-					if (assembly == null) {
-						messages.add(new Message(Message.MessageType.WARN, "Unable to determine assembly version; defaulting to GRCh38"));
-						assembly = Assembly.GRCH38;
-					}
-				}
-			}
-
-			if (assembly == Assembly.GRCH37) {
-				messages.add(new Message(Message.MessageType.INFO, "Converting GRCh37 to GRCh38"));
-				buildConverter.convert(genomicInputs);
-			}
-		}
-
-		// process ID inputs
-		if (groupedInputs.containsKey(Type.ID)) {
-			List<UserInput> idInputs = groupedInputs.get(Type.ID);
-			id2Gen.convert(idInputs);
-		}
-
-		if (groupedInputs.containsKey(Type.CODING)) {
-			List<UserInput> codingInputs = groupedInputs.get(Type.CODING);
-			coding2Pro.convert(codingInputs);
-		}
-
-		// process Protein inputs
-		if (groupedInputs.containsKey(Type.PROTEIN) || groupedInputs.containsKey(Type.CODING)) {
-			List<UserInput> proteinInputs = new ArrayList<>();
-			if (groupedInputs.get(Type.PROTEIN) != null)
-				proteinInputs.addAll(groupedInputs.get(Type.PROTEIN));
-			if (groupedInputs.get(Type.CODING) != null)
-				proteinInputs.addAll(groupedInputs.get(Type.CODING));
-			pro2Gen.convert(proteinInputs);
-		}
+		// protein to genomic inputs conversion
+		pro2Gen.convert(groupedInputs);
 
 		// get all chrPos combination
-
 		Set<Object[]> chrPosSet = new HashSet<>();
 		userInputs.stream().forEach(userInput -> {
 			chrPosSet.addAll(userInput.chrPos());
@@ -235,13 +133,50 @@ public class MappingFetcher {
 						List<GenomeToProteinMapping> mappingList = map.get(gInput.groupByChrAndPos());
 						List<CADDPrediction> caddScores = predictionMap.get(gInput.groupByChrAndPos());
 
-						Double caddScore = null;
-						if (caddScores != null && !caddScores.isEmpty())
-							caddScore = getCaddScore(caddScores, gInput.getAlt());
+						List<Gene> ensgMappingList;
 
-						List<Gene> ensgMappingList = Collections.emptyList();
-						if (mappingList != null)
-							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput.getRef(), gInput.getAlt(), caddScore, eveScoreMap, variationMap, options);
+						if (mappingList == null || mappingList.isEmpty()) {
+							ensgMappingList = new ArrayList<>();
+						} else {
+
+							Set<String> altBases = new HashSet<>();
+							if (gInput.getAlt() != null)
+								altBases.add(gInput.getAlt());
+
+							if (input instanceof GenomicInput || input instanceof VCF ||
+									input instanceof Gnomad || input instanceof HGVSg) {
+
+								String refBase = mappingList.get(0).getBaseNucleotide();
+
+								// TODO
+								// for genomic input,
+								// if no base provided, use db ref + 3 alt bases
+								// if both ref and alt provided, check ref equals db ref
+								// if only one base provided, check if base equals ref,
+								//    if yes, use 3 alt bases i.e. add new genomic input to results
+								//    if not, assume base provided is alt, use db ref as ref
+
+								if (gInput.getRef() == null && gInput.getAlt() == null) {
+									gInput.setRef(refBase);
+									altBases = GenomicInput.VALID_ALLELES.stream().filter(b -> !b.equals(refBase)).collect(Collectors.toSet());
+								} else if (gInput.getRef() != null && gInput.getAlt() != null) {
+
+									if (!gInput.getRef().equalsIgnoreCase(refBase)) {
+										gInput.addWarning("Reference allele at position incorrect.");
+										gInput.setRef(refBase);
+									}
+								} else {
+									if (gInput.getRef().equalsIgnoreCase(refBase)) {
+										altBases = GenomicInput.VALID_ALLELES.stream().filter(b -> !b.equals(refBase)).collect(Collectors.toSet());
+									} else {
+										gInput.addWarning("Reference allele at position incorrect.");
+										gInput.setAlt(gInput.getRef());
+										gInput.setRef(refBase);
+									}
+								}
+							}
+							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, eveScoreMap, variationMap, options);
+						}
 
 						GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
 						gInput.getMappings().add(mapping);
@@ -256,49 +191,4 @@ public class MappingFetcher {
 		return response;
 	}
 
-
-
-
-
-	private Double getCaddScore(List<CADDPrediction> caddScores, String alt) {
-		if (caddScores != null && !caddScores.isEmpty()) {
-			Optional<CADDPrediction> prediction = caddScores.stream()
-					.filter(p -> alt.equalsIgnoreCase(p.getAltAllele())).findAny();
-			if (prediction.isPresent())
-				return prediction.get().getScore();
-			return null;
-		}
-		return null;
-	}
-
-	public String inputSummary(List<UserInput> userInputs) {
-		String inputSummary = String.format("Processed %d input%s ", userInputs.size(), FetcherUtils.pluralise(userInputs.size()));
-		int[] counts = {0,0,0,0}; //genomic, coding, protein, ID
-		List<String> invalidInputs = new ArrayList<>();
-
-
-		userInputs.stream().forEach(input -> {
-			if (input.getType() == Type.GENOMIC) counts[0]++;
-			else if (input.getType() == Type.CODING) counts[1]++;
-			else if (input.getType() == Type.PROTEIN) counts[2]++;
-			else if (input.getType() == Type.ID) counts[3]++;
-
-			if (!input.isValid())
-				invalidInputs.add(String.format("Invalid input (%s): %s ", input.getInputStr(), Arrays.toString(input.getErrors().toArray())));
-		});
-		List<String> inputTypes = new ArrayList<>();
-		if (counts[0] > 0) inputTypes.add(String.format("%d genomic", counts[0]));
-		if (counts[1] > 0) inputTypes.add(String.format("%d cDNA", counts[1]));
-		if (counts[2] > 0) inputTypes.add(String.format("%d protein", counts[2]));
-		if (counts[3] > 0) inputTypes.add(String.format("%d ID", counts[3]));
-
-		if (inputTypes.size() > 0) inputSummary += "(" + String.join(", ", inputTypes) + ")";
-
-		if (invalidInputs.size() > 0) {
-			inputSummary += String.format("%d input%s %s not valid", invalidInputs.size(), FetcherUtils.pluralise(invalidInputs.size()), FetcherUtils.isOrAre(invalidInputs.size()));
-			LOGGER.warn(Arrays.toString(invalidInputs.toArray()));
-		}
-
-		return inputSummary;
-	}
 }
