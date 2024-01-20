@@ -1,9 +1,9 @@
 package uk.ac.ebi.protvar.input.mapper;
 
 import lombok.AllArgsConstructor;
-import org.apache.commons.collections.map.HashedMap;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.input.Format;
+import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.id.ClinVarID;
 import uk.ac.ebi.protvar.input.format.id.CosmicID;
@@ -33,15 +33,17 @@ public class ID2Gen {
     /**
      * Maps ID inputs (DBSNP) to their corresponding genomic coordinates.
      * It is possible that an ID gives multiple variants - in which case they are added to the genomicInputList.
-     * @param idInputs
+     * @param groupedInputs
      */
-    public void convert(List<UserInput> idInputs) {
+    public void convert(Map<Type, List<UserInput>> groupedInputs) {
+        if (groupedInputs.containsKey(Type.ID)) {
+            List<UserInput> idInputs = groupedInputs.get(Type.ID);
+            Map<Format, List<UserInput>> idGroups = idInputs.stream().collect(Collectors.groupingBy(UserInput::getFormat));
 
-        Map<Format, List<UserInput>> idGroups = idInputs.stream().collect(Collectors.groupingBy(UserInput::getFormat));
-
-        dbsnpLookup(idGroups.get(Format.DBSNP));
-        clinvarLookup(idGroups.get(Format.CLINVAR));
-        cosmicLookup(idGroups.get(Format.COSMIC));
+            dbsnpLookup(idGroups.get(Format.DBSNP));
+            clinvarLookup(idGroups.get(Format.CLINVAR));
+            cosmicLookup(idGroups.get(Format.COSMIC));
+        }
     }
 
     public void dbsnpLookup(List<UserInput> dbsnpIdInputs) {

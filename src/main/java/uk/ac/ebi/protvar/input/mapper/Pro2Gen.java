@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.UniprotEntryCache;
+import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.input.format.protein.HGVSp;
@@ -72,8 +73,18 @@ codon position = 1
     -> add each to genomic input list
 
  */
-    public void convert(List<UserInput> proteinInputs) {
+    public void convert(Map<Type, List<UserInput>> groupedInputs) {
+        if (groupedInputs.containsKey(Type.PROTEIN) || groupedInputs.containsKey(Type.CODING)) {
+            List<UserInput> proteinInputs = new ArrayList<>();
+            if (groupedInputs.get(Type.PROTEIN) != null)
+                proteinInputs.addAll(groupedInputs.get(Type.PROTEIN));
+            if (groupedInputs.get(Type.CODING) != null)
+                proteinInputs.addAll(groupedInputs.get(Type.CODING));
+            convert(proteinInputs);
+        }
+    }
 
+    private void convert(List<UserInput> proteinInputs) {
         // 1. get all the accessions and positions
         Set<Object[]> accPosSet = new HashSet<>();
 
@@ -86,23 +97,23 @@ codon position = 1
 
             if (input instanceof HGVSp) {
                 HGVSp hgvsProt = ((HGVSp) input);
-            List<String> uniprotAccs = rsAccsMap.get(hgvsProt.getRsAcc());
-            if (uniprotAccs != null && uniprotAccs.size() > 0){
-                List<String> head =  uniprotAccs.subList(0, 1);
-                List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());
+                List<String> uniprotAccs = rsAccsMap.get(hgvsProt.getRsAcc());
+                if (uniprotAccs != null && uniprotAccs.size() > 0){
+                    List<String> head =  uniprotAccs.subList(0, 1);
+                    List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());
 
-                hgvsProt.setAcc(head.get(0));
-                accPosSet.add(new Object[]{head.get(0), hgvsProt.getPos()});
+                    hgvsProt.setAcc(head.get(0));
+                    accPosSet.add(new Object[]{head.get(0), hgvsProt.getPos()});
 
-                if (tail != null && tail.size() > 1) {
-                    hgvsProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession", Arrays.toString(uniprotAccs.toArray())));
+                    if (tail != null && tail.size() > 1) {
+                        hgvsProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession", Arrays.toString(uniprotAccs.toArray())));
+                    }
+                    if (!uniprotEntryCache.isValidEntry(hgvsProt.getAcc())) {
+                        hgvsProt.addWarning("Invalid mapped accession " + hgvsProt.getAcc());
+                    }
+                } else {
+                    hgvsProt.addWarning("Could not map RefSeq ID to a Uniprot protein");
                 }
-                if (!uniprotEntryCache.isValidEntry(hgvsProt.getAcc())) {
-                    hgvsProt.addWarning("Invalid mapped accession " + hgvsProt.getAcc());
-                }
-            } else {
-                hgvsProt.addWarning("Could not map RefSeq ID to a Uniprot protein");
-            }
 
             } else if(input instanceof ProteinInput) { // custom Protein
                 ProteinInput customProt = ((ProteinInput) input);
@@ -372,7 +383,6 @@ codon position = 1
                 }
             }
         });
-
     }
 
     private String reverseDNA(String dna) {

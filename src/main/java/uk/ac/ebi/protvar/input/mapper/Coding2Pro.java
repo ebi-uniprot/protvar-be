@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar.input.mapper;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
@@ -25,36 +26,40 @@ import java.util.stream.Collectors;
 public class Coding2Pro {
     UniprotRefseqRepo uniprotRefseqRepo;
 
-    public void convert(List<UserInput> codingInputs) {
-        Set<String> rsAccs = codingInputs.stream()
-                .map(i -> ((HGVSc) i).getAcc()).collect(Collectors.toSet());
-        Map<String, List<String>> rsAccsMap = uniprotRefseqRepo.getRefSeqUniprotMap(rsAccs);
+    public void convert(Map<Type, List<UserInput>> groupedInputs) {
+        if (groupedInputs.containsKey(Type.CODING)) {
+            List<UserInput> codingInputs = groupedInputs.get(Type.CODING);
 
-        codingInputs.stream().map(i -> (HGVSc) i).forEach(cDNAProt -> {
+            Set<String> rsAccs = codingInputs.stream()
+                    .map(i -> ((HGVSc) i).getAcc()).collect(Collectors.toSet());
+            Map<String, List<String>> rsAccsMap = uniprotRefseqRepo.getRefSeqUniprotMap(rsAccs);
+
+            codingInputs.stream().map(i -> (HGVSc) i).forEach(cDNAProt -> {
 
 
-            List<String> uniprotAccs = rsAccsMap.get(cDNAProt.getAcc());
-            if (uniprotAccs != null && uniprotAccs.size() > 0){
-                int[] protAndCodonPos = coding2ProteinPosition(cDNAProt.getPos());
-                if (protAndCodonPos.length == 2) {
-                    List<String> head =  uniprotAccs.subList(0, 1);
-                    List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());
+                List<String> uniprotAccs = rsAccsMap.get(cDNAProt.getAcc());
+                if (uniprotAccs != null && uniprotAccs.size() > 0) {
+                    int[] protAndCodonPos = coding2ProteinPosition(cDNAProt.getPos());
+                    if (protAndCodonPos.length == 2) {
+                        List<String> head = uniprotAccs.subList(0, 1);
+                        List<String> tail = uniprotAccs.subList(1, uniprotAccs.size());
 
-                    cDNAProt.setDerivedUniprotAcc(head.get(0));
-                    cDNAProt.setDerivedProtPos(protAndCodonPos[0]);
-                    cDNAProt.setDerivedCodonPos(protAndCodonPos[1]);
-                    if (cDNAProt.getProtPos() != null && cDNAProt.getProtPos() != protAndCodonPos[0]) {
-                        cDNAProt.addWarning("Derived protein position from coding position doesn't match");
+                        cDNAProt.setDerivedUniprotAcc(head.get(0));
+                        cDNAProt.setDerivedProtPos(protAndCodonPos[0]);
+                        cDNAProt.setDerivedCodonPos(protAndCodonPos[1]);
+                        if (cDNAProt.getProtPos() != null && cDNAProt.getProtPos() != protAndCodonPos[0]) {
+                            cDNAProt.addWarning("Derived protein position from coding position doesn't match");
+                        }
+
+                        if (tail != null && tail.size() > 1) {
+                            cDNAProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession", Arrays.toString(uniprotAccs.toArray())));
+                        }
                     }
-
-                    if (tail != null && tail.size() > 1) {
-                        cDNAProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession", Arrays.toString(uniprotAccs.toArray())));
-                    }
+                } else {
+                    cDNAProt.addWarning("Could not map RefSeq ID to a Uniprot protein");
                 }
-            } else {
-                cDNAProt.addWarning("Could not map RefSeq ID to a Uniprot protein");
-            }
-        });
+            });
+        }
     }
 
     private int[] coding2ProteinPosition(int codingPosition) {
