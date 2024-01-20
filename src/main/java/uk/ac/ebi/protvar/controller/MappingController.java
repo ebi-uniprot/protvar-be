@@ -11,7 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
-import uk.ac.ebi.protvar.service.APIService;
+import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
+import uk.ac.ebi.protvar.service.MappingService;
 
 import java.util.List;
 
@@ -21,7 +22,7 @@ import java.util.List;
 @AllArgsConstructor
 public class
 MappingController {
-  private APIService apiService;
+  private MappingService mappingService;
 
   /**
    * Requires a list of genomic coordinate variant inputs in VCF format and returns mappings to all known isoforms
@@ -47,18 +48,18 @@ MappingController {
     @Parameter(description = "Human genome assembly version. For e.g. GRCh38/h38/38, GRCh37/h37/37 or AUTO. If unspecified or cannot determine version, defaults to GRCh38")
     @RequestParam(required = false) String assembly
   ) {
-    MappingResponse mappingResponse = apiService.getMappings(inputs, function, population, structure, assembly);
+    MappingResponse mappingResponse = mappingService.getMapping(inputs, function, population, structure, assembly);
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 
 
-  @Operation(summary = "genomic-to-protein mappings for provided UniProt accession and optional position (WORK IN PROGRESS)")
-  @GetMapping(value = { "/mappings/{accession}", "/mappings/{accession}/{position}" })
-  // TODO try protein with 88AA - https://www.uniprot.org/uniprotkb/Q9UHP9
-  public ResponseEntity<MappingResponse> getGenomeProteinMappings(
-          @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
-          @Parameter(example = "493") @PathVariable(value = "position", required = false) Integer position) {
-    MappingResponse mappingResponse = apiService.getMappings(accession, position);
-    return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
+  @Operation(summary = "genomic-to-protein mappings for provided UniProt accession (WORK IN PROGRESS)")
+  @GetMapping(value = "/mappings/{accession}")
+  public ResponseEntity<PagedMappingResponse> getGenomeProteinMappings(
+          @Parameter(example = "Q9UHP9") @PathVariable("accession") String accession,
+          @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
+          @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
+    PagedMappingResponse response = mappingService.getMappingByAccession(accession, pageNo, pageSize);
+    return new ResponseEntity<>(response, HttpStatus.OK);
   }
 }
