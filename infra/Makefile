@@ -3,6 +3,7 @@ deployment_stage = ${DEPLOYMENT_ENV}
 
 deploy-backend-services-%:
 	$(MAKE) set-context-$(*)
+	$(MAKE) install-infra-helm-chart-rabbit
 	$(MAKE) install-infra-helm-chart-redis
 
 set-context-%:
