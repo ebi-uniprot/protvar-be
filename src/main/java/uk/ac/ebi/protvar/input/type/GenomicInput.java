@@ -112,6 +112,14 @@ public class GenomicInput extends UserInput {
         // of custom genomic input.
         setInputStr(userInput);
     }
+    public GenomicInput(String acc, String chr, Integer pos, String ref) {
+        setType(Type.GENOMIC);
+        setFormat(Format.CUSTOM_GEN);
+        setInputStr(acc);
+        setChr(chr);
+        setPos(pos);
+        setRef(ref);
+    }
 
     public static boolean isValid_(String inputStr) {
         return RegexUtils.matchIgnoreCase(REGEX, inputStr);
@@ -298,4 +306,5 @@ public class GenomicInput extends UserInput {
     public List<GenomicInput> genInputs() {
         return List.of(this);
     }
+
 }
