@@ -1,5 +1,8 @@
 package uk.ac.ebi.protvar.input.format.genomic;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.ebi.protvar.exception.InvalidInputException;
@@ -24,6 +27,9 @@ public class HGVSg extends GenomicInput {
             "(?<pos>"+GenomicInput.POS + ")" +
             "(?<sub>"+GenomicInput.BASE_SUB + ")"; // (A|T|C|G)>(A|T|C|G)
 
+    @JsonIgnore @Getter @Setter
+    Boolean grch37RSAcc;
+
     private static Pattern pattern = Pattern.compile(REGEX, Pattern.CASE_INSENSITIVE);
     private HGVSg(String inputStr) {
         super(inputStr);
@@ -41,7 +47,15 @@ public class HGVSg extends GenomicInput {
             if (matcher.matches()) {
 
                 String rsAcc = matcher.group("acc"); // refseq accession
-                String chr = RefSeqNC.toChr(rsAcc);
+                String chr = RefSeqNC.grch38RSAcctoChr(rsAcc);
+                if (chr == null) {
+                    chr = RefSeqNC.grch37RSAcctoChr(rsAcc);
+                    if (chr != null) {
+                        parsedInput.setGrch37RSAcc(true);
+                    } else {
+                        throw new InvalidInputException("HGVSg RefSeq accession not mapped to a chromosome");
+                    }
+                }
                 String pos = matcher.group("pos");
                 String sub = matcher.group("sub");
                 String[] bases = sub.split(HGVSUtils.SUB_SIGN);
