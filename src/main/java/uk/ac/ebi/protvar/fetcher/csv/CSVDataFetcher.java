@@ -20,6 +20,7 @@ import com.opencsv.CSVWriter;
 import uk.ac.ebi.protvar.builder.OptionBuilder;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.format.id.DbsnpID;
+import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
@@ -61,6 +62,7 @@ public class CSVDataFetcher {
 	private CSVFunctionDataFetcher functionDataFetcher;
 	private CSVPopulationDataFetcher populationFetcher;
 	private CSVStructureDataFetcher csvStructureDataFetcher;
+	private InputProcessor inputProcessor;
 
 	private String downloadDir;
 
@@ -120,7 +122,8 @@ public class CSVDataFetcher {
 	}
 
 	private List<String[]> buildCSVResult(List<String> inputList, String assembly, List<OPTIONS> options) {
-		MappingResponse response = mappingFetcher.getMappings(inputList, options, assembly);
+		List<UserInput> userInputs = inputProcessor.parse(inputList);
+		MappingResponse response = mappingFetcher.getMappings(userInputs, options, assembly);
 		List<String[]> csvOutput = new ArrayList<>();
 
 		response.getInputs().forEach(input -> {
