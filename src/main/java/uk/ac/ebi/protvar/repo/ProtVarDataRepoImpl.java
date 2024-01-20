@@ -4,10 +4,15 @@ import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
+import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.*;
 
 import java.sql.ResultSet;
@@ -27,6 +32,9 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			+ "where (chromosome, position) in (:chrPosSet)";
 
 	// SQL query optimised for large "IN" input
+	// Refer to https://stackoverflow.com/questions/1009706/
+	// PostgreSQL - max number of parameters in "IN" clause
+
 	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN = "select * from cadd_prediction "
 			+ "inner join (values :chrPosSet) as t(chr,pos) "
 			+ "on t.chr=chromosome and t.pos=position ";
@@ -78,6 +86,83 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			"AND pos=:pos";
 
 	private NamedParameterJdbcTemplate jdbcTemplate;
+
+	// Joining eve (or other genomic-based) score
+	// One way of doing it, basically to enable sorting at db level
+
+	// select ARRAY_REMOVE(array['A', 'T', 'G', 'C'], 'C')
+	// #
+	// 1 {A,T,G}
+	// select unnest(ARRAY_REMOVE(array['A', 'T', 'G', 'C'], 'C')
+	// #
+	// 1 A
+	// 2 T
+	// 3 G
+	// select * from genomic_protein_mapping where accession = 'P05067' and protein_position=1;
+	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensg_ver	ensp	ensp_ver	enst	enst_ver	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name
+	// 1	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein
+	// 2	21	1	M	26170619	A	aUg	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	2	true	true	Amyloid-beta precursor protein
+	// 3	21	1	M	26170618	C	auG	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	3	true	true	Amyloid-beta precursor protein
+	//
+	// select *, ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)  from genomic_protein_mapping where accession = 'P05067' and protein_position=1;
+	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensg_ver	ensp	ensp_ver	enst	enst_ver	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name	array_remove
+	// 1	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	{A,G,C}
+	// 2	21	1	M	26170619	A	aUg	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	2	true	true	Amyloid-beta precursor protein	{T,G,C}
+	// 3	21	1	M	26170618	C	auG	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	3	true	true	Amyloid-beta precursor protein	{A,T,G}
+	//
+	// select *, unnest(ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)) as altallele  from genomic_protein_mapping where accession = 'P05067' and protein_position=1;
+	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensg_ver	ensp	ensp_ver	enst	enst_ver	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name	altallele
+	// 1	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	A
+	// 2	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	G
+	// 3	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	C
+	// 4	21	1	M	26170619	A	aUg	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	2	true	true	Amyloid-beta precursor protein	T
+	// 5	21	1	M	26170619	A	aUg	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	2	true	true	Amyloid-beta precursor protein	G
+	// 6	21	1	M	26170619	A	aUg	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	2	true	true	Amyloid-beta precursor protein	C
+	// 7	21	1	M	26170618	C	auG	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	3	true	true	Amyloid-beta precursor protein	A
+	// 8	21	1	M	26170618	C	auG	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	3	true	true	Amyloid-beta precursor protein	T
+	// 9	21	1	M	26170618	C	auG	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	3	true	true	Amyloid-beta precursor protein	G
+	// select g2p.*, cadd.*
+	// from (
+	// select *, unnest(ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)) as altallele
+	// from genomic_protein_mapping g2p
+	// where accession = 'P05067' and protein_position=1) g2p
+	// inner join cadd_prediction cadd on (g2p.chromosome = cadd.chromosome
+	// and g2p.genomic_position = cadd.position
+	// and g2p.allele = cadd.allele
+	// and g2p.altallele = cadd.altallele);
+	//
+	// select * from cadd_prediction
+	// where chromosome='21'
+	// and position=26170620; -- should return 3 rows but returning 9!
+	// -- duplicates! using distinct fixes it but issue needs to be
+	// -- addressed at source (import) and chr-pos-allele-alt need
+	// -- to be all PKs (no need to save allele in tbl).
+
+	@Override
+	public Page<UserInput> getGenInputsByAccession(String accession, Pageable pageable) {
+		String rowCountSql = "select count(distinct (chromosome, genomic_position, allele)) " +
+				"as row_count " +
+		"from genomic_protein_mapping " +
+				"where accession = :acc ";
+
+		SqlParameterSource parameters = new MapSqlParameterSource("acc", accession);
+		int total = jdbcTemplate.queryForObject(rowCountSql, parameters, Integer.class);
+
+
+		String querySql = "select distinct chromosome, genomic_position, allele from genomic_protein_mapping " +
+				"where accession = :acc " +
+				"order by chromosome, genomic_position " +
+				"limit " + pageable.getPageSize() + " offset " + pageable.getOffset();
+
+		SqlParameterSource queryParameters = new MapSqlParameterSource("acc", accession);
+
+		List<UserInput> genomicInputs =
+				jdbcTemplate.query(querySql, queryParameters,
+						(rs, rowNum) -> new GenomicInput(accession, rs.getString("chromosome"), rs.getInt("genomic_position"), rs.getString("allele"))
+				);
+
+		return new PageImpl<>(genomicInputs, pageable, total);
+	}
 
 	@Override
 	public List<CADDPrediction> getCADDByChrPos(Set<Object[]> chrPosSet) {

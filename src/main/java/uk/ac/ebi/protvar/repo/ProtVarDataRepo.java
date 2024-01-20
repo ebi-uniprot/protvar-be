@@ -1,5 +1,8 @@
 package uk.ac.ebi.protvar.repo;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.data.*;
 
 import java.util.List;
@@ -13,6 +16,8 @@ public interface ProtVarDataRepo {
 	List<GenomeToProteinMapping> getMappingsByChrPos(Set<Object[]> chrPosSet);
 	List<GenomeToProteinMapping> getMappingsByAccPos(Set<Object[]> accPosList);
 
+
+	Page<UserInput> getGenInputsByAccession(String accession, Pageable pageable);
 
 	//================================================================================
 	// CADDPrediction
