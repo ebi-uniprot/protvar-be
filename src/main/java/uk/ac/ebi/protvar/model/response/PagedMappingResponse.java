@@ -2,8 +2,6 @@ package uk.ac.ebi.protvar.model.response;
 
 import lombok.*;
 
-import java.util.List;
-
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
