@@ -1,11 +1,13 @@
 package uk.ac.ebi.protvar.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 public class Coord {
 
     @AllArgsConstructor
-    public class Gen {
+    @Getter
+    public static class Gen {
 
         String chr;
         Integer pos;
