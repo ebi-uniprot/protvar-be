@@ -8,16 +8,19 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import uk.ac.ebi.protvar.input.format.genomic.VCF;
+import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.utils.Constants;
 
 public class UserInputTest {
 
+	InputProcessor inputProcessor = new InputProcessor();
+
 	@Test
 	@Disabled
 	void testGetInput() {
 		String input = "21 25891796 25891797 C/T . . .";
-		GenomicInput actual = (GenomicInput) UserInput.getInput(input);
+		GenomicInput actual = (GenomicInput) inputProcessor.parse(input);
 		assertEquals("21", actual.getChr());
 		assertEquals(25891796, actual.getPos());
 		assertEquals("C", actual.getRef());
@@ -28,7 +31,7 @@ public class UserInputTest {
 	@Disabled
 	void testGetInputTab() {
 		String input = "21\t25891796\t25891797\tC/T . . .";
-		GenomicInput actual = (GenomicInput) UserInput.getInput(input);
+		GenomicInput actual = (GenomicInput) inputProcessor.parse(input);
 		assertEquals("21", actual.getChr());
 		assertEquals(25891796, actual.getPos());
 		assertEquals("C", actual.getRef());
