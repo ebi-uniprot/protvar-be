@@ -8,8 +8,7 @@ import uk.ac.ebi.protvar.input.format.id.CosmicID;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.response.Message;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -36,7 +35,7 @@ public abstract class UserInput {
 	Type type;
 	Format format;
 
-	private final List<Message> messages = new ArrayList<>();
+	private final List<Message> messages = new LinkedList<>(); // to maintain insertion order
 
 	public void addError(String text) {
 		this.messages.add(new Message(Message.MessageType.ERROR, text));
