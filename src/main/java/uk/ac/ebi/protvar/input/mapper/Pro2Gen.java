@@ -20,6 +20,7 @@ import uk.ac.ebi.protvar.utils.RNACodon;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import static uk.ac.ebi.protvar.input.ErrorConstants.*;
 
 @Service
 @AllArgsConstructor
@@ -32,62 +33,19 @@ public class Pro2Gen {
 
     private UniprotRefseqRepo uniprotRefseqRepo;
 
-    /*
-e.g. Protein input
-P22309 71 Gly Arg
-
-Check 1
-- can we go from Gly to Arg via SNP?
-
-select accession, protein_position, chromosome, genomic_position, allele, codon, reverse_strand, codon_position
-from genomic_protein_mapping
-where (accession, protein_position) IN (('P22309', 71))
-
-"accession"	"protein_position"	"chromosome"	"genomic_position"	"allele"	"codon"	"reverse_strand"	"codon_position"
-"P22309"	"71"	"2"	"233760498"	"G"	"Gga"	"false"	"1"
-"P22309"	"71"	"2"	"233760499"	"G"	"gGa"	"false"	"2"
-"P22309"	"71"	"2"	"233760500"	"A"	"ggA"	"false"	"3"
-
-Check 2
-- does GGA encodes Gly(G)?
-
-Determining the single gCoord from the 3 gCoords representing the aa (Gly/GGA)
-i.e. determining the codon position (1,2, or 3)
-
-For each mapping
-"P22309"	"71"	"2"	"233760498"	"G"	"Gga"	"false"	"1"
-codon position = 1
--> get possible SNVs (where G__ is fixed i.e. at position 1)
--> check if alt AA is one of them, if not, skip mapping
--> otherwise
-    // determining alt allele from
-    // - user input
-    // refAA & altAA (e.g. Gly Arg)
-    // - db mapping
-    // ref allele (e.g. G)   -- NOTE: RNA allele (AUGC)
-    // codon (e.g. Gga)      -- NOTE: DNA codon (ATGC)
-    // codon position (e.g 1)
-
-    -> possible SNVs at position 1 that encodes alt AA (Arg)
-    -> for each possible SNV, diff with ref AA to find alt allele
-    -> add each to genomic input list
-
- */
     public void convert(Map<Type, List<UserInput>> groupedInputs) {
-        if (groupedInputs.containsKey(Type.PROTEIN) || groupedInputs.containsKey(Type.CODING)) {
-            List<UserInput> proteinInputs = new ArrayList<>();
-            if (groupedInputs.get(Type.PROTEIN) != null)
-                proteinInputs.addAll(groupedInputs.get(Type.PROTEIN));
-            if (groupedInputs.get(Type.CODING) != null)
-                proteinInputs.addAll(groupedInputs.get(Type.CODING));
+        List<UserInput> proteinInputs = new ArrayList<>();
+        if (groupedInputs.get(Type.PROTEIN) != null)
+            proteinInputs.addAll(groupedInputs.get(Type.PROTEIN));
+        if (groupedInputs.get(Type.CODING) != null)
+            proteinInputs.addAll(groupedInputs.get(Type.CODING));
+        if (!proteinInputs.isEmpty())
             convert(proteinInputs);
-        }
     }
 
     private void convert(List<UserInput> proteinInputs) {
         // 1. get all the accessions and positions
         Set<Object[]> accPosSet = new HashSet<>();
-
 
         Set<String> rsAccs = proteinInputs.stream().filter(i -> i instanceof HGVSp)
                 .map(i -> ((HGVSp) i).getRsAcc()).collect(Collectors.toSet());
@@ -96,7 +54,7 @@ codon position = 1
         for (UserInput input : proteinInputs) {
 
             if (input instanceof HGVSp) {
-                HGVSp hgvsProt = ((HGVSp) input);
+                HGVSp hgvsProt = (HGVSp) input;
                 List<String> uniprotAccs = rsAccsMap.get(hgvsProt.getRsAcc());
                 if (uniprotAccs != null && uniprotAccs.size() > 0){
                     List<String> head =  uniprotAccs.subList(0, 1);
@@ -106,7 +64,7 @@ codon position = 1
                     accPosSet.add(new Object[]{head.get(0), hgvsProt.getPos()});
 
                     if (tail != null && tail.size() > 1) {
-                        hgvsProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession", Arrays.toString(uniprotAccs.toArray())));
+                        hgvsProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. ProtVar will use %s.", Arrays.toString(uniprotAccs.toArray()), hgvsProt.getAcc()));
                     }
                     if (!uniprotEntryCache.isValidEntry(hgvsProt.getAcc())) {
                         hgvsProt.addWarning("Invalid mapped accession " + hgvsProt.getAcc());
@@ -116,7 +74,7 @@ codon position = 1
                 }
 
             } else if(input instanceof ProteinInput) { // custom Protein
-                ProteinInput customProt = ((ProteinInput) input);
+                ProteinInput customProt = (ProteinInput) input;
                 accPosSet.add(new Object[]{customProt.getAcc(), customProt.getPos()});
 
                 if (!uniprotEntryCache.isValidEntry(customProt.getAcc())) {
@@ -124,7 +82,7 @@ codon position = 1
                 }
 
             } else if (input instanceof HGVSc) {
-                HGVSc cDNAProt = ((HGVSc) input);
+                HGVSc cDNAProt = (HGVSc) input;
                 if (cDNAProt.getDerivedUniprotAcc() != null) {
                     if (!uniprotEntryCache.isValidEntry(cDNAProt.getDerivedUniprotAcc()))
                         cDNAProt.addWarning("Invalid mapped accession " + cDNAProt.getDerivedUniprotAcc());
@@ -142,38 +100,46 @@ codon position = 1
         //	which we will try to pin down to one, if possible, based on the user inputs
         proteinInputs.stream().filter(i -> i.isValid()).forEach(i -> {
 
-            if (i instanceof HGVSp) {
-                HGVSp input = (HGVSp) i;
-                String acc = input.getAcc();
-                Integer pos = input.getPos();
-                //String refAa = input.getRef();
-                //String altAa = input.getAlt();
+            if (i instanceof HGVSp || i instanceof ProteinInput) {
+                ProteinInput input = (ProteinInput) i;
 
-                // optional pos/ref/alt aa
-                // ACC POS
-                // ACC POS AA - assumes ref if matches DB rec, otherwise alt
-
-                String key = acc + "-" + pos;
+                String key = Commons.joinWithDash(input.getAcc(), input.getPos());
                 List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
                 // ^ all the genomic coordinates for protein accession and position
 
                 Set<String> seen = new HashSet<>();
 
-                // allele in dna - ATCG
-                // codon in rna - AUCG
-                // reverse strand
-                // A<->T
-                // C<->G
-                // e.g. in g2p_mapping tbl
-                // protein_position,protein_seq,allele,codon,codon_position,reverse_strand
-                //                1,          M,     A,  Aug,             1,         false
-                //                1,          M,     T,  aUg,             2,         false
-                //                1,          M,     G,  auG,             3,         false
+                // Forward strand example rows
+                // from g2p_mapping tbl
+                //                           allele in DNA   codon in RNA      A<->T
+                //                              (ATCG)      / (AUCG)           C<->G
+                //                                |        |                   |
+                //                                v        v                   v
+                // protein_position,protein_seq,allele,codon,codon_position,reverse_strand        alt_alleles
+                //                1,          M,     A,  Aug,             1,         false        TCG (at codon pos 1)
+                //                1,          M,     T,  aUg,             2,         false        ACG (at codon pos 2)
+                //                1,          M,     G,  auG,             3,         false        ATC (at codon pos 3)
                 //
-                // protein_position,protein_seq,allele,codon,codon_position,reverse_strand
-                //                1,          M,     T,  Aug,             1,          true
-                //                1,          M,     A,  aUg,             2,          true
-                //                1,          M,     C,  auG,             3,          true
+                // Reverse strand example
+                // protein_position,protein_seq,allele,codon,codon_position,reverse_strand        alt_alleles
+                //                1,          M,     T,  Aug,             1,          true        ACG (at codon pos 1)
+                //                1,          M,     A,  aUg,             2,          true        TCG (at codon pos 2)
+                //                1,          M,     C,  auG,             3,          true        ATG (at codon pos 3)
+
+                // iterations for each chr-pos-allele
+                // chr - gen_coord1/codon_pos1 - allele - alt allele 1
+                //                                        alt allele 2
+                //                                        alt allele 3
+                // chr - gen_coord2/codon_pos2 - allele - alt allele 1
+                //                                        alt allele 2
+                //                                        alt allele 3
+                // chr - gen_coord3/codon_pos3 - allele - alt allele 1
+                //                                        alt allele 2
+                //                                        alt allele 3
+
+                List<GenomicInput> altGInputs = new ArrayList<>();
+                Map<Integer, Message> errorMap = new TreeMap<>(); // order of message matters
+
                 if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
                     gCoordsForProtein.forEach(gCoord -> {
                         String gCoordChr = gCoord.getChromosome();
@@ -184,17 +150,28 @@ codon position = 1
                         if (seen.contains(curr)) return;
                         seen.add(curr);
 
-                        String gCoordRefAA = gCoord.getAa();
+                        String gCoordAa = gCoord.getAa();
                         String gCoordCodon = gCoord.getCodon(); //should code for/translate into refAA
                         Integer gCoordCodonPos = gCoord.getCodonPosition();
                         Boolean gCoordIsReverse = gCoord.isReverseStrand();
 
-                        Set<String> gCoordAltAlleles = getAlternates(gCoordRefAllele);
+                        Set<String> possibleAltAlleles = getAlternatesDNA(gCoordRefAllele); // allele is in DNA letters -ATCG
+
+                        AminoAcid gCoordRefAA = AminoAcid.fromOneOrThreeLetter(gCoordAa);
 
                         if (input.getRef() == null && input.getAlt() == null) {
-                            for (String altAllele : gCoordAltAlleles) {
-                                altAllele = gCoordIsReverse ? RNACodon.reverse(altAllele) : altAllele;
-                                altAllele = altAllele.replace('U', 'T');
+                            // Ref & var empty
+                            if (!errorMap.containsKey(ERR_CODE_REF_EMPTY))
+                                errorMap.put(ERR_CODE_REF_EMPTY,
+                                        new Message(Message.MessageType.WARN,
+                                                String.format(ERROR_MESSAGE.get(ERR_CODE_REF_EMPTY), input.getPos(), gCoordRefAA.getThreeLetters())));
+
+                            if (!errorMap.containsKey(ERR_CODE_VAR_EMPTY))
+                                errorMap.put(ERR_CODE_VAR_EMPTY,
+                                        new Message(Message.MessageType.WARN, ERROR_MESSAGE.get(ERR_CODE_VAR_EMPTY)));
+
+                            for (String altAllele : possibleAltAlleles) {
+                                altAllele = gCoordIsReverse ? reverseDNA(altAllele) : altAllele;
                                 GenomicInput gInput = new GenomicInput(input.getInputStr());
                                 gInput.setChr(gCoordChr);
                                 gInput.setPos(gCoordPos);
@@ -202,70 +179,83 @@ codon position = 1
                                 gInput.setAlt(altAllele);
                                 input.getDerivedGenomicInputs().add(gInput);
                             }
-                        } else if (input.getRef() != null && input.getAlt() != null) {
+                        } else if (input.getRef() != null) {
 
                             AminoAcid refAA = AminoAcid.fromOneOrThreeLetter(input.getRef());
-                            AminoAcid gCoordRefAA_ = AminoAcid.fromOneOrThreeLetter(gCoordRefAA);
+
+                            // reference mismatch
+                            if (!refAA.equals(gCoordRefAA) && !errorMap.containsKey(ERR_CODE_REF_MISMATCH)) {
+                                errorMap.put(ERR_CODE_REF_MISMATCH,
+                                        new Message(Message.MessageType.WARN,
+                                                String.format(ERROR_MESSAGE.get(ERR_CODE_REF_MISMATCH),
+                                                        refAA.getThreeLetters(), gCoordRefAA.getThreeLetters(), input.getPos(), gCoordRefAA.getThreeLetters())));
+                                input.setRef(gCoordAa);
+                            }
+
+                            AminoAcid userAltAA = null;
+                            if (input.getAlt() != null) {
+                                userAltAA = AminoAcid.fromOneOrThreeLetter(input.getAlt());
+
+                                // variant non SNV
+                                if (!AminoAcid.isSNV(gCoordRefAA, userAltAA) && !errorMap.containsKey(ERR_CODE_VARIANT_NON_SNV)) {
+                                    errorMap.put(ERR_CODE_VARIANT_NON_SNV,
+                                            new Message(Message.MessageType.WARN,
+                                                    String.format(ERROR_MESSAGE.get(ERR_CODE_VARIANT_NON_SNV),
+                                                            userAltAA.getThreeLetters(), gCoordRefAA.getThreeLetters())));
+                                }
+                            }
 
                             String codonUC = gCoordCodon.toUpperCase();
 
-                            for (String altAllele : gCoordAltAlleles) {
-                                String altCodon = codonUC.substring(0, gCoordCodonPos - 1) + altAllele +
+                            for (String altAllele : possibleAltAlleles) {
+
+                                String altCodon = codonUC.substring(0, gCoordCodonPos - 1) +
+                                        altAlleleIfReverse(altAllele, gCoordIsReverse) +
                                         codonUC.substring(gCoordCodonPos);
+
                                 RNACodon altRnaCodon = RNACodon.valueOf(altCodon);
-                                AminoAcid altAA = altRnaCodon == null ? null : altRnaCodon.getAa();
-                                AminoAcid userAltAA = AminoAcid.fromOneOrThreeLetter(input.getAlt());
-                                if (altAA != null && userAltAA != null && altAA == userAltAA) {
-                                    altAllele = gCoordIsReverse ? RNACodon.reverse(altAllele) : altAllele;
-                                    altAllele = altAllele.replace('U', 'T');
-                                    GenomicInput gInput = new GenomicInput(input.getInputStr());
-                                    gInput.setChr(gCoordChr);
-                                    gInput.setPos(gCoordPos);
-                                    gInput.setRef(gCoordRefAllele);
-                                    gInput.setAlt(altAllele);
-                                    input.getDerivedGenomicInputs().add(gInput);
+                                AminoAcid altAA = altRnaCodon.getAa();
 
-                                    // Checks-
-                                    // 1. refAa and db ref should be the same
-                                    if (!refAA.equals(gCoordRefAA_)) {
-                                        input.addWarning(String.format("Reference AA mismatch. Should be %s, not %s", gCoordRefAA, input.getRef()));
-                                        input.setRef(gCoordRefAA);
-                                    }
+                                GenomicInput gInput = new GenomicInput(input.getInputStr());
+                                gInput.setChr(gCoordChr);
+                                gInput.setPos(gCoordPos);
+                                gInput.setRef(gCoordRefAllele);
+                                gInput.setAlt(altAllele);
 
-                                    // 2. ref/alt should be via SNV
-
-                                    if (!AminoAcid.isSNV(refAA, altAA)) {
-                                        input.addInfo(String.format("Can't go from %s to %s via a SNV", refAA.name(), userAltAA.name()));
-                                    }
+                                // filter out codon that doesn't code for user variant amino acid
+                                if (userAltAA != null && !altAA.equals(userAltAA)) {
+                                    altGInputs.add(gInput);
+                                    continue; // check the next altAllele
                                 }
+                                input.getDerivedGenomicInputs().add(gInput);
                             }
                         }
 
                     });
                 }
 
-                if (input.getDerivedGenomicInputs().isEmpty() && input.getMessages().isEmpty()) {
-                    input.addError("Could not map HGVSp. input to genomic coordinate(s)");
+                if (!errorMap.isEmpty()) {
+                    errorMap.keySet().forEach(k -> {
+                        input.getMessages().add(errorMap.get(k));
+                    });
                 }
 
-            } else if(i instanceof ProteinInput) {
-                ProteinInput input = (ProteinInput) i;
-
-                AminoAcid refAA = AminoAcid.fromOneLetter(input.getRef());
-                AminoAcid altAA = AminoAcid.fromOneLetter(input.getAlt());
-
-                if (!AminoAcid.isSNV(refAA, altAA)) {
-                    input.addInfo(String.format("Can't go from %s to %s via a SNV", refAA.name(), altAA.name()));
+                if (input.getDerivedGenomicInputs().isEmpty()) {
+                    //if we haven't got a filtered set of genomic coordinates, return all possible combinations
+                    if (!altGInputs.isEmpty()) {
+                        input.getDerivedGenomicInputs().addAll(altGInputs);
+                    }
+                    else {
+                        input.addError("Could not map protein input to genomic coordinate(s)");
+                    }
                 }
 
-                // ref -> alt change is only possible by a SNV change at these
-                // positions e.g. {1}, {2}, {1,2}, etc
-                final Set<Integer> codonPositions = refAA.changedPositions(altAA);
-                //if (codonPositions == null || codonPositions.isEmpty()) // means ref->alt AA not possible via SNV?
-                //	codonPositions = new HashSet<>(Arrays.asList(1, 2, 3));
+            } else if (i instanceof HGVSc) {
+                HGVSc input = (HGVSc) i;
 
-                String key = Commons.joinWithDash(input.getAcc(), input.getPos());
+                String key = Commons.joinWithDash(input.getDerivedUniprotAcc(), input.getDerivedProtPos());
                 List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
+
                 Set<String> seen = new HashSet<>();
 
                 if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
@@ -273,83 +263,11 @@ codon position = 1
                         String gCoordChr = gCoord.getChromosome();
                         Integer gCoordPos = gCoord.getGenomeLocation();
                         String gCoordRefAllele = gCoord.getBaseNucleotide();
-                        //String gCoordAcc = gCoord.getAccession();
-                        //Integer gCoordProteinPos = gCoord.getIsoformPosition();
-                        String gCoordRefAA = gCoord.getAa();
-                        String gCoordCodon = gCoord.getCodon(); //should code for/translate into refAA
-                        Integer gCoordCodonPos = gCoord.getCodonPosition();
-                        Boolean gCoordIsReverse = gCoord.isReverseStrand();
 
-                        String curr = gCoordChr + "-" + gCoordPos + "-" + gCoordRefAllele;
+                        String curr = Commons.joinWithDash(gCoordChr, gCoordPos, gCoordRefAllele);
                         if (seen.contains(curr)) return;
                         seen.add(curr);
 
-                        if (codonPositions != null && !codonPositions.isEmpty()
-                                && !codonPositions.contains(gCoordCodonPos)) return;
-
-                        RNACodon refRNACodon = RNACodon.valueOf(gCoordCodon.toUpperCase());
-
-                        Set<RNACodon> altRNACodons_ = refRNACodon.getSNVs().stream()
-                                .filter(c -> c.getAa().equals(altAA))
-                                .collect(Collectors.toSet());
-
-                        if (altRNACodons_.isEmpty()) {
-                            return;
-                        }
-
-                        char charAtCodonPos = refRNACodon.name().charAt(gCoordCodonPos - 1); // = refAllele?
-                        List<RNACodon> altRNACodons = altRNACodons_.stream()
-                                .filter(c -> c.name().charAt(gCoordCodonPos - 1) != charAtCodonPos)
-                                .collect(Collectors.toList());
-
-                        if (altRNACodons.isEmpty()) {
-                            return;
-                        }
-
-                        Set<String> altAlleles = new HashSet<>();
-                        for (RNACodon altRNACodon : altRNACodons) {
-                            altAlleles.add(snvDiff(refRNACodon, altRNACodon));
-                        }
-
-                        boolean mismatchMsg = false;
-
-                        for (String altAllele : altAlleles) {
-                            altAllele = gCoordIsReverse ? RNACodon.reverse(altAllele) : altAllele;
-                            altAllele = altAllele.replace('U', 'T');
-                            GenomicInput gInput = new GenomicInput(input.getInputStr());
-                            gInput.setChr(gCoordChr);
-                            gInput.setPos(gCoordPos);
-                            gInput.setRef(gCoordRefAllele);
-                            gInput.setAlt(altAllele);
-                            input.getDerivedGenomicInputs().add(gInput);
-                            if (!refAA.getOneLetter().equalsIgnoreCase(gCoordRefAA)) {
-                                if (!mismatchMsg) {
-                                    input.getMessages().add(new Message(Message.MessageType.WARN, String.format("Reference amino acid mis-match (expecting %s at protein position %d, not %s)", refRNACodon.getAa().getThreeLetters(), input.getPos(), refAA.getThreeLetters())));
-                                    mismatchMsg = true;
-                                }
-                            }
-                        }
-                    });
-                }
-
-                if (input.getDerivedGenomicInputs().isEmpty() && input.getMessages().isEmpty()) {
-                    input.addError("Could not map Protein input to genomic coordinate(s)");
-                }
-            } else if (i instanceof HGVSc) {
-                HGVSc input = (HGVSc) i;
-                String acc = input.getDerivedUniprotAcc();
-                Integer pos = input.getDerivedProtPos();
-
-                String key = acc + "-" + pos;
-                List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
-
-                Set<String> seen = new HashSet<>();
-
-                if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
-                    gCoordsForProtein.forEach(gCoord -> {
-                        String gCoordChr = gCoord.getChromosome();
-                        Integer gCoordPos = gCoord.getGenomeLocation();
-                        String gCoordRefAllele = gCoord.getBaseNucleotide();
                         Integer gCoordCodonPos = gCoord.getCodonPosition();
 
                         String cdnaRef = input.getRef();
@@ -364,10 +282,6 @@ codon position = 1
                                 gCoordCodonPos.equals(input.getDerivedCodonPos()))) {
                             return;
                         }
-
-                        String curr = Commons.joinWithDash(gCoordChr, gCoordPos, gCoordRefAllele);
-                        if (seen.contains(curr)) return;
-                        seen.add(curr);
 
                         GenomicInput gInput = new GenomicInput(input.getInputStr());
                         gInput.setChr(gCoordChr);
@@ -385,6 +299,26 @@ codon position = 1
         });
     }
 
+    private String altAlleleIfReverse(String altAllele, boolean isReverse) {
+        //dna->rna codon
+        if (isReverse) {
+            //T->A
+            //A->U
+            //C->G
+            //G->C
+            if (altAllele.equals("T")) return "A";
+            else if (altAllele.equals("A")) return "U";
+            else if (altAllele.equals("C")) return "G";
+            else if (altAllele.equals("G")) return "C";
+        } else {
+            //A->A
+            //T->U
+            //G->G
+            //C->C
+            if (altAllele.equals("T")) return "U";
+        }
+        return altAllele;
+    }
     private String reverseDNA(String dna) {
         String reverseStr = "";
         for (char c : dna.toCharArray()) {
@@ -400,16 +334,8 @@ codon position = 1
         return reverseStr;
     }
 
-    private Set<String> getAlternates(String ref) {
-        return RNACodon.RNA_LETTERS.stream().filter(s -> !s.equals(ref)).collect(Collectors.toSet());
-    }
-
-    private String snvDiff(RNACodon c1, RNACodon c2) {
-        for (int p=0; p<3; p++) {
-            if (c1.name().charAt(p) != c2.name().charAt(p))
-                return String.valueOf(c2.name().charAt(p));
-        }
-        return null;
+    private Set<String> getAlternatesDNA(String ref) {
+        return Arrays.asList("A", "T", "C", "G").stream().filter(s -> !s.equals(ref)).collect(Collectors.toSet());
     }
 
 }
