@@ -31,13 +31,13 @@ public class Coding2Pro {
             List<UserInput> codingInputs = groupedInputs.get(Type.CODING);
 
             Set<String> rsAccs = codingInputs.stream()
-                    .map(i -> ((HGVSc) i).getAcc()).collect(Collectors.toSet());
+                    .map(i -> ((HGVSc) i).getRsAcc()).collect(Collectors.toSet());
             Map<String, List<String>> rsAccsMap = uniprotRefseqRepo.getRefSeqUniprotMap(rsAccs);
 
             codingInputs.stream().map(i -> (HGVSc) i).forEach(cDNAProt -> {
 
 
-                List<String> uniprotAccs = rsAccsMap.get(cDNAProt.getAcc());
+                List<String> uniprotAccs = rsAccsMap.get(cDNAProt.getRsAcc());
                 if (uniprotAccs != null && uniprotAccs.size() > 0) {
                     int[] protAndCodonPos = coding2ProteinPosition(cDNAProt.getPos());
                     if (protAndCodonPos.length == 2) {

@@ -34,7 +34,7 @@ public class HGVSp extends ProteinInput {
     public static final String THREE_LETTER_AA_SUB = "(?<ref>"+THREE_LETTER_AA + ")(?<pos>" + POS + ")(?<alt>" + THREE_LETTER_AA_PLUS_STOP_CODON + ")";
 
     private static final String REGEX =
-            "(?<acc>"+PREFIX + RefSeqUtils.RS_ACC_NUM_PART + ")" + // RefSeq.NP accession
+            "(?<rsAcc>"+PREFIX + RefSeqUtils.RS_ACC_NUM_PART + ")" + // RefSeq.NP accession
             "("+HGVSUtils.COLON + SCHEME + ")"; // :p.
 
     private static Pattern patternOneLetter = Pattern.compile(REGEX + ONE_LETTER_AA_SUB, Pattern.CASE_INSENSITIVE);
@@ -75,7 +75,7 @@ public class HGVSp extends ProteinInput {
     }
 
     private void setParams(Matcher matcher) {
-        String rsAcc = matcher.group("acc"); // refseq accession
+        String rsAcc = matcher.group("rsAcc"); // refseq accession
         String pos = matcher.group("pos");
         String ref = matcher.group("ref");
         String alt = matcher.group("alt");

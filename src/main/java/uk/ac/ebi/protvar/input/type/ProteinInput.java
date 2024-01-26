@@ -84,7 +84,7 @@ public class ProteinInput extends UserInput {
             "(?<alt>"+THREE_LETTER_AA+")";
 
 
-    protected String acc;
+    protected String acc; // UniProt accession
     protected Integer pos;
     protected String ref;
     protected String alt;

@@ -30,7 +30,7 @@ public class HGVSc extends CodingInput {
     public static final String GENE = "[A-Z][A-Z0-9]+"; // MAIN CRITERIA: must only contain uppercase letters and numbers, start with a letter
 
     private static final String REGEX =
-            "(?<acc>"+PREFIX + RefSeqUtils.RS_ACC_NUM_PART + ")" + // RefSeq.NM accession
+            "(?<rsAcc>"+PREFIX + RefSeqUtils.RS_ACC_NUM_PART + ")" + // RefSeq.NM accession
                     // OPTIONALLY, gene name
                     "(("+ RegexUtils.SPACES +")?\\((?<gene>"+GENE+")\\))?" +
                     "("+ HGVSUtils.COLON + SCHEME + ")" + // :c.
@@ -44,7 +44,7 @@ public class HGVSc extends CodingInput {
     private static Pattern pattern = Pattern.compile(REGEX, Pattern.CASE_INSENSITIVE);
 
 
-    String acc; // refseq id
+    String rsAcc; // refseq id
     Integer pos; // Coding DNA position
     String ref;
     String alt;
@@ -73,11 +73,11 @@ public class HGVSc extends CodingInput {
         try {
             Matcher matcher = pattern.matcher(inputStr);
             if (matcher.matches()) {
-                String rsAcc = matcher.group("acc"); // refseq accession
+                String rsAcc = matcher.group("rsAcc"); // refseq accession
                 String pos = matcher.group("pos");
                 String ref = matcher.group("ref");
                 String alt = matcher.group("alt");
-                parsedInput.setAcc(rsAcc);
+                parsedInput.setRsAcc(rsAcc);
                 parsedInput.setPos(Integer.parseInt(pos));
                 parsedInput.setRef(ref);
                 parsedInput.setAlt(alt);
