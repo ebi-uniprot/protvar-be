@@ -187,9 +187,10 @@ public class GenomicInput extends UserInput {
         if (params.length > 3)
             parsedInput.setAlt(params[3].toUpperCase());
 
-        if (parsedInput.getRef() != null && parsedInput.getRef().equals(parsedInput.getAlt())) {
-            parsedInput.addWarning("Ref and alt base are the same");
-        }
+        // Skip check here - done later after ref base is checked to be correct
+        //if (parsedInput.getRef() != null && parsedInput.getRef().equals(parsedInput.getAlt())) {
+        //    parsedInput.addWarning("Ref and alt base are the same");
+        //}
         parsedInput.setId(Constants.NA);
         return parsedInput;
     }

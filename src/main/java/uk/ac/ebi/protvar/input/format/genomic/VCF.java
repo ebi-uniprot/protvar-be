@@ -63,9 +63,10 @@ public class VCF extends GenomicInput {
             parsedInput.setRef(ref);
             parsedInput.setAlt(alt);
 
-            if (ref.equals(alt)) {
-                parsedInput.addWarning("Ref and alt base are the same");
-            }
+            // Skip check here - done later after ref base is checked to be correct
+            //if (ref.equals(alt)) {
+            //    parsedInput.addWarning("Ref and alt base are the same");
+            //}
         }
         catch(Exception ex) {
             String msg = parsedInput + ": parsing error";

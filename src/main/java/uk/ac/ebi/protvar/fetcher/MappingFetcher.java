@@ -148,31 +148,34 @@ public class MappingFetcher {
 
 								String refBase = mappingList.get(0).getBaseNucleotide();
 
-								// TODO
-								// for genomic input,
-								// if no base provided, use db ref + 3 alt bases
-								// if both ref and alt provided, check ref equals db ref
-								// if only one base provided, check if base equals ref,
-								//    if yes, use 3 alt bases i.e. add new genomic input to results
-								//    if not, assume base provided is alt, use db ref as ref
-
 								if (gInput.getRef() == null && gInput.getAlt() == null) {
+									gInput.addWarning(ErrorConstants.ERR_REF_ALLELE_EMPTY);
 									gInput.setRef(refBase);
-									altBases = GenomicInput.VALID_ALLELES.stream().filter(b -> !b.equals(refBase)).collect(Collectors.toSet());
-								} else if (gInput.getRef() != null && gInput.getAlt() != null) {
+									altBases = GenomicInput.getAlternates(refBase);
+								} else if (gInput.getRef() != null) {
 
 									if (!gInput.getRef().equalsIgnoreCase(refBase)) {
-										gInput.addWarning("Reference allele at position incorrect.");
+										gInput.addWarning(
+												String.format(ErrorConstants.ERR_REF_ALLELE_MISMATCH,
+														gInput.getRef(),
+														refBase));
 										gInput.setRef(refBase);
 									}
-								} else {
-									if (gInput.getRef().equalsIgnoreCase(refBase)) {
-										altBases = GenomicInput.VALID_ALLELES.stream().filter(b -> !b.equals(refBase)).collect(Collectors.toSet());
+
+									altBases = GenomicInput.getAlternates(gInput.getRef());
+
+									if (gInput.getAlt() == null) {
+										gInput.addWarning(ErrorConstants.ERR_VAR_ALLELE_EMPTY);
 									} else {
-										gInput.addWarning("Reference allele at position incorrect.");
-										gInput.setAlt(gInput.getRef());
-										gInput.setRef(refBase);
+										// alt should not be same as ref
+										if (gInput.getAlt().equalsIgnoreCase(refBase)) {
+											gInput.addWarning(ErrorConstants.ERR_REF_AND_VAR_ALLELE_SAME);
+											// use all alt bases
+										} else {
+											altBases = Set.of(gInput.getAlt());
+										}
 									}
+
 								}
 							}
 							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, eveScoreMap, variationMap, options);
