@@ -155,7 +155,7 @@ public class Pro2Gen {
                         Integer gCoordCodonPos = gCoord.getCodonPosition();
                         Boolean gCoordIsReverse = gCoord.isReverseStrand();
 
-                        Set<String> possibleAltAlleles = getAlternatesDNA(gCoordRefAllele); // allele is in DNA letters -ATCG
+                        Set<String> possibleAltAlleles = GenomicInput.getAlternates(gCoordRefAllele); // allele is in DNA letters -ATCG
 
                         AminoAcid gCoordRefAA = AminoAcid.fromOneOrThreeLetter(gCoordAa);
 
@@ -332,10 +332,6 @@ public class Pro2Gen {
                 reverseStr += 'C';
         }
         return reverseStr;
-    }
-
-    private Set<String> getAlternatesDNA(String ref) {
-        return Arrays.asList("A", "T", "C", "G").stream().filter(s -> !s.equals(ref)).collect(Collectors.toSet());
     }
 
 }

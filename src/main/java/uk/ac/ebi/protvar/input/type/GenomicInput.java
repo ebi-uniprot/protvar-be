@@ -18,8 +18,10 @@ import static uk.ac.ebi.protvar.utils.RegexUtils.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -308,4 +310,7 @@ public class GenomicInput extends UserInput {
         return List.of(this);
     }
 
+    public static Set<String> getAlternates(String ref) {
+        return VALID_ALLELES.stream().filter(s -> !s.equals(ref)).collect(Collectors.toSet());
+    }
 }
