@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar.input.format.id;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.utils.RegexUtils;
@@ -23,9 +24,8 @@ public class DbsnpID extends IDInput {
     public static DbsnpID parse(String input) {
         DbsnpID parsedInput = new DbsnpID(input);
         if (!isValid(input)) {
-            String msg = parsedInput + ": parsing error";
-            parsedInput.addError(msg);
-            LOGGER.warn(msg);
+            LOGGER.warn(parsedInput + ": parsing error");
+            parsedInput.addError(ErrorConstants.INVALID_DBSNP_ID);
         }
         return parsedInput;
     }
