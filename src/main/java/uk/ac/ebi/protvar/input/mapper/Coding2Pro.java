@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar.input.mapper;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
@@ -48,15 +49,15 @@ public class Coding2Pro {
                         cDNAProt.setDerivedProtPos(protAndCodonPos[0]);
                         cDNAProt.setDerivedCodonPos(protAndCodonPos[1]);
                         if (cDNAProt.getProtPos() != null && cDNAProt.getProtPos() != protAndCodonPos[0]) {
-                            cDNAProt.addWarning("Derived protein position from coding position doesn't match");
+                            cDNAProt.addWarning(ErrorConstants.HGVS_C_POS_NOT_MATCHED);
                         }
 
                         if (tail != null && tail.size() > 1) {
-                            cDNAProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. Providing mapping for first accession", Arrays.toString(uniprotAccs.toArray())));
+                            cDNAProt.addWarning(String.format(ErrorConstants.HGVS_C_MULTIPLE_PROTEINS, Arrays.toString(uniprotAccs.toArray())));
                         }
                     }
                 } else {
-                    cDNAProt.addWarning("Could not map RefSeq ID to a Uniprot protein");
+                    cDNAProt.addError(ErrorConstants.HGVS_C_RS_UP_NO_MAPPING);
                 }
             });
         }

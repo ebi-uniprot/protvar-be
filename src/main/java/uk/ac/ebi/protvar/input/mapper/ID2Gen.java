@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar.input.mapper;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
@@ -74,7 +75,7 @@ public class ID2Gen {
                         });
                     }
                     else {
-                        input.addError("Could not get mapping for DBSNP ID");
+                        input.addError(ErrorConstants.NO_MAPPING_DBSNP_ID);
                     }
                 });
     }
@@ -107,7 +108,7 @@ public class ID2Gen {
                 addDerivedGenomicInputs(clinvarVCVMap.get(id), input);
             }
             if (input.getDerivedGenomicInputs().isEmpty()) {
-                input.addError("Could not get mapping for ClinVar ID");
+                input.addError(ErrorConstants.NO_MAPPING_CLINVAR_ID);
             }
         }
     }
@@ -135,7 +136,7 @@ public class ID2Gen {
                 addDerivedGenomicInputs(cosmicLegacyIdMap.get(id), input);
             }
             if (input.getDerivedGenomicInputs().isEmpty()) {
-                input.addError("Could not get mapping for Cosmic ID.");
+                input.addError(ErrorConstants.NO_MAPPING_COSMIC_ID);
             }
         });
 
