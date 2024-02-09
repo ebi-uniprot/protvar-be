@@ -75,7 +75,7 @@ public class ID2Gen {
                         });
                     }
                     else {
-                        input.addError(ErrorConstants.NO_MAPPING_DBSNP_ID);
+                        input.addError(ErrorConstants.DBSNP_ID_NO_MAPPING);
                     }
                 });
     }
@@ -108,7 +108,7 @@ public class ID2Gen {
                 addDerivedGenomicInputs(clinvarVCVMap.get(id), input);
             }
             if (input.getDerivedGenomicInputs().isEmpty()) {
-                input.addError(ErrorConstants.NO_MAPPING_CLINVAR_ID);
+                input.addError(ErrorConstants.CLINVAR_ID_NO_MAPPING);
             }
         }
     }
@@ -136,7 +136,7 @@ public class ID2Gen {
                 addDerivedGenomicInputs(cosmicLegacyIdMap.get(id), input);
             }
             if (input.getDerivedGenomicInputs().isEmpty()) {
-                input.addError(ErrorConstants.NO_MAPPING_COSMIC_ID);
+                input.addError(ErrorConstants.COSMIC_ID_NO_MAPPING);
             }
         });
 

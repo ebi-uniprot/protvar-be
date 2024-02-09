@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.UniprotEntryCache;
+import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
@@ -64,13 +65,17 @@ public class Pro2Gen {
                     accPosSet.add(new Object[]{head.get(0), hgvsProt.getPos()});
 
                     if (tail != null && tail.size() > 1) {
-                        hgvsProt.addWarning(String.format("RefSeq id mapped to multiple Uniprot accessions: %s. ProtVar will use %s.", Arrays.toString(uniprotAccs.toArray()), hgvsProt.getAcc()));
+                        hgvsProt.addWarning(String.format(
+                                ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.getErrorMessage(),
+                                Arrays.toString(uniprotAccs.toArray()), hgvsProt.getAcc()));
                     }
                     if (!uniprotEntryCache.isValidEntry(hgvsProt.getAcc())) {
-                        hgvsProt.addWarning("Invalid mapped accession " + hgvsProt.getAcc());
+                        hgvsProt.addWarning(
+                                String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
+                                , hgvsProt.getRsAcc(), hgvsProt.getAcc()));
                     }
                 } else {
-                    hgvsProt.addWarning("Could not map RefSeq ID to a Uniprot protein");
+                    hgvsProt.addWarning(ErrorConstants.HGVS_REFSEQ_NO_PROTEIN);
                 }
 
             } else if(input instanceof ProteinInput) { // custom Protein
@@ -78,14 +83,16 @@ public class Pro2Gen {
                 accPosSet.add(new Object[]{customProt.getAcc(), customProt.getPos()});
 
                 if (!uniprotEntryCache.isValidEntry(customProt.getAcc())) {
-                    customProt.addWarning("Invalid accession " + customProt.getAcc());
+                    customProt.addWarning(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), customProt.getAcc()));
                 }
 
             } else if (input instanceof HGVSc) {
                 HGVSc cDNAProt = (HGVSc) input;
                 if (cDNAProt.getDerivedUniprotAcc() != null) {
                     if (!uniprotEntryCache.isValidEntry(cDNAProt.getDerivedUniprotAcc()))
-                        cDNAProt.addWarning("Invalid mapped accession " + cDNAProt.getDerivedUniprotAcc());
+                        cDNAProt.addWarning(
+                                String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
+                                        , cDNAProt.getRsAcc(), cDNAProt.getDerivedUniprotAcc()));
                     if (cDNAProt.getDerivedProtPos() != null)
                         accPosSet.add(new Object[]{cDNAProt.getDerivedUniprotAcc(), cDNAProt.getDerivedProtPos()});
                 }
@@ -138,7 +145,7 @@ public class Pro2Gen {
                 //                                        alt allele 3
 
                 List<GenomicInput> altGInputs = new ArrayList<>();
-                Map<Integer, Message> errorMap = new TreeMap<>(); // order of message matters
+                List<ErrorConstants> errors = new ArrayList<>();
 
                 if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
                     gCoordsForProtein.forEach(gCoord -> {
@@ -161,14 +168,17 @@ public class Pro2Gen {
 
                         if (input.getRef() == null && input.getAlt() == null) {
                             // Ref & var empty
-                            if (!errorMap.containsKey(ERR_CODE_REF_EMPTY))
-                                errorMap.put(ERR_CODE_REF_EMPTY,
-                                        new Message(Message.MessageType.WARN,
-                                                String.format(ERROR_MESSAGE.get(ERR_CODE_REF_EMPTY), input.getPos(), gCoordRefAA.getThreeLetters())));
+                            if (!errors.contains(ERR_CODE_REF_EMPTY)) {
+                                errors.add(ERR_CODE_REF_EMPTY);
+                                input.getMessages().add(new Message(Message.MessageType.WARN,
+                                        String.format(ERR_CODE_REF_EMPTY.getErrorMessage(), input.getPos(), gCoordRefAA.getThreeLetters())));
+                            }
 
-                            if (!errorMap.containsKey(ERR_CODE_VAR_EMPTY))
-                                errorMap.put(ERR_CODE_VAR_EMPTY,
-                                        new Message(Message.MessageType.WARN, ERROR_MESSAGE.get(ERR_CODE_VAR_EMPTY)));
+                            if (!errors.contains(ERR_CODE_VAR_EMPTY)) {
+                                errors.add(ERR_CODE_VAR_EMPTY);
+                                input.getMessages().add(new Message(Message.MessageType.WARN,
+                                        ERR_CODE_VAR_EMPTY.getErrorMessage()));
+                            }
 
                             for (String altAllele : possibleAltAlleles) {
                                 altAllele = gCoordIsReverse ? reverseDNA(altAllele) : altAllele;
@@ -184,11 +194,11 @@ public class Pro2Gen {
                             AminoAcid refAA = AminoAcid.fromOneOrThreeLetter(input.getRef());
 
                             // reference mismatch
-                            if (!refAA.equals(gCoordRefAA) && !errorMap.containsKey(ERR_CODE_REF_MISMATCH)) {
-                                errorMap.put(ERR_CODE_REF_MISMATCH,
-                                        new Message(Message.MessageType.WARN,
-                                                String.format(ERROR_MESSAGE.get(ERR_CODE_REF_MISMATCH),
-                                                        refAA.getThreeLetters(), gCoordRefAA.getThreeLetters(), input.getPos(), gCoordRefAA.getThreeLetters())));
+                            if (!refAA.equals(gCoordRefAA) && !errors.contains(ERR_CODE_REF_MISMATCH)) {
+                                errors.add(ERR_CODE_REF_MISMATCH);
+                                input.getMessages().add(new Message(Message.MessageType.WARN,
+                                        String.format(ERR_CODE_REF_MISMATCH.getErrorMessage(),
+                                                refAA.getThreeLetters(), gCoordRefAA.getThreeLetters(), input.getPos(), gCoordRefAA.getThreeLetters())));
                                 input.setRef(gCoordAa);
                             }
 
@@ -197,11 +207,11 @@ public class Pro2Gen {
                                 userAltAA = AminoAcid.fromOneOrThreeLetter(input.getAlt());
 
                                 // variant non SNV
-                                if (!AminoAcid.isSNV(gCoordRefAA, userAltAA) && !errorMap.containsKey(ERR_CODE_VARIANT_NON_SNV)) {
-                                    errorMap.put(ERR_CODE_VARIANT_NON_SNV,
-                                            new Message(Message.MessageType.WARN,
-                                                    String.format(ERROR_MESSAGE.get(ERR_CODE_VARIANT_NON_SNV),
-                                                            userAltAA.getThreeLetters(), gCoordRefAA.getThreeLetters())));
+                                if (!AminoAcid.isSNV(gCoordRefAA, userAltAA) && !errors.contains(ERR_CODE_VARIANT_NON_SNV)) {
+                                    errors.add(ERR_CODE_VARIANT_NON_SNV);
+                                    input.getMessages().add(new Message(Message.MessageType.WARN,
+                                            String.format(ERR_CODE_VARIANT_NON_SNV.getErrorMessage(),
+                                                    userAltAA.getThreeLetters(), gCoordRefAA.getThreeLetters())));
                                 }
                             }
 
@@ -234,19 +244,13 @@ public class Pro2Gen {
                     });
                 }
 
-                if (!errorMap.isEmpty()) {
-                    errorMap.keySet().forEach(k -> {
-                        input.getMessages().add(errorMap.get(k));
-                    });
-                }
-
                 if (input.getDerivedGenomicInputs().isEmpty()) {
                     //if we haven't got a filtered set of genomic coordinates, return all possible combinations
-                    if (!altGInputs.isEmpty()) {
-                        input.getDerivedGenomicInputs().addAll(altGInputs);
+                    if (altGInputs.isEmpty()) {
+                        input.addError(PROT_NO_GEN_MAPPING);
                     }
                     else {
-                        input.addError("Could not map protein input to genomic coordinate(s)");
+                        input.getDerivedGenomicInputs().addAll(altGInputs);
                     }
                 }
 
@@ -293,7 +297,7 @@ public class Pro2Gen {
                 }
 
                 if (input.getDerivedGenomicInputs().isEmpty() && input.getMessages().isEmpty()) {
-                    input.addError("Could not map cDNA input to genomic coordinate(s)");
+                    input.addError(CDNA_NO_GEN_MAPPING);
                 }
             }
         });

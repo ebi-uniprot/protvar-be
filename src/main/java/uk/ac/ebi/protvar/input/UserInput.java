@@ -40,8 +40,14 @@ public abstract class UserInput {
 	public void addError(String text) {
 		this.messages.add(new Message(Message.MessageType.ERROR, text));
 	}
+	public void addError(ErrorConstants error) {
+		this.messages.add(new Message(Message.MessageType.ERROR, error.toString()));
+	}
 	public void addWarning(String text) {
 		this.messages.add(new Message(Message.MessageType.WARN, text));
+	}
+	public void addWarning(ErrorConstants error) {
+		this.messages.add(new Message(Message.MessageType.WARN, error.toString()));
 	}
 	public void addInfo(String text) {
 		this.messages.add(new Message(Message.MessageType.INFO, text));

@@ -16,6 +16,7 @@ import uk.ac.ebi.protvar.input.format.protein.HGVSp;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
+import uk.ac.ebi.protvar.utils.HGVS;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -60,7 +61,7 @@ public class InputProcessor {
         // This happens at the top-level "if" condition below, before using the appropriate parser for full parsing.
         // LEVEL 2 (second-level) CHECK
         // Full parsing of input string to extract all attributes happens in L2.
-        // Here we may find that we are dealing with a specific input type, but it doesn't full parse (or contain all
+        // Here we may find that we are dealing with a specific input type, but it doesn't fully parse (or contain all
         // the info we require)
 
         // ID/ref checks - these should be single-word input
@@ -73,18 +74,29 @@ public class InputProcessor {
         else if (CosmicID.startsWithPrefix(inputStr)) {
             return CosmicID.parse(inputStr);
         }
-        // HGVS checks - should also be single-word input
-        else if (HGVSg.maybeHGVSg(inputStr)) { //  just because check on startsWithPrefix isn't enough
-            return HGVSg.parse(inputStr);
+        // HGVS inputs
+        // general pattern _:_
+        //               /    \
+        //          REF_SEQ   VAR_DESC
+        else if (HGVS.generalRefSeqVarDesc(inputStr)) {
+            if (HGVSg.startsWithPrefix(inputStr)) {
+                // process as HGVS genomic
+                return HGVSg.parse(inputStr);
+            }
+            if (HGVSc.startsWithPrefix(inputStr)) {
+                // process as HGVS cDNA
+                return HGVSc.parse(inputStr);
+            }
+            if (HGVSp.startsWithPrefix(inputStr)) {
+                // process as HGVS protein
+                return HGVSp.parse(inputStr);
+            }
+            return HGVS.invalid(inputStr);
         }
-        else if (HGVSc.maybeHGVSc(inputStr)) {
-            return HGVSc.parse(inputStr);
-        }
-        else if (HGVSp.maybeHGVSp(inputStr)) {
-            return HGVSp.parse(inputStr);
-        }
-        // GNOMAD ID check - again this is a single-word ('-' separated) input
-        else if (Gnomad.isValid(inputStr)) {
+        // GNOMAD ID check
+        // single-word input
+        // pattern: _-_-_-_ (4 dash-sep values)
+        else if (Gnomad.preCheck(inputStr)) { // (Gnomad.isValid(inputStr)) {
             return Gnomad.parse(inputStr);
         }
         // Remaining input formats at this point

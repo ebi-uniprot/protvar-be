@@ -156,7 +156,7 @@ public class MappingFetcher {
 
 									if (!gInput.getRef().equalsIgnoreCase(refBase)) {
 										gInput.addWarning(
-												String.format(ErrorConstants.ERR_REF_ALLELE_MISMATCH,
+												String.format(ErrorConstants.ERR_REF_ALLELE_MISMATCH.toString(),
 														gInput.getRef(),
 														refBase));
 										gInput.setRef(refBase);

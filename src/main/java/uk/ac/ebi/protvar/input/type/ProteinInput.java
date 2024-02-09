@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.ac.ebi.protvar.exception.InvalidInputException;
+import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
@@ -144,15 +146,13 @@ public class ProteinInput extends UserInput {
             else if (tryParseInput(CUSTOM_PROTEIN_ACC_XXX_POS_YYY, inputStr, parsedInput))
                 return parsedInput;
             else {
-                String msg = parsedInput + ": parsing error";
-                parsedInput.addError(msg);
+                throw new InvalidInputException("No match");
             }
         }
         catch (Exception ex) {
-            String msg = parsedInput + ": parsing error";
-            parsedInput.addError(msg);
-            LOGGER.error(msg, ex);
-            }
+            parsedInput.addError(ErrorConstants.INVALID_PROTEIN_INPUT);
+            LOGGER.error(parsedInput + ": parsing error", ex);
+        }
         return parsedInput;
     }
 
