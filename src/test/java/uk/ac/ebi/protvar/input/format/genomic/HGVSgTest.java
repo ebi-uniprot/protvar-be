@@ -21,37 +21,37 @@ class HGVSgTest {
     @Test
     void test_refseq_not_mapped_to_chr() {
         HGVSg g = HGVSg.parse("NC_000027.11:g.149498202C>G");
-        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_G_REF_SEQ_NOT_MAPPED_TO_CHR);
+        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_G_REF_SEQ_NOT_MAPPED_TO_CHR.toString());
     }
 
     @Test
     void test_invalid_refseq() {
         HGVSg g = HGVSg.parse("NX_000023.11:g.149498202C>G");
-        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_INVALID_REFSEQ);
+        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_INVALID_REFSEQ.toString());
     }
 
     @Test
     void test_invalid_scheme() {
         HGVSg g = HGVSg.parse("NC_000023.11:c.149498202C>G");
-        assertEquals(g.getErrors().get(1), ErrorConstants.HGVS_REFSEQ_G_SCHEME_MISMATCH);
+        assertEquals(g.getErrors().get(1), ErrorConstants.HGVS_REFSEQ_G_SCHEME_MISMATCH.toString());
     }
 
     @Test
     void test_invalid_ref() {
         HGVSg g = HGVSg.parse("NC_000023.11:g.149498202F>G");
-        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_INVALID_VAR_DESC_G);
+        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_INVALID_VAR_DESC_G.toString());
     }
 
     @Test
     void test_invalid_alt() {
         HGVSg g = HGVSg.parse("NC_000023.11:g.149498202C>H");
-        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_INVALID_VAR_DESC_G);
+        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_INVALID_VAR_DESC_G.toString());
     }
 
     @Test
     void test_invalid_var_desc() {
         HGVSg g = HGVSg.parse("NC_000023.11:g.1010");
-        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_INVALID_VAR_DESC_G);
+        assertEquals(g.getErrors().get(0), ErrorConstants.HGVS_INVALID_VAR_DESC_G.toString());
     }
 
     @ParameterizedTest
