@@ -25,7 +25,7 @@ public class DbsnpID extends IDInput {
         DbsnpID parsedInput = new DbsnpID(input);
         if (!isValid(input)) {
             LOGGER.warn(parsedInput + ": parsing error");
-            parsedInput.addError(ErrorConstants.INVALID_DBSNP_ID);
+            parsedInput.addError(ErrorConstants.DBSNP_ID_INVALID);
         }
         return parsedInput;
     }

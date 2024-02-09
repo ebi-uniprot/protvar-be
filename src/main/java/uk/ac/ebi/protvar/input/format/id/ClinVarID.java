@@ -39,7 +39,7 @@ public class ClinVarID extends IDInput {
         ClinVarID parsedInput = new ClinVarID(input);
         if (!isValid(input)) {
             LOGGER.warn(parsedInput + ": parsing error");
-            parsedInput.addError(ErrorConstants.INVALID_CLINVAR_ID);
+            parsedInput.addError(ErrorConstants.CLINVAR_ID_INVALID);
         }
         return parsedInput;
     }

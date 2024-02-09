@@ -36,7 +36,7 @@ public class CosmicID extends IDInput {
         CosmicID parsedInput = new CosmicID(input);
         if (!isValid(input)) {
             LOGGER.warn(parsedInput + ": parsing error");
-            parsedInput.addError(ErrorConstants.INVALID_COSMIC_ID);
+            parsedInput.addError(ErrorConstants.COSMIC_ID_INVALID);
         }
         return parsedInput;
     }
