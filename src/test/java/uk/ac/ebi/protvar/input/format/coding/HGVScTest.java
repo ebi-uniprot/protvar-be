@@ -9,7 +9,7 @@ class HGVScTest {
     @Test
     void test_valid() {
         HGVSc g = HGVSc.parse("NM_004006.2:c.234C>G");
-        assertEquals(g.getAcc(), "NM_004006.2");
+        assertEquals(g.getRsAcc(), "NM_004006.2");
         assertEquals(g.getPos(), 234);
         assertEquals(g.getRef(), "C");
         assertEquals(g.getAlt(), "G");
@@ -69,11 +69,11 @@ class HGVScTest {
         assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", null, "Asn", "Ser", 430, parsedInput);
     }
 
-    private void assertInput(boolean valid, String inputStr, String acc, Integer pos, String ref, String alt,
+    private void assertInput(boolean valid, String inputStr, String rsAcc, Integer pos, String ref, String alt,
                              String gene, String protRef, String protAlt, Integer protPos, HGVSc actual) {
         assertEquals(valid, actual.isValid());
         assertEquals(inputStr, actual.getInputStr());
-        assertEquals(acc, actual.getAcc());
+        assertEquals(rsAcc, actual.getRsAcc());
         assertEquals(pos, actual.getPos());
         assertEquals(ref, actual.getRef());
         assertEquals(alt, actual.getAlt());

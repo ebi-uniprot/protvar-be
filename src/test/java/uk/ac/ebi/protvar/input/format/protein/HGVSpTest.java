@@ -2,6 +2,8 @@ package uk.ac.ebi.protvar.input.format.protein;
 
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 class HGVSpTest {
 
     @Test
@@ -53,7 +55,7 @@ class HGVSpTest {
     void testInvalid3and1LetterAA() {
         HGVSp userInput = HGVSp.parse("NP_003997.1:p.Arg87S");
 
-        assert(userInput.getRsAcc() == null);
+        assertEquals(userInput.getRsAcc(), "NP_003997.1");
         assert(userInput.getPos() == null);
         assert(userInput.getRef() == null);
         assert(userInput.getAlt() == null);
