@@ -5,6 +5,7 @@ import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.ebi.protvar.exception.InvalidInputException;
+import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
@@ -12,7 +13,7 @@ import uk.ac.ebi.protvar.input.format.genomic.VCF;
 import uk.ac.ebi.protvar.model.response.GenomeProteinMapping;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.protvar.utils.Constants;
-import uk.ac.ebi.protvar.utils.HGVSUtils;
+import uk.ac.ebi.protvar.utils.HGVS;
 import uk.ac.ebi.protvar.utils.RegexUtils;
 import static uk.ac.ebi.protvar.utils.RegexUtils.*;
 
@@ -50,7 +51,7 @@ public class GenomicInput extends UserInput {
     public static final String BASE = "(A|T|C|G)";
 
     public static final List<String> VALID_ALLELES = List.of("A", "T", "C", "G");
-    public static final String BASE_SUB = BASE +  HGVSUtils.SUB_SIGN + BASE;
+    public static final String BASE_SUB = BASE +  HGVS.SUB_SIGN + BASE;
 
 
     // Custom genomic formats
@@ -162,6 +163,7 @@ public class GenomicInput extends UserInput {
                 throw new InvalidInputException("No match");
             }
         } catch (Exception ex) {
+
             String msg = parsedInput + ": parsing error";
             parsedInput.addError(msg);
             LOGGER.error(msg, ex);
@@ -175,8 +177,8 @@ public class GenomicInput extends UserInput {
         String[] params = inputStr.split(SPACES_OR_SLASH_OR_GREATER);
 
         if (params.length <= 1) {
-            String msg = parsedInput + ": parsing error";
-            parsedInput.addError(msg);
+            parsedInput.addError(ErrorConstants.INVALID_GENOMIC_INPUT);
+            LOGGER.error(parsedInput + ": parsing error");
         }
         if (params.length > 1) {
             parsedInput.setChr(convertChromosome(params[0]));
@@ -200,7 +202,7 @@ public class GenomicInput extends UserInput {
 
     public static UserInput invalidInput(String userInput){
         GenomicInput invalid = new GenomicInput(userInput);
-        invalid.addError("Error parsing user input");
+        invalid.addError(ErrorConstants.INVALID_GENERIC_INPUT);
         return invalid;
     }
 

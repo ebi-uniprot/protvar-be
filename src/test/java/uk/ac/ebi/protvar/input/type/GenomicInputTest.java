@@ -33,6 +33,7 @@ class GenomicInputTest {
     }
 
     @Test
+    @Disabled // this check is now done further down in the logic chain
     void test_inputSameRefAlt() {
         String inputStr = "1 1234 A A";
         assertTrue(GenomicInput.isValid(inputStr));

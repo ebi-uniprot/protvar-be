@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.input.format.genomic;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.utils.Commons;
@@ -69,9 +70,8 @@ public class VCF extends GenomicInput {
             //}
         }
         catch(Exception ex) {
-            String msg = parsedInput + ": parsing error";
-            parsedInput.addError(msg);
-            LOGGER.error(msg, ex);
+            parsedInput.addError(ErrorConstants.INVALID_VCF_INPUT);
+            LOGGER.error(parsedInput + ": parsing error", ex);
         }
         return parsedInput;
     }
