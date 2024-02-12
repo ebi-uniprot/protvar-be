@@ -73,11 +73,11 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private static final String SELECT_FOLDXS_BY_ACC_AND_POS = "SELECT * FROM afdb_foldx WHERE protein_acc=:accession AND position=:position";
 	private static final String SELECT_FOLDXS_BY_ACC_AND_POS_VARIANT = "SELECT * FROM afdb_foldx WHERE protein_acc=:accession AND position=:position AND mutated_type=:variantAA";
 
-	private static final String SELECT_INTERACTIONS_BY_ACC_AND_RESID = "SELECT a, (a_residues_5A || a_residues_8A) as a_residues, " +
-																			"b, (b_residues_5A || b_residues_8A) as b_residues, " +
+	private static final String SELECT_INTERACTIONS_BY_ACC_AND_RESID = "SELECT a, (\"a_residues_5A\" || \"a_residues_8A\") as a_residues, " +
+																			"b, (\"b_residues_5A\" || \"b_residues_8A\") as b_residues, " +
 																			"pdockq FROM interaction_v2 " +
-																		"WHERE (a=:accession AND (:resid)=ANY(a_residues_5A || a_residues_8A)) " +
-																		"OR (b=:accession AND (:resid)=ANY(b_residues_5A || b_residues_8A))";
+																		"WHERE (a=:accession AND (:resid)=ANY(\"a_residues_5A\" || \"a_residues_8A\")) " +
+																		"OR (b=:accession AND (:resid)=ANY(\"b_residues_5A\" || \"b_residues_8A\"))";
 
 	private static final String SELECT_INTERACTION_MODEL = "SELECT pdb_model FROM interaction_v2 WHERE a=:a AND b=:b";
 
