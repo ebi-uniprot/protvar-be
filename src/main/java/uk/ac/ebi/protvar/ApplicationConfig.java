@@ -47,14 +47,8 @@ public class ApplicationConfig {
 
     @Bean
     @Primary
-    @ConfigurationProperties("app.datasource")
+    @ConfigurationProperties("protvar.datasource")
     public DataSource dataSource(){
-        return DataSourceBuilder.create().build();
-    }
-
-    @Bean
-    @ConfigurationProperties("ensembl.datasource")
-    public DataSource ensemblDataSource(){
         return DataSourceBuilder.create().build();
     }
 
@@ -66,11 +60,6 @@ public class ApplicationConfig {
     @Bean
     public NamedParameterJdbcTemplate namedParameterJdbcTemplate(@Qualifier("dataSource") DataSource dataSource) {
         return new NamedParameterJdbcTemplate(dataSource);
-    }
-
-    @Bean
-    public JdbcTemplate ensemblJdbcTemplate(@Qualifier("ensemblDataSource") DataSource ensemblDataSource) {
-        return new JdbcTemplate(ensemblDataSource);
     }
 
     @Bean
