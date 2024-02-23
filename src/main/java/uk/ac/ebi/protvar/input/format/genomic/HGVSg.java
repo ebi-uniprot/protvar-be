@@ -24,10 +24,10 @@ public class HGVSg extends GenomicInput {
     // Genomic, Complete genomic molecule, usually reference assembly
     public static final String PREFIX = "NC_"; // -> converts to chr
 
-    public static final String SCHEME = "g.";
+    public static final String SCHEME = "g\\.";
 
     public static final String REF_SEQ = "(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq NC accession
-    public static final String VAR_DESC = SCHEME + // :g.
+    public static final String VAR_DESC = "("+SCHEME + ")" + // g.
             "(?<pos>"+GenomicInput.POS + ")" +
             "(?<sub>"+GenomicInput.BASE_SUB + ")"; // (A|T|C|G)>(A|T|C|G)
 
