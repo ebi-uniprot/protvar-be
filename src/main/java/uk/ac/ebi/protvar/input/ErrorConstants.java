@@ -9,6 +9,11 @@ public enum ErrorConstants {
     COSMIC_ID_INVALID("", "Invalid COSMIC ID. Prefix 'COSV', 'COSM' or 'COSN' should follow one or more digits."),
     COSMIC_ID_NO_MAPPING("", "No mapping found for COSMIC ID."),
 
+    GEN_ASSEMBLY_CONVERT_INFO("", "Assembly GRCh37 to GRCh38 conversion (37->38)."),
+    GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND("", "No GRCh38 equivalent found for input coordinate."),
+
+    GEN_ASSEMBLY_CONVERT_ERR_MULTIPLE("", "Multiple GRCh38 equivalents found for input coordinate."),
+
     // HGVS input parsing errors
     HGVS_UNSUPPORTED_PREFIX_NG("", "HGVS Unsupported NG prefix (gene or genomic region). Please use a supported prefix - NC (genomic), NM (cDNA) or NP (protein)."),
     HGVS_UNSUPPORTED_PREFIX_LRG("", "HGVS Unsupported LRG prefix (Locus Reference Genomic). Please use a supported prefix - NC (genomic), NM (cDNA) or NP (protein)."),
@@ -40,10 +45,14 @@ public enum ErrorConstants {
 
 
     //////////////////
+
+    HGVS_USE_DIFF_REFSEQ_VERSION("", "ProtVar is using a different version of the RefSeq accession %s."),
+
     HGVS_C_POS_NOT_MATCHED("", "Derived protein position from coding position doesn't match."),
 
     // HGVS input processing (retrieval) errors
 
+    HGVS_REFSEQ_MAPPPED_TO_PROTEIN("", "RefSeq ID mapped to Uniprot protein %s."),
     HGVS_REFSEQ_MULTIPLE_PROTEINS("", "RefSeq ID mapped to multiple Uniprot accessions: %s. ProtVar will show mapping for the first accession."),
 
     HGVS_REFSEQ_NO_PROTEIN("", "Could not map RefSeq ID to a Uniprot protein."),
