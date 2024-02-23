@@ -29,28 +29,28 @@ class HGVScTest {
 
     @Test
     void test_valid_with_gene_and_protein_info() {
-        String inputStr = "NM_017547.4(FOXRED1):c.1289A>G(p.Asn430Ser)";
+        String inputStr = "NM_017547.4(FOXRED1):c.1289A>Gp.(Asn430Ser)";
         HGVSc parsedInput = HGVSc.parse(inputStr);
         assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", "FOXRED1", "Asn", "Ser", 430, parsedInput);
     }
 
     @Test
     void test_valid_with_gene_and_protein_info_spaces() {
-        String inputStr = "NM_017547.4 (FOXRED1):c.1289A>G (p.Asn430Ser)";
+        String inputStr = "NM_017547.4 (FOXRED1):c.1289A>G p.(Asn430Ser)";
         HGVSc parsedInput = HGVSc.parse(inputStr);
         assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", "FOXRED1", "Asn", "Ser", 430, parsedInput);
     }
 
     @Test
     void test_valid_with_gene_and_protein_info_spaces_right() {
-        String inputStr = "NM_017547.4(FOXRED1):c.1289A>G (p.Asn430Ser)";
+        String inputStr = "NM_017547.4(FOXRED1):c.1289A>G p.(Asn430Ser)";
         HGVSc parsedInput = HGVSc.parse(inputStr);
         assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", "FOXRED1", "Asn", "Ser", 430, parsedInput);
     }
 
     @Test
     void test_valid_with_gene_and_protein_info_spaces_left() {
-        String inputStr = "NM_017547.4 (FOXRED1):c.1289A>G(p.Asn430Ser)";
+        String inputStr = "NM_017547.4 (FOXRED1):c.1289A>Gp.(Asn430Ser)";
         HGVSc parsedInput = HGVSc.parse(inputStr);
         assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", "FOXRED1", "Asn", "Ser", 430, parsedInput);
     }
@@ -64,7 +64,7 @@ class HGVScTest {
 
     @Test
     void test_valid_with_protein_info_only() {
-        String inputStr = "NM_017547.4:c.1289A>G(p.Asn430Ser)";
+        String inputStr = "NM_017547.4:c.1289A>Gp.(Asn430Ser)";
         HGVSc parsedInput = HGVSc.parse(inputStr);
         assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", null, "Asn", "Ser", 430, parsedInput);
     }
