@@ -45,7 +45,8 @@ public class ProteinInput extends UserInput {
 
     // Base protein patterns
     // 1. Generic UniProt accession (valid format, but doesn't mean it exists)
-    public static final String UNIPROT_ACC = "([O,P,Q][0-9][A-Z, 0-9]{3}[0-9]|[A-N,R-Z]([0-9][A-Z][A-Z, 0-9]{2}){1,2}[0-9])";
+    public static final String UNIPROT_ACC = "([O,P,Q][0-9][A-Z, 0-9]{3}[0-9]|[A-N,R-Z]([0-9][A-Z][A-Z, 0-9]{2}){1,2}[0-9])" +
+            "([-]([1-9][0-9]*))?";
 
     // 2. Protein position (using same pattern as genomic position, or location)
     public static final String POS = GenomicInput.POS;
