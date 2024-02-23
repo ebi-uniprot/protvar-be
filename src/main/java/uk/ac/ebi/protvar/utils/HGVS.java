@@ -66,7 +66,7 @@ public class HGVS {
     // c. <POS><A>\\><A> optionally, (p.<AAA><POS><AAA>)
     // p. <AAA><POS><AAA>| <AAA><POS>\\* | <A><POS><A> | <A><POS>\\*
 
-    public static final String GENERAL_HGVS_REF_SEQ_AND_VAR_DESC_FORMAT = "^[^ :]+:[^ :]+$";
+    public static final String GENERAL_HGVS_REF_SEQ_AND_VAR_DESC_FORMAT = "^[^:]+:[^:]+$";
     public static final String GENERAL_HGVS_REF_SEQ_FORMAT = "^[^ :]+$";
     public static final String GENERAL_HGVS_VAR_DESC_FORMAT = "^[^ :]+$";
 
