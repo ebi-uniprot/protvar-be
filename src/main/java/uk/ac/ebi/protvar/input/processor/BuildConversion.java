@@ -1,9 +1,14 @@
 package uk.ac.ebi.protvar.input.processor;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.Crossmap;
 import uk.ac.ebi.protvar.model.grc.Assembly;
@@ -15,9 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class BuildConversion {
+    private static final Logger LOGGER = LoggerFactory.getLogger(BuildConversion.class);
 
     @Autowired
     private ProtVarDataRepo protVarDataRepo;
@@ -26,49 +33,50 @@ public class BuildConversion {
         List<Message> messages = response.getMessages();
         if (groupedInputs.containsKey(Type.GENOMIC)) {
             List<UserInput> genomicInputs = groupedInputs.get(Type.GENOMIC);
-            boolean allGenomic = groupedInputs.size() == 1;
 
-            /**   assembly
-             *   |    |    \
-             *   v    v     \
-             *  null auto    v
-             *   |    |     37or38
-             *   | detect   |    |  \
-             *   | |   \    |    |  /undetermined(assumes)
-             *    \ \   v   v    v  v
-             *     \ \  is37 ..> is38
-             *      \_\___________^
-             *
-             *        ..> converts to
-             */
+            // separate inputs that need to be converted irrespective of user-specified assembly
+            List<UserInput> hgvsGs = new ArrayList<>();
+            List<UserInput> hgvsGs37 = new ArrayList<>(); // to convert
 
-            // null | auto | 37or38
-            Assembly assembly = null;
+            List<UserInput> nonHgvsGs = new ArrayList<>();
 
-            if (assemblyVersion == null) {
-                messages.add(new Message(Message.MessageType.WARN, "Unspecified assembly version; defaulting to GRCh38"));
-                assembly = Assembly.GRCH38;
-            } else {
-                if (assemblyVersion.equalsIgnoreCase("AUTO")) {
-                    if (allGenomic) {
-                        assembly = determineBuild(genomicInputs, messages); // -> 37 or 38
-                    }
-                    else {
-                        messages.add(new Message(Message.MessageType.WARN, "Assembly auto-detect works for all-genomic inputs only; defaulting to GRCh38"));
-                        assembly = Assembly.GRCH38;
+            genomicInputs.stream().filter(UserInput::isValid) // filter out invalid gen inputs
+                    .forEach(i -> {
+                if (i.getFormat() == Format.HGVS_GEN) {
+                    hgvsGs.add(i); // all hgvsGs, may be mix of 38 and 37 RefSeq accession
+                    Boolean g37 = ((HGVSg) i).getGrch37RSAcc();
+                    if (g37 != null && g37)
+                        hgvsGs37.add(i);
+                }
+                else
+                    nonHgvsGs.add(i);
+            });
+
+            List<UserInput> convertList = new ArrayList<>();
+
+            if (hgvsGs37.size() > 0)
+                convertList.addAll(hgvsGs37);
+
+            // what assembly has user specified
+            // this will apply to the nonHgvsGs only
+            boolean autodetect = assemblyVersion != null && assemblyVersion.equalsIgnoreCase("AUTO");
+
+            if (nonHgvsGs.size() > 0) { // convert nonHgvsGs to 38, if condition met
+                if (autodetect) {
+                    if (percentage37Over50(nonHgvsGs)) {
+                        convertList.addAll(nonHgvsGs);
                     }
                 } else {
-                    assembly = Assembly.of(assemblyVersion);
-                    if (assembly == null) {
-                        messages.add(new Message(Message.MessageType.WARN, "Unable to determine assembly version; defaulting to GRCh38"));
-                        assembly = Assembly.GRCH38;
+                    Assembly assembly = Assembly.of(assemblyVersion);
+                    if (assembly != null && assembly == Assembly.GRCH37) {
+                        convertList.addAll(nonHgvsGs);
                     }
                 }
             }
 
-            if (assembly == Assembly.GRCH37) {
-                messages.add(new Message(Message.MessageType.INFO, "Converting GRCh37 to GRCh38"));
-                convert(genomicInputs);
+            if (convertList.size() > 0) {
+                messages.add(new Message(Message.MessageType.INFO, ErrorConstants.GEN_ASSEMBLY_CONVERT_INFO.getErrorMessage()));
+                convert(convertList);
             }
         }
     }
@@ -97,12 +105,12 @@ public class BuildConversion {
             Integer pos = input.getPos();
             List<Crossmap> crossmaps = groupedCrossmaps.get(chr+"-"+pos);
             if (crossmaps == null || crossmaps.isEmpty()) {
-                input.addError("No GRCh38 equivalent found for input coordinate");
+                input.addError(ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND);
             } else if (crossmaps.size()==1) {
                 input.setPos(crossmaps.get(0).getGrch38Pos());
                 input.setConverted(true);
             } else {
-                input.addError("Multiple GRCh38 equivalents found for input coordinate");
+                input.addError(ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_MULTIPLE);
             }
         });
     }
@@ -110,7 +118,7 @@ public class BuildConversion {
     // select distinct chr,grch38_pos,grch38_base from crossmap where (chr,grch38_pos,grch38_base) IN (('X',149498202,'C'),
     //('10',43118436,'A'),
     //('2',233760498,'G'))
-    private Assembly determineBuild(List<UserInput> genomicInputs, List<Message> messages) {
+    private Assembly determineBuild(List<UserInput> genomicInputs) {
 
         List<Object[]> chrPosRefList = new ArrayList<>();
         genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
@@ -119,24 +127,36 @@ public class BuildConversion {
 
         double percentage38 = protVarDataRepo.getPercentageMatch(chrPosRefList, "38");
         if (percentage38 > 50) { // assumes 38
-            messages.add(new Message(Message.MessageType.INFO, String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs)", percentage38)));
+            LOGGER.info(String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs)", percentage38));
             return Assembly.GRCH38;
         } else {
             double percentage37 = protVarDataRepo.getPercentageMatch(chrPosRefList, "37");
             if (percentage37 > 50) { // assumes 37
-                messages.add(new Message(Message.MessageType.INFO, String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs)", percentage37)));
+                LOGGER.info(String.format("Determined assembly version is GRCh38 (%.2f%% match of user inputs)", percentage37));
                 return Assembly.GRCH37;
             } else {
                 String msg = String.format("Undetermined assembly version (%.2f%% GRCh38 match, %.2f%% GRCh37 match)", percentage38, percentage37);
                 if (percentage37 > percentage38) {
-                    messages.add(new Message(Message.MessageType.INFO, msg + " Assuming GRCh37"));
+                    LOGGER.info(msg + " Assuming GRCh37");
                     return Assembly.GRCH37;
                 }
                 else {
-                    messages.add(new Message(Message.MessageType.INFO, msg + " Assuming GRCh38"));
+                    LOGGER.info(" Assuming GRCh38");
                     return Assembly.GRCH38;
                 }
             }
         }
+    }
+
+    private boolean percentage37Over50(List<UserInput> nonHgvsGs) {
+        List<Object[]> chrPosRefList = new ArrayList<>();
+        nonHgvsGs.stream().map(i -> (GenomicInput) i).forEach(input -> {
+            chrPosRefList.add(new Object[]{input.getChr(), input.getPos(), input.getRef()});
+        });
+        double percentage37 = protVarDataRepo.getPercentageMatch(chrPosRefList, "37");
+        if (percentage37 > 50) { // assumes 37
+            return true;
+        }
+        return false;
     }
 }
