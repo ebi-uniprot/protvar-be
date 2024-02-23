@@ -30,12 +30,16 @@ public class HGVSp extends ProteinInput {
 
     // Protein, Associated with an NM_ or NC_ accession e.g. NP_001138917.1
     public static final String PREFIX = "NP_"; // -> lookup transcript (enst)?
-    public static final String SCHEME = "p.";
+    public static final String SCHEME = "p\\.";
 
     public final static String THREE_LETTER_AA_PLUS_STOP_CODON = String.format("(%s|%s)", String.join("|", AminoAcid.VALID_AA3), STOP_CODON);
 
-    public static final String ONE_LETTER_AA_SUB = "(?<ref>"+ONE_LETTER_AA + ")(?<pos>" + POS + ")(?<alt>" + ONE_LETTER_AA + ")"; // includes STOP_CODON (*)
-    public static final String THREE_LETTER_AA_SUB = "(?<ref>"+THREE_LETTER_AA + ")(?<pos>" + POS + ")(?<alt>" + THREE_LETTER_AA_PLUS_STOP_CODON + ")";
+    public static final String ONE_LETTER_AA_SUB = "(?<ref>"+ONE_LETTER_AA + ")" +
+            "(?<pos>" + POS + ")" +
+            "(?<alt>" + ONE_LETTER_AA + ")"; // includes STOP_CODON (*)
+    public static final String THREE_LETTER_AA_SUB = "(?<ref>"+THREE_LETTER_AA + ")" +
+            "(?<pos>" + POS + ")" +
+            "(?<alt>(" + THREE_LETTER_AA_PLUS_STOP_CODON + "|=))";
 
     private static final String REGEX =
             "(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")" + // RefSeq.NP accession
@@ -44,8 +48,8 @@ public class HGVSp extends ProteinInput {
     private static final String REF_SEQ =
             "(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq.NP accession
 
-    private static final String VAR_DESC_1 = SCHEME + ONE_LETTER_AA_SUB;
-    private static final String VAR_DESC_2 = SCHEME + THREE_LETTER_AA_SUB;
+    private static final String VAR_DESC_1 = SCHEME + "(\\()?"+ ONE_LETTER_AA_SUB + "(\\))?";
+    private static final String VAR_DESC_2 = SCHEME + "(\\()?"+ THREE_LETTER_AA_SUB + "(\\))?";
 
     private static Pattern p1 = Pattern.compile(REF_SEQ, Pattern.CASE_INSENSITIVE);
     private static Pattern p2 = Pattern.compile(VAR_DESC_1, Pattern.CASE_INSENSITIVE);
@@ -121,7 +125,7 @@ public class HGVSp extends ProteinInput {
         String alt = matcher.group("alt");
         this.pos = Integer.parseInt(pos);
         this.ref = ref;
-        this.alt = alt;
+        this.alt = alt.equals("=") ? ref : alt;
     }
 
     @Override
