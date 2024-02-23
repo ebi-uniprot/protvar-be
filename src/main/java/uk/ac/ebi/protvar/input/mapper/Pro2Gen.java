@@ -34,29 +34,24 @@ public class Pro2Gen {
 
     private UniprotRefseqRepo uniprotRefseqRepo;
 
-    public void convert(Map<Type, List<UserInput>> groupedInputs) {
+    public void convert(Map<Type, List<UserInput>> groupedInputs, TreeMap<String, List<String>> rsAccsMap) {
         List<UserInput> proteinInputs = new ArrayList<>();
         if (groupedInputs.get(Type.PROTEIN) != null)
             proteinInputs.addAll(groupedInputs.get(Type.PROTEIN));
         if (groupedInputs.get(Type.CODING) != null)
             proteinInputs.addAll(groupedInputs.get(Type.CODING));
         if (!proteinInputs.isEmpty())
-            convert(proteinInputs);
+            convert(proteinInputs, rsAccsMap);
     }
 
-    private void convert(List<UserInput> proteinInputs) {
+    private void convert(List<UserInput> proteinInputs, TreeMap<String, List<String>> rsAccsMap) {
         // 1. get all the accessions and positions
         Set<Object[]> accPosSet = new HashSet<>();
-
-        Set<String> rsAccs = proteinInputs.stream().filter(i -> i instanceof HGVSp)
-                .map(i -> ((HGVSp) i).getRsAcc()).collect(Collectors.toSet());
-        Map<String, List<String>> rsAccsMap = uniprotRefseqRepo.getRefSeqUniprotMap(rsAccs);
-
         for (UserInput input : proteinInputs) {
 
             if (input instanceof HGVSp) {
                 HGVSp hgvsProt = (HGVSp) input;
-                List<String> uniprotAccs = rsAccsMap.get(hgvsProt.getRsAcc());
+                List<String> uniprotAccs = Coding2Pro.getUniprotAccs(hgvsProt.getRsAcc(), rsAccsMap, hgvsProt);
                 if (uniprotAccs != null && uniprotAccs.size() > 0){
                     List<String> head =  uniprotAccs.subList(0, 1);
                     List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());
@@ -64,10 +59,17 @@ public class Pro2Gen {
                     hgvsProt.setAcc(head.get(0));
                     accPosSet.add(new Object[]{head.get(0), hgvsProt.getPos()});
 
-                    if (tail != null && tail.size() > 1) {
-                        hgvsProt.addWarning(String.format(
-                                ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.getErrorMessage(),
-                                Arrays.toString(uniprotAccs.toArray()), hgvsProt.getAcc()));
+                    if (tail != null) {
+                        if (tail.size() == 0) {
+                            hgvsProt.addInfo(String.format(
+                                    ErrorConstants.HGVS_REFSEQ_MAPPPED_TO_PROTEIN.getErrorMessage(),
+                                    hgvsProt.getAcc()));
+                        }
+                        if (tail.size() > 1) {
+                            hgvsProt.addWarning(String.format(
+                                    ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.getErrorMessage(),
+                                    Arrays.toString(uniprotAccs.toArray()), hgvsProt.getAcc()));
+                        }
                     }
                     if (!uniprotEntryCache.isValidEntry(hgvsProt.getAcc())) {
                         hgvsProt.addWarning(
@@ -89,6 +91,10 @@ public class Pro2Gen {
             } else if (input instanceof HGVSc) {
                 HGVSc cDNAProt = (HGVSc) input;
                 if (cDNAProt.getDerivedUniprotAcc() != null) {
+                    cDNAProt.addInfo(String.format(
+                        ErrorConstants.HGVS_REFSEQ_MAPPPED_TO_PROTEIN.getErrorMessage(),
+                            cDNAProt.getDerivedUniprotAcc()));
+
                     if (!uniprotEntryCache.isValidEntry(cDNAProt.getDerivedUniprotAcc()))
                         cDNAProt.addWarning(
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()

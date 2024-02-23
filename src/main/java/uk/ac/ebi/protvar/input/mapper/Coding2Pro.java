@@ -6,10 +6,9 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
-import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
+import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * HGVS coding dna format
@@ -25,20 +24,31 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 public class Coding2Pro {
-    UniprotRefseqRepo uniprotRefseqRepo;
 
-    public void convert(Map<Type, List<UserInput>> groupedInputs) {
+    public static List<String> getUniprotAccs(String rsAcc, TreeMap<String, List<String>> rsAccsMap, UserInput input) {
+        if (rsAccsMap.containsKey(rsAcc))
+            return rsAccsMap.get(rsAcc);
+        else {
+            int dotIdx = rsAcc.lastIndexOf(".");
+            if (dotIdx != -1) {
+                String rsAccNoVer = rsAcc.substring(0, dotIdx);
+                Map<String, List<String>> result = FetcherUtils.getByPrefix(rsAccsMap, rsAccNoVer);
+                if (!result.isEmpty()) {
+                    SortedSet<String> keys = new TreeSet<>(result.keySet());
+                    String firstKey = keys.first();
+                    input.addInfo(String.format(ErrorConstants.HGVS_USE_DIFF_REFSEQ_VERSION.toString(), firstKey));
+                    return result.get(firstKey);
+                }
+            }
+        }
+        return List.of();
+    }
+
+    public void convert(Map<Type, List<UserInput>> groupedInputs, TreeMap<String, List<String>> rsAccsMap) {
         if (groupedInputs.containsKey(Type.CODING)) {
             List<UserInput> codingInputs = groupedInputs.get(Type.CODING);
-
-            Set<String> rsAccs = codingInputs.stream()
-                    .map(i -> ((HGVSc) i).getRsAcc()).collect(Collectors.toSet());
-            Map<String, List<String>> rsAccsMap = uniprotRefseqRepo.getRefSeqUniprotMap(rsAccs);
-
             codingInputs.stream().map(i -> (HGVSc) i).forEach(cDNAProt -> {
-
-
-                List<String> uniprotAccs = rsAccsMap.get(cDNAProt.getRsAcc());
+                List<String> uniprotAccs = getUniprotAccs(cDNAProt.getRsAcc(), rsAccsMap, cDNAProt);
                 if (uniprotAccs != null && uniprotAccs.size() > 0) {
                     int[] protAndCodonPos = coding2ProteinPosition(cDNAProt.getPos());
                     if (protAndCodonPos.length == 2) {

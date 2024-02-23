@@ -48,4 +48,10 @@ public class FetcherUtils {
     List<Set<String>> partitionSet =  partitions.stream().map((Function<List<String>, HashSet<String>>) HashSet::new).collect(Collectors.toList());
     return partitionSet;
   }
+
+  public static SortedMap<String, List<String>> getByPrefix(
+          NavigableMap<String, List<String>> myMap,
+          String prefix ) {
+    return myMap.subMap( prefix, prefix + Character.MAX_VALUE );
+  }
 }

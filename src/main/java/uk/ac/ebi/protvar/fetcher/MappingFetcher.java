@@ -8,9 +8,11 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.input.*;
+import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.input.format.genomic.Gnomad;
 import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
 import uk.ac.ebi.protvar.input.format.genomic.VCF;
+import uk.ac.ebi.protvar.input.format.protein.HGVSp;
 import uk.ac.ebi.protvar.input.mapper.Coding2Pro;
 import uk.ac.ebi.protvar.input.mapper.ID2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
@@ -23,6 +25,7 @@ import uk.ac.ebi.protvar.model.data.EVEScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 import uk.ac.ebi.protvar.utils.Commons;
 
 import java.util.*;
@@ -35,6 +38,8 @@ public class MappingFetcher {
 
 	private InputProcessor inputProcessor;
 	private ProtVarDataRepo protVarDataRepo;
+
+	private UniprotRefseqRepo uniprotRefseqRepo;
 
 	private ID2Gen id2Gen;
 	private Pro2Gen pro2Gen;
@@ -74,11 +79,31 @@ public class MappingFetcher {
 		// ID to genomic coords conversion
 		id2Gen.convert(groupedInputs);
 
+		// get refseq-uniprot accession mapping
+		Set<String> rsAccs = new HashSet<>();
+		userInputs.stream().forEach(userInput -> {
+			String rsAcc = null;
+			if (userInput instanceof HGVSp)
+				rsAcc = ((HGVSp) userInput).getRsAcc();
+			else if (userInput instanceof HGVSc)
+				rsAcc = ((HGVSc) userInput).getRsAcc();
+
+			if (rsAcc != null && rsAcc.length() > 0) {
+				int dotIdx = rsAcc.lastIndexOf(".");
+				if (dotIdx != -1)
+					rsAcc = rsAcc.substring(0, dotIdx);
+				if (!rsAccs.contains(rsAcc))
+					rsAccs.add(rsAcc);
+			}
+		});
+
+		TreeMap<String, List<String>> rsAccsMap = uniprotRefseqRepo.getRefSeqNoVerUniprotMap(rsAccs);
+
 		// cDNA to protein inputs conversion
-		coding2Pro.convert(groupedInputs);
+		coding2Pro.convert(groupedInputs, rsAccsMap);
 
 		// protein to genomic inputs conversion
-		pro2Gen.convert(groupedInputs);
+		pro2Gen.convert(groupedInputs, rsAccsMap);
 
 		// get all chrPos combination
 		Set<Object[]> chrPosSet = new HashSet<>();
