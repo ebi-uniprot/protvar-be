@@ -27,7 +27,7 @@ public class HGVSc extends CodingInput {
 
     // mRNA, Protein-coding transcripts (usually curated) e.g. NM_001145445.1
     public static final String PREFIX = "NM_";
-    public static final String SCHEME = "c.";
+    public static final String SCHEME = "c\\.";
     public static final String POS = GenomicInput.POS;
     public static final String GENE = "[A-Z][A-Z0-9]+"; // MAIN CRITERIA: must only contain uppercase letters and numbers, start with a letter
 
@@ -43,7 +43,7 @@ public class HGVSc extends CodingInput {
                     "(" + HGVS.SUB_SIGN + ")" +
                     "(?<alt>" + GenomicInput.BASE + ")" +
                     // OPTIONALLY, with or without space followed by protein substitution
-                    "(("+ RegexUtils.SPACES +")?\\(p.(?<protRef>"+ ProteinInput.THREE_LETTER_AA + ")(?<protPos>" + POS + ")(?<protAlt>" + ProteinInput.THREE_LETTER_AA+")\\))?";
+                    "(("+ RegexUtils.SPACES +")?p.\\((?<protRef>"+ ProteinInput.THREE_LETTER_AA + ")(?<protPos>" + POS + ")(?<protAlt>" + ProteinInput.THREE_LETTER_AA+")\\))?";
 
     private static final String REGEX = REF_SEQ + HGVS.COLON + VAR_DESC;
 
