@@ -68,7 +68,8 @@ public class Pro2Gen {
                         if (tail.size() > 1) {
                             hgvsProt.addWarning(String.format(
                                     ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.getErrorMessage(),
-                                    Arrays.toString(uniprotAccs.toArray()), hgvsProt.getAcc()));
+                                    Arrays.toString(uniprotAccs.toArray()),
+                                    head.get(0)));
                         }
                     }
                     if (!uniprotEntryCache.isValidEntry(hgvsProt.getAcc())) {

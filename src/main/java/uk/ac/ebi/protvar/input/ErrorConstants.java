@@ -9,10 +9,8 @@ public enum ErrorConstants {
     COSMIC_ID_INVALID("", "Invalid COSMIC ID. Prefix 'COSV', 'COSM' or 'COSN' should follow one or more digits."),
     COSMIC_ID_NO_MAPPING("", "No mapping found for COSMIC ID."),
 
-    GEN_ASSEMBLY_CONVERT_INFO("", "Assembly GRCh37 to GRCh38 conversion (37->38)."),
-    GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND("", "No GRCh38 equivalent found for input coordinate."),
-
-    GEN_ASSEMBLY_CONVERT_ERR_MULTIPLE("", "Multiple GRCh38 equivalents found for input coordinate."),
+    GEN_ASSEMBLY_CONVERT_INFO("", "%d input%s marked for GRCh37 to GRCh38 conversion."),
+    GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND("", "Unable to map GRCh37 to GRCh38 coordinate."),
 
     // HGVS input parsing errors
     HGVS_UNSUPPORTED_PREFIX_NG("", "HGVS Unsupported NG prefix (gene or genomic region). Please use a supported prefix - NC (genomic), NM (cDNA) or NP (protein)."),
@@ -21,8 +19,8 @@ public enum ErrorConstants {
 
     HGVS_UNSUPPORTED_PREFIX("", "HGVS Unsupported prefix. Please use a supported prefix - NC (genomic), NM (cDNA) or NP (protein)."),
 
-    HGVS_UNSUPPORTED_SCHEME_N("", "Non-coding DNA scheme (n.) not supported. Please use a supported scheme - g. (genomic), c. (cDNA) or p. (protein)."),
-    HGVS_UNSUPPORTED_SCHEME_M("", "Mitochondrial DNA scheme (m.) not supported. Please use a supported scheme - g. (genomic), c. (cDNA) or p. (protein)."),
+    HGVS_UNSUPPORTED_SCHEME_N("", "Non-coding scheme (n.) not supported. Please use a supported scheme - g. (genomic), c. (cDNA) or p. (protein)."),
+    HGVS_UNSUPPORTED_SCHEME_M("", "Mitochondrial scheme (m.) not supported. Please use a supported scheme - g. (genomic), c. (cDNA) or p. (protein)."),
     HGVS_UNSUPPORTED_SCHEME_R("", "RNA scheme (r.) not supported. Supported scheme - g. (genomic), c. (cDNA) or p. (protein)."),
 
 
@@ -37,7 +35,7 @@ public enum ErrorConstants {
     HGVS_INVALID_VAR_DESC_G("", "Invalid variant description for HGVS genomic input. Check the variant description contains a valid position, reference and alternate allele e.g. g.123A>T."),
     HGVS_INVALID_VAR_DESC_P("", "Invalid variant description for HGVS protein input. Check the variant description contains a valid reference and alternate (1- or 3-letter) amino acid and a position, e.g. p.Arg490Ser or p.R490S."),
 
-    HGVS_INVALID_VAR_DESC_C("", "Invalid variant description for HGVS cDNA input. Check the variant description contains a valid position, reference and alternate allele (optionally, the protein substitution within brackets) e.g. c.1289A>G(p.Asn430Ser)."),
+    HGVS_INVALID_VAR_DESC_C("", "Invalid variant description for HGVS cDNA input. Check the variant description contains a valid position, reference and alternate allele (optionally, the protein substitution) e.g. c.1289A>G p.(Asn430Ser)."),
 
     HGVS_REFSEQ_G_SCHEME_MISMATCH("", "Expecting genomic (g.) scheme for NC accession."),
     HGVS_REFSEQ_C_SCHEME_MISMATCH("", "Expecting cDNA (c.) scheme for NM accession."),
@@ -53,7 +51,7 @@ public enum ErrorConstants {
     // HGVS input processing (retrieval) errors
 
     HGVS_REFSEQ_MAPPPED_TO_PROTEIN("", "RefSeq ID mapped to Uniprot protein %s."),
-    HGVS_REFSEQ_MULTIPLE_PROTEINS("", "RefSeq ID mapped to multiple Uniprot accessions: %s. ProtVar will show mapping for the first accession."),
+    HGVS_REFSEQ_MULTIPLE_PROTEINS("", "RefSeq ID mapped to multiple Uniprot accessions: %s. ProtVar will use accession %t."),
 
     HGVS_REFSEQ_NO_PROTEIN("", "Could not map RefSeq ID to a Uniprot protein."),
 

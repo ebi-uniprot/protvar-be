@@ -63,7 +63,9 @@ public class Coding2Pro {
                         }
 
                         if (tail != null && tail.size() > 1) {
-                            cDNAProt.addWarning(String.format(ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.toString(), Arrays.toString(uniprotAccs.toArray())));
+                            cDNAProt.addWarning(String.format(ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.toString(),
+                                    Arrays.toString(uniprotAccs.toArray()),
+                                    head.get(0)));
                         }
                     }
                 } else {

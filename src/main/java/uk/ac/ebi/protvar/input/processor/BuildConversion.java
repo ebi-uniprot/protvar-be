@@ -15,6 +15,7 @@ import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,7 +76,9 @@ public class BuildConversion {
             }
 
             if (convertList.size() > 0) {
-                messages.add(new Message(Message.MessageType.INFO, ErrorConstants.GEN_ASSEMBLY_CONVERT_INFO.getErrorMessage()));
+                messages.add(new Message(Message.MessageType.INFO,
+                        String.format(ErrorConstants.GEN_ASSEMBLY_CONVERT_INFO.getErrorMessage(),
+                                convertList.size(), FetcherUtils.pluralise(convertList.size()))));
                 convert(convertList);
             }
         }
@@ -104,14 +107,18 @@ public class BuildConversion {
             String chr = input.getChr();
             Integer pos = input.getPos();
             List<Crossmap> crossmaps = groupedCrossmaps.get(chr+"-"+pos);
-            if (crossmaps == null || crossmaps.isEmpty()) {
-                input.addError(ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND);
-            } else if (crossmaps.size()==1) {
+
+            if (crossmaps != null && crossmaps.size() > 0) {
+                // We should expect 1 result, multiple mapping not possible based on
+                // select chr, grch37_pos, count(*) from crossmap
+                // group by chr, grch37_pos
+                // having count(*) > 1 -- no result!
                 input.setPos(crossmaps.get(0).getGrch38Pos());
                 input.setConverted(true);
             } else {
-                input.addError(ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_MULTIPLE);
+                input.addError(ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND);
             }
+
         });
     }
 
