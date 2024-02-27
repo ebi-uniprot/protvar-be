@@ -13,34 +13,33 @@ public enum ErrorConstants {
     GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND("", "Unable to map GRCh37 to GRCh38 coordinate."),
 
     // HGVS input parsing errors
-    HGVS_UNSUPPORTED_PREFIX_NG("", "HGVS Unsupported NG prefix (gene or genomic region). Please use a supported prefix - NC (genomic), NM (cDNA) or NP (protein)."),
-    HGVS_UNSUPPORTED_PREFIX_LRG("", "HGVS Unsupported LRG prefix (Locus Reference Genomic). Please use a supported prefix - NC (genomic), NM (cDNA) or NP (protein)."),
-    HGVS_UNSUPPORTED_PREFIX_NR("", "HGVS Unsupported NR prefix (non-protein-coding RNA). Please use a supported prefix - NC (genomic), NM (cDNA) or NP (protein)."),
+    HGVS_UNSUPPORTED_PREFIX_NG("", "NG prefix (gene or genomic region) is not supported. Please use a reference sequence with NC (genomic), NM (cDNA) or NP (protein) prefix."),
+    HGVS_UNSUPPORTED_PREFIX_LRG("", "LRG prefix (Locus Reference Genomic) is not supported. Please use a reference sequence with NC (genomic), NM (cDNA) or NP (protein) prefix."),
+    HGVS_UNSUPPORTED_PREFIX_NR("", "NR prefix (non-protein-coding RNA) is not supported. Please use a reference sequence with NC (genomic), NM (cDNA) or NP (protein) prefix."),
 
-    HGVS_UNSUPPORTED_PREFIX("", "HGVS Unsupported prefix. Please use a supported prefix - NC (genomic), NM (cDNA) or NP (protein)."),
+    HGVS_UNSUPPORTED_PREFIX("", "HGVS reference sequence prefix is not supported. Please use a reference sequence with NC (genomic), NM (cDNA) or NP (protein) prefix."),
 
     HGVS_UNSUPPORTED_SCHEME_N("", "Non-coding scheme (n.) not supported. Please use a supported scheme - g. (genomic), c. (cDNA) or p. (protein)."),
     HGVS_UNSUPPORTED_SCHEME_M("", "Mitochondrial scheme (m.) not supported. Please use a supported scheme - g. (genomic), c. (cDNA) or p. (protein)."),
     HGVS_UNSUPPORTED_SCHEME_R("", "RNA scheme (r.) not supported. Supported scheme - g. (genomic), c. (cDNA) or p. (protein)."),
 
-
     HGVS_INVALID_SCHEME("", "Invalid HGVS scheme."),
 
     HGVS_GENERIC_ERROR("", "Unable to parse HGVS input. Please check if the format is correct."),
 
-    HGVS_G_REF_SEQ_NOT_MAPPED_TO_CHR("", "The RefSeq accession does not map to a chromosome in GRCh37 or 38."),
+    HGVS_G_REFSEQ_NOT_MAP_TO_CHR("", "The reference sequence does not map to a chromosome in GRCh37 or 38."),
 
-    HGVS_INVALID_REFSEQ("", "HGVS input does not have a valid RefSeq accession with prefix NC, NM or NP."),
+    HGVS_G_REFSEQ_INVALID("", "The reference sequence for HGVS g. input should be a valid NC accession, for e.g. NC_000002.12."),
 
-    HGVS_INVALID_VAR_DESC_G("", "Invalid variant description for HGVS genomic input. Check the variant description contains a valid position, reference and alternate allele e.g. g.123A>T."),
-    HGVS_INVALID_VAR_DESC_P("", "Invalid variant description for HGVS protein input. Check the variant description contains a valid reference and alternate (1- or 3-letter) amino acid and a position, e.g. p.Arg490Ser or p.R490S."),
+    HGVS_G_VARDESC_INVALID("", "The variant description for HGVS g. input should contain a valid position, reference and alternate allele, for e.g. g.123A>T."),
 
-    HGVS_INVALID_VAR_DESC_C("", "Invalid variant description for HGVS cDNA input. Check the variant description contains a valid position, reference and alternate allele (optionally, the protein substitution) e.g. c.1289A>G p.(Asn430Ser)."),
+    HGVS_C_REFSEQ_INVALID("", "The reference sequence for HGVS c. input should be a valid NM or NP accession, for e.g. NM_017547.4."),
 
-    HGVS_REFSEQ_G_SCHEME_MISMATCH("", "Expecting genomic (g.) scheme for NC accession."),
-    HGVS_REFSEQ_C_SCHEME_MISMATCH("", "Expecting cDNA (c.) scheme for NM accession."),
-    HGVS_REFSEQ_P_SCHEME_MISMATCH("", "Expecting protein (p.) scheme for NP accession."),
+    HGVS_C_VARDESC_INVALID("", "The variant description for HGVS c. input should contain a valid position, reference and alternate allele (optionally, the protein substitution) e.g. c.1289A>G p.(Asn430Ser)."),
 
+    HGVS_P_REFSEQ_INVALID("", "The reference sequence for HGVS p. input should be a valid NP or NM accession, for e.g. NP_001305738.1."),
+
+    HGVS_P_VARDESC_INVALID("", "The variant description for HGVS p. should contain a valid reference and alternate (1- or 3-letter) amino acid and a position, e.g. p.Arg490Ser or p.R490S."),
 
     //////////////////
 
@@ -50,7 +49,7 @@ public enum ErrorConstants {
 
     // HGVS input processing (retrieval) errors
 
-    HGVS_REFSEQ_MAPPPED_TO_PROTEIN("", "RefSeq ID mapped to Uniprot protein %s."),
+    HGVS_REFSEQ_MAPPED_TO_PROTEIN("", "RefSeq ID mapped to Uniprot protein %s."),
     HGVS_REFSEQ_MULTIPLE_PROTEINS("", "RefSeq ID mapped to multiple Uniprot accessions: %s. ProtVar will use accession %t."),
 
     HGVS_REFSEQ_NO_PROTEIN("", "Could not map RefSeq ID to a Uniprot protein."),

@@ -26,29 +26,36 @@ public class HGVSc extends CodingInput {
     private static final Logger LOGGER = LoggerFactory.getLogger(HGVSc.class);
 
     // mRNA, Protein-coding transcripts (usually curated) e.g. NM_001145445.1
-    public static final String PREFIX = "NM_";
-    public static final String SCHEME = "c\\.";
+    public static final String PREFIX = "NM_"; // not necessary any more!
+    public static final String SCHEME = "c.";
+
     public static final String POS = GenomicInput.POS;
     public static final String GENE = "[A-Z][A-Z0-9]+"; // MAIN CRITERIA: must only contain uppercase letters and numbers, start with a letter
+    public static final String SCHEME_PATTERN_REGEX = ":(\\s+)?c\\.";
 
-    private static final String REF_SEQ =
-            "(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")" + // RefSeq NM accession
+    public static final String GENERAL_HGVS_C_PATTERN_REGEX = "^(?<refSeq>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
+
+    private static final String REF_SEQ_REGEX =
+            //"(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")" + // RefSeq NM accession
+            "(?<rsAcc>(NM_|NP_)" + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")" +
                     // OPTIONALLY, gene name
                     "(("+ RegexUtils.SPACES +")?\\((?<gene>"+GENE+")\\))?";
 
-    private static final String VAR_DESC =
-                    SCHEME + // :c.
+    private static final String VAR_DESC_REGEX =
                     "(?<pos>" + POS + ")" +
                     "(?<ref>" + GenomicInput.BASE + ")" +
                     "(" + HGVS.SUB_SIGN + ")" +
                     "(?<alt>" + GenomicInput.BASE + ")" +
                     // OPTIONALLY, with or without space followed by protein substitution
-                    "(("+ RegexUtils.SPACES +")?p.\\((?<protRef>"+ ProteinInput.THREE_LETTER_AA + ")(?<protPos>" + POS + ")(?<protAlt>" + ProteinInput.THREE_LETTER_AA+")\\))?";
+                    "(("+ RegexUtils.SPACES +")?" +
+                    "(p.\\(|\\(p.)" + // lenient on where the opening bracket is
+                    "(?<protRef>"+ ProteinInput.THREE_LETTER_AA + ")" +
+                    "(?<protPos>" + POS + ")" +
+                    "(?<protAlt>" + ProteinInput.THREE_LETTER_AA+")\\))?";
 
-    private static final String REGEX = REF_SEQ + HGVS.COLON + VAR_DESC;
-
-    private static Pattern p1 = Pattern.compile(REF_SEQ, Pattern.CASE_INSENSITIVE);
-    private static Pattern p2 = Pattern.compile(VAR_DESC, Pattern.CASE_INSENSITIVE);
+    private static Pattern GENERAL_PATTERN = Pattern.compile(GENERAL_HGVS_C_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern REF_SEQ_PATTERN = Pattern.compile(REF_SEQ_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern VAR_DESC_PATTERN = Pattern.compile(VAR_DESC_REGEX, Pattern.CASE_INSENSITIVE);
 
 
     String rsAcc; // refseq id
@@ -71,7 +78,6 @@ public class HGVSc extends CodingInput {
         setFormat(Format.HGVS_CODING);
     }
 
-
     // Pre-check (level 1)
     // Pattern: NM_?:c.?
     public static boolean preCheck(String inputStr) {
@@ -82,57 +88,52 @@ public class HGVSc extends CodingInput {
         return HGVS.startsWithPrefix(PREFIX, inputStr);
     }
 
-    public static HGVSc parse(String inputStr) {
-        // pre-condition:
-        // [x] fits general HGVS format - ref seq & var desc part separated by a single colon
-        // [x] starts with HGVSc prefix
+    public static boolean generalPattern(String input) {
+        return input.matches(GENERAL_HGVS_C_PATTERN_REGEX);
+    }
 
+    public static HGVSc parse(String inputStr) {
+        // pre-condition: fits _:(S?)c._ pattern
         HGVSc parsedInput = new HGVSc(inputStr);
         try {
-            String[] params = inputStr.split(HGVS.COLON);
-            if (params.length == 2) {
-                String refSeqPart = params[0];
-                String variantDescPart = params[1];
+            Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
+            if (generalMatcher.matches()) {
+                String refSeq = generalMatcher.group("refSeq");
 
-                Matcher m1 = p1.matcher(refSeqPart);
-                if (m1.matches()) {
-                    String rsAcc = m1.group("rsAcc"); // refseq accession
+                Matcher refSeqMatcher = REF_SEQ_PATTERN.matcher(refSeq);
+                if (refSeqMatcher.matches()) {
+                    String rsAcc = refSeqMatcher.group("rsAcc"); // refseq accession
                     // optional gene
-                    String gene = m1.group("gene");
+                    String gene = refSeqMatcher.group("gene");
                     parsedInput.setRsAcc(rsAcc);
                     parsedInput.setGene(gene);
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_INVALID_REFSEQ);
+                    parsedInput.addError(ErrorConstants.HGVS_C_REFSEQ_INVALID);
                 }
 
-                Matcher m2 = p2.matcher(variantDescPart);
-                if (m2.matches()) {
-
-                    String pos = m2.group("pos");
-                    String ref = m2.group("ref");
-                    String alt = m2.group("alt");
+                String varDesc = generalMatcher.group("varDesc");
+                Matcher varDescMatcher = VAR_DESC_PATTERN.matcher(varDesc);
+                if (varDescMatcher.matches()) {
+                    String pos = varDescMatcher.group("pos");
+                    String ref = varDescMatcher.group("ref");
+                    String alt = varDescMatcher.group("alt");
 
                     parsedInput.setPos(Integer.parseInt(pos));
                     parsedInput.setRef(ref);
                     parsedInput.setAlt(alt);
 
                     // optional fields
-                    String protRef = m2.group("protRef");
-                    String protAlt = m2.group("protAlt");
-                    String protPos = m2.group("protPos");
+                    String protRef = varDescMatcher.group("protRef");
+                    String protAlt = varDescMatcher.group("protAlt");
+                    String protPos = varDescMatcher.group("protPos");
 
                     parsedInput.setProtRef(protRef);
                     parsedInput.setProtAlt(protAlt);
                     parsedInput.setProtPos(protPos == null ? null : Integer.parseInt(protPos));
 
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_INVALID_VAR_DESC_C);
-
-                    if (!variantDescPart.startsWith(SCHEME)) {
-                        parsedInput.addError(ErrorConstants.HGVS_REFSEQ_C_SCHEME_MISMATCH);
-                    }
+                    parsedInput.addError(ErrorConstants.HGVS_C_VARDESC_INVALID);
                 }
-
             } else {
                 throw new InvalidInputException("No match");
             }
@@ -142,8 +143,6 @@ public class HGVSc extends CodingInput {
         }
         return parsedInput;
     }
-
-
 
     @Override
     public String toString() {

@@ -17,15 +17,17 @@ import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.utils.HGVS;
+import uk.ac.ebi.protvar.utils.RegexUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static uk.ac.ebi.protvar.utils.RegexUtils.SPACES;
+
 @Service
 public class InputProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(InputProcessor.class);
-
 
     /**
      * Takes a list of input strings and return corresponding list of userInput objects
@@ -43,7 +45,6 @@ public class InputProcessor {
         return userInputs;
     }
 
-
     /**
      * Parse input string into a UserInput object.
      * @param inputStr	Null and empty inputs will have been filtered before calling this function.
@@ -53,6 +54,31 @@ public class InputProcessor {
     public UserInput parse(String inputStr) {
         if (inputStr == null || inputStr.isEmpty())
             return null;
+
+        // General pattern checks (S=SPACES)
+        // _               IDs (single word - no space - and startsWithPrefix)
+        // _-_-_-_         genomic gnomAD
+        // _S_S_S_S_()?    genomic VCF
+        // _S_S_(/|>|S)_   genomic custom - chr, pos, ref, alt
+        // _S_S_           genomic custom - chr, pos, ref
+        // _S_             genomic custom - chr, pos        -- if valid chr or pos, else invalid custom genomic
+        //                 or
+        // _S_             custom protein e.g.  P22304 A205P, P07949 asn783thr
+        // _S_S_S_         custom protein e.g.  P22309 71 Gly Arg
+        // _S_S_/_         custom protein e.g.  P22304 205 A/P
+        // _S_             custom protein e.g.  ACC POS
+
+        // note: Ter|*|= allowed for alt amino acid only.
+
+        // _:[a-z]._       hgvs
+        // _:g._           hgvs g
+        // _:p._           hgvs p
+        // _:c._           hgvs c
+        // _:n._           hgvs non-coding scheme (n.) not supported
+        // _:m._           hgvs mitochondrial scheme (m.) not supported
+        // _:r._           hgvs RNA scheme (r.) not supported
+        // _:*._       anything else: Invalid HGVS scheme.
+
 
         // Steps:
         // LEVEL 1 (first-level) CHECK
@@ -64,30 +90,32 @@ public class InputProcessor {
         // Here we may find that we are dealing with a specific input type, but it doesn't fully parse (or contain all
         // the info we require)
 
-        // ID/ref checks - these should be single-word input
-        if (DbsnpID.startsWithPrefix(inputStr)) {
+        boolean isSingleWord = RegexUtils.isSingleWord(inputStr);
+
+        // IDs checks - these should be single-word input
+        if (isSingleWord && DbsnpID.startsWithPrefix(inputStr)) {
             return DbsnpID.parse(inputStr);
         }
-        else if (ClinVarID.startsWithPrefix(inputStr)) {
+        else if (isSingleWord && ClinVarID.startsWithPrefix(inputStr)) {
             return ClinVarID.parse(inputStr);
         }
-        else if (CosmicID.startsWithPrefix(inputStr)) {
+        else if (isSingleWord && CosmicID.startsWithPrefix(inputStr)) {
             return CosmicID.parse(inputStr);
         }
         // HGVS inputs
-        // general pattern _:_
-        //               /    \
-        //          REF_SEQ   VAR_DESC
-        else if (HGVS.generalRefSeqVarDesc(inputStr)) {
-            if (HGVSg.startsWithPrefix(inputStr)) {
+        // general pattern _:(S?)[a-z]._
+        //               /         \
+        //          REF_SEQ        VAR_DESC
+        else if (HGVS.generalPattern(inputStr)) {
+            if (HGVSg.generalPattern(inputStr)) {
                 // process as HGVS genomic
                 return HGVSg.parse(inputStr);
             }
-            if (HGVSc.startsWithPrefix(inputStr)) {
+            if (HGVSc.generalPattern(inputStr)) {
                 // process as HGVS cDNA
                 return HGVSc.parse(inputStr);
             }
-            if (HGVSp.startsWithPrefix(inputStr)) {
+            if (HGVSp.generalPattern(inputStr)) {
                 // process as HGVS protein
                 return HGVSp.parse(inputStr);
             }

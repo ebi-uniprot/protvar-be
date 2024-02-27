@@ -29,33 +29,33 @@ public class HGVSp extends ProteinInput {
     private static final Logger LOGGER = LoggerFactory.getLogger(HGVSp.class);
 
     // Protein, Associated with an NM_ or NC_ accession e.g. NP_001138917.1
-    public static final String PREFIX = "NP_"; // -> lookup transcript (enst)?
-    public static final String SCHEME = "p\\.";
+    public static final String PREFIX = "NP_"; // -> lookup transcript (enst)? // not necessary any more!
+    public static final String SCHEME = "p.";
+    public static final String SCHEME_PATTERN_REGEX = ":(\\s+)?p\\.";
 
-    public final static String THREE_LETTER_AA_PLUS_STOP_CODON = String.format("(%s|%s)", String.join("|", AminoAcid.VALID_AA3), STOP_CODON);
+    public static final String GENERAL_HGVS_P_PATTERN_REGEX = "^(?<refSeq>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
 
-    public static final String ONE_LETTER_AA_SUB = "(?<ref>"+ONE_LETTER_AA + ")" +
+    public final static String THREE_LETTER_AA_PLUS_STOP_CODON = String.format("(%s|%s|=)", String.join("|", AminoAcid.VALID_AA3), STOP_CODON);
+
+    private static final String REF_SEQ_REGEX =
+            //"(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq.NP accession
+            "(NM_|NP_)" + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM;
+
+    private static final String VAR_DESC_REGEX1 = "(\\()?" +
+            "(?<ref>"+ONE_LETTER_AA + ")" +
             "(?<pos>" + POS + ")" +
-            "(?<alt>" + ONE_LETTER_AA + ")"; // includes STOP_CODON (*)
-    public static final String THREE_LETTER_AA_SUB = "(?<ref>"+THREE_LETTER_AA + ")" +
+            "(?<alt>" + ONE_LETTER_AA + ")" + // includes STOP_CODON (*)
+            "(\\))?";
+    private static final String VAR_DESC_REGEX2 = "(\\()?" +
+            "(?<ref>"+THREE_LETTER_AA + ")" +
             "(?<pos>" + POS + ")" +
-            "(?<alt>(" + THREE_LETTER_AA_PLUS_STOP_CODON + "|=))";
+            "(?<alt>" + THREE_LETTER_AA_PLUS_STOP_CODON + ")" +
+            "(\\))?";
 
-    private static final String REGEX =
-            "(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")" + // RefSeq.NP accession
-                    "("+ HGVS.COLON + SCHEME + ")"; // :p.
-
-    private static final String REF_SEQ =
-            "(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq.NP accession
-
-    private static final String VAR_DESC_1 = SCHEME + "(\\()?"+ ONE_LETTER_AA_SUB + "(\\))?";
-    private static final String VAR_DESC_2 = SCHEME + "(\\()?"+ THREE_LETTER_AA_SUB + "(\\))?";
-
-    private static Pattern p1 = Pattern.compile(REF_SEQ, Pattern.CASE_INSENSITIVE);
-    private static Pattern p2 = Pattern.compile(VAR_DESC_1, Pattern.CASE_INSENSITIVE);
-    private static Pattern p3 = Pattern.compile(VAR_DESC_2, Pattern.CASE_INSENSITIVE);
-
-
+    private static Pattern GENERAL_PATTERN = Pattern.compile(GENERAL_HGVS_P_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern REF_SEQ_PATTERN = Pattern.compile(REF_SEQ_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern VAR_DESC_PATTERN1 = Pattern.compile(VAR_DESC_REGEX1, Pattern.CASE_INSENSITIVE);
+    private static Pattern VAR_DESC_PATTERN2 = Pattern.compile(VAR_DESC_REGEX2, Pattern.CASE_INSENSITIVE);
 
     String rsAcc;
 
@@ -75,39 +75,34 @@ public class HGVSp extends ProteinInput {
         return HGVS.startsWithPrefix(PREFIX, inputStr);
     }
 
+    public static boolean generalPattern(String input) {
+        return input.matches(GENERAL_HGVS_P_PATTERN_REGEX);
+    }
+
     public static HGVSp parse(String inputStr) {
+        // pre-condition: fits _:(S?)p._ pattern
         HGVSp parsedInput = new HGVSp(inputStr);
         try {
-            String[] params = inputStr.split(HGVS.COLON);
-            if (params.length == 2) {
-                String refSeqPart = params[0];
-                String variantDescPart = params[1];
-
-                Matcher m1 = p1.matcher(refSeqPart);
-                if (m1.matches()) {
-                    String rsAcc = m1.group("rsAcc");
-                    parsedInput.setRsAcc(rsAcc);
+            Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
+            if (generalMatcher.matches()) {
+                String refSeq = generalMatcher.group("refSeq");
+                if (REF_SEQ_PATTERN.matcher(refSeq).matches()) {
+                    parsedInput.setRsAcc(refSeq);
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_INVALID_REFSEQ);
+                    parsedInput.addError(ErrorConstants.HGVS_P_REFSEQ_INVALID);
                 }
 
-                Matcher m2 = p2.matcher(variantDescPart);
-                if (m2.matches()) { // 1 letter AA
-                    parsedInput.setParams(m2);
-
+                String varDesc = generalMatcher.group("varDesc");
+                Matcher varDescMatcher1 = VAR_DESC_PATTERN1.matcher(varDesc);
+                if (varDescMatcher1.matches()) { // 1 letter AA
+                    parsedInput.setParams(varDescMatcher1);
                 } else {
-
-                    Matcher m3 = p3.matcher(variantDescPart);
-                    if (m3.matches()) { // 3 letter AA
-                        parsedInput.setParams(m3);
+                    Matcher varDescMatcher2 = VAR_DESC_PATTERN2.matcher(varDesc);
+                    if (varDescMatcher2.matches()) { // 3 letter AA
+                        parsedInput.setParams(varDescMatcher2);
                     } else {
-                        parsedInput.addError(ErrorConstants.HGVS_INVALID_VAR_DESC_P);
-
-                        if (!variantDescPart.startsWith(SCHEME)) {
-                            parsedInput.addError(ErrorConstants.HGVS_REFSEQ_P_SCHEME_MISMATCH);
-                        }
+                        parsedInput.addError(ErrorConstants.HGVS_P_VARDESC_INVALID);
                     }
-
                 }
             } else {
                 throw new InvalidInputException("No match");

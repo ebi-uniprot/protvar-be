@@ -3,6 +3,9 @@ package uk.ac.ebi.protvar.utils;
 import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Refer to HGVS doc: https://varnomen.hgvs.org/bg-material/simple/
  * HGVS format
@@ -66,12 +69,12 @@ public class HGVS {
     // c. <POS><A>\\><A> optionally, (p.<AAA><POS><AAA>)
     // p. <AAA><POS><AAA>| <AAA><POS>\\* | <A><POS><A> | <A><POS>\\*
 
-    public static final String GENERAL_HGVS_REF_SEQ_AND_VAR_DESC_FORMAT = "^[^:]+:[^:]+$";
-    public static final String GENERAL_HGVS_REF_SEQ_FORMAT = "^[^ :]+$";
-    public static final String GENERAL_HGVS_VAR_DESC_FORMAT = "^[^ :]+$";
+    public static final String GENERAL_HGVS_PATTERN_REGEX = "^(?<refSeq>[^:]+):(?<scheme>(\\s+)?[a-z]\\.)[^:]+$";
 
-    public static boolean generalRefSeqVarDesc(String input) {
-        return input.matches(GENERAL_HGVS_REF_SEQ_AND_VAR_DESC_FORMAT);
+    private static Pattern GENERAL_HGVS_PATTERN = Pattern.compile(GENERAL_HGVS_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
+
+    public static boolean generalPattern(String input) {
+        return input.matches(GENERAL_HGVS_PATTERN_REGEX);
     }
 
 
@@ -81,26 +84,33 @@ public class HGVS {
 
     public static HGVSg invalid(String inputStr) {
         HGVSg invalid = new HGVSg(inputStr);
-        if (!HGVS.supportedPrefix(inputStr)) {
-            if (inputStr.toUpperCase().startsWith("NG"))
+        Matcher generalMatcher = GENERAL_HGVS_PATTERN.matcher(inputStr);
+        if (generalMatcher.matches()) {
+            String scheme = generalMatcher.group("scheme");
+            scheme = scheme == null ? "" : scheme.trim();
+
+            if (scheme.equals("n."))
+                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_N);
+            else if (scheme.equals(":m."))
+                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_M);
+            else if (scheme.equals(":r."))
+                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_R);
+            else
+                invalid.addError(ErrorConstants.HGVS_INVALID_SCHEME);
+
+            String refSeq = generalMatcher.group("refSeq");
+            refSeq = refSeq == null ? "" : refSeq.trim().toUpperCase();
+
+            if (refSeq.startsWith("NG"))
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_NG);
-            else if (inputStr.toUpperCase().startsWith("LRG"))
+            else if (refSeq.startsWith("LRG"))
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_LRG);
-            else if (inputStr.toUpperCase().startsWith("NR"))
+            else if (refSeq.startsWith("NR"))
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_NR);
             else
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX);
         }
-        if (!HGVS.containsSupportedScheme(inputStr)) {
-            if (inputStr.contains(":n."))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_N);
-            else if (inputStr.contains(":m."))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_M);
-            else if (inputStr.contains(":r."))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_R);
-            else
-                invalid.addError(ErrorConstants.HGVS_INVALID_SCHEME);
-        }
+
         if (!invalid.hasError())
             invalid.addError(ErrorConstants.HGVS_GENERIC_ERROR);
         return invalid;

@@ -20,26 +20,24 @@ import java.util.regex.Pattern;
 public class HGVSg extends GenomicInput {
     private static final Logger LOGGER = LoggerFactory.getLogger(HGVSg.class);
 
-
     // Genomic, Complete genomic molecule, usually reference assembly
     public static final String PREFIX = "NC_"; // -> converts to chr
+    public static final String SCHEME = "g.";
 
-    public static final String SCHEME = "g\\.";
+    public static final String SCHEME_PATTERN_REGEX = ":(\\s+)?g\\.";
+    public static final String GENERAL_HGVS_G_PATTERN_REGEX = "^(?<refSeq>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
 
-    public static final String REF_SEQ = "(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq NC accession
-    public static final String VAR_DESC = "("+SCHEME + ")" + // g.
+    public static final String REF_SEQ_REGEX = "(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq NC accession
+    public static final String VAR_DESC_REGEX =
             "(?<pos>"+GenomicInput.POS + ")" +
             "(?<sub>"+GenomicInput.BASE_SUB + ")"; // (A|T|C|G)>(A|T|C|G)
+    private static Pattern GENERAL_PATTERN = Pattern.compile(GENERAL_HGVS_G_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern REF_SEQ_PATTERN = Pattern.compile(REF_SEQ_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern VAR_DESC_PATTERN = Pattern.compile(VAR_DESC_REGEX, Pattern.CASE_INSENSITIVE);
 
-    public static final String REGEX = REF_SEQ + HGVS.COLON + VAR_DESC;
 
     @JsonIgnore @Getter @Setter
-    Boolean grch37RSAcc;
-
-    private static Pattern p = Pattern.compile(REGEX, Pattern.CASE_INSENSITIVE);
-    private static Pattern p1 = Pattern.compile(REF_SEQ, Pattern.CASE_INSENSITIVE);
-    private static Pattern p2 = Pattern.compile(VAR_DESC, Pattern.CASE_INSENSITIVE);
-
+    Boolean rsAcc37;
 
     public HGVSg(String inputStr) {
         super(inputStr);
@@ -56,41 +54,37 @@ public class HGVSg extends GenomicInput {
         return HGVS.startsWithPrefix(PREFIX, inputStr);
     }
 
-    public static HGVSg parse(String inputStr) {
-        // pre-condition:
-        // [x] fits general HGVS format - ref seq & var desc part separated by a single colon
-        // [x] starts with HGVSg prefix
+    public static boolean generalPattern(String input) {
+        return input.matches(GENERAL_HGVS_G_PATTERN_REGEX);
+    }
 
+    public static HGVSg parse(String inputStr) {
+        // pre-condition: fits _:(S?)g._ pattern
         HGVSg parsedInput = new HGVSg(inputStr);
         try {
-            String[] params = inputStr.split(HGVS.COLON);
-            if (params.length == 2) {
-                String refSeqPart = params[0];
-                String variantDescPart = params[1];
-
-                Matcher m1 = p1.matcher(refSeqPart);
-                if (m1.matches()) {
-                    String rsAcc = m1.group("rsAcc"); // refseq accession
-
-                    String chr = RefSeqNC.grch38RSAcctoChr(rsAcc);
+            Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
+            if (generalMatcher.matches()) {
+                String refSeq = generalMatcher.group("refSeq");
+                if (REF_SEQ_PATTERN.matcher(refSeq).matches()) {
+                    String chr = RefSeqNC.grch38RSAcctoChr(refSeq);
                     if (chr == null) {
-                        chr = RefSeqNC.grch37RSAcctoChr(rsAcc);
+                        chr = RefSeqNC.rsAcc37toChr(refSeq);
                         if (chr != null) {
-                            parsedInput.setGrch37RSAcc(true);
+                            parsedInput.setRsAcc37(true);
                         } else {
-                            parsedInput.addError(ErrorConstants.HGVS_G_REF_SEQ_NOT_MAPPED_TO_CHR);
+                            parsedInput.addError(ErrorConstants.HGVS_G_REFSEQ_NOT_MAP_TO_CHR);
                         }
                     }
                     parsedInput.setChr(chr);
-
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_INVALID_REFSEQ);
+                    parsedInput.addError(ErrorConstants.HGVS_G_REFSEQ_INVALID);
                 }
 
-                Matcher m2 = p2.matcher(variantDescPart);
-                if (m2.matches()) {
-                    String pos = m2.group("pos");
-                    String sub = m2.group("sub");
+                String varDesc = generalMatcher.group("varDesc");
+                Matcher varDescMatcher = VAR_DESC_PATTERN.matcher(varDesc);
+                if (varDescMatcher.matches()) {
+                    String pos = varDescMatcher.group("pos");
+                    String sub = varDescMatcher.group("sub");
                     String[] bases = sub.split(HGVS.SUB_SIGN);
                     String ref = bases[0];
                     String alt = bases[1];
@@ -99,17 +93,11 @@ public class HGVSg extends GenomicInput {
                     parsedInput.setRef(ref);
                     parsedInput.setAlt(alt);
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_INVALID_VAR_DESC_G);
-
-                    if (!variantDescPart.startsWith(SCHEME)) {
-                        parsedInput.addError(ErrorConstants.HGVS_REFSEQ_G_SCHEME_MISMATCH);
-                    }
+                    parsedInput.addError(ErrorConstants.HGVS_G_VARDESC_INVALID);
                 }
-
             } else {
                 throw new InvalidInputException("No match");
             }
-
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);
             parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
@@ -128,7 +116,7 @@ public class HGVSg extends GenomicInput {
     }
 
     public static Integer extractLocation(String inputStr) {
-        Matcher matcher = p.matcher(inputStr);
+        Matcher matcher = Pattern.compile(REF_SEQ_REGEX + SCHEME_PATTERN_REGEX + VAR_DESC_REGEX, Pattern.CASE_INSENSITIVE).matcher(inputStr);
         if (matcher.matches()) {
             try {
                 Integer pos = Integer.parseInt(matcher.group("pos"));

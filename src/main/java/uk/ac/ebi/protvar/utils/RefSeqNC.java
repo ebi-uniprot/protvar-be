@@ -63,7 +63,7 @@ public enum RefSeqNC {
 		return null;
 	}
 
-	public static String grch37RSAcctoChr(String acc) {
+	public static String rsAcc37toChr(String acc) {
 		for (RefSeqNC val : RefSeqNC.values()) {
 			if (val.grch37Acc.equalsIgnoreCase(acc))
 				return val.chr;

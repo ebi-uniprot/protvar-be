@@ -61,4 +61,22 @@ class HGVSpTest {
         assert(userInput.getAlt() == null);
         assert(userInput.hasError() == true);
     }
+
+    @Test
+    void testValidEqualForAlt() {
+        HGVSp userInput = HGVSp.parse("NP_003997.1:p.Trp78=");
+        assert(userInput.getRsAcc().equals("NP_003997.1"));
+        assert(userInput.getPos() == 78);
+        assert(userInput.getRef().equals("Trp"));
+        assert(userInput.getAlt().equals("Trp"));
+    }
+
+    @Test
+    void testValidBrackets1() {
+        HGVSp userInput = HGVSp.parse("NP_003997.1:p.(Trp78*)");
+        assert(userInput.getRsAcc().equals("NP_003997.1"));
+        assert(userInput.getPos() == 78);
+        assert(userInput.getRef().equals("Trp"));
+        assert(userInput.getAlt().equals("*"));
+    }
 }

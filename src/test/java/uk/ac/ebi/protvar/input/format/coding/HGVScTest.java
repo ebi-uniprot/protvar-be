@@ -69,6 +69,20 @@ class HGVScTest {
         assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", null, "Asn", "Ser", 430, parsedInput);
     }
 
+    @Test
+    void test_valid_with_bracket_before_prot_desc() {
+        String inputStr = "NM_017547.4:c.1289A>G(p.Asn430Ser)";
+        HGVSc parsedInput = HGVSc.parse(inputStr);
+        assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", null, "Asn", "Ser", 430, parsedInput);
+    }
+
+    @Test
+    void test_valid_with_bracket_before_prot_desc_with_space() {
+        String inputStr = "NM_017547.4:c.1289A>G (p.Asn430Ser)";
+        HGVSc parsedInput = HGVSc.parse(inputStr);
+        assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", null, "Asn", "Ser", 430, parsedInput);
+    }
+
     private void assertInput(boolean valid, String inputStr, String rsAcc, Integer pos, String ref, String alt,
                              String gene, String protRef, String protAlt, Integer protPos, HGVSc actual) {
         assertEquals(valid, actual.isValid());

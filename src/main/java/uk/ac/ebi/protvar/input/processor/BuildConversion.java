@@ -45,7 +45,7 @@ public class BuildConversion {
                     .forEach(i -> {
                 if (i.getFormat() == Format.HGVS_GEN) {
                     hgvsGs.add(i); // all hgvsGs, may be mix of 38 and 37 RefSeq accession
-                    Boolean g37 = ((HGVSg) i).getGrch37RSAcc();
+                    Boolean g37 = ((HGVSg) i).getRsAcc37();
                     if (g37 != null && g37)
                         hgvsGs37.add(i);
                 }

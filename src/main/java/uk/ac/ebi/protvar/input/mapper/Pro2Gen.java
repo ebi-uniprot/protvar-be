@@ -62,7 +62,7 @@ public class Pro2Gen {
                     if (tail != null) {
                         if (tail.size() == 0) {
                             hgvsProt.addInfo(String.format(
-                                    ErrorConstants.HGVS_REFSEQ_MAPPPED_TO_PROTEIN.getErrorMessage(),
+                                    ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
                                     hgvsProt.getAcc()));
                         }
                         if (tail.size() > 1) {
@@ -93,7 +93,7 @@ public class Pro2Gen {
                 HGVSc cDNAProt = (HGVSc) input;
                 if (cDNAProt.getDerivedUniprotAcc() != null) {
                     cDNAProt.addInfo(String.format(
-                        ErrorConstants.HGVS_REFSEQ_MAPPPED_TO_PROTEIN.getErrorMessage(),
+                        ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
                             cDNAProt.getDerivedUniprotAcc()));
 
                     if (!uniprotEntryCache.isValidEntry(cDNAProt.getDerivedUniprotAcc()))
