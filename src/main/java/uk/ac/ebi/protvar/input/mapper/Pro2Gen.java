@@ -280,6 +280,8 @@ public class Pro2Gen {
                         seen.add(curr);
 
                         Integer gCoordCodonPos = gCoord.getCodonPosition();
+                        if (!gCoordCodonPos.equals(input.getDerivedCodonPos()))
+                            return;
 
                         String cdnaRef = input.getRef();
                         String cdnaAlt = input.getAlt();
@@ -289,10 +291,8 @@ public class Pro2Gen {
                             cdnaAlt = reverseDNA(cdnaAlt);
                         }
 
-                        if (!(gCoordRefAllele.equals(cdnaRef) &&
-                                gCoordCodonPos.equals(input.getDerivedCodonPos()))) {
+                        if (!gCoordRefAllele.equals(cdnaRef))
                             return;
-                        }
 
                         GenomicInput gInput = new GenomicInput(input.getInputStr());
                         gInput.setChr(gCoordChr);
@@ -303,7 +303,7 @@ public class Pro2Gen {
                     });
                 }
 
-                if (input.getDerivedGenomicInputs().isEmpty() && input.getMessages().isEmpty()) {
+                if (input.getDerivedGenomicInputs().isEmpty()) {
                     input.addError(CDNA_NO_GEN_MAPPING);
                 }
             }
