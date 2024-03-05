@@ -15,10 +15,10 @@ import java.util.List;
 @Configuration
 public class RedisConfig {
 
-    @Value("${REDIS_HOST:localhost}")
-    private String redisHostString;
-    @Value("${REDIS_PORT:6379}")
-    private String redisPortString;
+    @Value(("${spring.data.redis.host}"))
+    private String redisHost;
+    @Value(("${spring.data.redis.port}"))
+    private String redisPort;
 
     @Bean
     JedisConnectionFactory jedisConnectionFactory() {
