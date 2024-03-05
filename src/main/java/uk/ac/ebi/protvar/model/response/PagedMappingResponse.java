@@ -8,6 +8,8 @@ import lombok.*;
 public class PagedMappingResponse {
 	private MappingResponse content;
 
+	private String resultId;
+
 	private int pageNo;
 
 	private int pageSize;
