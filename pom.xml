@@ -151,11 +151,6 @@
       <artifactId>guava</artifactId>
       <version>31.1-jre</version>
     </dependency>
-    <dependency>
-      <groupId>org.mapdb</groupId>
-      <artifactId>mapdb</artifactId>
-      <version>3.0.9</version>
-    </dependency>
   </dependencies>
 
   <build>
