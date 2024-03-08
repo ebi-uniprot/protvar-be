@@ -19,6 +19,7 @@ test:
   script:
     - mkdir -p /data
     - mvn clean verify
+    - curl -X POST --fail -F token=${INTEGRATION_TESTS_TRIGGER_TOKEN} -F ref=${CI_COMMIT_REF_NAME} ${INTEGRATION_TESTS_TRIGGER}
 
 build:
   only:
@@ -30,7 +31,6 @@ build:
   script:
     - mvn -DskipTests clean package
     - mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
-    - curl -X POST --fail -F token=$INTEGRATION_TESTS_TRIGGER_TOKEN -F ref=$CI_COMMIT_REF_NAME $INTEGRATION_TESTS_TRIGGER
   artifacts:
     expire_in: 2 days
     paths:
