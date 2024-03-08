@@ -21,7 +21,7 @@ class GenomicInputTest {
     void test_inputWithDiffSubstitutionSigns(String inputStr) {
         assertTrue(GenomicInput.isValid(inputStr));
         GenomicInput parsedInput = GenomicInput.parse(inputStr);
-        assertInput(true, inputStr, "X", 123, Constants.NA, "A", "T", parsedInput);
+        assertInput(true, inputStr, "X", 123, null, "A", "T", parsedInput);
     }
 
     @Test
@@ -29,7 +29,7 @@ class GenomicInputTest {
         String inputStr = "mt 4 g c";
         assertTrue(GenomicInput.isValid(inputStr));
         GenomicInput parsedInput = GenomicInput.parse(inputStr);
-        assertInput(true, inputStr, GenomicInput.MT, 4, Constants.NA, "G", "C", parsedInput);
+        assertInput(true, inputStr, GenomicInput.MT, 4, null, "G", "C", parsedInput);
     }
 
     @Test
@@ -49,7 +49,7 @@ class GenomicInputTest {
         GenomicInput parsedInput = GenomicInput.parse(inputStr);
         String[] tokens = inputStr.split(" ");
         assertInput(true, inputStr, tokens[0].toUpperCase(), Integer.parseInt(tokens[1]),
-                Constants.NA, null, null, parsedInput);
+                null, null, null, parsedInput);
     }
 
     @Disabled
@@ -70,7 +70,7 @@ class GenomicInputTest {
         GenomicInput parsedInput = GenomicInput.parse(inputStr);
         String[] tokens = inputStr.split(" ");
         assertInput(true, inputStr, tokens[0].toUpperCase(), Integer.parseInt(tokens[1]),
-                Constants.NA, tokens[2], null, parsedInput);
+                null, tokens[2], null, parsedInput);
     }
 
 
@@ -229,7 +229,7 @@ class GenomicInputTest {
     void test_parse() {
         String inputStr = "x 123 a t";
         UserInput userInput = GenomicInput.parse(inputStr); // from previous VCFTest
-        assertInput(true, inputStr, "X", 123, Constants.NA, "A", "T", (GenomicInput)userInput);
+        assertInput(true, inputStr, "X", 123, null, "A", "T", (GenomicInput)userInput);
     }
 
     private void assertInput(boolean valid, String inputStr, String chr, Integer pos, String id, String ref, String alt,

@@ -79,7 +79,7 @@ public class VCF extends GenomicInput {
     public static String convertId(String id) {
         id = id.trim();
         if (id.equals("."))
-            return Constants.NA;
+            return null;
         return id;
     }
 

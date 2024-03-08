@@ -26,7 +26,7 @@ class VCFTest {
   @ValueSource(strings = {"y 987654321 . t g"})
   void test_noIdProvided(String inputStr) {
     VCF userInput = VCF.parse(inputStr);
-    assertParsedInput(true, inputStr, "Y", 987654321, Constants.NA, "T", "G", "Y-987654321", userInput);
+    assertParsedInput(true, inputStr, "Y", 987654321, null, "T", "G", "Y-987654321", userInput);
   }
 
   @ParameterizedTest

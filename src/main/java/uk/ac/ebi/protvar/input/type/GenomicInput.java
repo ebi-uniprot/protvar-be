@@ -150,7 +150,7 @@ public class GenomicInput extends UserInput {
                 parsedInput.setPos(convertPosition(pos));
 
                 if (c1 != null && validBase(c1)) { // no ID
-                    parsedInput.setId(Constants.NA);
+                    //parsedInput.setId(Constants.NA);
                     parsedInput.setRef(c1 != null ? c1.toUpperCase() : null);
                     parsedInput.setAlt(c2 != null ? c2.toUpperCase() : null);
                 } else { // consider c1 is ID
@@ -195,7 +195,7 @@ public class GenomicInput extends UserInput {
         //if (parsedInput.getRef() != null && parsedInput.getRef().equals(parsedInput.getAlt())) {
         //    parsedInput.addWarning("Ref and alt base are the same");
         //}
-        parsedInput.setId(Constants.NA);
+        //parsedInput.setId(Constants.NA);
         return parsedInput;
     }
 
