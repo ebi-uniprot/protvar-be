@@ -60,11 +60,12 @@ public class Pro2Gen {
                     accPosSet.add(new Object[]{head.get(0), hgvsProt.getPos()});
 
                     if (tail != null) {
+                        /*
                         if (tail.size() == 0) {
                             hgvsProt.addInfo(String.format(
                                     ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
                                     hgvsProt.getAcc()));
-                        }
+                        }*/
                         if (tail.size() > 1) {
                             hgvsProt.addWarning(String.format(
                                     ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.getErrorMessage(),
@@ -91,10 +92,10 @@ public class Pro2Gen {
 
             } else if (input instanceof HGVSc) {
                 HGVSc cDNAProt = (HGVSc) input;
-                if (cDNAProt.getDerivedUniprotAcc() != null) {
+                if (cDNAProt.getDerivedUniprotAcc() != null) {/*
                     cDNAProt.addInfo(String.format(
                         ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
-                            cDNAProt.getDerivedUniprotAcc()));
+                            cDNAProt.getDerivedUniprotAcc()));*/
 
                     if (!uniprotEntryCache.isValidEntry(cDNAProt.getDerivedUniprotAcc()))
                         cDNAProt.addWarning(
