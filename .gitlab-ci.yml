@@ -19,7 +19,7 @@ test:
   script:
     - mkdir -p /data
     - mvn clean verify
-    - curl -X POST --fail -F token=${INTEGRATION_TESTS_TRIGGER_TOKEN} -F ref=${CI_COMMIT_REF_NAME} ${INTEGRATION_TESTS_TRIGGER}
+    - curl -X POST --fail -F token=${INTEGRATION_TESTS_TRIGGER_TOKEN} -F ref=main ${INTEGRATION_TESTS_TRIGGER}
 
 build:
   only:
