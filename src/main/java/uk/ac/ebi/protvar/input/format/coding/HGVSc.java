@@ -51,7 +51,7 @@ public class HGVSc extends CodingInput {
                     "(p.\\(|\\(p.)" + // lenient on where the opening bracket is
                     "(?<protRef>"+ ProteinInput.THREE_LETTER_AA + ")" +
                     "(?<protPos>" + POS + ")" +
-                    "(?<protAlt>" + ProteinInput.THREE_LETTER_AA+")\\))?";
+                    "(?<protAlt>" + ProteinInput.THREE_LETTER_AA_INCL_STOP_AND_EQ+")\\))?";
 
     private static Pattern GENERAL_PATTERN = Pattern.compile(GENERAL_HGVS_C_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
     private static Pattern REF_SEQ_PATTERN = Pattern.compile(REF_SEQ_REGEX, Pattern.CASE_INSENSITIVE);
@@ -125,6 +125,8 @@ public class HGVSc extends CodingInput {
                     // optional fields
                     String protRef = varDescMatcher.group("protRef");
                     String protAlt = varDescMatcher.group("protAlt");
+                    if (protAlt != null && protAlt.equals("="))
+                        protAlt = protRef;
                     String protPos = varDescMatcher.group("protPos");
 
                     parsedInput.setProtRef(protRef);

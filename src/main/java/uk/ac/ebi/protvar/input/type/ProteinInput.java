@@ -57,6 +57,7 @@ public class ProteinInput extends UserInput {
 
     // b. three-letter (XXX|XXX|..|Ter)
     public final static String THREE_LETTER_AA = String.format("(%s)", String.join("|", AminoAcid.VALID_AA3));
+    public final static String THREE_LETTER_AA_INCL_STOP_AND_EQ = String.format("(%s|%s|=)", String.join("|", AminoAcid.VALID_AA3), STOP_CODON);
 
     public final static String X_Y = ONE_LETTER_AA + RegexUtils.SPACES_OR_SLASH + ONE_LETTER_AA;
     public final static String XXX_YYY = THREE_LETTER_AA + RegexUtils.SPACES_OR_SLASH + THREE_LETTER_AA;

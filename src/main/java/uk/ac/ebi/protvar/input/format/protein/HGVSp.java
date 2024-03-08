@@ -35,8 +35,6 @@ public class HGVSp extends ProteinInput {
 
     public static final String GENERAL_HGVS_P_PATTERN_REGEX = "^(?<refSeq>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
 
-    public final static String THREE_LETTER_AA_PLUS_STOP_CODON = String.format("(%s|%s|=)", String.join("|", AminoAcid.VALID_AA3), STOP_CODON);
-
     private static final String REF_SEQ_REGEX =
             //"(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq.NP accession
             "(NM_|NP_)" + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM;
@@ -49,7 +47,7 @@ public class HGVSp extends ProteinInput {
     private static final String VAR_DESC_REGEX2 = "(\\()?" +
             "(?<ref>"+THREE_LETTER_AA + ")" +
             "(?<pos>" + POS + ")" +
-            "(?<alt>" + THREE_LETTER_AA_PLUS_STOP_CODON + ")" +
+            "(?<alt>" + THREE_LETTER_AA_INCL_STOP_AND_EQ + ")" +
             "(\\))?";
 
     private static Pattern GENERAL_PATTERN = Pattern.compile(GENERAL_HGVS_P_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
