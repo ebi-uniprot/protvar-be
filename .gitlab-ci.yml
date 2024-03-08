@@ -1,5 +1,6 @@
 variables:
   URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/helm-deploy.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
+  INTEGRATION_TESTS_TRIGGER: "https://gitlab.ebi.ac.uk/api/v4/projects/4778/trigger/pipeline"
 stages:
   - test
   - build
@@ -29,6 +30,7 @@ build:
   script:
     - mvn -DskipTests clean package
     - mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
+    - curl -X POST --fail -F token=$INTEGRATION_TESTS_TRIGGER_TOKEN -F ref=$CI_COMMIT_REF_NAME $INTEGRATION_TESTS_TRIGGER
   artifacts:
     expire_in: 2 days
     paths:
