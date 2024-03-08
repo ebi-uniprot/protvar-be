@@ -28,37 +28,50 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private static final List EMPTY_RESULT = new ArrayList<>();
 
-	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN_ = "select * from cadd_prediction "
-			+ "where (chromosome, position) in (:chrPosSet)";
+	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN_ = """
+   			SELECT * FROM cadd_prediction 
+   			WHERE (chromosome, position) IN (:chrPosSet)
+   			""";
 
 	// SQL query optimised for large "IN" input
 	// Refer to https://stackoverflow.com/questions/1009706/
 	// PostgreSQL - max number of parameters in "IN" clause
 
-	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN = "select * from cadd_prediction "
-			+ "inner join (values :chrPosSet) as t(chr,pos) "
-			+ "on t.chr=chromosome and t.pos=position ";
+	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN = """
+   			SELECT * FROM cadd_prediction 
+   			INNER JOIN (VALUES :chrPosSet) AS t(chr,pos) 
+   			ON t.chr=chromosome AND t.pos=position
+   			""";
 
-	private static final String SELECT_FROM_MAPPING_WHERE_CHR_POS_IN = "select * from genomic_protein_mapping "
-			+ "inner join (values :chrPosSet) as t(chr,pos) "
-			+ "on t.chr=chromosome and t.pos=genomic_position "
-			+ "order by is_canonical desc ";
+	private static final String SELECT_FROM_MAPPING_WHERE_CHR_POS_IN = """
+   			SELECT * FROM genomic_protein_mapping 
+   			INNER JOIN (VALUES :chrPosSet) AS t(chr,pos) 
+   			ON t.chr=chromosome AND t.pos=genomic_position 
+   			ORDER BY is_canonical DESC
+   			""";
 
-	private static final String SELECT_FROM_MAPPING_WHERE_ACC_POS_IN = "select "
-			+ "chromosome, genomic_position, allele, accession, protein_position, protein_seq, codon, codon_position, reverse_strand  "
-			+ "from genomic_protein_mapping "
-			+ "inner join (values :accPosSet) as t(acc,pos) "
-			+ "on t.acc=accession and t.pos=protein_position ";
+	private static final String SELECT_FROM_MAPPING_WHERE_ACC_POS_IN = """
+			SELECT
+				chromosome, genomic_position, allele, accession, protein_position, protein_seq, 
+				codon, codon_position, reverse_strand
+			FROM genomic_protein_mapping 
+			INNER JOIN (VALUES :accPosSet) as t(acc,pos) 
+			ON t.acc=accession AND t.pos=protein_position
+			""";
 
-	private static final String SELECT_FROM_EVE_WHERE_ACC_POS_IN = "select * from eve_score "
-			+ "inner join (values :accPosSet) as t(acc,pos) "
-			+ "on t.acc=accession and t.pos=position ";
+	private static final String SELECT_FROM_EVE_WHERE_ACC_POS_IN = """
+   			SELECT * FROM eve_score 
+   			INNER JOIN (VALUES :accPosSet) AS t(acc,pos) 
+   			ON t.acc=accession AND t.pos=position
+   			""";
 
 	//private static final String SELECT_DBSNPS = "SELECT * FROM dbsnp WHERE id IN (:ids) ";
 	private static final String SELECT_CROSSMAPS = "SELECT * FROM crossmap WHERE grch{VER}_pos IN (:pos) ";
 
-	private static final String SELECT_CROSSMAPS2 = "SELECT * FROM crossmap " +
-			"WHERE (chr, grch37_pos) IN (:chrPos37) ";
+	private static final String SELECT_CROSSMAPS2 = """
+   			SELECT * FROM crossmap 
+   			WHERE (chr, grch37_pos) IN (:chrPos37)
+   			""";
 
 	// SQL syntax for array
 	// search for only one value
@@ -68,30 +81,44 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	// search array contains one of some values (i.e. 24 or 25)
 	// SELECT * FROM af2_v3_human_pocketome WHERE struct_id='A0A075B6I1' AND resid && '{24, 25}';
 
-	private static final String SELECT_POCKETS_BY_ACC_AND_RESID = "SELECT * FROM af2_v3_human_pocketome WHERE struct_id=:accession AND (:resid)=ANY(resid)";
+	private static final String SELECT_POCKETS_BY_ACC_AND_RESID = """
+ 			SELECT * FROM af2_v3_human_pocketome 
+ 			WHERE struct_id=:accession AND (:resid)=ANY(resid)
+ 			""";
 
-	private static final String SELECT_FOLDXS_BY_ACC_AND_POS = "SELECT * FROM afdb_foldx WHERE protein_acc=:accession AND position=:position";
-	private static final String SELECT_FOLDXS_BY_ACC_AND_POS_VARIANT = "SELECT * FROM afdb_foldx WHERE protein_acc=:accession AND position=:position AND mutated_type=:variantAA";
+	private static final String SELECT_FOLDXS_BY_ACC_AND_POS = """
+ 			SELECT * FROM afdb_foldx 
+ 			WHERE protein_acc=:accession AND position=:position
+ 			""";
+
+	private static final String SELECT_FOLDXS_BY_ACC_AND_POS_VARIANT = """
+ 			SELECT * FROM afdb_foldx 
+ 			WHERE protein_acc=:accession 
+ 			AND position=:position 
+ 			AND mutated_type=:variantAA
+ 			""";
 
 	private static final String SELECT_INTERACTIONS_BY_ACC_AND_RESID = """
-					SELECT a, a_residues, b, b_residues, pdockq 
-					FROM af2complexes_interaction 
-					WHERE (a=:accession AND (:resid)=ANY(a_residues)) 
-					OR (b=:accession AND (:resid)=ANY(b_residues))
-					""";
+			SELECT a, a_residues, b, b_residues, pdockq 
+			FROM af2complexes_interaction 
+			WHERE (a=:accession AND (:resid)=ANY(a_residues)) 
+			OR (b=:accession AND (:resid)=ANY(b_residues))
+			""";
 
 	private static final String SELECT_INTERACTIONS_BY_ACC_AND_RESID_NEW = """
-                   SELECT a, ("a_residues_5A" || "a_residues_8A") as a_residues, 
-                   b, ("b_residues_5A" || "b_residues_8A") as b_residues, pdockq 
-                   FROM interaction_v2 
-                   WHERE (a=:accession AND (:resid)=ANY("a_residues_5A" || "a_residues_8A")) 
-                   OR (b=:accession AND (:resid)=ANY("b_residues_5A" || "b_residues_8A"))
-                   """;
+		   SELECT a, ("a_residues_5A" || "a_residues_8A") as a_residues, 
+		   b, ("b_residues_5A" || "b_residues_8A") as b_residues, pdockq 
+		   FROM interaction_v2 
+		   WHERE (a=:accession AND (:resid)=ANY("a_residues_5A" || "a_residues_8A")) 
+		   OR (b=:accession AND (:resid)=ANY("b_residues_5A" || "b_residues_8A"))
+		   """;
 	private static final String SELECT_INTERACTION_MODEL = "SELECT pdb_model FROM af2complexes_interaction WHERE a=:a AND b=:b";
 	private static final String SELECT_INTERACTION_MODEL_NEW = "SELECT pdb_model FROM interaction_v2 WHERE a=:a AND b=:b";
 
-	private static final String SELECT_CONSERV_SCORES = "SELECT * FROM CONSERV_SCORE WHERE acc=:acc " +
-			"AND pos=:pos";
+	private static final String SELECT_CONSERV_SCORES = """
+   			SELECT * FROM CONSERV_SCORE 
+   			WHERE acc=:acc AND pos=:pos
+   			""";
 
 	private NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -148,19 +175,23 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	@Override
 	public Page<UserInput> getGenInputsByAccession(String accession, Pageable pageable) {
-		String rowCountSql = "select count(distinct (chromosome, genomic_position, allele)) " +
-				"as row_count " +
-		"from genomic_protein_mapping " +
-				"where accession = :acc ";
+		String rowCountSql = """
+    		SELECT COUNT(DISTINCT (chromosome, genomic_position, allele)) 
+				AS row_count 
+			FROM genomic_protein_mapping 
+			WHERE accession = :acc
+			""";
 
 		SqlParameterSource parameters = new MapSqlParameterSource("acc", accession);
 		int total = jdbcTemplate.queryForObject(rowCountSql, parameters, Integer.class);
 
 
-		String querySql = "select distinct chromosome, genomic_position, allele from genomic_protein_mapping " +
-				"where accession = :acc " +
-				"order by chromosome, genomic_position " +
-				"limit " + pageable.getPageSize() + " offset " + pageable.getOffset();
+		String querySql = """
+    		SELECT DISTINCT chromosome, genomic_position, allele from genomic_protein_mapping 
+    		WHERE accession = :acc 
+    		ORDER BY chromosome, genomic_position 
+    		LIMIT %d OFFSET %d
+    		""".formatted(pageable.getPageSize(), pageable.getOffset());
 
 		SqlParameterSource queryParameters = new MapSqlParameterSource("acc", accession);
 
@@ -243,10 +274,12 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	public double getPercentageMatch(List<Object[]> chrPosRefList, String ver) {
-		String sql = "SELECT 100 * COUNT (DISTINCT (chr, grchVER_pos, grchVER_base)) / :num " +
-				"FROM crossmap " +
-				"WHERE (chr, grchVER_pos, grchVER_base) " +
-				"IN (:chrPosRef)";
+		String sql = """
+    		SELECT 100 * COUNT (DISTINCT (chr, grchVER_pos, grchVER_base)) / :num 
+    		FROM crossmap 
+    		WHERE (chr, grchVER_pos, grchVER_base) 
+    		IN (:chrPosRef)
+    		""";
 
 		sql = sql.replaceAll("VER", ver);
 
