@@ -20,17 +20,19 @@ public class CSVPopulationDataFetcher {
 			Integer genomicLocation) {
 		List<Variation> variants = new ArrayList<>();
 		List<Variation> colocatedVariants = new ArrayList<>();
-		populationObservations.getProteinColocatedVariant().forEach(feature -> {
-			Integer featureGenLocation = HGVSg.extractLocation(feature.getGenomicLocation());
-			if (genomicLocation.equals(featureGenLocation)) {
-				if (refAA.equalsIgnoreCase(feature.getWildType()) &&
-						variantAA.equalsIgnoreCase(feature.getAlternativeSequence())) {
-					variants.add(feature);
+		if (populationObservations.getProteinColocatedVariant() != null) {
+			populationObservations.getProteinColocatedVariant().forEach(feature -> {
+				Integer featureGenLocation = HGVSg.extractLocation(feature.getGenomicLocation());
+				if (genomicLocation.equals(featureGenLocation)) {
+					if (refAA.equalsIgnoreCase(feature.getWildType()) &&
+							variantAA.equalsIgnoreCase(feature.getAlternativeSequence())) {
+						variants.add(feature);
+					}
+				} else {
+					colocatedVariants.add(feature);
 				}
-			} else {
-				colocatedVariants.add(feature);
-			}
-		});
+			});
+		}
 
 		List<String> csv = new ArrayList<>();
 		if (variants.isEmpty()) {
