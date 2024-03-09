@@ -1,18 +1,20 @@
 package uk.ac.ebi.protvar.converter;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
+import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.model.data.CADDPrediction;
 import uk.ac.ebi.protvar.model.data.EVEScore;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
+import uk.ac.ebi.protvar.model.response.Variation;
 import uk.ac.ebi.protvar.utils.ReverseCompliment;
 
 @Service
@@ -23,30 +25,55 @@ public class Mappings2GeneConverter {
 	private static final String BASE_T = "T";
 	private IsoFormConverter isformConverter;
 
-	public List<Gene> createGenes(List<GenomeToProteinMapping> mappings, String allele, String variantAllele,
-								  Double caddScore, Map<String, List<EVEScore>> eveScoreMap, List<OPTIONS> options) {
+	public List<Gene> createGenes(List<GenomeToProteinMapping> mappings,
+								  GenomicInput gInput,
+								  Set<String> altBases,
+								  List<CADDPrediction> caddScores,
+								  Map<String, List<EVEScore>> eveScoreMap,
+								  Map<String, List<Variation>> variationMap, List<OPTIONS> options) {
+
+		List<Gene> ensgMappingList = new ArrayList<>();
+		if (mappings == null)
+			return ensgMappingList;
 
 		Map<String, List<GenomeToProteinMapping>> ensgMappings = mappings.stream()
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getEnsg));
 
 		Map<String, List<GenomeToProteinMapping>> filteredEnsgMappings  = filterEnsgMappings(ensgMappings);
 
-		return filteredEnsgMappings.keySet().stream().map(ensg -> {
+		filteredEnsgMappings.keySet().forEach(ensg -> {
 
 			List<GenomeToProteinMapping> mappingList = filteredEnsgMappings.get(ensg);
 
 			GenomeToProteinMapping genomeToProteinMapping = mappingList.get(0);
-			String userAllele = getUserAllele(allele, genomeToProteinMapping.isReverseStrand());
+			String userAllele = getUserAllele(gInput.getRef(), genomeToProteinMapping.isReverseStrand());
 
-			List<IsoFormMapping> accMappings = isformConverter.createIsoforms(mappingList, userAllele, variantAllele,
-					eveScoreMap, options);
+			altBases.forEach(alt -> {
 
-			return Gene.builder().ensg(ensg).reverseStrand(genomeToProteinMapping.isReverseStrand())
-					.geneName(genomeToProteinMapping.getGeneName())
-					.refAllele(genomeToProteinMapping.getBaseNucleotide()).isoforms(accMappings).caddScore(caddScore)
-					.build();
-		}).collect(Collectors.toList());
+				List<IsoFormMapping> isoforms = isformConverter.createIsoforms(mappingList, userAllele, alt,
+						eveScoreMap, variationMap, options);
 
+				ensgMappingList.add(Gene.builder().ensg(ensg).reverseStrand(genomeToProteinMapping.isReverseStrand())
+						.geneName(genomeToProteinMapping.getGeneName())
+						.refAllele(genomeToProteinMapping.getBaseNucleotide())
+						.altAllele(alt)
+						.isoforms(isoforms)
+						.caddScore(getCaddScore(caddScores, alt))
+						.build());
+			});
+		});
+		return ensgMappingList;
+	}
+
+	private Double getCaddScore(List<CADDPrediction> caddScores, String alt) {
+		if (caddScores != null && !caddScores.isEmpty()) {
+			Optional<CADDPrediction> prediction = caddScores.stream()
+					.filter(p -> alt.equalsIgnoreCase(p.getAltAllele())).findAny();
+			if (prediction.isPresent())
+				return prediction.get().getScore();
+			return null;
+		}
+		return null;
 	}
 
 	private Map<String, List<GenomeToProteinMapping>> filterEnsgMappings(Map<String, List<GenomeToProteinMapping>> ensgMappings) {

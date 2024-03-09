@@ -17,8 +17,9 @@ public class FileUtils {
 
   private static final Logger logger = LoggerFactory.getLogger(FileUtils.class);
 
-  public static Path writeFile(MultipartFile file) throws IOException {
-    Path fileInTmpDir = Files.createTempFile(null, null);
+  public static Path writeFile(Path tmpPath, MultipartFile file) throws IOException {
+    Files.createDirectories(tmpPath);
+    Path fileInTmpDir = Files.createTempFile(tmpPath, null, null);
     file.transferTo(fileInTmpDir);
     logger.info("File written {}", fileInTmpDir);
     return fileInTmpDir;

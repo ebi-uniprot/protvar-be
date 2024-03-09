@@ -13,17 +13,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import uk.ac.ebi.protvar.builder.OptionBuilder;
-import uk.ac.ebi.protvar.fetcher.csv.CSVDataFetcher;
-import uk.ac.ebi.protvar.model.response.Download;
+import uk.ac.ebi.protvar.model.DownloadRequest;
+import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.utils.FileUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.FileInputStream;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 
 @Tag(name = "Generate Variant Annotation Files",
@@ -37,7 +38,6 @@ import java.util.Map;
 @CrossOrigin
 @AllArgsConstructor
 public class DownloadController implements WebMvcConfigurer {
-  private CSVDataFetcher csvDataFetcher;
 
   @Autowired
   private DownloadService downloadService;
@@ -61,20 +61,22 @@ public class DownloadController implements WebMvcConfigurer {
   @PostMapping(value = "/download/fileInput", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> download(HttpServletRequest request,
                                     @RequestParam MultipartFile file,
-                                    @RequestParam(required = false) String email,
-                                    @RequestParam(required = false) String jobName,
                                     @RequestParam(required = false, defaultValue = "false") boolean function,
                                     @RequestParam(required = false, defaultValue = "false") boolean population,
                                     @RequestParam(required = false, defaultValue = "false") boolean structure,
-                                    @RequestParam(required = false) String assembly) throws Exception {
-    List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
-    Download download = downloadService.newDownload("FILE");
-    download.setJobName(jobName);
-    String downloadUrl = request.getRequestURL().toString().replaceAll("fileInput", download.getDownloadId());
-    download.setUrl(downloadUrl);
-    Path newFile = FileUtils.writeFile(file);
-    csvDataFetcher.writeCSVResult(newFile, assembly, options, email, jobName, download);
-    return new ResponseEntity<>(download, HttpStatus.OK);
+                                    @RequestParam(required = false) String assembly,
+                                    @RequestParam(required = false) String email,
+                                    @RequestParam(required = false) String jobName) throws Exception {
+    Path newFile = FileUtils.writeFile(downloadService.tmpPath(), file);
+    UUID id = UUID.randomUUID();
+    DownloadRequest downloadRequest =
+            new DownloadRequest(id, LocalDateTime.now(),
+                    newFile, null,
+                    function, population, structure,
+                    assembly, email, jobName,
+                    request.getRequestURL().toString().replace("fileInput", id.toString()));
+    DownloadResponse response = downloadService.queueRequest(downloadRequest);
+    return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
   /**
@@ -90,25 +92,26 @@ public class DownloadController implements WebMvcConfigurer {
    * @param population
    * @param structure
    * @return
-   * @throws Exception
    */
   @Operation(summary = "– download mappings using file or text input.")
   @PostMapping(value = "/download/textInput", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> download(HttpServletRequest request,
           @RequestBody List<String> inputs,
-          @RequestParam(required = false) String email,
-          @RequestParam(required = false) String jobName,
           @RequestParam(required = false, defaultValue = "false") boolean function,
           @RequestParam(required = false, defaultValue = "false") boolean population,
           @RequestParam(required = false, defaultValue = "false") boolean structure,
-          @RequestParam(required = false) String assembly) throws Exception {
-    List<OptionBuilder.OPTIONS> options = OptionBuilder.build(function, population, structure);
-    Download download = downloadService.newDownload("TEXT");
-    download.setJobName(jobName);
-    String downloadUrl = request.getRequestURL().toString().replaceAll("textInput", download.getDownloadId());
-    download.setUrl(downloadUrl);
-    csvDataFetcher.writeCSVResult(inputs, assembly, options, email, jobName, download);
-    return new ResponseEntity<>(download, HttpStatus.OK);
+          @RequestParam(required = false) String assembly,
+          @RequestParam(required = false) String email,
+          @RequestParam(required = false) String jobName) {
+    UUID id = UUID.randomUUID();
+    DownloadRequest downloadRequest =
+            new DownloadRequest(id, LocalDateTime.now(),
+                    null, inputs,
+                    function, population, structure,
+                    assembly, email, jobName,
+                    request.getRequestURL().toString().replace("textInput", id.toString()));
+    DownloadResponse response = downloadService.queueRequest(downloadRequest);
+    return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
   /**

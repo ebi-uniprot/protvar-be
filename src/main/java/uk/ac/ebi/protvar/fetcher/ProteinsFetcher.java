@@ -1,9 +1,9 @@
 package uk.ac.ebi.protvar.fetcher;
 
 import lombok.AllArgsConstructor;
-import org.mapdb.HTreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.protvar.converter.ProteinsAPI2ProteinConverter;
@@ -16,18 +16,18 @@ import uk.ac.ebi.uniprot.proteins.api.ProteinsAPI;
 import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
 import uk.ac.ebi.uniprot.proteins.model.ProteinFeature;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class ProteinsFetcher {
-	private static final String PROTEIN_API_ERROR = "Protein API error";
 	private static final Logger logger = LoggerFactory.getLogger(ProteinsFetcher.class);
+
+	private static final String PROT_CACHE_PREFIX = "PROT-";
 	// first option tried
 	//private final Map<String, DataServiceProtein> dspCache = new ConcurrentHashMap<>();
 	// second option, guava cache offered automatic eviction when cache reaches specified max
@@ -39,7 +39,7 @@ public class ProteinsFetcher {
 
 	private ProtVarDataRepo protVarDataRepo;
 
-	private HTreeMap<String, DataServiceProtein> dspCache;
+	private RedisTemplate dspCache;
 
 
 	/**
@@ -47,20 +47,27 @@ public class ProteinsFetcher {
 	 * subsequent retrieval.
 	 */
 	public void prefetch(Set<String> accessions) {
-		Set<String> cachedAccessions = dspCache./*asMap().*/keySet();
 
-		// check accession in ProteinsCache
-		Set<String> notCachedAccessions = accessions.stream().filter(Predicate.not(cachedAccessions::contains)).collect(Collectors.toSet());
-		List<Set<String>> notCachedAccessionsPartitions = FetcherUtils.partitionSet(notCachedAccessions, FetcherUtils.PARTITION_SIZE);
+		Map<Boolean, List<String>> partitioned =
+				accessions.stream().collect(
+						Collectors.partitioningBy(acc -> dspCache.hasKey(PROT_CACHE_PREFIX+acc)));
 
-		notCachedAccessionsPartitions.stream().parallel().forEach(accessionsSet -> {
+		Set<String> cached = new HashSet(partitioned.get(true));
+		Set<String> notCached = new HashSet(partitioned.get(false));
+
+		logger.info("Cached proteins: {}", String.join(",", cached.toString()));
+		logger.info("Not cached proteins: {}", String.join(",", notCached.toString()));
+
+		List<Set<String>> notCachedPartitions = FetcherUtils.partitionSet(notCached, FetcherUtils.PARTITION_SIZE);
+
+		notCachedPartitions.stream().parallel().forEach(accessionsSet -> {
 			DataServiceProtein[] dataServiceProteins = proteinsAPI.getProtein(String.join(",", accessionsSet));
-			Map<String, DataServiceProtein> proteinsMap = new ConcurrentHashMap<>();
+			Set<String> newCached = new HashSet<>();
 			for (DataServiceProtein dsp : dataServiceProteins) {
-				proteinsMap.put(dsp.getAccession(), dsp);
+				dspCache.opsForValue().set(PROT_CACHE_PREFIX+dsp.getAccession(), dsp);
+				newCached.add(dsp.getAccession());
 			}
-			logger.info("Caching Protein: {}", String.join(",", proteinsMap.keySet()));
-			dspCache.putAll(proteinsMap);
+			logger.info("New cached proteins: {}", String.join(",", newCached.toString()));
 		});
 	}
 
@@ -74,13 +81,13 @@ public class ProteinsFetcher {
 		if (!StringUtils.isEmpty(accession)) {
 
 			DataServiceProtein dsp = null;
-			if (dspCache.containsKey(accession))
-				dsp = dspCache.get(accession);
+			if (dspCache.hasKey(PROT_CACHE_PREFIX+accession))
+				dsp = (DataServiceProtein) dspCache.opsForValue().get(PROT_CACHE_PREFIX+accession);
 			if (dsp == null) {
 				DataServiceProtein[] dataServiceProteins = proteinsAPI.getProtein(accession);
 				if (dataServiceProteins != null && dataServiceProteins.length > 0) {
 					dsp = dataServiceProteins[0];
-					dspCache.put(accession, dsp);
+					dspCache.opsForValue().set(PROT_CACHE_PREFIX+accession, dsp);
 				}
 			}
 

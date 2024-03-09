@@ -1,13 +1,13 @@
 package uk.ac.ebi.protvar.gatling.helpers;
 
-import io.gatling.core.javaapi.ChainBuilder;
-import io.gatling.core.javaapi.FeederBuilder;
+import io.gatling.javaapi.core.*;
+import io.gatling.javaapi.http.*;
+import static io.gatling.javaapi.http.HttpDsl.*;
+import static io.gatling.javaapi.core.CoreDsl.*;
+
 import uk.ac.ebi.protvar.utils.TestHelper;
 
 import java.util.List;
-
-import static io.gatling.core.javaapi.Predef.*;
-import static io.gatling.http.javaapi.Predef.*;
 
 public interface Api {
   String SUB_DOMAIN = "/";

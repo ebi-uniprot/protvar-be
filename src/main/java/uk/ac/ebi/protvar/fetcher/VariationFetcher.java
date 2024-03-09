@@ -1,13 +1,14 @@
 package uk.ac.ebi.protvar.fetcher;
 
 import lombok.AllArgsConstructor;
-import org.mapdb.HTreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.converter.VariationAPI2VariationConverter;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.Variation;
+import uk.ac.ebi.protvar.repo.VariationRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.variation.api.VariationAPI;
 import uk.ac.ebi.uniprot.variation.model.DataServiceVariation;
@@ -15,7 +16,6 @@ import uk.ac.ebi.uniprot.variation.model.Feature;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static uk.ac.ebi.protvar.utils.Commons.notNullNotEmpty;
@@ -24,22 +24,29 @@ import static uk.ac.ebi.protvar.utils.Commons.notNullNotEmpty;
 @AllArgsConstructor
 public class VariationFetcher {
 	private static final Logger logger = LoggerFactory.getLogger(VariationFetcher.class);
-	//private final Cache<String, List<Variation>> cache = CacheBuilder.newBuilder().build();
 
+	private static final String VAR_CACHE_PREFIX = "VAR-";
 	private VariationAPI2VariationConverter converter;
-	private VariationAPI variationAPI;
+	private VariationAPI variationAPI; // from API
+	private VariationRepo variationRepo; // from Repo i.e. ProtVar DB tbl
 
-	private HTreeMap<String, List<Variation>> variationCache;
+	private RedisTemplate variationCache;
 
 	/**
 	 * Prefetch data from Variation API and cache in application for
 	 * subsequent retrieval.
 	 */
 	public void prefetch(Set<String> accessionLocations) {
-		Set<String> cached = variationCache./*asMap().*/keySet();
+		Map<Boolean, List<String>> partitioned =
+				accessionLocations.stream().collect(
+						Collectors.partitioningBy(acc -> variationCache.hasKey(VAR_CACHE_PREFIX+acc)));
 
-		// check accession-location in variation cache
-		Set<String> notCached = accessionLocations.stream().filter(Predicate.not(cached::contains)).collect(Collectors.toSet());
+		Set<String> cached = new HashSet(partitioned.get(true));
+		Set<String> notCached = new HashSet(partitioned.get(false));
+
+		logger.info("Cached variation: {}", String.join(",", cached.toString()));
+		logger.info("Not cached: {}", String.join(",", notCached.toString()));
+
 		List<Set<String>> notCachedPartitions = FetcherUtils.partitionSet(notCached, FetcherUtils.PARTITION_SIZE);
 
 		notCachedPartitions.stream().parallel().forEach(accessionsSet -> {
@@ -71,9 +78,11 @@ public class VariationFetcher {
 								}
 							});
 				}
-				logger.info("Caching Variation: {}", String.join(",", accessionLocations));
+				logger.info("Caching variation: {}", String.join(",", accessionLocations));
 				// update cache
-				variationCache.putAll(variationMap);
+				for (String key : variationMap.keySet()) {
+					variationCache.opsForValue().set(VAR_CACHE_PREFIX+key, variationMap.get(key));
+				}
 			}
 		}
 		catch (Exception ex) {
@@ -83,13 +92,13 @@ public class VariationFetcher {
 
 	public List<Variation> fetch(String uniprotAccession, int proteinLocation) {
 		String key = uniprotAccession + ":" + proteinLocation;
-		if (variationCache.containsKey(key))
-			return variationCache.get(key);
+		if (variationCache.hasKey(VAR_CACHE_PREFIX+key))
+			return (List<Variation>) variationCache.opsForValue().get(VAR_CACHE_PREFIX+key);
 
 		cacheAPIResponse(new HashSet<>(Arrays.asList(key)));
 
-		if (variationCache.containsKey(key))
-			return variationCache.get(key);
+		if (variationCache.hasKey(VAR_CACHE_PREFIX+key))
+			return (List<Variation>) variationCache.opsForValue().get(VAR_CACHE_PREFIX+key);
 
 		return Collections.emptyList();
 	}
@@ -101,11 +110,30 @@ public class VariationFetcher {
 	}
 
 	public PopulationObservation fetchPopulationObservation(String accession, int proteinLocation) {
-		List<Variation> variations = fetch(accession, proteinLocation);
-
+		//List<Variation> variations = fetch(accession, proteinLocation);
+		List<Variation> variations = fetchdb(accession, proteinLocation);
 		PopulationObservation populationObservation = new PopulationObservation();
 		populationObservation.setProteinColocatedVariant(variations);
 		return populationObservation;
+	}
+
+	public Map<String, List<Variation>> prefetchdb(Set<Object[]> accPosSet) {
+		Map<String, List<Feature>> featureMap = variationRepo.getFeatureMap(accPosSet);
+		Map<String, List<Variation>> varMap = featureMap.entrySet()
+				.stream()
+				.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().stream()
+						.filter(Objects::nonNull)
+						.map(converter::convert)
+						.collect(Collectors.toList())));
+		return varMap;
+	}
+
+	private List<Variation> fetchdb(String accession, int proteinLocation) {
+		List<Feature> features = variationRepo.getFeatures(accession, proteinLocation);
+		return features.stream()
+				.filter(Objects::nonNull)
+				.map(converter::convert)
+				.collect(Collectors.toList());
 	}
 
 }

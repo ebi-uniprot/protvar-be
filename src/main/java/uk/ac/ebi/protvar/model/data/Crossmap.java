@@ -9,9 +9,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Crossmap {
     String chr;
-    Long grch38Pos;
+    Integer grch38Pos;
     String grch38Base;
-    Long grch37Pos;
+    Integer grch37Pos;
     String grch37Base;
 
     public String getGroupByChrAnd37Pos() {

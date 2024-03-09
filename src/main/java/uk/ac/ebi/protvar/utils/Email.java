@@ -8,6 +8,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.protvar.exception.UnexpectedUseCaseException;
+import uk.ac.ebi.protvar.model.DownloadRequest;
 
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
@@ -18,7 +19,7 @@ import java.util.Optional;
 @Component
 public class Email {
   private static final String FROM = "protvar@ebi.ac.uk";
-  private static final String DEVELOPER_GROUP = "protvar@ebi.ac.uk";
+  private static final String DEVELOPER_GROUP = "prabhat@ebi.ac.uk";
   private static JavaMailSender emailSender;
   private static String successBody = "";
   private static String errorBody = "";
@@ -35,13 +36,15 @@ public class Email {
     send(email, null, "ProtVar results: " + jobName, getNotifyBody(url), null, null);
   }
 
-  public static void sendErr(String email, String jobName, List<String> inputs) {
-    var body = getErrorBody() + "\n\n" + String.join("\n", inputs);
-    send(email, DEVELOPER_GROUP, failedSub(jobName), body);
-  }
 
-  public static void sendErr(String email, String jobName, Path outputFile) {
-    send(email, DEVELOPER_GROUP, failedSub(jobName), getErrorBody(), outputFile.getFileName().toString(), outputFile);
+  public static void sendErr(DownloadRequest request) {
+    if (request.getFile() == null) {
+      var body = getErrorBody() + "\n\n" + String.join("\n", request.getInputs());
+      send(request.getEmail(), DEVELOPER_GROUP, failedSub(request.getJobName()), body);
+    } else {
+      send(request.getEmail(), DEVELOPER_GROUP, failedSub(request.getJobName()), getErrorBody(),
+              request.getFile().getFileName().toString(), request.getFile());
+    }
   }
 
   public static void reportException(String subject, String sMessage, Throwable t) {

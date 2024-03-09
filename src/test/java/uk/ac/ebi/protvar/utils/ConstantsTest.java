@@ -14,23 +14,4 @@ class ConstantsTest {
     Assertions.assertEquals("N/A", Constants.NA);
   }
 
-  @Test
-  void invalidChro() {
-    Assertions.assertEquals("Invalid chromosome ", Constants.NOTE_INVALID_INPUT_CHROMOSOME);
-  }
-
-  @Test
-  void invalidPos() {
-    Assertions.assertEquals("Position should be a number ", Constants.NOTE_INVALID_INPUT_POSITION);
-  }
-
-  @Test
-  void invalidRef() {
-    Assertions.assertEquals("Invalid reference ", Constants.NOTE_INVALID_INPUT_REF);
-  }
-
-  @Test
-  void invalidAlt() {
-    Assertions.assertEquals("Invalid alternative ", Constants.NOTE_INVALID_INPUT_ALT);
-  }
 }

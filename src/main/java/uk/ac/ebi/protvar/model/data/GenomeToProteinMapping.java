@@ -7,7 +7,7 @@ import lombok.Getter;
 @Builder
 public class GenomeToProteinMapping implements Comparable<GenomeToProteinMapping> {
 	private String chromosome;
-	private Long genomeLocation;
+	private Integer genomeLocation;
 	private int isoformPosition;
 	private String baseNucleotide;
 	private String aa;

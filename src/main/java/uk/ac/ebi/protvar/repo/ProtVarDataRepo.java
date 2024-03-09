@@ -1,5 +1,8 @@
 package uk.ac.ebi.protvar.repo;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.data.*;
 
 import java.util.List;
@@ -10,35 +13,33 @@ public interface ProtVarDataRepo {
 	//================================================================================
 	// GenomeToProteinMapping
 	//================================================================================
+	List<GenomeToProteinMapping> getMappingsByChrPos(Set<Object[]> chrPosSet);
+	List<GenomeToProteinMapping> getMappingsByAccPos(Set<Object[]> accPosList);
 
-	List<GenomeToProteinMapping> getMappings(String chromosome, Long position);
-	List<GenomeToProteinMapping> getMappings(Set<Long> positions);
-	List<GenomeToProteinMapping> getMappings(String accession, Long proteinPosition, Set<Integer> codonPositions);
-	List<GenomeToProteinMapping> getGenomicCoordsByProteinAccAndPos(List<Object[]> accPPosition);
 
+	Page<UserInput> getGenInputsByAccession(String accession, Pageable pageable);
 
 	//================================================================================
 	// CADDPrediction
 	//================================================================================
-	List<CADDPrediction> getCADDPredictions(Set<Long> positions);
+	List<CADDPrediction> getCADDByChrPos(Set<Object[]> chrPosSet);
 
 
 	//================================================================================
 	// EVEScore
 	//================================================================================
-	List<EVEScore> getEVEScores(Set<String> protAccPositions);
-
+	List<EVEScore> getEVEScores(Set<Object[]> accPosSet);
 
 	//================================================================================
 	// DBSNP
 	//================================================================================
-	List<Dbsnp> getDbsnps(List<String> rsIds);
+	//List<Dbsnp> getDbsnps(List<String> rsIds);
 
 
 	//================================================================================
 	// Crossmap
 	//================================================================================
-	List<Crossmap> getCrossmaps(List<Long> positions, String from);
+	List<Crossmap> getCrossmaps(List<Integer> positions, String from);
 	List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37);
 	double getPercentageMatch(List<Object[]> chrPosRefList, String ver);
 

@@ -15,9 +15,9 @@ The Main class is uk.ac.ebi.protvar.ApplicationMainClass
 1. Clone repo
 2. Crete file src/main/resources/application-local.properties
 3. Override following three properties
-   1. spring.datasource.url
-   2. spring.datasource.username
-   3. spring.datasource.password
+   1. protvar.datasource.jdbc-url
+   2. protvar.datasource.username
+   3. protvar.datasource.password
 4. Start the application using mvn spring-boot:run
 
 ## Load/Stress Testing

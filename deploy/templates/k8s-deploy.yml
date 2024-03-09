@@ -14,7 +14,7 @@ spec:
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: protvar-pvc
+  name: protvar-be-storage-claim
 spec:
   storageClassName: standard-nfs-production
   accessModes:
@@ -46,13 +46,11 @@ spec:
           ports:
             - containerPort: 8080 # default port for springboot
           volumeMounts:
-            - name: protvar-vol
-              mountPath: /var/log
-            - name: protvar-vol
+            - name: protvar-be-storage
               mountPath: /data
           env:
             - name: logging.file.path
-              value: /var/log
+              value: /data
           envFrom:
             - secretRef:
                 name: protvar-be-secret
@@ -62,14 +60,14 @@ spec:
             httpGet:
               path: /ProtVar/api/actuator/health/liveness
               port: 8080
-            initialDelaySeconds: 4 # wait 4 seconds before performing the first liveness probe
-            periodSeconds: 5 # perform a liveness probe every 5 seconds
+            initialDelaySeconds: 10 # wait 4 seconds before performing the first liveness probe
+            periodSeconds: 10 # perform a liveness probe every 5 seconds
           readinessProbe:
             httpGet:
               path: /ProtVar/api/actuator/health/readiness
               port: 8080
-            initialDelaySeconds: 5 # wait 5 seconds before performing the first readiness probe
-            periodSeconds: 3 # perform a readiness probe every 3 seconds
+            initialDelaySeconds: 10 # wait 5 seconds before performing the first readiness probe
+            periodSeconds: 10 # perform a readiness probe every 3 seconds
           resources:
             requests:
               memory: "2Gi"
@@ -77,9 +75,9 @@ spec:
             limits:
               memory: "4Gi"
       volumes:
-        - name: protvar-vol
+        - name: protvar-be-storage
           persistentVolumeClaim:
-            claimName: protvar-pvc
+            claimName: protvar-be-storage-claim
       imagePullSecrets:
         - name: protvar-be-gitlab-registry-ci # created by deploy script using env variables Provided by GitLab, this allows K8s to connect to dockerhub.ebi.ac.uk
         - name: protvar-be-gitlab-registry-to # using token if exist
@@ -92,8 +90,8 @@ data:
   JAVA_TOOL_OPTIONS: >-
     -Dhttp.proxyPort=3128 -Dhttp.proxySet=true -Dhttps.proxyPort=3128 -Dhttps.proxySet=true
     -Dhttp.nonProxyHosts=localhost|127.0.0.1|.cluster.local {{ .Values.jvmOptions }}
-  spring.datasource.url: {{ .Values.env.dbURL }}
-  spring.datasource.username: {{ .Values.env.dbUser }}
+  protvar.datasource.jdbc-url: {{ .Values.env.dbURL }}
+  protvar.datasource.username: {{ .Values.env.dbUser }}
   spring.mail.host: {{ .Values.env.emailSMTP }}
 ---
 apiVersion: v1
@@ -101,4 +99,4 @@ kind: Secret
 metadata:
   name: protvar-be-secret
 data:
-  spring.datasource.password: {{ .Values.env.dbPassword }}
+  protvar.datasource.password: {{ .Values.env.dbPassword }}

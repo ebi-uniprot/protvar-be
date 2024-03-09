@@ -12,6 +12,7 @@ public class Gene {
 	private boolean reverseStrand;
 	private String geneName;
 	private String refAllele;
+	private String altAllele;
 	private List<IsoFormMapping> isoforms;
 	private Double caddScore;
 }

@@ -1,9 +1,8 @@
 package uk.ac.ebi.protvar.gatling.helpers;
 
-import io.gatling.core.javaapi.ChainBuilder;
-
-import static io.gatling.core.javaapi.Predef.*;
-import static io.gatling.http.javaapi.Predef.*;
+import io.gatling.javaapi.core.ChainBuilder;
+import static io.gatling.javaapi.http.HttpDsl.*;
+import static io.gatling.javaapi.core.CoreDsl.*;
 
 public interface Pages {
   String SUB_DOMAIN = "/";

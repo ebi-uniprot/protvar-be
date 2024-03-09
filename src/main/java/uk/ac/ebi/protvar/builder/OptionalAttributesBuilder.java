@@ -1,6 +1,7 @@
 package uk.ac.ebi.protvar.builder;
 
 import java.util.List;
+import java.util.Map;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,13 +26,13 @@ public class OptionalAttributesBuilder {
 	private static final String FUNCTION_API = "function";
 	private static final String POPULATION_API = "population";
 
-	private VariationFetcher variationFetcher;
+	//private VariationFetcher variationFetcher;
 	private ProteinsFetcher proteinsFetcher;
 	private PDBeFetcher pdbeFetcher;
 
-	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion, List<OPTIONS> options,
+	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion, Map<String, List<Variation>> variationMap, List<OPTIONS> options,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
-		buildPopulationObservation(accession, isoformPostion, options.contains(OPTIONS.POPULATION), genomicLocation, builder);
+		buildPopulationObservation(accession, isoformPostion, variationMap, options.contains(OPTIONS.POPULATION), genomicLocation, builder);
 
 		buildFunction(accession, isoformPostion, variantAA, options.contains(OPTIONS.FUNCTION), builder);
 
@@ -56,14 +57,18 @@ public class OptionalAttributesBuilder {
 			builder.referenceFunction(protein);
 		} else {
 			String uri = buildUri(FUNCTION_API, accession, isoformPostion);
+			if (variantAA != null && !variantAA.isEmpty()) {
+				uri += "?variantAA=" + variantAA;
+			}
 			builder.referenceFunctionUri(uri);
 		}
 	}
 
-	private void buildPopulationObservation(String accession, int isoformPostion, boolean isVariation, long genomicLocation,
+	private void buildPopulationObservation(String accession, int isoformPostion, Map<String, List<Variation>> variationMap, boolean isVariation, long genomicLocation,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
 		if (isVariation) {
-			List<Variation> variations = variationFetcher.fetch(accession, isoformPostion);
+			//List<Variation> variations = variationFetcher.fetch(accession, isoformPostion);
+			List<Variation> variations = variationMap.get(accession+":"+isoformPostion);
 			PopulationObservation populationObservation = new PopulationObservation();
 			populationObservation.setProteinColocatedVariant(variations);
 			builder.populationObservations(populationObservation);

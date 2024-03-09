@@ -1,10 +1,8 @@
 package uk.ac.ebi.protvar.gatling.helpers;
 
 import java.time.Duration;
-
-import io.gatling.core.javaapi.*;
-
-import static io.gatling.core.javaapi.Predef.*;
+import io.gatling.javaapi.core.*;
+import static io.gatling.javaapi.core.CoreDsl.*;
 
 public class UserJourneys {
   private final static Duration minPause = Duration.ofMillis(100);
@@ -22,7 +20,7 @@ public class UserJourneys {
     return exec(Api.mapping)
       .pause(minPause, maxPause)
       .repeat(5)
-      .loop(
+      .on(
         exec(Api.functionalAnnotations)
           .pause(minPause, maxPause)
           .exec(Api.populationAnnotations)

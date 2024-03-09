@@ -1,16 +1,15 @@
 package uk.ac.ebi.protvar.fetcher.csv;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
 import uk.ac.ebi.uniprot.variation.model.DSVDbReferenceObject;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.Variation;
-import uk.ac.ebi.protvar.utils.ExtractUtils;
 
 import static uk.ac.ebi.protvar.utils.CSVUtils.getValOrNA;
 
@@ -18,11 +17,11 @@ import static uk.ac.ebi.protvar.utils.CSVUtils.getValOrNA;
 public class CSVPopulationDataFetcher {
 
 	public List<String> fetch(PopulationObservation populationObservations, String refAA, String variantAA,
-			Long genomicLocation) {
+			Integer genomicLocation) {
 		List<Variation> variants = new ArrayList<>();
 		List<Variation> colocatedVariants = new ArrayList<>();
 		populationObservations.getProteinColocatedVariant().forEach(feature -> {
-			Long featureGenLocation = ExtractUtils.extractLocation(feature.getGenomicLocation());
+			Integer featureGenLocation = HGVSg.extractLocation(feature.getGenomicLocation());
 			if (genomicLocation.equals(featureGenLocation)) {
 				if (refAA.equalsIgnoreCase(feature.getWildType()) &&
 						variantAA.equalsIgnoreCase(feature.getAlternativeSequence())) {

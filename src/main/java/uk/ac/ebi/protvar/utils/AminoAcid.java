@@ -177,4 +177,15 @@ public enum AminoAcid {
         return "XXX is encoded by X codons (x,y,z)" +
                 "There are x possible alternates for XXX incl. YYY, ZZZ";
     }
+
+    public static boolean isSNV(AminoAcid ref, AminoAcid alt) {
+        Set<AminoAcid> allPossibleAltAAs = new HashSet();
+        // ref is encoded by a set of codons
+        Set<RNACodon> codons = ref.getRnaCodons();
+        for (RNACodon codon : codons) {
+            Set<AminoAcid> possibleAltAAs = codon.getAltAAs();
+            allPossibleAltAAs.addAll(possibleAltAAs);
+        }
+        return allPossibleAltAAs.contains(alt);
+    }
 }
