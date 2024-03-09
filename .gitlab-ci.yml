@@ -1,6 +1,7 @@
 variables:
   URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/helm-deploy.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
-  INTEGRATION_TESTS_TRIGGER: "https://gitlab.ebi.ac.uk/api/v4/projects/4778/trigger/pipeline"
+  UPSTREAM_CI_COMMIT_BRANCH: $CI_COMMIT_BRANCH
+
 stages:
   - test
   - build
@@ -19,7 +20,18 @@ test:
   script:
     - mkdir -p /data
     - mvn clean verify
-    - curl -X POST --fail -F token=${INTEGRATION_TESTS_TRIGGER_TOKEN} -F ref=main ${INTEGRATION_TESTS_TRIGGER}
+
+trigger_integration_tests:
+  only:
+    refs:
+      - main
+      - dev
+  stage: test
+  trigger:
+    project: uniprot/framework/protvar-integration-tests
+  inherit: # only allow propagating the declared vars
+    variables:
+      - UPSTREAM_CI_COMMIT_BRANCH
 
 build:
   only:
