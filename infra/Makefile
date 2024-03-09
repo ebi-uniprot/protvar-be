@@ -13,6 +13,7 @@ set-context-%:
 
 init-%:
 	. ./config/env_$(*)
+	kubectl create namespace ${K8S_NAMESPACE} || { echo '$K8S_NAMESPACE namespace exists';}
 
 install-infra-helm-chart-%:
 	cd helm-charts && helm dependency update $(*) && helm package $(*)
