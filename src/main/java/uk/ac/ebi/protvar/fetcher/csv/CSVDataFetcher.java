@@ -19,9 +19,10 @@ import com.opencsv.CSVWriter;
 
 import uk.ac.ebi.protvar.builder.OptionBuilder;
 import uk.ac.ebi.protvar.input.*;
-import uk.ac.ebi.protvar.input.format.id.DbsnpID;
+import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.data.EVEClass;
@@ -132,7 +133,10 @@ public class CSVDataFetcher {
 				addGenInputMappingsToOutput(genInput, genInput.getMappings(), csvOutput, options);
 			}
 			else if (input.getType() == Type.CODING) {
-				// TODO
+				HGVSc cDNAInput = (HGVSc) input;
+				cDNAInput.getDerivedGenomicInputs().forEach(gInput -> {
+					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
+				});
 			}
 			else if (input.getType() == Type.PROTEIN) {
 				ProteinInput proInput = (ProteinInput) input;
@@ -141,8 +145,8 @@ public class CSVDataFetcher {
 				});
 			}
 			else if (input.getType() == Type.ID) {
-				DbsnpID rsInput = (DbsnpID) input;
-				rsInput.getDerivedGenomicInputs().forEach(gInput -> {
+				IDInput idInput = (IDInput) input;
+				idInput.getDerivedGenomicInputs().forEach(gInput -> {
 					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
 				});
 			}
