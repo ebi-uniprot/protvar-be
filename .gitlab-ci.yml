@@ -7,6 +7,7 @@ stages:
   - build
   - build_docker_image
   - deploy
+  - check
 
 .mvn:
   image: maven:3.8.2-openjdk-17-slim
@@ -20,18 +21,6 @@ test:
   script:
     - mkdir -p /data
     - mvn clean verify
-
-trigger_integration_tests:
-  only:
-    refs:
-      - main
-      - dev
-  stage: test
-  trigger:
-    project: uniprot/framework/protvar-integration-tests
-  inherit: # only allow propagating the declared vars
-    variables:
-      - UPSTREAM_CI_COMMIT_BRANCH
 
 build:
   only:
@@ -96,3 +85,15 @@ prod-deploy:
   script:
     - ./deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
     - ./deploy.sh ENV=PD APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
+
+trigger_integration_tests:
+  only:
+    refs:
+      - main
+      - dev
+  stage: check
+  trigger:
+    project: uniprot/framework/protvar-integration-tests
+  inherit: # only allow propagating the declared vars
+    variables:
+      - UPSTREAM_CI_COMMIT_BRANCH
