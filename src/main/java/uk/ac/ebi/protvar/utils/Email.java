@@ -13,7 +13,6 @@ import uk.ac.ebi.protvar.model.DownloadRequest;
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -66,7 +65,7 @@ public class Email {
       if (Commons.notNullNotEmpty(to)) {
         helper.setTo(to);
         if (Commons.notNullNotEmpty(cc))
-          helper.setCc(cc);
+          helper.setBcc(cc);
       } else {
         helper.setTo(cc);
       }
@@ -91,7 +90,7 @@ public class Email {
       if (Commons.notNullNotEmpty(to)) {
         message.setTo(to);
         if (Commons.notNullNotEmpty(cc))
-          message.setCc(cc);
+          message.setBcc(cc);
       } else {
         message.setTo(cc);
       }
