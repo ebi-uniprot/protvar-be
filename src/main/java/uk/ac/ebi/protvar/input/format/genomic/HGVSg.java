@@ -116,14 +116,18 @@ public class HGVSg extends GenomicInput {
     }
 
     public static Integer extractLocation(String inputStr) {
-        Matcher matcher = Pattern.compile(REF_SEQ_REGEX + SCHEME_PATTERN_REGEX + VAR_DESC_REGEX, Pattern.CASE_INSENSITIVE).matcher(inputStr);
-        if (matcher.matches()) {
-            try {
-                Integer pos = Integer.parseInt(matcher.group("pos"));
-                return pos;
-            } catch (Exception ex) {
-                // return null
+        try {
+            Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
+            if (generalMatcher.matches()) {
+                String varDesc = generalMatcher.group("varDesc");
+                Matcher varDescMatcher = VAR_DESC_PATTERN.matcher(varDesc);
+                if (varDescMatcher.matches()) {
+                    String pos = varDescMatcher.group("pos");
+                    return Integer.parseInt(pos);
+                }
             }
+        } catch (Exception ex) {
+            // return null
         }
         return null;
     }
