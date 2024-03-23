@@ -19,7 +19,7 @@ import uk.ac.ebi.protvar.utils.AminoAcid;
 import javax.servlet.ServletContext;
 import java.util.List;
 
-@Tag(name = "Predictions", description = "Pockets, foldx and interactions.")
+@Tag(name = "Prediction")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
@@ -36,7 +36,7 @@ public class PredictionController {
      * @param resid     Residue
      * @return <code>Pocket</code> information on accession
      */
-    @Operation(summary = "- by accession and residue")
+    @Operation(summary = "Retrieves predicted pockets for accession and residue")
     @GetMapping(value = "/pocket/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Pocket>> getPocketsByAccAndResid(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
@@ -54,7 +54,7 @@ public class PredictionController {
      * @param variantAA Optional, 1- or 3-letter symbol for variant amino acid
      * @return <code>Foldx</code> information on accession
      */
-    @Operation(summary = "- by accession and position")
+    @Operation(summary = "Retrieve foldx predictions for accession and position")
     @GetMapping(value = "/foldx/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Foldx>> getFoldxsByAccAndPos(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
@@ -72,7 +72,7 @@ public class PredictionController {
      * @param resid     Residue
      * @return <code>Interaction</code> information on accession
      */
-    @Operation(summary = "- by accession and residue")
+    @Operation(summary = "Retrieve predicted interacting structures for accession and residue")
     @GetMapping(value = "/interaction/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Interaction>> getInteractionsByAccAndResid(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
@@ -88,9 +88,9 @@ public class PredictionController {
      *
      * @param a UniProt accession
      * @param b UniProt accession
-     * @return Trimmed pdb model
+     * @return pdb model
      */
-    @Operation(summary = "- by accession pair")
+    @Operation(summary = "Retrieve model of two interacting protein")
     @GetMapping(value = "/interaction/{a}/{b}/model", produces = MediaType.TEXT_PLAIN_VALUE)
     public @ResponseBody String getInteractionModel(
             @Parameter(example = "Q9NUW8") @PathVariable String a,
@@ -106,7 +106,7 @@ public class PredictionController {
      * @param position  Amino acid position
      * @return <code>ConservScore</code> information on accession
      */
-    @Operation(summary = "- by accession and position")
+    @Operation(summary = "Retrieve conservation score for accession and position")
     @GetMapping(value = "/conserv/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<ConservScore>> getConservScoresByAccAndPos(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,

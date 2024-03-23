@@ -7,7 +7,7 @@ stages:
   - build
   - build_docker_image
   - deploy
-  - check
+  - integration_test
 
 .mvn:
   image: maven:3.8.2-openjdk-17-slim
@@ -91,7 +91,7 @@ trigger_integration_tests:
     refs:
       - main
       - dev
-  stage: check
+  stage: integration_test
   trigger:
     project: uniprot/framework/protvar-integration-tests
   inherit: # only allow propagating the declared vars

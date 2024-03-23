@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,7 @@ import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+@Tag(name = "Paged Mapping")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
@@ -49,8 +51,13 @@ public class PagedMappingController {
         }
     }
 
-    @Operation(summary = "Submit input.")
-    @PostMapping(value="/input", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.TEXT_PLAIN_VALUE)
+    // input
+    // - text         - PagedResponse if size>10?
+    // - file         - PagedResponse
+    // - singleLine   - Response
+
+    @Operation(summary = "Submit variant input (WORK IN PROGRESS)")
+    @PostMapping(value="/mappings/textInput", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<PagedMappingResponse> postInput(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
             @ExampleObject(value = "19 1010539 G C\nP80404 Gln56Arg\nrs1042779"))})
@@ -68,7 +75,7 @@ public class PagedMappingController {
         return new ResponseEntity<>(pagedMappingService.newInput(id, requestBody), HttpStatus.OK);
     }
 
-    @Operation(summary = "Return result.")
+    @Operation(summary = "Return mappings for input `id` (WORK IN PROGRESS)")
     @GetMapping(value = "/input/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PagedMappingResponse> getInputResult(
             @Parameter(example = "id") @PathVariable("id") String id,
