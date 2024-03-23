@@ -97,6 +97,3 @@ trigger_integration_tests:
   inherit: # only allow propagating the declared vars
     variables:
       - UPSTREAM_CI_COMMIT_BRANCH
-  when: delayed
-  # give time for deployment pod to come live
-  start_in: 5 minutes
