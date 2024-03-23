@@ -12,30 +12,24 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.AssemblyMappingResponse;
-import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.service.APIService;
 
 import java.util.List;
 
-@Tag(name = "Assembly Mapping", description = "Human genome assembly mapping service.")
+@Tag(name = "Genome Conversion")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
-public class AssemblyMappingController {
+public class GenomeConversionController {
     private APIService apiService;
 
     /**
-     * Requires a list of genomic coordinates (chromosome and genomic position pairs) and input/output assembly versions.
-     * Returns successfully mapped equivalent coordinates in the output version. In addition to the equivalent chromosome
-     * and position, it also returns the reference allele for both versions. This should normally match but in some cases
-     * can differ.
-     *
-     * @param inputs list of genomic coordinates
-     * @param from   input assembly version e.g. 37/h37/GRCh37
-     * @param to     output assembly version e.g. 38/h38/GRCh38
+     * @param inputs List of genomic coordinates
+     * @param from   From assembly e.g. `37`, `h37`, or `GRCh37`
+     * @param to     To assembly e.g. `38`, `h38`, or `GRCh38`
      * @return <code>AssemblyMappingResponse</code> see below schema for more details
      */
-    @Operation(summary = "- convert genomic coordinates")
+    @Operation(summary = "Convert genomic coordinates between GRCh37 and GRCh38")
     @PostMapping(value = "/assembly/mappings/{from}/{to}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AssemblyMappingResponse> convert(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
