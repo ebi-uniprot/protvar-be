@@ -1,10 +1,5 @@
 package uk.ac.ebi.protvar;
 
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.ExternalDocumentation;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
-import io.swagger.v3.oas.models.info.Info;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -72,23 +67,4 @@ public class ApplicationMainClass {
 		return new CorsFilter(source);
 	}
 
-	@Bean
-	public OpenAPI customOpenAPI() {
-		var description = "ProtVar REST API is a programmatic way to obtain information from ProtVar.\n" +
-			"You can query:\n" +
-			"1) A list of variants via their genomic coordinates and choose which annotations you require. These can be posted as a list and then downloaded or emailed or a file can be uploaded.\n" +
-			"2) Genomic coordinates to retrieve mappings to positions in proteins for all isoforms\n" +
-			"3) Individual amino acid positions to retrieve functional/structural/co-located variant annotations via a json object\n\n\n" +
-			"REST API uses OpenAPI 3 which means you can use utils like " +
-			"<a href='https://github.com/OpenAPITools/openapi-generator' target='_new'>openapi-generator</a> to generate model classes\n\n"+
-			"You can look at the examples below to see how it works. \n";
-		return new OpenAPI()
-			.components(new Components())
-			.externalDocs(new ExternalDocumentation()
-				.description("Contact us").url("https://www.ebi.ac.uk/ProtVar/contact")
-			)
-			.info(new Info().title("ProtVar REST API").description(description)
-					.contact(new Contact().name("ProtVar").url("https://www.ebi.ac.uk/ProtVar/"))
-			);
-	}
 }
