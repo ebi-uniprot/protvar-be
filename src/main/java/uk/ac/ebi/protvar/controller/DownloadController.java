@@ -27,13 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 
 
-@Tag(name = "Generate Variant Annotation Files",
-  description = "Retrieve annotations for a list of protein coding variants.\n\n\n" +
-    "All three endpoints in this section require a list of genomic variant inputs and all return a .csv file" +
-    " in the same format as the “download” service in the ProtVar website. A description of the columns in the " +
-    "file can be found <a href='https://github.com/ebi-uniprot/protvar-be/blob/main/docs/csv-output-version1.md' target='_new'>here</a>." +
-    " The user can choose which types of annotations are required.\n\n\n" +
-    "<strong>Please note that large lists where all annotations are requested will take a long time to respond.<strong>")
+@Tag(name = "Download")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
@@ -43,10 +37,9 @@ public class DownloadController implements WebMvcConfigurer {
   private DownloadService downloadService;
 
   /**
-   * Submit a download request using file input. This endpoint returns a job ID, and the download process is launched
-   * in the background. If an email address is specified, a notification is sent when the result file is ready to be
-   * downloaded. The download status can be checked using the `/download/status` endpoint. The result file can be
-   * downloaded using the `/download/{id}` endpoint with the job ID from this request.
+   * Submit a download request using file input. The download process is launched in the background.
+   * If an email address is specified, a notification is sent when the result file is ready to be
+   * downloaded.
    *
    * @param file
    * @param email
@@ -54,10 +47,10 @@ public class DownloadController implements WebMvcConfigurer {
    * @param function
    * @param population
    * @param structure
-   * @return
+   * @return response has the job ID to check status
    * @throws Exception
    */
-  @Operation(summary = "– submit mappings download request using file input.")
+  @Operation(summary = "Download request using file input")
   @PostMapping(value = "/download/fileInput", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> download(HttpServletRequest request,
                                     @RequestParam MultipartFile file,
@@ -80,10 +73,7 @@ public class DownloadController implements WebMvcConfigurer {
   }
 
   /**
-   * Submit a download request using text input. This endpoint returns a job ID, and the download process is launched
-   * in the background. If an email address is specified, a notification is sent when the result file is ready to be
-   * downloaded. The download status can be checked using the `/download/status` endpoint. The result file can be
-   * downloaded using the `/download/{id}` endpoint with the job ID from this request.
+   * Submit a download request using text input.
    *
    * @param inputs
    * @param email
@@ -91,9 +81,9 @@ public class DownloadController implements WebMvcConfigurer {
    * @param function
    * @param population
    * @param structure
-   * @return
+   * @return response has the job ID to check status
    */
-  @Operation(summary = "– download mappings using file or text input.")
+  @Operation(summary = "Download request using text input")
   @PostMapping(value = "/download/textInput", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> download(HttpServletRequest request,
           @RequestBody List<String> inputs,
@@ -119,7 +109,7 @@ public class DownloadController implements WebMvcConfigurer {
    * @param id
    * @return
    */
-  @Operation(summary = "– download results using job/download `id`.")
+  @Operation(summary = "Download results file")
   @GetMapping(value = "/download/{id}")
   @ResponseBody
   public ResponseEntity<?> downloadFile(
@@ -142,10 +132,10 @@ public class DownloadController implements WebMvcConfigurer {
 
   /**
    * Check download status.
-   * @param ids a list of job/download IDs
+   * @param ids List of job/download IDs
    * @return
    */
-  @Operation(summary = "– Check the download status of a list of job/download IDs.")
+  @Operation(summary = "Check status of a list of download requests")
   @PostMapping(value = "/download/status", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<Map<String,Integer>> downloadStatus(@RequestBody List<String> ids) {
     return new ResponseEntity<>(downloadService.getDownloadStatus(ids), HttpStatus.OK);

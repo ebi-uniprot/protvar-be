@@ -16,7 +16,7 @@ import uk.ac.ebi.protvar.service.MappingService;
 
 import java.util.List;
 
-@Tag(name = "Genomic Coordinate – Amino Acid Position Mappings", description = "Retrieve positions of genomic variants in all protein isoforms")
+@Tag(name = "Mapping")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
@@ -25,17 +25,14 @@ MappingController {
   private MappingService mappingService;
 
   /**
-   * Requires a list of genomic coordinate variant inputs in VCF format and returns mappings to all known isoforms
-   * as a json object. Information including names, IDs and positions is included for transcripts and isoforms and
-   * the UniProt canonical isoform is identified.
+   * Retrieves genomic-to-protein mappings
    *
-   * @param inputs Variants which you wish to retrieve annotations for in json string array format (example shown below):
-   * @return <code>MappingResponse</code> see below schema for more details
+   * @param inputs List of inputs in genomic, cDNA, protein or ID format
+   * @return <code>MappingResponse</code>
    */
-  @Operation(summary = "- retrieve amino acid positions in proteins from a list of genomic coordinates (specified" +
-          " in VCF or HGVS format), protein positions, or variant IDs")
+  @Operation(summary = "Retrieve mappings for the provided genomic, cDNA, protein or ID inputs")
   @PostMapping(value = "/mappings", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<MappingResponse> getGenomeProteinMappings(
+  public ResponseEntity<MappingResponse> mappings(
     @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
     @ExampleObject(value = "[\"19 1010539 G C\",\"P80404 Gln56Arg\", \"rs1042779\"]"))})
     @RequestBody List<String> inputs,
@@ -45,7 +42,7 @@ MappingController {
     @RequestParam(required = false, defaultValue = "false") boolean population,
     @Parameter(description = "Include structural annotations in results")
     @RequestParam(required = false, defaultValue = "false") boolean structure,
-    @Parameter(description = "Human genome assembly version. For e.g. GRCh38/h38/38, GRCh37/h37/37 or AUTO. If unspecified or cannot determine version, defaults to GRCh38")
+    @Parameter(description = "Human genome assembly version. Accepted values: GRCh38/h38/38, GRCh37/h37/37 or AUTO. Defaults to auto-detect")
     @RequestParam(required = false) String assembly
   ) {
     MappingResponse mappingResponse = mappingService.getMapping(inputs, function, population, structure, assembly);
@@ -53,9 +50,9 @@ MappingController {
   }
 
 
-  @Operation(summary = "genomic-to-protein mappings for provided UniProt accession (WORK IN PROGRESS)")
+  @Operation(summary = "Retrieve all mappings for the provided UniProt accession (WORK IN PROGRESS)")
   @GetMapping(value = "/mappings/{accession}")
-  public ResponseEntity<PagedMappingResponse> getGenomeProteinMappings(
+  public ResponseEntity<PagedMappingResponse> mappingsAccession(
           @Parameter(example = "Q9UHP9") @PathVariable("accession") String accession,
           @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
           @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
