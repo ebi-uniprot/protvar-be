@@ -54,4 +54,8 @@ public interface ProtVarDataRepo {
 
 	// Conservation score
 	List<ConservScore> getConservScores(String acc, Integer pos);
+
+	// ESM score
+	List<ESMScore> getEsmScores(String acc, Integer pos);
+
 }
