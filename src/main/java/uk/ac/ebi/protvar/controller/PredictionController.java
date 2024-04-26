@@ -115,4 +115,21 @@ public class PredictionController {
         List<ConservScore> scores = protVarDataRepo.getConservScores(accession, position);
         return new ResponseEntity<>(scores, HttpStatus.OK);
     }
+
+    /**
+     * Get ESM score.
+     *
+     * @param accession UniProt accession
+     * @param position  Amino acid position
+     * @return <code>ESMScore</code> information on accession
+     */
+    @Operation(summary = "Retrieve ESM1v scores for accession and position")
+    @GetMapping(value = "/esm/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<ESMScore>> getEsmScores(
+            @Parameter(example = "Q9NUW8") @PathVariable String accession,
+            @Parameter(example = "493") @PathVariable Integer position) {
+
+        List<ConservScore> scores = protVarDataRepo.getConservScores(accession, position);
+        return new ResponseEntity<>(scores, HttpStatus.OK);
+    }
 }

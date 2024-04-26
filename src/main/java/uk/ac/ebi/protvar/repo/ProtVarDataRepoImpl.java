@@ -115,9 +115,13 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private static final String SELECT_INTERACTION_MODEL = "SELECT pdb_model FROM af2complexes_interaction WHERE a=:a AND b=:b";
 	private static final String SELECT_INTERACTION_MODEL_NEW = "SELECT pdb_model FROM interaction_v2 WHERE a=:a AND b=:b";
 
-	private static final String SELECT_CONSERV_SCORES = """
+	private static final String SELECT_FROM_CONSERV_SCORE = """
    			SELECT * FROM CONSERV_SCORE 
    			WHERE acc=:acc AND pos=:pos
+   			""";
+	private static final String SELECT_FROM_ESM = """
+   			SELECT * FROM esm 
+   			WHERE accession=:acc AND position=:pos
    			""";
 
 	private NamedParameterJdbcTemplate jdbcTemplate;
@@ -400,11 +404,26 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	public List<ConservScore> getConservScores(String acc, Integer pos) {
 		SqlParameterSource parameters = new MapSqlParameterSource("acc", acc)
 				.addValue("pos", pos);
-		return jdbcTemplate.query(SELECT_CONSERV_SCORES, parameters, (rs, rowNum) -> createConservScore(rs));
+		return jdbcTemplate.query(SELECT_FROM_CONSERV_SCORE,
+				parameters,
+				(rs, rowNum) ->
+						new ConservScore(rs.getString("acc"),
+								rs.getString("aa"),
+								rs.getInt("pos"),
+								rs.getDouble("score"))
+		);
 	}
 
-	private ConservScore createConservScore(ResultSet rs) throws SQLException {
-		return new ConservScore(rs.getString("acc"), rs.getString("aa"),
-				rs.getInt("pos"), rs.getDouble("score"));
+	public List<ESMScore> getEsmScores(String acc, Integer pos) {
+		SqlParameterSource parameters = new MapSqlParameterSource("acc", acc)
+				.addValue("pos", pos);
+		return jdbcTemplate.query(SELECT_FROM_ESM,
+				parameters,
+				(rs, rowNum) ->
+						new ESMScore(rs.getString("accession"),
+								rs.getInt("position"),
+								rs.getString("mt_aa"),
+								rs.getDouble("score"))
+		);
 	}
 }
