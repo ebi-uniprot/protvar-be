@@ -9,10 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.ac.ebi.protvar.model.data.ConservScore;
-import uk.ac.ebi.protvar.model.data.Foldx;
-import uk.ac.ebi.protvar.model.data.Interaction;
-import uk.ac.ebi.protvar.model.data.Pocket;
+import uk.ac.ebi.protvar.model.data.*;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 
@@ -129,7 +126,7 @@ public class PredictionController {
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer position) {
 
-        List<ConservScore> scores = protVarDataRepo.getConservScores(accession, position);
+        List<ESMScore> scores = protVarDataRepo.getEsmScores(accession, position);
         return new ResponseEntity<>(scores, HttpStatus.OK);
     }
 }
