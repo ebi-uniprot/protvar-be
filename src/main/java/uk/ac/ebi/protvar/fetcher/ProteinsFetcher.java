@@ -7,8 +7,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.protvar.converter.ProteinsAPI2ProteinConverter;
-import uk.ac.ebi.protvar.model.data.ConservScore;
+import uk.ac.ebi.protvar.model.score.ConservScore;
 import uk.ac.ebi.protvar.model.response.Protein;
+import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.utils.ProteinHelper;
@@ -100,9 +101,13 @@ public class ProteinsFetcher {
 				protein.setPockets(protVarDataRepo.getPockets(accession, position));
 				protein.setInteractions(protVarDataRepo.getInteractions(accession, position));
 				protein.setFoldxs(protVarDataRepo.getFoldxs(accession, position, variantAA));
-				List<ConservScore> conservScores = protVarDataRepo.getConservScores(accession, position);
-				if (conservScores != null && conservScores.size() == 1) {
-					protein.setConservScore(conservScores.get(0).getScore());
+				List<Score> scores = protVarDataRepo.getScores(accession, position, null, Score.Name.CONSERV);
+
+				if (scores != null
+						&& scores.size() == 1
+						&& scores.get(0) instanceof ConservScore) {
+					ConservScore conservScore = (ConservScore) scores.get(0);
+					protein.setConservScore(conservScore.getScore());
 				}
 				return protein;
 			}
