@@ -7,10 +7,9 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
-import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
-import uk.ac.ebi.protvar.model.data.EVEScore;
+import uk.ac.ebi.protvar.model.score.EVEScore;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;

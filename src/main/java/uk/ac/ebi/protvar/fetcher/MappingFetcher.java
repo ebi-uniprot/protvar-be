@@ -21,7 +21,7 @@ import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.Coord;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
-import uk.ac.ebi.protvar.model.data.EVEScore;
+import uk.ac.ebi.protvar.model.score.EVEScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;

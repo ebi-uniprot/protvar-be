@@ -8,7 +8,7 @@ import javax.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.model.data.EVEScore;
+import uk.ac.ebi.protvar.model.score.EVEScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.AminoAcid;
@@ -101,7 +101,7 @@ public class IsoFormConverter {
 					genomeToProteinMapping.getAa();
 			if (eveScoreMap.containsKey(eveScoreKey)) {
 				List<EVEScore> eveScores = eveScoreMap.get(eveScoreKey).stream()
-						.filter(e -> e.getMtAA().equals(variantAA.getOneLetter()))
+						.filter(e -> e.getMt().equals(variantAA.getOneLetter()))
 						.collect(Collectors.toList());
 
 				if (eveScores.size() == 1) {

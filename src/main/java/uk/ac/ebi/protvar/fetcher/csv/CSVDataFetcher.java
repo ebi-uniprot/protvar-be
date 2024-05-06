@@ -25,7 +25,7 @@ import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
-import uk.ac.ebi.protvar.model.data.EVEClass;
+import uk.ac.ebi.protvar.model.score.EVEClass;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
@@ -48,7 +48,7 @@ public class CSVDataFetcher {
 		+ "Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,"
 		+ "Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene),"
 		+ "Predicted_pockets(energy;per_vol;score;resids),Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ),"
-		+ "Foldx_prediction(foldxDdq;plddt),Conservation_score";
+		+ "Foldx_prediction(foldxDdg;plddt),Conservation_score";
 	private static final String CSV_HEADER_OUTPUT_POPULATION = "Genomic_location,Cytogenetic_band,Other_identifiers_for_the_variant,"
 		+ "Diseases_associated_with_variant,Variants_colocated_at_residue_position";
 	private static final String CSV_HEADER_OUTPUT_STRUCTURE = "Position_in_structures";

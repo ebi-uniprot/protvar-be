@@ -23,7 +23,7 @@ public class CSVFunctionDataFetcher {
 	// NEW
 	// Predicted_pockets(energy;per_vol;score;resids),
 	// Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ)
-	// Foldx_prediction(foldxDdq;plddt)
+	// Foldx_prediction(foldxDdg;plddt)
 	// Conservation_score
 	public List<String> fetch(IsoFormMapping mapping) {
 		List<String> output = new ArrayList<>();
@@ -215,7 +215,7 @@ public class CSVFunctionDataFetcher {
 		StringJoiner joiner = new StringJoiner("|");
 		foldxs.forEach(foldx -> {
 			StringBuilder builder = new StringBuilder();
-			builder.append("foldxDdq:").append(foldx.getFoldxDdq());
+			builder.append("foldxDdg:").append(foldx.getFoldxDdg());
 			builder.append(";plddt:").append(foldx.getPlddt());
 			joiner.add(builder.toString());
 		});
