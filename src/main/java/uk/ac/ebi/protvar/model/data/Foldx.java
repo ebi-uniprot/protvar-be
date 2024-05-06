@@ -4,8 +4,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
 @Getter
 @Setter
 @AllArgsConstructor
@@ -14,6 +12,6 @@ public class Foldx {
 	private Integer position;
 	private String wildType;
 	private String mutatedType;
-	private Double foldxDdq;
-	private Double plddt;
+	private Double foldxDdg; // FoldX_ddG
+	private Double plddt; // AlphaFold_pLDDT
 }
