@@ -4,6 +4,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.data.*;
+import uk.ac.ebi.protvar.model.score.EVEScore;
+import uk.ac.ebi.protvar.model.score.Score;
 
 import java.util.List;
 import java.util.Set;
@@ -43,19 +45,17 @@ public interface ProtVarDataRepo {
 	List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37);
 	double getPercentageMatch(List<Object[]> chrPosRefList, String ver);
 
+	//================================================================================
+	// Conservation, EVE, ESM1b and AM scores
+	//================================================================================
+	List<Score> getScores(String acc, Integer pos, String mt, Score.Name name);
 
 	//================================================================================
-	// Pockets, foldxs, and protein interactions
+	// Foldxs, pockets, and protein interactions
 	//================================================================================
-	List<Pocket> getPockets(String accession, Integer resid);
 	List<Foldx> getFoldxs(String accession, Integer position, String variantAA);
+	List<Pocket> getPockets(String accession, Integer resid);
 	List<Interaction> getInteractions(String accession, Integer resid);
 	String getInteractionModel(String a, String b);
-
-	// Conservation score
-	List<ConservScore> getConservScores(String acc, Integer pos);
-
-	// ESM score
-	List<ESMScore> getEsmScores(String acc, Integer pos);
 
 }
