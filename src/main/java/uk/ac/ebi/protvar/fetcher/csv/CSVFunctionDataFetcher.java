@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
+import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.Protein;
@@ -25,6 +26,9 @@ public class CSVFunctionDataFetcher {
 	// Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ)
 	// Foldx_prediction(foldxDdg;plddt)
 	// Conservation_score
+	// AlphaMissense
+	// EVE
+	// ESM
 	public List<String> fetch(IsoFormMapping mapping) {
 		List<String> output = new ArrayList<>();
 		Protein proteinFunction = mapping.getReferenceFunction();
@@ -42,7 +46,28 @@ public class CSVFunctionDataFetcher {
 		output.add(CSVUtils.getValOrNA(buildPredictedInteractions(proteinFunction.getInteractions())));
 		output.add(CSVUtils.getValOrNA(buildFoldxPrediction(proteinFunction.getFoldxs())));
 		output.add(CSVUtils.getValOrNA(proteinFunction.getConservScore()));
+		output.add(getAMScore(mapping));
+		output.add(getEveScore(mapping));
+		output.add(CSVUtils.getValOrNA(mapping.getEsmScore().getScore()));
 		return output;
+	}
+
+	private String getAMScore(IsoFormMapping mapping) {
+		if (mapping.getAmScore() == null) return Constants.NA;
+		return new StringBuilder()
+				.append(mapping.getAmScore().getAmPathogenicity())
+				.append("(")
+				.append(mapping.getAmScore().getAmClass())
+				.append(")").toString();
+	}
+
+	private String getEveScore(IsoFormMapping mapping) {
+		if (mapping.getEveScore() == null) return Constants.NA;
+		return new StringBuilder()
+				.append(mapping.getEveScore().getScore())
+				.append("(")
+				.append(mapping.getEveScore().getEveClass())
+				.append(")").toString();
 	}
 
 	private List<String> buildComments(List<DSPComment> comments) {
