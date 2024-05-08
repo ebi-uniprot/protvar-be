@@ -1,5 +1,9 @@
 package uk.ac.ebi.protvar;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Contact;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.info.License;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -17,6 +21,15 @@ import java.util.concurrent.Executor;
 @SpringBootApplication
 @CrossOrigin
 @EnableAsync
+@OpenAPIDefinition(info =
+	@Info(
+		title = "ProtVar API",
+		version = "1.0",
+		description = "ProtVar API's Swagger documentation page. The API serves the ProtVar UI and enables programmatic access to the ProtVar data.",
+		license = @License(name = "Creative Commons", url = "https://creativecommons.org/licenses/by/4.0/"),
+		contact = @Contact(url = "https://www.ebi.ac.uk/ProtVar", name = "ProtVar", email = "protvar@ebi.ac.uk")
+	)
+)
 public class ApplicationMainClass {
 
 	@Value(("${protvar.data}"))
