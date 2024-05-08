@@ -47,7 +47,6 @@ public class Protein implements Cloneable {
 	private List<Pocket> pockets;
 	private List<Foldx> foldxs;
 	private List<Interaction> interactions;
-	private Double conservScore;
 
 	@NoArgsConstructor
 	@Setter
