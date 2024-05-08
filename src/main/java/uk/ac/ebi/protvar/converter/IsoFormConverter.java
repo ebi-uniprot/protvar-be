@@ -8,12 +8,13 @@ import javax.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.model.score.EVEScore;
+import uk.ac.ebi.protvar.model.score.*;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.builder.OptionalAttributesBuilder;
+import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.protvar.utils.RNACodon;
 
 @Service
@@ -35,7 +36,7 @@ public class IsoFormConverter {
 	}
 
 	public List<IsoFormMapping> createIsoforms(List<GenomeToProteinMapping> mappingList, String refAlleleUser,
-											   String variantAllele, Map<String, List<EVEScore>> eveScoreMap,
+											   String variantAllele, Map<String, List<Score>>  scoreMap,
 											   Map<String, List<Variation>> variationMap, List<OPTIONS> options) {
 		String canonicalAccession = mappingList.stream().filter(GenomeToProteinMapping::isCanonical)
 				.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
@@ -44,13 +45,13 @@ public class IsoFormConverter {
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getAccession));
 
 		return accessionMapping.keySet().stream()
-				.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), eveScoreMap, variationMap, options))
+				.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), scoreMap, variationMap, options))
 				.sorted().collect(Collectors.toList());
 
 	}
 
 	private IsoFormMapping createIsoform(String refAlleleUser, String variantAllele, String canonicalAccession,
-			String accession, List<GenomeToProteinMapping> g2pAccessionMapping, Map<String, List<EVEScore>> eveScoreMap,
+			String accession, List<GenomeToProteinMapping> g2pAccessionMapping, Map<String, List<Score>>  scoreMap,
 			Map<String, List<Variation>> variationMap, List<OPTIONS> options) {
 		GenomeToProteinMapping genomeToProteinMapping = g2pAccessionMapping.get(0);
 
@@ -81,11 +82,38 @@ public class IsoFormConverter {
 				.consequences(consequences).proteinName(genomeToProteinMapping.getProteinName());
 
 		if (isCanonical(accession, canonicalAccession)) {
-			EVEScore eveScore = calcEveScore(genomeToProteinMapping, eveScoreMap, variantAA);
-			if (eveScore != null) {
-				builder.eveScore(eveScore.getScore());
-				builder.eveClass(eveScore.getEveClass().getNum());
+
+			//Commons.joinWithDash(name, acc, pos)
+			String keyConservScore = Commons.joinWithDash("CONSERV", accession, genomeToProteinMapping.getIsoformPosition());
+			//Commons.joinWithDash(name, acc, pos, mt)
+			String keyAmScore = Commons.joinWithDash("AM", accession, genomeToProteinMapping.getIsoformPosition(), variantAA.getOneLetter());
+			String keyEveScore = Commons.joinWithDash("EVE", accession, genomeToProteinMapping.getIsoformPosition(), variantAA.getOneLetter());
+			String keyEsmScore = Commons.joinWithDash("ESM", accession, genomeToProteinMapping.getIsoformPosition(), variantAA.getOneLetter());
+
+			if (scoreMap.containsKey(keyConservScore)
+					&& scoreMap.get(keyConservScore).size() == 1) {
+				ConservScore conservScore = (ConservScore) scoreMap.get(keyConservScore).get(0);
+				builder.conservScore(conservScore.copy());
 			}
+
+			if (scoreMap.containsKey(keyAmScore)
+					&& scoreMap.get(keyAmScore).size() == 1) {
+				AMScore amScore = (AMScore) scoreMap.get(keyAmScore).get(0);
+				builder.amScore(amScore.copy());
+			}
+
+			if (scoreMap.containsKey(keyEveScore)
+					&& scoreMap.get(keyEveScore).size() == 1) {
+				EVEScore eveScore = (EVEScore) scoreMap.get(keyEveScore).get(0);
+				builder.eveScore(eveScore.copy());
+			}
+
+			if (scoreMap.containsKey(keyEsmScore)
+					&& scoreMap.get(keyEsmScore).size() == 1) {
+				ESMScore esmScore = (ESMScore) scoreMap.get(keyEsmScore).get(0);
+				builder.esmScore(esmScore.copy());
+			}
+
 			optionalAttributeBuilder.build(accession, genomicLocation, variantAA.getOneLetter(), genomeToProteinMapping.getIsoformPosition(), variationMap, options, builder);
 		}
 		return builder.build();
