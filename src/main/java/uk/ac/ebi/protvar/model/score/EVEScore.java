@@ -1,6 +1,5 @@
 package uk.ac.ebi.protvar.model.score;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,15 +9,25 @@ public class EVEScore extends Score {
 	private Double score; // EVE_score
 	private EVEClass eveClass; // EVE_class
 
-	public EVEScore(String acc, Integer pos, String wt, String mt, Double score,
-					Integer eveClass) {
-		super(Name.EVE, acc, pos, wt, mt);
+	public EVEScore(Double score, EVEClass eveClass) {
+		super(Name.EVE);
+		this.score = score;
+		this.eveClass = eveClass;
+	}
+
+	public EVEScore(String mt, Double score, Integer eveClass) {
+		super(Name.EVE, mt);
 		this.score = score;
 		this.eveClass = EVEClass.fromNum(eveClass);
 	}
 
-	@JsonIgnore
-	public String getGroupBy() {
-		return this.acc+"-"+this.getPos()+"-"+this.getWt();
+	public EVEScore(String acc, Integer pos, String mt, Double score, Integer eveClass) {
+		super(Name.EVE, acc, pos, mt);
+		this.score = score;
+		this.eveClass = EVEClass.fromNum(eveClass);
+	}
+
+	public EVEScore copy() {
+		return new EVEScore(score, eveClass);
 	}
 }

@@ -1,9 +1,11 @@
 package uk.ac.ebi.protvar.model.score;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import uk.ac.ebi.protvar.utils.Commons;
 
 // Amino acid-level prediction
 @JsonInclude(Include.NON_NULL)
@@ -20,18 +22,31 @@ public abstract class Score {
         private String name;
     }
 
-    Score(Name name, String acc, Integer pos, String wt, String mt) {
+    Score(Name name) {
+        this.name = name;
+    }
+
+    // no acc, pos and wt
+    Score(Name name, String mt) {
+        this.name = name;
+        this.mt = mt;
+    }
+
+    Score(Name name, String acc, Integer pos, String mt) {
         this.name = name;
         this.acc = acc;
         this.pos = pos;
-        this.wt = wt;
         this.mt = mt;
     }
 
     Name name;
     String acc;
     Integer pos;
-    String wt;
+    String wt; // not normally set
     String mt;
 
+    @JsonIgnore
+    public String getGroupBy() {
+        return Commons.joinWithDash(name, acc, pos, mt);
+    }
 }
