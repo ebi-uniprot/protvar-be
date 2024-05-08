@@ -28,11 +28,6 @@ public interface ProtVarDataRepo {
 
 
 	//================================================================================
-	// EVEScore
-	//================================================================================
-	List<EVEScore> getEVEScores(Set<Object[]> accPosSet);
-
-	//================================================================================
 	// DBSNP
 	//================================================================================
 	//List<Dbsnp> getDbsnps(List<String> rsIds);
@@ -48,7 +43,17 @@ public interface ProtVarDataRepo {
 	//================================================================================
 	// Conservation, EVE, ESM1b and AM scores
 	//================================================================================
+
+	// Used in PredictionController
+	// Does not set the acc, pos and wt values in the Score object (to avoid transmitting
+	// unneeded data) in the response.
 	List<Score> getScores(String acc, Integer pos, String mt, Score.Name name);
+
+	// Used in MappingFetcher
+	// This one needs to set the acc and pos (but not wt) to enable the use of groupBy
+	// joinWithDash(name, acc, pos, mt)
+	// in building the MappingResponse.
+	List<Score> getScores(Set<Object[]> accPosSet);
 
 	//================================================================================
 	// Foldxs, pockets, and protein interactions
