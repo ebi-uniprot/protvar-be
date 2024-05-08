@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Builder;
 import lombok.Getter;
 import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
+import uk.ac.ebi.protvar.model.score.*;
 
 import static uk.ac.ebi.protvar.utils.Commons.upperFirstRemainingLower;
 
@@ -58,10 +59,13 @@ public class IsoFormMapping implements Comparable<IsoFormMapping> {
 	private String proteinStructureUri;
 
 	@JsonInclude(Include.NON_NULL)
-	private Double eveScore;
-
+	private ConservScore conservScore;
 	@JsonInclude(Include.NON_NULL)
-	private Integer eveClass;
+	private AMScore amScore;
+	@JsonInclude(Include.NON_NULL)
+	private EVEScore eveScore;
+	@JsonInclude(Include.NON_NULL)
+	private ESMScore esmScore;
 
 	public String getCodonChange(){
 		return refCodon + "/" + variantCodon;
