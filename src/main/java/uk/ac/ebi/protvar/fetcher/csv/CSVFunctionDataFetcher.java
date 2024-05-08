@@ -45,10 +45,10 @@ public class CSVFunctionDataFetcher {
 		output.add(CSVUtils.getValOrNA(buildPredictedPockets(proteinFunction.getPockets())));
 		output.add(CSVUtils.getValOrNA(buildPredictedInteractions(proteinFunction.getInteractions())));
 		output.add(CSVUtils.getValOrNA(buildFoldxPrediction(proteinFunction.getFoldxs())));
-		output.add(CSVUtils.getValOrNA(proteinFunction.getConservScore()));
+		output.add(CSVUtils.getValOrNA(mapping.getConservScore() == null ? null : mapping.getConservScore().getScore()));
 		output.add(getAMScore(mapping));
 		output.add(getEveScore(mapping));
-		output.add(CSVUtils.getValOrNA(mapping.getEsmScore().getScore()));
+		output.add(CSVUtils.getValOrNA(mapping.getEsmScore() == null ? null : mapping.getEsmScore().getScore()));
 		return output;
 	}
 
