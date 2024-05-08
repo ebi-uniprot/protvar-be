@@ -15,7 +15,7 @@ import static org.mockito.Mockito.mock;
 
 class CSVDataFetcherTest {
 
-  private static final int TOTAL_CSV_COLUMNS = 41;
+  private static final int TOTAL_CSV_COLUMNS = 43;
   CSVDataFetcher mockDeps = new CSVDataFetcher(mock(MappingFetcher.class), mock(CSVFunctionDataFetcher.class),
     mock(CSVPopulationDataFetcher.class), mock(CSVStructureDataFetcher.class), mock(InputProcessor.class), "");
 
@@ -25,11 +25,12 @@ class CSVDataFetcherTest {
     void csvHeader() {
       var header = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele,Notes,Gene,Codon_change," +
         "Strand,CADD_phred_like_score,Canonical_isoform_transcripts,MANE_transcript,Uniprot_canonical_isoform_(non_canonical)," +
-        "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences,EVE_score(class)," +
+        "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences," +
         "Residue_function_(evidence),Region_function_(evidence),Protein_existence_evidence,Protein_length," +
         "Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location," +
         "Protein_family,Protein_interactions_PROTEIN(gene),Predicted_pockets(energy;per_vol;score;resids)," +
         "Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ),Foldx_prediction(foldxDdg;plddt),Conservation_score," +
+        "AlphaMissense_pathogenicity(class),EVE_score(class),ESM1b_score," +
         "Genomic_location,Cytogenetic_band," +
         "Other_identifiers_for_the_variant,Diseases_associated_with_variant,Variants_colocated_at_residue_position," +
         "Position_in_structures";
