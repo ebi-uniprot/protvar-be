@@ -7,14 +7,13 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
-import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
-import uk.ac.ebi.protvar.model.data.EVEScore;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.Variation;
+import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.utils.ReverseCompliment;
 
 @Service
@@ -29,7 +28,7 @@ public class Mappings2GeneConverter {
 								  GenomicInput gInput,
 								  Set<String> altBases,
 								  List<CADDPrediction> caddScores,
-								  Map<String, List<EVEScore>> eveScoreMap,
+								  Map<String, List<Score>>  scoreMap,
 								  Map<String, List<Variation>> variationMap, List<OPTIONS> options) {
 
 		List<Gene> ensgMappingList = new ArrayList<>();
@@ -51,7 +50,7 @@ public class Mappings2GeneConverter {
 			altBases.forEach(alt -> {
 
 				List<IsoFormMapping> isoforms = isformConverter.createIsoforms(mappingList, userAllele, alt,
-						eveScoreMap, variationMap, options);
+						scoreMap, variationMap, options);
 
 				ensgMappingList.add(Gene.builder().ensg(ensg).reverseStrand(genomeToProteinMapping.isReverseStrand())
 						.geneName(genomeToProteinMapping.getGeneName())

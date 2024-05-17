@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.*;
+import uk.ac.ebi.protvar.model.score.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -50,6 +51,8 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
    			ORDER BY is_canonical DESC
    			""";
 
+	// TODO: optimise: may need to create multi-column index in addition
+	//  to the two separate column indexes to improve lookup performance
 	private static final String SELECT_FROM_MAPPING_WHERE_ACC_POS_IN = """
 			SELECT
 				chromosome, genomic_position, allele, accession, protein_position, protein_seq, 
@@ -58,12 +61,6 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			INNER JOIN (VALUES :accPosSet) as t(acc,pos) 
 			ON t.acc=accession AND t.pos=protein_position
 			""";
-
-	private static final String SELECT_FROM_EVE_WHERE_ACC_POS_IN = """
-   			SELECT * FROM eve_score 
-   			INNER JOIN (VALUES :accPosSet) AS t(acc,pos) 
-   			ON t.acc=accession AND t.pos=position
-   			""";
 
 	//private static final String SELECT_DBSNPS = "SELECT * FROM dbsnp WHERE id IN (:ids) ";
 	private static final String SELECT_CROSSMAPS = "SELECT * FROM crossmap WHERE grch{VER}_pos IN (:pos) ";
@@ -115,14 +112,58 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private static final String SELECT_INTERACTION_MODEL = "SELECT pdb_model FROM af2complexes_interaction WHERE a=:a AND b=:b";
 	private static final String SELECT_INTERACTION_MODEL_NEW = "SELECT pdb_model FROM interaction_v2 WHERE a=:a AND b=:b";
 
-	private static final String SELECT_FROM_CONSERV_SCORE = """
-   			SELECT * FROM CONSERV_SCORE 
-   			WHERE acc=:acc AND pos=:pos
-   			""";
-	private static final String SELECT_FROM_ESM = """
-   			SELECT * FROM esm 
-   			WHERE accession=:acc AND position=:pos
-   			""";
+	//================================================================================
+	// Conservation, EVE, ESM1b and AM scores
+	//================================================================================
+	private static final String CONSERV = """
+    		select 'CONSERV' as type, null as mt_aa, score, null as class
+    		from conserv_score 
+    		where acc=:acc and pos=:pos
+ 			""";
+	private static final String EVE = """
+			select 'EVE' as type, mt_aa, score, class 
+			from eve_score 
+			where accession=:acc and position=:pos
+			""";
+	private static final String ESM = """
+			select 'ESM' as type, mt_aa, score, null as class 
+			from esm 
+			where accession=:acc and position=:pos
+			""";
+	private static final String AM = """
+			select 'AM' as type, mt_aa, am_pathogenicity as score, am_class as class 
+			from alphamissense 
+			where accession=:acc and position=:pos
+			""";
+
+	private static final String SCORES = """
+    		select 'CONSERV' as type, acc as accession, pos as position, null as mt_aa, score, null as class
+    		from conserv_score 
+    		inner join (values :accPosSet) as t(_acc,_pos)
+    		on t._acc=acc and t._pos=pos
+			union    		
+         	select 'EVE' as type, accession, position, mt_aa, score, class 
+			from eve_score 
+			inner join (values :accPosSet) as t(_acc,_pos)
+			on t._acc=accession and t._pos=position
+			union
+			select 'ESM' as type, accession, position, mt_aa, score, null as class 
+			from esm 
+    		inner join (values :accPosSet) as t(_acc,_pos)
+			on t._acc=accession and t._pos=position
+			union
+			select 'AM' as type, accession, position, mt_aa, am_pathogenicity as score, am_class as class 
+			from alphamissense 
+    		inner join (values :accPosSet) as t(_acc,_pos)
+			on t._acc=accession and t._pos=position
+			""";
+
+	// TODO add Foldx to getScores
+	private static final String FOLDX = """
+    		select 'FOLDX' as type, mutated_type as mt_aa, foldx_ddg as score, null as class
+    		from conserv_score 
+    		where protein_acc=:acc and position=:pos
+ 			"""; // mutated_type=:mt
 
 	private NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -293,13 +334,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return jdbcTemplate.queryForObject(sql, parameters, Integer.class);
 	}
 
-	public List<EVEScore> getEVEScores(Set<Object[]> accPosSet) {
-		if (accPosSet.size() > 0) {
-			SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
-			return jdbcTemplate.query(SELECT_FROM_EVE_WHERE_ACC_POS_IN, parameters, (rs, rowNum) -> createEveScore(rs));
-		}
-		return EMPTY_RESULT;
-	}
+
 /*
 	@Override
 	public List<Dbsnp> getDbsnps(List<String> ids) {
@@ -330,21 +365,9 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 						rs.getInt("grch37_pos"),rs.getString("grch37_base")));
 	}
 
-	private EVEScore createEveScore(ResultSet rs) throws SQLException {
-		return new EVEScore(rs.getString("accession"), rs.getInt("position"), rs.getString("wt_aa"),
-				rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
-	}
-
 	//================================================================================
-	// Pocket, foldx and interaction
+	// Foldxs, pockets, and protein interactions
 	//================================================================================
-
-	public List<Pocket> getPockets(String accession, Integer resid) {
-		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
-				.addValue("resid", resid);
-		return jdbcTemplate.query(SELECT_POCKETS_BY_ACC_AND_RESID, parameters, (rs, rowNum) -> createPocket(rs));
-	}
-
 	public List<Foldx> getFoldxs(String accession, Integer position, String variantAA) {
 		SqlParameterSource parameters;
 		String query;
@@ -359,6 +382,12 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			query = SELECT_FOLDXS_BY_ACC_AND_POS;
 		}
 		return jdbcTemplate.query(query, parameters, (rs, rowNum) -> createFoldx(rs));
+	}
+
+	public List<Pocket> getPockets(String accession, Integer resid) {
+		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
+				.addValue("resid", resid);
+		return jdbcTemplate.query(SELECT_POCKETS_BY_ACC_AND_RESID, parameters, (rs, rowNum) -> createPocket(rs));
 	}
 
 	public List<Interaction> getInteractions(String accession, Integer resid) {
@@ -401,29 +430,77 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return Arrays.asList(residArr);
 	}
 
-	public List<ConservScore> getConservScores(String acc, Integer pos) {
-		SqlParameterSource parameters = new MapSqlParameterSource("acc", acc)
-				.addValue("pos", pos);
-		return jdbcTemplate.query(SELECT_FROM_CONSERV_SCORE,
+
+	//================================================================================
+	// Conservation, EVE, ESM1b and AM scores
+	//================================================================================
+	public List<Score> getScores(String acc, Integer pos, String mt, Score.Name name) {
+		String sql = String.format("%s union %s union %s union %s", CONSERV, appendMt(EVE, mt), appendMt(ESM, mt), appendMt(AM, mt));
+		if (name != null) {
+			switch (name) {
+				case CONSERV:
+					sql = CONSERV;
+					break;
+				case EVE:
+					sql = appendMt(EVE, mt);
+					break;
+				case ESM:
+					sql = appendMt(ESM, mt);
+					break;
+				case AM:
+					sql = appendMt(AM, mt);
+					break;
+			}
+		}
+		MapSqlParameterSource parameters = new MapSqlParameterSource("acc", acc)
+				.addValue("pos", pos)
+				.addValue("mt", mt);
+		List results = jdbcTemplate.query(sql,
 				parameters,
-				(rs, rowNum) ->
-						new ConservScore(rs.getString("acc"),
-								rs.getString("aa"),
-								rs.getInt("pos"),
-								rs.getDouble("score"))
-		);
+				(rs, rowNum) -> {
+					String t = rs.getString("type");
+					if (t.equalsIgnoreCase(Score.Name.CONSERV.name())) {
+						return new ConservScore(null, rs.getDouble("score"));
+					} else if (t.equalsIgnoreCase(Score.Name.EVE.name())) {
+						return new EVEScore(rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
+					} else if (t.equalsIgnoreCase(Score.Name.ESM.name())) {
+						return new ESMScore(rs.getString("mt_aa"), rs.getDouble("score"));
+					} else if (t.equalsIgnoreCase(Score.Name.AM.name())) {
+						return new AMScore(rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
+					}
+					return null;
+				});
+		results.removeIf(Objects::isNull);
+		return results;
 	}
 
-	public List<ESMScore> getEsmScores(String acc, Integer pos) {
-		SqlParameterSource parameters = new MapSqlParameterSource("acc", acc)
-				.addValue("pos", pos);
-		return jdbcTemplate.query(SELECT_FROM_ESM,
-				parameters,
-				(rs, rowNum) ->
-						new ESMScore(rs.getString("accession"),
-								rs.getInt("position"),
-								rs.getString("mt_aa"),
-								rs.getDouble("score"))
-		);
+	public List<Score> getScores(Set<Object[]> accPosSet) {
+		if (accPosSet.size() > 0) {
+			SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
+			List results = jdbcTemplate.query(SCORES,
+					parameters,
+					(rs, rowNum) -> {
+						String t = rs.getString("type");
+						if (t.equalsIgnoreCase(Score.Name.CONSERV.name())) {
+							return new ConservScore(rs.getString("accession"), rs.getInt("position"), null, rs.getDouble("score"));
+						} else if (t.equalsIgnoreCase(Score.Name.EVE.name())) {
+							return new EVEScore(rs.getString("accession"), rs.getInt("position"), rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
+						} else if (t.equalsIgnoreCase(Score.Name.ESM.name())) {
+							return new ESMScore(rs.getString("accession"), rs.getInt("position"), rs.getString("mt_aa"), rs.getDouble("score"));
+						} else if (t.equalsIgnoreCase(Score.Name.AM.name())) {
+							return new AMScore(rs.getString("accession"), rs.getInt("position"), rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
+						}
+						return null;
+					});
+			results.removeIf(Objects::isNull);
+			return results;
+		}
+		return EMPTY_RESULT;
+	}
+
+	private String appendMt(String sql, String mt) {
+		if (mt == null)
+			return sql;
+		return sql + " and mt_aa=:mt";
 	}
 }

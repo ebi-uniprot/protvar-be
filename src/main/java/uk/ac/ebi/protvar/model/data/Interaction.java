@@ -6,6 +6,19 @@ import lombok.Setter;
 
 import java.util.List;
 
+/**
+ * Definition
+ * When we use interaction we usually mean at the whole protein level.
+ * ie protein A interacts with protein B.
+ * (protein-protein interaction)
+ * The pair together is often called a complex generically or a dimer specifically when
+ * it is two proteins (as all our are)
+ * The interface is the collection of residues which form the bond between the proteins.
+ * We could say that the residue numbers in the summary file form the interface.
+ * (The residues do "interact" chemically with each other to fix the two proteins together,
+ * however we should use interface and interface residues when talking about the specific
+ * amino acids, and interaction when talking about whole proteins)
+ */
 @Getter
 @Setter
 public class Interaction {

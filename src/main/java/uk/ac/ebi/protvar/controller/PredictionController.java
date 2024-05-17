@@ -2,6 +2,8 @@ package uk.ac.ebi.protvar.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,13 +12,14 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.data.*;
+import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 
 import javax.servlet.ServletContext;
 import java.util.List;
 
-@Tag(name = "Prediction")
+@Tag(name = "Predictions and scores")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
@@ -26,21 +29,39 @@ public class PredictionController {
 
     private ProtVarDataRepo protVarDataRepo;
 
-    /**
-     * Pocket predictions based on the AF-DB monomeric structures using autosite.
-     *
-     * @param accession UniProt accession
-     * @param resid     Residue
-     * @return <code>Pocket</code> information on accession
-     */
-    @Operation(summary = "Retrieves predicted pockets for accession and residue")
-    @GetMapping(value = "/pocket/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<Pocket>> getPocketsByAccAndResid(
-            @Parameter(example = "Q9NUW8") @PathVariable String accession,
-            @Parameter(example = "493") @PathVariable Integer resid) {
+    @Operation(summary = "Nucleotide predictions - CADD (WIP)",
+            description="Retrieve CADD score for the given genomic positions.")
+    @PostMapping(value = "/cadd", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Object> getCADDScores(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
+            @ExampleObject(value = "[\"19 1010539\"]"))})
+            @RequestBody List<String> coordinates) { // note coords normally refer to genomic coord whereas position is
+        // used more generally for e.g. genomic/protein position, UniProt or PDB position, etc.
+        return new ResponseEntity<>(null, HttpStatus.OK);
+    }
 
-        List<Pocket> pockets = protVarDataRepo.getPockets(accession, resid);
-        return new ResponseEntity<>(pockets, HttpStatus.OK);
+    /**
+     * Retrieve Conservation, EVE, ESM1b and AlphaMissense scores.
+     *
+     * @param acc UniProt accession
+     * @param pos  Amino acid position
+     * @param mt  Mutated type (1- or 3-letter amino acid)
+     * @param name  Score name
+     * @return <code>Score</code>
+     */
+    @Operation(summary = "Amino acid predictions",
+            description="Retrieve Conservation, EVE, ESM1b and AlphaMissense scores for accession and position. " +
+                    "Mutated type (mt) is disregarded for Conservation score and optional for the other scores. " +
+                    "By default, all scores are retrieved.")
+    @GetMapping(value = "/score/{acc}/{pos}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Score>> getScores(
+            @Parameter(example = "Q9NUW8") @PathVariable String acc,
+            @Parameter(example = "493") @PathVariable Integer pos,
+            @Parameter(example = "R") @RequestParam(required = false) String mt,
+            @Parameter(example = "") @RequestParam(required = false) Score.Name name) {
+
+        List<Score> scores = protVarDataRepo.getScores(acc, pos, mt, name);
+        return new ResponseEntity<>(scores, HttpStatus.OK);
     }
 
     /**
@@ -51,7 +72,8 @@ public class PredictionController {
      * @param variantAA Optional, 1- or 3-letter symbol for variant amino acid
      * @return <code>Foldx</code> information on accession
      */
-    @Operation(summary = "Retrieve foldx predictions for accession and position")
+    @Operation(summary = "Predictions based on structure - foldx",
+            description = "Retrieve foldx predictions for accession and position")
     @GetMapping(value = "/foldx/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Foldx>> getFoldxsByAccAndPos(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
@@ -61,6 +83,23 @@ public class PredictionController {
         return new ResponseEntity<>(foldxs, HttpStatus.OK);
     }
 
+    /**
+     * Pocket predictions based on the AF-DB monomeric structures using autosite.
+     *
+     * @param accession UniProt accession
+     * @param resid     Residue
+     * @return <code>Pocket</code> information on accession
+     */
+    @Operation(summary = "Predictions based on structure - pocket",
+            description = "Retrieves predicted pockets for accession and residue")
+    @GetMapping(value = "/pocket/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<Pocket>> getPocketsByAccAndResid(
+            @Parameter(example = "Q9NUW8") @PathVariable String accession,
+            @Parameter(example = "493") @PathVariable Integer resid) {
+
+        List<Pocket> pockets = protVarDataRepo.getPockets(accession, resid);
+        return new ResponseEntity<>(pockets, HttpStatus.OK);
+    }
 
     /**
      * Predicted protein-protein interactions with strength/confidence of interaction.
@@ -69,7 +108,8 @@ public class PredictionController {
      * @param resid     Residue
      * @return <code>Interaction</code> information on accession
      */
-    @Operation(summary = "Retrieve predicted interacting structures for accession and residue")
+    @Operation(summary = "Predictions based on structure - interaction",
+            description = "Retrieve predicted interacting structures for accession and residue")
     @GetMapping(value = "/interaction/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Interaction>> getInteractionsByAccAndResid(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
@@ -87,7 +127,8 @@ public class PredictionController {
      * @param b UniProt accession
      * @return pdb model
      */
-    @Operation(summary = "Retrieve model of two interacting protein")
+    @Operation(summary = "Predictions based on structure - interaction model",
+            description = "Retrieve model of two interacting protein")
     @GetMapping(value = "/interaction/{a}/{b}/model", produces = MediaType.TEXT_PLAIN_VALUE)
     public @ResponseBody String getInteractionModel(
             @Parameter(example = "Q9NUW8") @PathVariable String a,
@@ -96,37 +137,4 @@ public class PredictionController {
         return model;
     }
 
-    /**
-     * Get conservation score.
-     *
-     * @param accession UniProt accession
-     * @param position  Amino acid position
-     * @return <code>ConservScore</code> information on accession
-     */
-    @Operation(summary = "Retrieve conservation score for accession and position")
-    @GetMapping(value = "/conserv/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<ConservScore>> getConservScoresByAccAndPos(
-            @Parameter(example = "Q9NUW8") @PathVariable String accession,
-            @Parameter(example = "493") @PathVariable Integer position) {
-
-        List<ConservScore> scores = protVarDataRepo.getConservScores(accession, position);
-        return new ResponseEntity<>(scores, HttpStatus.OK);
-    }
-
-    /**
-     * Get ESM score.
-     *
-     * @param accession UniProt accession
-     * @param position  Amino acid position
-     * @return <code>ESMScore</code> information on accession
-     */
-    @Operation(summary = "Retrieve ESM1v scores for accession and position")
-    @GetMapping(value = "/esm/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<ESMScore>> getEsmScores(
-            @Parameter(example = "Q9NUW8") @PathVariable String accession,
-            @Parameter(example = "493") @PathVariable Integer position) {
-
-        List<ESMScore> scores = protVarDataRepo.getEsmScores(accession, position);
-        return new ResponseEntity<>(scores, HttpStatus.OK);
-    }
 }

@@ -21,9 +21,9 @@ import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.Coord;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
-import uk.ac.ebi.protvar.model.data.EVEScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 import uk.ac.ebi.protvar.utils.Commons;
@@ -141,9 +141,9 @@ public class MappingFetcher {
 				//	variationFetcher.prefetch(canonicalAccessionLocations);
 			});
 
-			// retrieve EVE scores
-			Map<String, List<EVEScore>> eveScoreMap = protVarDataRepo.getEVEScores(accPosSet)
-					.stream().collect(Collectors.groupingBy(EVEScore::getGroupBy));
+			// retrieve AA scores
+			Map<String, List<Score>>  scoreMap = protVarDataRepo.getScores(accPosSet)
+					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
 					.collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));
@@ -203,7 +203,7 @@ public class MappingFetcher {
 
 								}
 							}
-							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, eveScoreMap, variationMap, options);
+							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, scoreMap, variationMap, options);
 						}
 
 						GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
