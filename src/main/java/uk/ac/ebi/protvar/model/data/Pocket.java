@@ -11,9 +11,11 @@ import java.util.List;
 @AllArgsConstructor
 public class Pocket {
 	private String structId;
-	private Double energy;
+	private Integer pocketId;
+	private Double radGyration;
 	private Double energyPerVol;
+	private Double buriedness;
+	private List<Integer> resid;
+	private Double meanPlddt;
 	private Double score;
-	private List<Integer> residList;
-
 }

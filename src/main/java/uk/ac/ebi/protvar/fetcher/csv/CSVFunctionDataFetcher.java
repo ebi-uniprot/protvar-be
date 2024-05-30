@@ -202,10 +202,13 @@ public class CSVFunctionDataFetcher {
 		StringJoiner joiner = new StringJoiner("|");
 		pockets.forEach(pocket -> {
 			StringBuilder builder = new StringBuilder();
-			builder.append("Energy:").append(pocket.getEnergy());
-			builder.append(";EnergyPerVol:").append(pocket.getEnergyPerVol());
-			builder.append(";Score:").append(pocket.getScore());
-			builder.append(";Resid:").append(getResids(pocket.getResidList()));
+			builder.append("pocket_id:").append(pocket.getPocketId());
+			builder.append(";rad_gyration:").append(pocket.getRadGyration());
+			builder.append(";energy_per_vol:").append(pocket.getEnergyPerVol());
+			builder.append(";buriedness:").append(pocket.getBuriedness());
+			builder.append(";resid:").append(getResids(pocket.getResid()));
+			builder.append(";mean_plddt:").append(pocket.getMeanPlddt());
+			builder.append(";score:").append(pocket.getScore());
 			joiner.add(builder.toString());
 		});
 		return joiner.toString();

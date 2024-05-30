@@ -54,7 +54,21 @@ public class DownloadService {
         return response;
     }
 
-    @RabbitListener(queues = {RabbitMQConfig.DOWNLOAD_QUEUE}, concurrency="2")
+    /**
+     * ackMode="NONE" here means that the listener acknowledges
+     * immediately on receiving a message (auto ack in rabbitmq).
+     * We choose this mode to ensure when jobs fail, unack messages
+     * (which would be the default mode) do not remain in the queue,
+     * and avoid the infinite cycle of trying to process them - likely
+     * to fail - on app restart etc.
+     * If an error or exception happens during job processing, these are
+     * handled e.g. failed job email sent to the user and dev.
+     * TO CHECK!
+     * @param request
+     * @throws InterruptedException
+     */
+
+    @RabbitListener(queues = {RabbitMQConfig.DOWNLOAD_QUEUE}, concurrency="2", ackMode = "NONE")
     public void onDownloadRequest(DownloadRequest request) {
         LOGGER.info("Processing request " + request.getId());
         csvDataFetcher.writeCSVResult(request);
