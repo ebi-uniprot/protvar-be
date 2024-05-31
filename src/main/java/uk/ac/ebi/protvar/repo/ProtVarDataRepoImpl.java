@@ -93,7 +93,8 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				"pocket_pLDDT_mean" as mean_plddt,
 				pocket_score_combined_scaled as score
 			FROM pocket_v2
-			WHERE struct_id=:accession AND (:resid)=ANY(pocket_resid);
+			WHERE struct_id=:accession AND (:resid)=ANY(pocket_resid)
+			ORDER BY pocket_score_combined_scaled DESC
  			"""; //with score in v1 is score_combined_scaled in v2
 
 	private static final String SELECT_FOLDXS_BY_ACC_AND_POS = """
