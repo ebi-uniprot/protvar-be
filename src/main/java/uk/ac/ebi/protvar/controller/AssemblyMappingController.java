@@ -16,11 +16,11 @@ import uk.ac.ebi.protvar.service.APIService;
 
 import java.util.List;
 
-@Tag(name = "Genome Conversion")
+@Tag(name = "Assembly Mapping")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
-public class GenomeConversionController {
+public class AssemblyMappingController {
     private APIService apiService;
 
     /**

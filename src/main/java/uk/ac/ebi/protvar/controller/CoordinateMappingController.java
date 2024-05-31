@@ -16,12 +16,11 @@ import uk.ac.ebi.protvar.service.MappingService;
 
 import java.util.List;
 
-@Tag(name = "Mapping")
+@Tag(name = "Coordinate Mapping")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
-public class
-MappingController {
+public class CoordinateMappingController {
   private MappingService mappingService;
 
   /**
