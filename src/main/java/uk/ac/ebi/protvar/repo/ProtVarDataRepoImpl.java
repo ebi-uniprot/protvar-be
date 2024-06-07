@@ -72,16 +72,30 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	// SQL syntax for array
 	// search for only one value
-	// SELECT * FROM af2_v3_human_pocketome WHERE struct_id='A0A075B6I1' AND 25=ANY(resid);
+	// SELECT * FROM pocket WHERE struct_id='A0A075B6I1' AND 25=ANY(resid);
 	// search array contains multiple value together (i.e. 24 AND 25)
-	// SELECT * FROM af2_v3_human_pocketome WHERE struct_id='A0A075B6I1' AND resid @> '{24, 25}';
+	// SELECT * FROM pocket WHERE struct_id='A0A075B6I1' AND resid @> '{24, 25}';
 	// search array contains one of some values (i.e. 24 or 25)
-	// SELECT * FROM af2_v3_human_pocketome WHERE struct_id='A0A075B6I1' AND resid && '{24, 25}';
+	// SELECT * FROM pocket WHERE struct_id='A0A075B6I1' AND resid && '{24, 25}';
 
-	private static final String SELECT_POCKETS_BY_ACC_AND_RESID = """
- 			SELECT * FROM af2_v3_human_pocketome 
+	private static final String SELECT_POCKET_BY_ACC_AND_RESID = """
+ 			SELECT * FROM pocket 
  			WHERE struct_id=:accession AND (:resid)=ANY(resid)
  			""";
+
+	// v2 score is scaled combined score
+	private static final String SELECT_POCKET_V2_BY_ACC_AND_RESID = """
+			SELECT struct_id, pocket_id,
+				pocket_rad_gyration as rad_gyration,
+				pocket_energy_per_vol as energy_per_vol,
+				pocket_buriedness as buriedness,
+				pocket_resid as resid,
+				"pocket_pLDDT_mean" as mean_plddt,
+				pocket_score_combined_scaled as score
+			FROM pocket_v2
+			WHERE struct_id=:accession AND (:resid)=ANY(pocket_resid)
+			ORDER BY pocket_score_combined_scaled DESC
+ 			"""; //with score in v1 is score_combined_scaled in v2
 
 	private static final String SELECT_FOLDXS_BY_ACC_AND_POS = """
  			SELECT * FROM afdb_foldx 
@@ -387,7 +401,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	public List<Pocket> getPockets(String accession, Integer resid) {
 		SqlParameterSource parameters = new MapSqlParameterSource("accession", accession)
 				.addValue("resid", resid);
-		return jdbcTemplate.query(SELECT_POCKETS_BY_ACC_AND_RESID, parameters, (rs, rowNum) -> createPocket(rs));
+		return jdbcTemplate.query(SELECT_POCKET_V2_BY_ACC_AND_RESID, parameters, (rs, rowNum) -> createPocket(rs));
 	}
 
 	public List<Interaction> getInteractions(String accession, Integer resid) {
@@ -410,8 +424,9 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	private Pocket createPocket(ResultSet rs) throws SQLException  {
-		return new Pocket(rs.getString("struct_id"), rs.getDouble("energy"), rs.getDouble("energy_per_vol"),
-				rs.getDouble("score"), getResidueList(rs, "resid"));
+		return new Pocket(rs.getString("struct_id"), rs.getInt("pocket_id"),  rs.getDouble("rad_gyration"),
+				rs.getDouble("energy_per_vol"), rs.getDouble("buriedness"), getResidueList(rs, "resid"),
+				rs.getDouble("mean_plddt"), rs.getDouble("score"));
 	}
 
 	private Foldx createFoldx(ResultSet rs) throws SQLException  {

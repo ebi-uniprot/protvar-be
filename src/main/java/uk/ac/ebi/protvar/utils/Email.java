@@ -1,145 +1,143 @@
 package uk.ac.ebi.protvar.utils;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
-import uk.ac.ebi.protvar.exception.UnexpectedUseCaseException;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 
 import javax.mail.internet.MimeMessage;
-import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Path;
-import java.util.Optional;
 
 @Component
 public class Email {
-  private static final String FROM = "protvar@ebi.ac.uk";
-  private static final String DEVELOPER_GROUP = "prabhat@ebi.ac.uk";
-  private static JavaMailSender emailSender;
-  private static String successBody = "";
-  private static String errorBody = "";
+    private static final String FROM = "protvar@ebi.ac.uk";
+    private static final String DEVELOPER = "prabhat@ebi.ac.uk";
+    private static JavaMailSender emailSender;
 
-  @Autowired
-  public void setEmailSender(JavaMailSender emailSender) {
-    Email.emailSender = emailSender;
-  }
+    private static final Logger LOGGER = LoggerFactory.getLogger(Email.class);
 
-  public static void send(String email, String jobName, Path outputFile) {
-    send(email, null, "ProtVar results: " + jobName, getSuccessBody(), jobName + "-ProtVar.zip", outputFile);
-  }
-  public static void notify(String email, String jobName, String url) {
-    send(email, null, "ProtVar results: " + jobName, getNotifyBody(url), null, null);
-  }
-
-
-  public static void sendErr(DownloadRequest request) {
-    if (request.getFile() == null) {
-      var body = getErrorBody() + "\n\n" + String.join("\n", request.getInputs());
-      send(request.getEmail(), DEVELOPER_GROUP, failedSub(request.getJobName()), body);
-    } else {
-      send(request.getEmail(), DEVELOPER_GROUP, failedSub(request.getJobName()), getErrorBody(),
-              request.getFile().getFileName().toString(), request.getFile());
+    @Autowired
+    public void setEmailSender(JavaMailSender emailSender) {
+        Email.emailSender = emailSender;
     }
-  }
 
-  public static void reportException(String subject, String sMessage, Throwable t) {
-    var sub = "ProtVar " + Optional.ofNullable(subject).orElse("unexpected error");
-    var body = Optional.ofNullable(sMessage).orElse("") + System.lineSeparator() +
-      Optional.ofNullable(t).map(ExceptionUtils::getStackTrace).orElse("");
-    send(DEVELOPER_GROUP, null, sub, body);
-  }
+    private static void sendSimpleMessage(String to, String cc, String subject, String body) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            if (Commons.notNullNotEmpty(cc))
+                message.setBcc(cc);
+            message.setFrom(FROM);
+            message.setSubject(subject);
+            message.setText(body);
 
-  private static String failedSub(String jobName) {
-    return "ProtVar job: " + jobName + " failed";
-  }
-
-  private static void send(String to, String cc, String subject, String body, String attachmentName, Path outputFile) {
-    try {
-      MimeMessage message = emailSender.createMimeMessage();
-      MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
-      if (Commons.notNullNotEmpty(to)) {
-        helper.setTo(to);
-        if (Commons.notNullNotEmpty(cc))
-          helper.setBcc(cc);
-      } else {
-        helper.setTo(cc);
-      }
-
-      helper.setFrom(FROM);
-      helper.setSubject(subject);
-      helper.setText(body);
-
-      if (attachmentName != null && outputFile != null) {
-        FileSystemResource file = new FileSystemResource(outputFile);
-        helper.addAttachment(attachmentName, file);
-      }
-      emailSender.send(message);
-    } catch (Exception e) {
-      throw new UnexpectedUseCaseException("Not able to send email", e);
+            emailSender.send(message);
+        } catch (Exception e) {
+            LOGGER.error("sendSimpleMessage exception", e);
+        }
     }
-  }
 
-  private static void send(String to, String cc, String subject, String body) {
-    try {
-      SimpleMailMessage message = new SimpleMailMessage();
-      if (Commons.notNullNotEmpty(to)) {
-        message.setTo(to);
-        if (Commons.notNullNotEmpty(cc))
-          message.setBcc(cc);
-      } else {
-        message.setTo(cc);
-      }
-      message.setFrom(FROM);
-      message.setSubject(subject);
-      message.setText(body);
-      emailSender.send(message);
-    } catch (Exception e) {
-      throw new UnexpectedUseCaseException("Not able to send email", e);
-    }
-  }
+    private static void sendMimeMessage(String to, String cc, String subject, String body, Path file) {
+        try {
+            MimeMessage message = emailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-  private static String getSuccessBody() {
-    if (successBody.isEmpty()) {
-      var stream = Email.class.getClassLoader().getResourceAsStream("successEmailBody.txt");
-      assert stream != null;
-      try {
-        successBody = new String(stream.readAllBytes());
-        stream.close();
-      } catch (IOException e) {
-        successBody = "Please find your attached results";
-      }
-    }
-    return successBody;
-  }
+            helper.setTo(to);
+            if (Commons.notNullNotEmpty(cc))
+                helper.setBcc(cc);
+            helper.setFrom(FROM);
+            helper.setFrom(FROM);
+            helper.setSubject(subject);
+            helper.setText(body);
 
-  private static String getNotifyBody(String url) {
-    var stream = Email.class.getClassLoader().getResourceAsStream("notifyEmailBody.txt");
-    String body;
-    try {
-      body = new String(stream.readAllBytes());
-    } catch (IOException e) {
-      body = String.format("Please find you ProtVar results at %s", url);
+            if (file != null) {
+                helper.addAttachment(file.getFileName().toString(), file.toFile());
+            }
+            emailSender.send(message);
+        } catch (Exception e) {
+            LOGGER.error("sendMimeMessage exception", e);
+        }
     }
-    body = String.format(body, url);
-    return body;
-  }
 
-  private static String getErrorBody() {
-    if (errorBody.isEmpty()) {
-      var stream = Email.class.getClassLoader().getResourceAsStream("errorEmailBody.txt");
-      assert stream != null;
-      try {
-        errorBody = new String(stream.readAllBytes());
-        stream.close();
-      } catch (IOException e) {
-        errorBody = "Your request failed. Contact us with your inputs";
-      }
+    public static void notifyUser(DownloadRequest request) {
+        if (Commons.notNullNotEmpty(request.getEmail())) {
+            sendSimpleMessage(request.getEmail(), null,
+                    String.format("ProtVar results: %s", request.getJobName()),
+                    notifyEmailBody(request.getUrl()));
+        }
     }
-    return errorBody;
-  }
+
+    public static void notifyUserErr(DownloadRequest request) {
+        if (Commons.notNullNotEmpty(request.getEmail())) {
+            String subject = String.format("ProtVar job: %s failed", request.getJobName());
+            String body = notifyErrEmailBody();
+            if (request.getFile() == null) {
+                String userInputs = String.join("\n", request.getInputs());
+                sendSimpleMessage(request.getEmail(), DEVELOPER, subject,
+                        String.format("%s\n\n%s", body, userInputs));
+            } else {
+                sendMimeMessage(request.getEmail(), DEVELOPER, subject, body, request.getFile());
+            }
+        }
+    }
+
+    public static void notifyDevErr(DownloadRequest request, Throwable t) {
+        LOGGER.error("notifyDevErr", t);
+        String subject = String.format("Download job failed: %s", request.getJobName());
+        String body = "unknown error";
+        if (t != null) {
+            StringWriter sw = new StringWriter();
+            t.printStackTrace(new PrintWriter(sw));
+            body = String.format("%s\n\n%s", t.getMessage(), sw);
+        }
+
+        if (request.getFile() == null) {
+            String userInputs = String.join("\n", request.getInputs());
+            sendSimpleMessage(DEVELOPER, null, subject,
+                    String.format("%s\n\n%s", body, userInputs));
+        } else {
+            sendMimeMessage(DEVELOPER, null, subject, body, request.getFile());
+        }
+    }
+
+    private static String notifyEmailBody(String url) {
+        return String.format("""
+                Dear user,
+                                            
+                Your results from ProtVar have been processed, please use the following link to download the file.
+                %s
+                            
+                For descriptions of each column and what value it contains please see below link
+                https://www.ebi.ac.uk/ProtVar/help#download-file
+                            
+                For any additional queries please feel free to contact us.
+                            
+                Thank you for using ProtVar.
+                ProtVar Team
+                protvar@ebi.ac.uk
+                """, url);
+    }
+
+    private static String notifyErrEmailBody() {
+        return """
+                Dear user,
+                                
+                Our apologies but we have been unable to retrieve results for your query.
+                Please check the ProtVar website again for information relating to any potential issues: https://www.ebi.ac.uk/ProtVar/
+                Please also check the information page for frequently asked questions and potential upload problems here: https://www.ebi.ac.uk/ProtVar/about
+                Please re-submit your query. If the problem persists then please contact us with your inputs.
+                                
+                For any additional queries please feel free to contact us.
+                                
+                Kind regards,
+                ProtVar Team
+                protvar@ebi.ac.uk
+                """;
+    }
 }

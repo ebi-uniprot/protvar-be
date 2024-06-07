@@ -189,7 +189,7 @@ public class Pro2Gen {
                             }
 
                             for (String altAllele : possibleAltAlleles) {
-                                altAllele = gCoordIsReverse ? reverseDNA(altAllele) : altAllele;
+                                //altAllele = gCoordIsReverse ? reverseDNA(altAllele) : altAllele;
                                 GenomicInput gInput = new GenomicInput(input.getInputStr());
                                 gInput.setChr(gCoordChr);
                                 gInput.setPos(gCoordPos);

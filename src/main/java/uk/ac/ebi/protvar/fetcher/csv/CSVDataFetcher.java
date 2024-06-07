@@ -11,8 +11,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.opencsv.CSVWriter;
@@ -25,7 +23,6 @@ import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
-import uk.ac.ebi.protvar.model.score.EVEClass;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
@@ -34,8 +31,6 @@ import uk.ac.ebi.protvar.fetcher.MappingFetcher;
 @Service
 @AllArgsConstructor
 public class CSVDataFetcher {
-
-	private final Logger logger = LoggerFactory.getLogger(CSVDataFetcher.class);
 
 	private static final String MAPPING_NOT_FOUND = "Mapping not found";
 
@@ -97,15 +92,11 @@ public class CSVDataFetcher {
 
 			// zip csv
 			FileUtils.zipFile(fileName, fileName + ".zip");
-
-			if (Commons.notNullNotEmpty(request.getEmail()))
-				Email.notify(request.getEmail(), request.getJobName(), request.getUrl());
-
-		} catch (Exception e) {
-			Email.sendErr(request);
-			var detail = "Download job failed:" + request.getJobName();
-			logger.error(detail, e);
-			Email.reportException(" job:" + request.getJobName(), detail, e);
+			// results ready
+			Email.notifyUser(request);
+		} catch (Throwable t) {
+			Email.notifyUserErr(request);
+			Email.notifyDevErr(request, t);
 		} finally {
 			if (request.getFile() != null)
 				FileUtils.tryDelete(request.getFile());
@@ -185,7 +176,7 @@ public class CSVDataFetcher {
 
 	private String[] concatNaOutputCols(List<String> inputAndNotes){
 		var valList = new ArrayList<>(inputAndNotes);
-		valList.addAll(Arrays.stream(CSV_HEADER_OUTPUT.split(Constants.COMMA)).map(ignore -> Constants.NA).collect(Collectors.toList()));
+		valList.addAll(Arrays.stream(CSV_HEADER_OUTPUT.split(Constants.COMMA)).map(ignore -> Constants.NA).toList());
 		return valList.toArray(String[]::new);
 	}
 

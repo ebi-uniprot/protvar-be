@@ -23,11 +23,15 @@ public class CSVPopulationDataFetcher {
 		if (populationObservations.getProteinColocatedVariant() != null) {
 			populationObservations.getProteinColocatedVariant().forEach(feature -> {
 				Integer featureGenLocation = HGVSg.extractLocation(feature.getGenomicLocation());
-				if (genomicLocation.equals(featureGenLocation)) {
+				/*if (genomicLocation.equals(featureGenLocation)) {
 					if (refAA.equalsIgnoreCase(feature.getWildType()) &&
 							variantAA.equalsIgnoreCase(feature.getAlternativeSequence())) {
 						variants.add(feature);
 					}
+				}*/
+				// Tmp fix to align downloaded file with what is displayed in the UI
+				if (variantAA.equalsIgnoreCase(feature.getAlternativeSequence())) {
+					variants.add(feature);
 				} else {
 					colocatedVariants.add(feature);
 				}

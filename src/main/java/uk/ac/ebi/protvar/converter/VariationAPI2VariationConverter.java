@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.exception.UnexpectedUseCaseException;
 import uk.ac.ebi.uniprot.variation.model.DSVAssociation;
 import uk.ac.ebi.uniprot.variation.model.Feature;
 import uk.ac.ebi.protvar.model.response.Variation;
@@ -49,7 +48,7 @@ public class VariationAPI2VariationConverter {
 		// - ? No idea why we have these values
 		try {
 			return AminoAcid.fromOneLetter(letter).getThreeLetters();
-		} catch (UnexpectedUseCaseException ignore) {
+		} catch (Exception e) {
 			return null;
 		}
 	}

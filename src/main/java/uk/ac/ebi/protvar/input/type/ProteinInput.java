@@ -123,7 +123,10 @@ public class ProteinInput extends UserInput {
                 String acc = matcher.group("acc"); // uniprot accession
                 String pos = matcher.group("pos");
                 parsedInput.setAcc(acc);
-                if (pos != null) {
+                if (pos == null) {
+                    parsedInput.addError(ErrorConstants.INVALID_PROTEIN_INPUT);
+                    LOGGER.error(parsedInput + ": parsing error");
+                } else {
                     parsedInput.setPos(Integer.parseInt(pos));
                 }
                 return parsedInput;
