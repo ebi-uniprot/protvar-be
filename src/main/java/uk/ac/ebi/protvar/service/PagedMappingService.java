@@ -13,8 +13,8 @@ import java.util.List;
 @AllArgsConstructor
 public class PagedMappingService {
 
-    private final static int DEFAULT_PAGE = 1;
-    private final static int DEFAULT_PAGE_SIZE = 10;
+    public final static int DEFAULT_PAGE = 1;
+    public final static int DEFAULT_PAGE_SIZE = 25;
     private MappingService mappingService;
 
     public PagedMappingResponse newInput(String id, String requestBody) {

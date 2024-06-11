@@ -80,7 +80,7 @@ public class PagedMappingController {
     public ResponseEntity<PagedMappingResponse> getInputResult(
             @Parameter(example = "id") @PathVariable("id") String id,
             @RequestParam(value = "pageNo", defaultValue = "1", required = false) int pageNo,
-            @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
+            @RequestParam(value = "pageSize", defaultValue = "25", required = false) int pageSize) {
 
         if (redisTemplate.hasKey(id)) {
             //System.out.println(Arrays.toString(redisTemplate.keys(uuid).toArray()));
