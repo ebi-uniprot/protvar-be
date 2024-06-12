@@ -10,11 +10,11 @@ public class PagedMappingResponse {
 
 	private String resultId;
 
-	private int pageNo;
+	private int page;
 
 	private int pageSize;
 
-	private long totalElements;
+	private long totalItems;
 
 	private int totalPages;
 
