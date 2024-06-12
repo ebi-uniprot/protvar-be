@@ -11,7 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
-import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
+import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.service.MappingService;
 
 import java.util.List;
@@ -21,12 +21,15 @@ import java.util.List;
 @CrossOrigin
 @AllArgsConstructor
 public class CoordinateMappingController {
+  private final static int MAX_INPUT = 1000;
   private MappingService mappingService;
 
   /**
-   * Retrieves genomic-to-protein mappings
+   * Genomic-protein coordinate mapping.
    *
-   * @param inputs List of inputs in genomic, cDNA, protein or ID format
+   * @param inputs List of inputs in any supported format. If input list size is greater than
+   *               `${MAX_INPUT}`, only the first `${MAX_INPUT}` input is processed and returned.
+   *               For larger input, use the new mappings endpoint that returns paginated response.
    * @return <code>MappingResponse</code>
    */
   @Operation(summary = "Retrieve mappings for the provided genomic, cDNA, protein or ID inputs")
@@ -44,18 +47,15 @@ public class CoordinateMappingController {
     @Parameter(description = "Human genome assembly version. Accepted values: GRCh38/h38/38, GRCh37/h37/37 or AUTO. Defaults to auto-detect")
     @RequestParam(required = false) String assembly
   ) {
-    MappingResponse mappingResponse = mappingService.getMapping(inputs, function, population, structure, assembly);
+    List<String> processList = inputs;
+    if (inputs.size() > MAX_INPUT) {
+      processList = inputs.subList(0, MAX_INPUT);
+    }
+    MappingResponse mappingResponse = mappingService.getMapping(processList, function, population, structure, assembly);
+    if (inputs.size() > MAX_INPUT && mappingResponse != null && mappingResponse.getMessages() != null) {
+      mappingResponse.getMessages().add(new Message(Message.MessageType.WARN, String.format("Processed first %d inputs only.", MAX_INPUT)));
+    }
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 
-
-  @Operation(summary = "Retrieve all mappings for the provided UniProt accession (WORK IN PROGRESS)")
-  @GetMapping(value = "/mappings/{accession}")
-  public ResponseEntity<PagedMappingResponse> mappingsAccession(
-          @Parameter(example = "Q9UHP9") @PathVariable("accession") String accession,
-          @RequestParam(value = "pageNo", defaultValue = "0", required = false) int pageNo,
-          @RequestParam(value = "pageSize", defaultValue = "10", required = false) int pageSize) {
-    PagedMappingResponse response = mappingService.getMappingByAccession(accession, pageNo, pageSize);
-    return new ResponseEntity<>(response, HttpStatus.OK);
-  }
 }
