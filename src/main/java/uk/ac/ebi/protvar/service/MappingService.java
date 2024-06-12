@@ -18,7 +18,6 @@ import java.util.List;
 @Service
 @AllArgsConstructor
 public class MappingService {
-    private ProtVarDataRepo protVarDataRepo;
     private MappingFetcher mappingFetcher;
 
     private InputProcessor inputProcessor;
@@ -31,26 +30,4 @@ public class MappingService {
         List<UserInput> userInputs = inputProcessor.parse(inputs);
         return mappingFetcher.getMappings(userInputs, options, assemblyVersion);
     }
-
-    public PagedMappingResponse getMappingByAccession(String accession, int pageNo, int pageSize) {
-        // Create a Pageable instance
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
-        // Retrieve a page of chr-pos for accession
-        Page<UserInput> page = protVarDataRepo.getGenInputsByAccession(accession, pageable);
-        // Get content for page object
-        List<UserInput> inputs = page.getContent();
-
-        List<OptionBuilder.OPTIONS> options = OptionBuilder.build(false, false, false);
-        MappingResponse content = mappingFetcher.getMappings(inputs, options, "38");
-
-        PagedMappingResponse response = new PagedMappingResponse();
-        response.setContent(content);
-        response.setPageNo(page.getNumber());
-        response.setPageSize(page.getSize());
-        response.setTotalElements(page.getTotalElements());
-        response.setTotalPages(page.getTotalPages());
-        response.setLast(page.isLast());
-        return response;
-    }
-
 }
