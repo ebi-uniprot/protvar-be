@@ -82,7 +82,7 @@ public class PagedMappingController {
 
     @Operation(summary = "Submit variant input (WORK IN PROGRESS)")
     @PostMapping(value="/mappings/submit", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.TEXT_PLAIN_VALUE)
-    public Map postTextInput(
+    public ResponseEntity<Map> postTextInput(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
             @ExampleObject(value = "19 1010539 G C\nP80404 Gln56Arg\nrs1042779"))})
             @RequestBody String requestBody,
@@ -94,8 +94,7 @@ public class PagedMappingController {
         // TODO handle null
         // store id:input
         cacheInput(id, requestBody);
-
-        return Collections.singletonMap("id", id);
+        return new ResponseEntity<>(Collections.singletonMap("id", id), HttpStatus.OK);
     }
 
     private void cacheInput(String id, String input) {
