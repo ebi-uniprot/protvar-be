@@ -21,6 +21,8 @@ import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Collections;
+import java.util.Map;
 
 @Tag(name = "Coordinate Mapping")
 @RestController
@@ -77,6 +79,25 @@ public class PagedMappingController {
         return new ResponseEntity<>(pagedMappingService.newInput(id, requestBody), HttpStatus.OK);
     }
 
+
+    @Operation(summary = "Submit variant input (WORK IN PROGRESS)")
+    @PostMapping(value="/mappings/submit", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.TEXT_PLAIN_VALUE)
+    public Map postTextInput(
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
+            @ExampleObject(value = "19 1010539 G C\nP80404 Gln56Arg\nrs1042779"))})
+            @RequestBody String requestBody,
+            @Parameter(description = "Human genome assembly version. Accepted values: GRCh38/h38/38, GRCh37/h37/37 or AUTO. Defaults to auto-detect")
+            @RequestParam(required = false) String assembly) {
+        // generate checksum
+        // FILE: Files.readAllBytes(Paths.get(filePath));
+        String id = generateChecksum(requestBody.getBytes());
+        // TODO handle null
+        // store id:input
+        cacheInput(id, requestBody);
+
+        return Collections.singletonMap("id", id);
+    }
+
     private void cacheInput(String id, String input) {
         if (!redisTemplate.hasKey(id)) {
             redisTemplate.opsForValue().set(id, input);
@@ -85,7 +106,7 @@ public class PagedMappingController {
     }
 
     @PostMapping(value = "/mappings/fileInput", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<PagedMappingResponse> postFileInputd(
+    public ResponseEntity<PagedMappingResponse> postFileInput(
             @RequestParam("file") MultipartFile file,
             @Parameter(description = "Human genome assembly version. Accepted values: GRCh38/h38/38, GRCh37/h37/37 or AUTO. Defaults to auto-detect")
             @RequestParam(required = false) String assembly) {
