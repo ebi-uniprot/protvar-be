@@ -21,31 +21,34 @@ import java.util.List;
 @CrossOrigin
 @AllArgsConstructor
 public class CoordinateMappingController {
-  private final static int MAX_INPUT = 1000;
+  public final static int MAX_INPUT = 1000;
+  public final static String ASSEMBLY_DESC = "Specify the human genome assembly version. Accepted values are: GRCh38/h38/38, GRCh37/h37/37 or AUTO (default, auto-detects the version).";
   private MappingService mappingService;
 
-  /**
-   * Genomic-protein coordinate mapping.
-   *
-   * @param inputs List of inputs in any supported format. If input list size is greater than
-   *               `${MAX_INPUT}`, only the first `${MAX_INPUT}` input is processed and returned.
-   *               For larger input, use the new mappings endpoint that returns paginated response.
-   * @return <code>MappingResponse</code>
-   */
-  @Operation(summary = "Retrieve mappings for the provided genomic, cDNA, protein or ID inputs")
+  @Operation(
+          summary = "Genomic-Protein Mappings for Various Input Formats",
+          description = "Retrieve genomic-protein mappings for a list of inputs in any supported format. These formats include " +
+                  "genomic (VCF, gnomAD, HGVSg, and various custom formats), protein (HGVSp and various custom formats), " +
+                  "cDNA (HGVSc), and variant ID (dbSNP, ClinVar, COSMIC). UPDATE: This endpoint processes up to 1000 inputs per request now. " +
+                  "If the input size exceeds this limit, only the first 1000 inputs will be processed and returned. For larger inputs, " +
+                  "please use the new mapping paginated endpoint, which returns a paginated response."
+  )
   @PostMapping(value = "/mappings", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<MappingResponse> mappings(
-    @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
-    @ExampleObject(value = "[\"19 1010539 G C\",\"P80404 Gln56Arg\", \"rs1042779\"]"))})
-    @RequestBody List<String> inputs,
-    @Parameter(description = "Include functional annotations in results")
-    @RequestParam(required = false, defaultValue = "false") boolean function,
-    @Parameter(description = "Include population annotations (residue co-located variants and disease associations) in results")
-    @RequestParam(required = false, defaultValue = "false") boolean population,
-    @Parameter(description = "Include structural annotations in results")
-    @RequestParam(required = false, defaultValue = "false") boolean structure,
-    @Parameter(description = "Human genome assembly version. Accepted values: GRCh38/h38/38, GRCh37/h37/37 or AUTO. Defaults to auto-detect")
-    @RequestParam(required = false) String assembly
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                  content = @Content(
+                          examples = @ExampleObject(value = "[\"19 1010539 G C\",\"P80404 Gln56Arg\", \"rs1042779\"]")
+                  )
+          )
+        @RequestBody List<String> inputs,
+        @Parameter(description = "Include functional annotations in results")
+        @RequestParam(required = false, defaultValue = "false") boolean function,
+        @Parameter(description = "Include population annotations (residue co-located variants and disease associations) in results")
+        @RequestParam(required = false, defaultValue = "false") boolean population,
+        @Parameter(description = "Include structural annotations in results")
+        @RequestParam(required = false, defaultValue = "false") boolean structure,
+        @Parameter(description = ASSEMBLY_DESC)
+        @RequestParam(required = false) String assembly
   ) {
     List<String> processList = inputs;
     if (inputs.size() > MAX_INPUT) {
@@ -58,10 +61,15 @@ public class CoordinateMappingController {
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 
-  @Operation(summary = "Retrieve mapping for single input query specified as path parameter in the URL.")
+  @Operation(
+          summary = "Retrieve Mapping for a Single Input Query",
+          description = "Fetch the genomic-protein mapping for a single input query provided as a path parameter in the URL. " +
+                  "The input should be in a supported format, such as genomic coordinates, variant identifiers, or protein change notations. "
+  )
   @GetMapping(value = "/mapping/query/{input}", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<MappingResponse> queryInput(
-          @Parameter(example = "19 1010539 G C") @PathVariable("input") String input) {
+          @Parameter(description = "The input query in a supported format.", example = "19-1010539-G-C")
+          @PathVariable("input") String input) {
     MappingResponse mappingResponse = mappingService.getMapping(List.of(input), false, false, false, null);
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
