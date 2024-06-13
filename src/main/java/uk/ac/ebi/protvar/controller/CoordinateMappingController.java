@@ -58,4 +58,12 @@ public class CoordinateMappingController {
     return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
   }
 
+  @Operation(summary = "Retrieve mapping for single input query specified as path parameter in the URL.")
+  @GetMapping(value = "/mapping/query/{input}", produces = MediaType.APPLICATION_JSON_VALUE)
+  public ResponseEntity<MappingResponse> queryInput(
+          @Parameter(example = "19 1010539 G C") @PathVariable("input") String input) {
+    MappingResponse mappingResponse = mappingService.getMapping(List.of(input), false, false, false, null);
+    return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
+  }
+
 }
