@@ -26,12 +26,12 @@ public class PagedMappingService {
     private MappingFetcher mappingFetcher;
 
 
-    public PagedMappingResponse newInput(String id, String requestBody) {
+    public PagedMappingResponse newInput(String id, String requestBody, String assembly) {
         // return first page result
-        return getInputResult(id, requestBody, DEFAULT_PAGE, DEFAULT_PAGE_SIZE);
+        return getInputResult(id, requestBody, DEFAULT_PAGE, DEFAULT_PAGE_SIZE, assembly);
     }
 
-    public PagedMappingResponse getInputResult(String id, String input, int pageNo, int pageSize) {
+    public PagedMappingResponse getInputResult(String id, String input, int pageNo, int pageSize, String assembly) {
 
         PagedMappingResponse response = new PagedMappingResponse();
         response.setResultId(id);
@@ -48,17 +48,17 @@ public class PagedMappingService {
 
         List<String> results = getPage(inputs, pageNo, pageSize);
 
-        MappingResponse mappingContent = mappingService.getMapping(results, false, false, false, "AUTO");
+        MappingResponse mappingContent = mappingService.getMapping(results, false, false, false, assembly);
         response.setContent(mappingContent);
 
         return response;
     }
 
-    public List getPage(List sourceList, int page, int pageSize) {
-        if(pageSize <= 0 || page <= 0) {
+    public List getPage(List sourceList, int pageNo, int pageSize) {
+        if(pageSize <= 0 || pageNo <= 0) {
             return Collections.emptyList();
         }
-        int fromIndex = (page - 1) * pageSize;
+        int fromIndex = (pageNo - 1) * pageSize;
         if(sourceList == null || sourceList.size() <= fromIndex) {
             return Collections.emptyList();
         }
