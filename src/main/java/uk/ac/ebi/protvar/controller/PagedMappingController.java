@@ -149,7 +149,7 @@ public class PagedMappingController {
     }
 
     @Operation(summary = "Retrieve all mappings for the provided UniProt accession (WORK IN PROGRESS)")
-    @GetMapping(value = "/mappings/{accession}")
+    @GetMapping(value = "/mapping/protein/{accession}")
     public ResponseEntity<PagedMappingResponse> mappingsAccession(
             @Parameter(example = "Q9UHP9") @PathVariable("accession") String accession,
             @RequestParam(value = "page", defaultValue = PAGE, required = false) int page,
