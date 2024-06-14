@@ -63,25 +63,25 @@ public class PagedMappingController {
     private void cacheInput(String id, String input) {
         if (!redisTemplate.hasKey(id)) {
             redisTemplate.opsForValue().set(id, input);
-            redisTemplate.expireAt(id, Instant.now().plus(RESULT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
+            redisTemplate.expireAt(id, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
         }
     }
 
     @Operation(
             summary = "Submit either a text input or a file for processing",
-            description = "This endpoint allows you to submit a text input or a file for processing. The response will contain a unique result ID for the submitted input, " +
+            description = "This endpoint allows you to submit a text input or a file for processing. The response will contain a unique ID for the submitted input, " +
                     "which can be used to retrieve the results later. If both text and file inputs are provided, the file will be prioritised and processed."
     )
     @ApiResponse(
-            description = "`PagedMappingResponse` by default containing the result ID and the first page of results. If the `idOnly` parameter is specified, " +
-                    "an `IDResponse` will be returned, which contains only the result ID. This ID can be used to retrieve results from the `/mapping/result/{id}` endpoint."
+            description = "`PagedMappingResponse` by default containing the first page of results. If the `idOnly` parameter is specified, " +
+                    "an `IDResponse` will be returned containing a generated ID, which can be used to retrieve results from the `/mapping/result/{id}` endpoint."
     )
     @PostMapping(
-            value = "/mapping/submit",
+            value = "/mapping/input",
             produces = MediaType.APPLICATION_JSON_VALUE,
             consumes = { MediaType.MULTIPART_FORM_DATA_VALUE, MediaType.TEXT_PLAIN_VALUE }
     )
-    public ResponseEntity<?> submit(
+    public ResponseEntity<?> postInput(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     description = "The text content to be processed.",
                     content = @Content(
@@ -93,7 +93,7 @@ public class PagedMappingController {
             @RequestParam(required = false) MultipartFile file,
             @Parameter(description = CoordinateMappingController.ASSEMBLY_DESC)
             @RequestParam(required = false, defaultValue = "AUTO") String assembly,
-            @Parameter(description = "If set to true, the response will contain only the result ID.")
+            @Parameter(description = "If set to true, the response will contain only the generated ID, which can be used to retrieve the results later.")
             @RequestParam(required = false, defaultValue = "false") boolean idOnly
             ) {
         String id = null;
@@ -125,8 +125,8 @@ public class PagedMappingController {
             description = "Retrieve paginated genomic-protein mappings for a specific input ID. This endpoint returns the results in JSON format. " +
                     "You can specify the page number and page size for pagination. Additionally, you can specify the assembly version."
     )
-    @GetMapping(value = "/mapping/result/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PagedMappingResponse> getInputResult(
+    @GetMapping(value = "/mapping/input/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PagedMappingResponse> getResult(
             @Parameter(description = "The unique ID of the input to retrieve mappings for.", example = "id")
             @PathVariable("id") String id,
             @Parameter(description = PAGE_DESC, example = PAGE)
@@ -172,7 +172,7 @@ public class PagedMappingController {
                     "You can specify the page number and the number of results per page for pagination."
     )
     @GetMapping(value = "/mapping/protein/{accession}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PagedMappingResponse> mappingsAccession(
+    public ResponseEntity<PagedMappingResponse> getResultByAccession(
             @Parameter(description = "The UniProt accession to retrieve mappings for.", example = "Q9UHP9")
             @PathVariable("accession") String accession,
             @Parameter(description = PAGE_DESC, example = PAGE)

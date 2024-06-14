@@ -34,7 +34,7 @@ public class PagedMappingService {
     public PagedMappingResponse getInputResult(String id, String input, int pageNo, int pageSize, String assembly) {
 
         PagedMappingResponse response = new PagedMappingResponse();
-        response.setResultId(id);
+        response.setId(id);
         response.setPage(pageNo);
         response.setPageSize(pageSize);
 

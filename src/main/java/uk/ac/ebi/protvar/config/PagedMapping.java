@@ -9,5 +9,5 @@ public class PagedMapping {
     public final static int PAGE_SIZE_MAX = 1000;
     public final static int DEFAULT_PAGE = Integer.valueOf(PAGE);
     public final static int DEFAULT_PAGE_SIZE = Integer.valueOf(PAGE_SIZE);
-    public static int RESULT_EXPIRES_AFTER_DAYS = 30;
+    public static int INPUT_EXPIRES_AFTER_DAYS = 30;
 }
