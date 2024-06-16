@@ -186,6 +186,8 @@ public class PagedMappingController {
             pageSize = DEFAULT_PAGE_SIZE;
 
         PagedMappingResponse response = pagedMappingService.getMappingByAccession(accession, page, pageSize);
+        if (response != null)
+            response.setId(accession);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }
