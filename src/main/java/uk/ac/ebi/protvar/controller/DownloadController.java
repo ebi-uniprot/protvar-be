@@ -105,7 +105,7 @@ public class DownloadController implements WebMvcConfigurer {
   @ResponseBody
   public ResponseEntity<?> download(HttpServletRequest request,
           @Parameter(description = "The unique ID of the input to generate download for.", example = "id")
-          @RequestParam("id") String id,
+          @RequestBody String inputId,
           @Parameter(description = "The page number to retrieve. If not specified, download file is generated for all inputs.", example = PAGE)
           @RequestParam(value = "page", required = false) int page,
           @Parameter(description = "The number of results per page.", example = PAGE_SIZE)
@@ -119,7 +119,7 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false, defaultValue = "false") boolean structure
           ) {
     DownloadRequest downloadRequest = DownloadRequest.idDownloadRequest(request.getRequestURL().toString(),
-            id, page, pageSize,
+            inputId, page, pageSize,
             function, population, structure,
             assembly, email, jobName);
     DownloadResponse response = downloadService.queueRequest(downloadRequest);
