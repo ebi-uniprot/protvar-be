@@ -11,6 +11,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import com.opencsv.CSVWriter;
@@ -24,13 +27,17 @@ import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.service.PagedMappingService;
 import uk.ac.ebi.protvar.utils.*;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
 
+import static uk.ac.ebi.protvar.config.PagedMapping.DEFAULT_PAGE_SIZE;
+
 @Service
 @AllArgsConstructor
 public class CSVDataFetcher {
+	private static final Logger LOGGER = LoggerFactory.getLogger(CSVDataFetcher.class);
 
 	private static final String MAPPING_NOT_FOUND = "Mapping not found";
 
@@ -52,7 +59,7 @@ public class CSVDataFetcher {
 
 	static final String CSV_HEADER = CSV_HEADER_INPUT + Constants.COMMA + CSV_HEADER_NOTES + Constants.COMMA + CSV_HEADER_OUTPUT;
 
-	private static final int PAGE_SIZE = 1000;
+	private static final int PARTITION_SIZE = 1000;
 
 	private MappingFetcher mappingFetcher;
 	private CSVFunctionDataFetcher functionDataFetcher;
@@ -61,20 +68,47 @@ public class CSVDataFetcher {
 	private InputProcessor inputProcessor;
 
 	private String downloadDir;
+	private RedisTemplate redisTemplate;
 
 	public void writeCSVResult(DownloadRequest request) {
 		try {
 			List<OptionBuilder.OPTIONS> options = OptionBuilder.build(request.isFunction(), request.isPopulation(), request.isStructure());
-			List<String> inputs = request.getFile() == null ? request.getInputs() :
-					Files.lines(request.getFile()).collect(Collectors.toList());
 
-			List<List<String>> inputPartitions = Lists.partition(inputs, PAGE_SIZE);
+			Path csvPath = Paths.get(downloadDir, request.getId() + ".csv");
+			Path zipPath = Paths.get(downloadDir, request.getId() + ".csv.zip");
 
-			Path filePath = Paths.get(downloadDir, request.getId() + ".csv");
-			String fileName = filePath.toString();
+			if (Files.exists(zipPath)) {
+				LOGGER.warn("{} exists", zipPath.toString());
+				return;
+			}
 
+			List<String> inputs = null;
+			if (request.getFile() != null)
+				inputs = Files.lines(request.getFile()).collect(Collectors.toList());
+			else if (request.getInputs() != null)
+				inputs = request.getInputs();
+			else if (request.getInputId() != null) {
+
+				if (redisTemplate.hasKey(request.getInputId())) {
+					String originalInput = redisTemplate.opsForValue().get(request.getInputId()).toString();
+					if (originalInput != null) {
+						List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
+						Integer page = request.getPage();
+						if (page != null) {
+							Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
+							inputs = PagedMappingService.getPage(originalInputList, page, pageSize);
+						}
+					}
+				}
+			}
+			if (inputs == null || inputs.size() == 0) {
+				LOGGER.warn("no inputs to generate download file");
+				return;
+			}
+
+			List<List<String>> inputPartitions = Lists.partition(inputs, PARTITION_SIZE);
 			// write csv
-			try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(filePath));
+			try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(csvPath));
 				 CSVWriter writer = new CSVWriter(outputStreamWriter)) {
 				writer.writeNext(CSV_HEADER.split(","));
 				// v1
@@ -91,7 +125,7 @@ public class CSVDataFetcher {
 			}
 
 			// zip csv
-			FileUtils.zipFile(fileName, fileName + ".zip");
+			FileUtils.zipFile(csvPath.toString(), zipPath.toString());
 			// results ready
 			Email.notifyUser(request);
 		} catch (Throwable t) {

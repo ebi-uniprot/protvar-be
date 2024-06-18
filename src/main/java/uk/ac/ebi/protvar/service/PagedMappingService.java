@@ -54,7 +54,7 @@ public class PagedMappingService {
         return response;
     }
 
-    public List getPage(List sourceList, int pageNo, int pageSize) {
+    public static List getPage(List sourceList, int pageNo, int pageSize) {
         if(pageSize <= 0 || pageNo <= 0) {
             return Collections.emptyList();
         }

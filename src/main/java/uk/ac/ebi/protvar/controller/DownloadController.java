@@ -21,10 +21,11 @@ import uk.ac.ebi.protvar.utils.FileUtils;
 import javax.servlet.http.HttpServletRequest;
 import java.io.FileInputStream;
 import java.nio.file.Path;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+
+import static uk.ac.ebi.protvar.config.PagedMapping.PAGE;
+import static uk.ac.ebi.protvar.config.PagedMapping.PAGE_SIZE;
 
 
 @Tag(name = "Download")
@@ -50,7 +51,7 @@ public class DownloadController implements WebMvcConfigurer {
    * @return response has the job ID to check status
    * @throws Exception
    */
-  @Operation(summary = "Download request using file input")
+  @Operation(summary = "Submit download request for the file input and provided parameters")
   @PostMapping(value = "/download/fileInput", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> download(HttpServletRequest request,
                                     @RequestParam MultipartFile file,
@@ -60,14 +61,11 @@ public class DownloadController implements WebMvcConfigurer {
                                     @RequestParam(required = false) String assembly,
                                     @RequestParam(required = false) String email,
                                     @RequestParam(required = false) String jobName) throws Exception {
+    // TODO: cache input?
     Path newFile = FileUtils.writeFile(downloadService.tmpPath(), file);
-    UUID id = UUID.randomUUID();
-    DownloadRequest downloadRequest =
-            new DownloadRequest(id, LocalDateTime.now(),
-                    newFile, null,
-                    function, population, structure,
-                    assembly, email, jobName,
-                    request.getRequestURL().toString().replace("fileInput", id.toString()));
+    DownloadRequest downloadRequest = DownloadRequest.fileDownloadRequest(request.getRequestURL().toString(),
+            newFile, function, population, structure,
+            assembly, email, jobName);
     DownloadResponse response = downloadService.queueRequest(downloadRequest);
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
@@ -83,7 +81,7 @@ public class DownloadController implements WebMvcConfigurer {
    * @param structure
    * @return response has the job ID to check status
    */
-  @Operation(summary = "Download request using text input")
+  @Operation(summary = "Submit download request for the list of inputs and provided parameters")
   @PostMapping(value = "/download/textInput", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> download(HttpServletRequest request,
           @RequestBody List<String> inputs,
@@ -93,13 +91,37 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false) String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
-    UUID id = UUID.randomUUID();
-    DownloadRequest downloadRequest =
-            new DownloadRequest(id, LocalDateTime.now(),
-                    null, inputs,
-                    function, population, structure,
-                    assembly, email, jobName,
-                    request.getRequestURL().toString().replace("textInput", id.toString()));
+    // TODO: cache input?
+    DownloadRequest downloadRequest = DownloadRequest.textDownloadRequest(request.getRequestURL().toString(),
+            inputs, function, population, structure,
+            assembly, email, jobName);
+    DownloadResponse response = downloadService.queueRequest(downloadRequest);
+    return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  @Operation(summary = "Submit download request for the input ID and provided parameters including page and pageSize. " +
+          "If no page is specified, the full original input is processed.")
+  @GetMapping(value = "/download/idInput")
+  @ResponseBody
+  public ResponseEntity<?> download(HttpServletRequest request,
+          @Parameter(description = "The unique ID of the input to generate download for.", example = "id")
+          @RequestParam("id") String id,
+          @Parameter(description = "The page number to retrieve. If not specified, download file is generated for all inputs.", example = PAGE)
+          @RequestParam(value = "page", required = false) int page,
+          @Parameter(description = "The number of results per page.", example = PAGE_SIZE)
+          @RequestParam(value = "pageSize", defaultValue = PAGE_SIZE, required = false) int pageSize,
+          @Parameter(description = CoordinateMappingController.ASSEMBLY_DESC)
+          @RequestParam(required = false, defaultValue = "AUTO") String assembly,
+          @RequestParam(required = false) String email,
+          @RequestParam(required = false) String jobName,
+          @RequestParam(required = false, defaultValue = "false") boolean function,
+          @RequestParam(required = false, defaultValue = "false") boolean population,
+          @RequestParam(required = false, defaultValue = "false") boolean structure
+          ) {
+    DownloadRequest downloadRequest = DownloadRequest.idDownloadRequest(request.getRequestURL().toString(),
+            id, page, pageSize,
+            function, population, structure,
+            assembly, email, jobName);
     DownloadResponse response = downloadService.queueRequest(downloadRequest);
     return new ResponseEntity<>(response, HttpStatus.OK);
   }

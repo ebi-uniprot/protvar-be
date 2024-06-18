@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class DownloadResponse {
-    String inputType;
+    //String inputType;
     LocalDateTime requested;
     String downloadId;
     int status;

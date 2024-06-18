@@ -30,8 +30,9 @@ import java.util.*;
 public class DownloadService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadService.class);
-    public static final String FILE_INPUT = "FILE";
-    public static final String TEXT_INPUT = "TEXT";
+    //public static final String FILE_INPUT = "FILE";
+    //public static final String TEXT_INPUT = "TEXT";
+    //public static final String ID_INPUT = "ID";
     private String downloadDir;
     private CSVDataFetcher csvDataFetcher;
     private final RabbitTemplate rabbitTemplate;
@@ -45,9 +46,9 @@ public class DownloadService {
         rabbitTemplate.convertAndSend("", RabbitMQConfig.DOWNLOAD_QUEUE, downloadRequest);
 
         DownloadResponse response = new DownloadResponse();
-        response.setInputType(downloadRequest.getFile() == null ? TEXT_INPUT : FILE_INPUT);
+        //response.setInputType(downloadRequest.getFile() == null ? TEXT_INPUT : FILE_INPUT);
         response.setRequested(downloadRequest.getTimestamp());
-        response.setDownloadId(downloadRequest.getId().toString());
+        response.setDownloadId(downloadRequest.getId());
         response.setStatus(-1);
         response.setJobName(downloadRequest.getJobName());
         response.setUrl(downloadRequest.getUrl());
