@@ -101,10 +101,14 @@ public class DownloadController implements WebMvcConfigurer {
 
   @Operation(summary = "Submit download request for the input ID and provided parameters including page and pageSize. " +
           "If no page is specified, the full original input is processed.")
-  @GetMapping(value = "/download/idInput")
+  @GetMapping(value = "/download/idInput",
+          produces = MediaType.APPLICATION_JSON_VALUE,
+          consumes = { MediaType.TEXT_PLAIN_VALUE })
   @ResponseBody
   public ResponseEntity<?> download(HttpServletRequest request,
-          @Parameter(description = "The unique ID of the input to generate download for.", example = "id")
+          @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                  description = "The unique ID of the input to generate download for."
+          )
           @RequestBody String inputId,
           @Parameter(description = "The page number to retrieve. If not specified, download file is generated for all inputs.", example = PAGE)
           @RequestParam(value = "page", required = false) int page,
