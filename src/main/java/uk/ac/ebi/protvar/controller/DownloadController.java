@@ -24,10 +24,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import static uk.ac.ebi.protvar.config.PagedMapping.PAGE;
-import static uk.ac.ebi.protvar.config.PagedMapping.PAGE_SIZE;
-
-
 @Tag(name = "Download")
 @RestController
 @CrossOrigin
@@ -101,21 +97,19 @@ public class DownloadController implements WebMvcConfigurer {
 
   @Operation(summary = "Submit download request for the input ID and provided parameters including page and pageSize. " +
           "If no page is specified, the full original input is processed.")
-  @GetMapping(value = "/download/idInput",
-          produces = MediaType.APPLICATION_JSON_VALUE,
-          consumes = { MediaType.TEXT_PLAIN_VALUE })
+  @PostMapping(value = "/download/idInput", produces = MediaType.APPLICATION_JSON_VALUE)
   @ResponseBody
   public ResponseEntity<?> download(HttpServletRequest request,
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
                   description = "The unique ID of the input to generate download for."
           )
           @RequestBody String inputId,
-          @Parameter(description = "The page number to retrieve. If not specified, download file is generated for all inputs.", example = PAGE)
-          @RequestParam(value = "page", required = false) int page,
-          @Parameter(description = "The number of results per page.", example = PAGE_SIZE)
-          @RequestParam(value = "pageSize", defaultValue = PAGE_SIZE, required = false) int pageSize,
+          @Parameter(description = "The page number to retrieve. If not specified, download file is generated for all inputs.")
+          @RequestParam(required = false) Integer page,
+          @Parameter(description = "The number of results per page.")
+          @RequestParam(required = false) Integer pageSize,
           @Parameter(description = CoordinateMappingController.ASSEMBLY_DESC)
-          @RequestParam(required = false, defaultValue = "AUTO") String assembly,
+          @RequestParam(required = false) String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName,
           @RequestParam(required = false, defaultValue = "false") boolean function,
