@@ -97,7 +97,7 @@ public class DownloadController implements WebMvcConfigurer {
 
   @Operation(summary = "Submit download request for the input ID and provided parameters including page and pageSize. " +
           "If no page is specified, the full original input is processed.")
-  @PostMapping(value = "/download/idInput", produces = MediaType.APPLICATION_JSON_VALUE)
+  @PostMapping(value = "/download/idInput", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
   @ResponseBody
   public ResponseEntity<?> download(HttpServletRequest request,
           @io.swagger.v3.oas.annotations.parameters.RequestBody(

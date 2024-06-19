@@ -94,7 +94,9 @@ public class CSVDataFetcher {
 					if (originalInput != null) {
 						List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
 						Integer page = request.getPage();
-						if (page != null) {
+						if (request.getPage() == null) {
+							inputs = originalInputList;
+						} else {
 							Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
 							inputs = PagedMappingService.getPage(originalInputList, page, pageSize);
 						}
