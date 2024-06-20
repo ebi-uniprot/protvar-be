@@ -219,4 +219,100 @@ public class MappingFetcher {
 		return response;
 	}
 
+	/**
+	 * Specialised and greatly simplified getMappings for genomic inputs only, by-passing many checks;
+	 * used getMappingByAccession endpoint
+	 * Differences
+	 * 0. no need to groupInputs into type, may still need to filter out any invalid inputs(?) (in case incorrectly formed chr, pos, allele from db)
+	 * 1. assembly param not needed
+	 * 2. buildConversion not needed
+	 * 3. id2Gen not needed
+	 * 4. get refseq-uniprot accession mapping not needed
+	 * 5. coding2Pro cDNA to protein inputs conversion not needed
+	 * 6. pro2Gen protein to genomic inputs conversion not needed
+	 *
+	 * 7. a number of checks around instance of UserInput not needed as list will contain only genomic inputs
+	 * 8. a number of checks around ref/alt allele not needed, including
+	 * 	ERR_REF_ALLELE_EMPTY		ref and alt empty check
+	 *	ERR_REF_ALLELE_MISMATCH		user input-UniProtseq ref mismatch check
+	 *	ERR_VAR_ALLELE_EMPTY		alt empty check
+	 *	ERR_REF_AND_VAR_ALLELE_SAME	ref and var same check
+	 *
+	 * Only that is needed is GenomicInput.getAlternates based on ref retrieved from db
+	 *
+	 * @param userInputs
+	 * @param options
+	 * @return
+	 */
+	public MappingResponse getGenMappings(List<UserInput> userInputs, List<OPTIONS> options) {
+		MappingResponse response = initMappingResponse(userInputs);
+
+		// get all chrPos combination
+		Set<Object[]> chrPosSet = new HashSet<>();
+		userInputs.stream().forEach(userInput -> {
+			chrPosSet.addAll(userInput.chrPos());
+		});
+
+		if (!chrPosSet.isEmpty()) {
+
+			// retrieve CADD predictions
+			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosSet)
+					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
+
+			// retrieve main mappings
+			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosSet);
+
+			// get all protein accessions and positions from retrieved mappings
+			Set<String> canonicalAccessions = new HashSet<>();
+			Set<Coord.Prot> protCoords = new HashSet<>();
+			g2pMappings.stream().filter(GenomeToProteinMapping::isCanonical).forEach(m -> {
+				if (!Commons.nullOrEmpty(m.getAccession())) {
+					canonicalAccessions.add(m.getAccession());
+					if (Commons.notNull(m.getIsoformPosition()))
+						protCoords.add(new Coord.Prot(m.getAccession(), m.getIsoformPosition()));
+				}
+			});
+			Set<Object[]> accPosSet = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toSet());
+
+			final Map<String, List<Variation>> variationMap = options.contains(OPTIONS.POPULATION) ? variationFetcher.prefetchdb(accPosSet) : new HashedMap();
+
+			options.parallelStream().forEach(o -> {
+				if (o.equals(OPTIONS.FUNCTION))
+					proteinsFetcher.prefetch(canonicalAccessions);
+			});
+
+			// retrieve AA scores
+			Map<String, List<Score>> scoreMap = protVarDataRepo.getScores(accPosSet)
+					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
+
+			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
+					.collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));
+
+			userInputs.stream().filter(UserInput::isValid).map(i -> (GenomicInput) i).forEach(gInput -> { // all inputs are genomic
+
+				try {
+					List<GenomeToProteinMapping> mappingList = map.get(gInput.groupByChrAndPos());
+					List<CADDPrediction> caddScores = predictionMap.get(gInput.groupByChrAndPos());
+
+					List<Gene> ensgMappingList;
+
+					if (mappingList == null || mappingList.isEmpty()) {
+						ensgMappingList = new ArrayList<>();
+					} else {
+						Set<String> altBases = GenomicInput.getAlternates(gInput.getRef());
+						ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, scoreMap, variationMap, options);
+					}
+
+					GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
+					gInput.getMappings().add(mapping);
+				} catch (Exception ex) {
+					gInput.getErrors().add("An exception occurred while processing this input");
+					LOGGER.error(ex.getMessage());
+				}
+			});
+
+		}
+		return response;
+	}
+
 }

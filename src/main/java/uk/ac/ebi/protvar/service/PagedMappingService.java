@@ -76,7 +76,7 @@ public class PagedMappingService {
         List<UserInput> inputs = page.getContent();
 
         List<OptionBuilder.OPTIONS> options = OptionBuilder.build(false, false, false);
-        MappingResponse content = mappingFetcher.getMappings(inputs, options, "38");
+        MappingResponse content = mappingFetcher.getGenMappings(inputs, options);
 
         PagedMappingResponse response = new PagedMappingResponse();
         response.setContent(content);
