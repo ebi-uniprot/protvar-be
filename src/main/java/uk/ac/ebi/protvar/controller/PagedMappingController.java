@@ -185,7 +185,12 @@ public class PagedMappingController {
         if (pageSize < PAGE_SIZE_MIN || pageSize > PAGE_SIZE_MAX)
             pageSize = DEFAULT_PAGE_SIZE;
 
-        PagedMappingResponse response = pagedMappingService.getMappingByAccession(accession, page, pageSize);
+        if (accession == null || accession.trim().isEmpty())
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        accession = accession.trim().toUpperCase();
+
+        PagedMappingResponse response = pagedMappingService.getMappingByAccession(accession.toUpperCase(), page, pageSize);
         if (response != null)
             response.setId(accession);
         return new ResponseEntity<>(response, HttpStatus.OK);
