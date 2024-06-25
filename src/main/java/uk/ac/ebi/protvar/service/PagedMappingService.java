@@ -36,9 +36,6 @@ public class PagedMappingService {
         int totalElements = inputs.size();
         int totalPages = totalElements / pageSize + ((totalElements % pageSize == 0) ? 0 : 1);
 
-        if (pageNo > totalPages) {
-            pageNo = totalPages;
-        }
         PagedMappingResponse response = new PagedMappingResponse();
         response.setId(id);
         response.setPage(pageNo);
