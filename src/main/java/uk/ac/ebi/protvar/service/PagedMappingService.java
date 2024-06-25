@@ -67,18 +67,18 @@ public class PagedMappingService {
 
     public PagedMappingResponse getMappingByAccession(String accession, int pageNo, int pageSize) {
         // Create a Pageable instance
-        Pageable pageable = PageRequest.of(pageNo, pageSize);
+        Pageable pageable = PageRequest.of(pageNo-1, pageSize);
         // Retrieve a page of chr-pos for accession
         Page<UserInput> page = protVarDataRepo.getGenInputsByAccession(accession, pageable);
         // Get content for page object
         List<UserInput> inputs = page.getContent();
 
         List<OptionBuilder.OPTIONS> options = OptionBuilder.build(false, false, false);
-        MappingResponse content = mappingFetcher.getGenMappings(inputs, options);
+        MappingResponse content = mappingFetcher.getGenMappings(inputs, options);//getMappings(inputs, options, null);
 
         PagedMappingResponse response = new PagedMappingResponse();
         response.setContent(content);
-        response.setPage(page.getNumber());
+        response.setPage(pageNo);//(page.getNumber());
         response.setPageSize(page.getSize());
         response.setTotalItems(page.getTotalElements());
         response.setTotalPages(page.getTotalPages());
