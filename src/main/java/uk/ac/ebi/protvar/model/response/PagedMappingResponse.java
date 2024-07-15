@@ -14,9 +14,12 @@ public class PagedMappingResponse {
 
 	private int pageSize;
 
+	private String assembly;
+
 	private long totalItems;
 
 	private int totalPages;
 
 	private boolean last;
+	private long ttl;
 }

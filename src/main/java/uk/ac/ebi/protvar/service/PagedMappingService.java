@@ -40,6 +40,7 @@ public class PagedMappingService {
         response.setId(id);
         response.setPage(pageNo);
         response.setPageSize(pageSize);
+        response.setAssembly(assembly);
         response.setTotalItems(totalElements);
         response.setTotalPages(totalPages);
         response.setLast(pageNo == totalPages);

@@ -114,8 +114,12 @@ public class PagedMappingController {
         if (id != null) {
             if (idOnly)
                 return new ResponseEntity<>(new IDResponse(id), HttpStatus.OK);
-            else if (text != null)
-                return new ResponseEntity<>(pagedMappingService.newInput(id, text, assembly), HttpStatus.OK);
+            else if (text != null) {
+                PagedMappingResponse response = pagedMappingService.newInput(id, text, assembly);
+                long ttl = redisTemplate.getExpire(id);
+                response.setTtl(ttl);
+                return new ResponseEntity<>(response, HttpStatus.OK);
+            }
         }
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
     }
@@ -160,7 +164,23 @@ public class PagedMappingController {
             //      to enable sort)
 
             String originalInput = redisTemplate.opsForValue().get(id).toString();
-            return new ResponseEntity<>(pagedMappingService.getInputResult(id, originalInput, page, pageSize, assembly), HttpStatus.OK);
+            PagedMappingResponse response = pagedMappingService.getInputResult(id, originalInput, page, pageSize, assembly);
+            long ttl = redisTemplate.getExpire(id);
+            response.setTtl(ttl);
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    @Operation(
+            summary = "Extends result expiry by another 30 days"
+    )
+    @GetMapping(value = "/mapping/input/{id}/renew")
+    public ResponseEntity<?> extendExpiry(@PathVariable("id") String id) {
+        if (redisTemplate.hasKey(id)) {
+            redisTemplate.expireAt(id, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
+            return new ResponseEntity<>(HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
