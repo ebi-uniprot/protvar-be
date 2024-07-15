@@ -10,9 +10,11 @@ import uk.ac.ebi.protvar.fetcher.csv.CSVDataFetcher;
 import uk.ac.ebi.protvar.messaging.RabbitMQConfig;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
+import uk.ac.ebi.protvar.model.response.DownloadStatus;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -87,16 +89,25 @@ public class DownloadService {
         return fileInputStream;
     }
 
-    public Map<String, Integer> getDownloadStatus(List<String> ids) {
-        Map<String, Integer> resultMap = new LinkedHashMap<>();
+    public Map<String, DownloadStatus> getDownloadStatus(List<String> ids) {
+        Map<String, DownloadStatus> resultMap = new LinkedHashMap<>();
         ids.stream().forEach(id -> {
-            String fileName = downloadDir + "/" + id + ".csv";
-            if (Files.exists(Paths.get(fileName + ".zip")))
-                resultMap.put(id, 1);
-            else if (Files.exists(Paths.get(fileName)))
-                resultMap.put(id, 0);
+            String csvFile = downloadDir + "/" + id + ".csv";
+            String zipFile = csvFile + ".zip";
+            Path zipFilePath = Paths.get(zipFile);
+            if (Files.exists(zipFilePath)) {
+                long bytes = 0;
+                try {
+                    bytes = Files.size(zipFilePath);
+                } catch (IOException e) {
+                    LOGGER.error("Error getting file size for: " + zipFile);
+                }
+                resultMap.put(id, new DownloadStatus(1, bytes));
+            }
+            else if (Files.exists(Paths.get(csvFile)))
+                resultMap.put(id, new DownloadStatus(0));
             else
-                resultMap.put(id, -1);
+                resultMap.put(id, new DownloadStatus(-1));
         });
         return resultMap;
     }

@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
+import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.utils.FileUtils;
 
@@ -108,14 +109,12 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false) Integer page,
           @Parameter(description = "The number of results per page.")
           @RequestParam(required = false) Integer pageSize,
-          @Parameter(description = CoordinateMappingController.ASSEMBLY_DESC)
-          @RequestParam(required = false) String assembly,
-          @RequestParam(required = false) String email,
-          @RequestParam(required = false) String jobName,
           @RequestParam(required = false, defaultValue = "false") boolean function,
           @RequestParam(required = false, defaultValue = "false") boolean population,
-          @RequestParam(required = false, defaultValue = "false") boolean structure
-          ) {
+          @RequestParam(required = false, defaultValue = "false") boolean structure,
+          @RequestParam(required = false) String assembly,
+          @RequestParam(required = false) String email,
+          @RequestParam(required = false) String jobName) {
     DownloadRequest downloadRequest = DownloadRequest.idDownloadRequest(request.getRequestURL().toString(),
             inputId, page, pageSize,
             function, population, structure,
@@ -157,7 +156,7 @@ public class DownloadController implements WebMvcConfigurer {
    */
   @Operation(summary = "Check status of a list of download requests")
   @PostMapping(value = "/download/status", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<Map<String,Integer>> downloadStatus(@RequestBody List<String> ids) {
+  public ResponseEntity<Map<String, DownloadStatus>> downloadStatus(@RequestBody List<String> ids) {
     return new ResponseEntity<>(downloadService.getDownloadStatus(ids), HttpStatus.OK);
   }
 
