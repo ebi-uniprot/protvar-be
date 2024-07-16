@@ -71,38 +71,33 @@ public class CSVDataFetcher {
 	private RedisTemplate redisTemplate;
 
 	public void writeCSVResult(DownloadRequest request) {
+		List<String> inputs = null;
 		try {
 			List<OptionBuilder.OPTIONS> options = OptionBuilder.build(request.isFunction(), request.isPopulation(), request.isStructure());
 
-			Path csvPath = Paths.get(downloadDir, request.getId() + ".csv");
-			Path zipPath = Paths.get(downloadDir, request.getId() + ".csv.zip");
-
+			Path zipPath = Paths.get(downloadDir, request.getFname() + ".csv.zip");
 			if (Files.exists(zipPath)) {
-				LOGGER.warn("{} exists", zipPath.toString());
+				LOGGER.warn("{} exists", zipPath);
 				return;
 			}
 
-			List<String> inputs = null;
-			if (request.getFile() != null)
-				inputs = Files.lines(request.getFile()).collect(Collectors.toList());
-			else if (request.getInputs() != null)
-				inputs = request.getInputs();
-			else if (request.getInputId() != null) {
-
-				if (redisTemplate.hasKey(request.getInputId())) {
-					String originalInput = redisTemplate.opsForValue().get(request.getInputId()).toString();
-					if (originalInput != null) {
-						List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
-						Integer page = request.getPage();
-						if (request.getPage() == null) {
-							inputs = originalInputList;
-						} else {
-							Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
-							inputs = PagedMappingService.getPage(originalInputList, page, pageSize);
-						}
+			if (redisTemplate.hasKey(request.getId())) {
+				String originalInput = redisTemplate.opsForValue().get(request.getId()).toString();
+				if (originalInput != null) {
+					List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
+					Integer page = request.getPage();
+					if (request.getPage() == null) {
+						inputs = originalInputList;
+					} else {
+						Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
+						inputs = PagedMappingService.getPage(originalInputList, page, pageSize);
 					}
 				}
+			} else {
+				LOGGER.warn("{} id not found", request.getId());
+				return;
 			}
+
 			if (inputs == null || inputs.size() == 0) {
 				LOGGER.warn("no inputs to generate download file");
 				return;
@@ -110,6 +105,7 @@ public class CSVDataFetcher {
 
 			List<List<String>> inputPartitions = Lists.partition(inputs, PARTITION_SIZE);
 			// write csv
+			Path csvPath = Paths.get(downloadDir, request.getFname() + ".csv");
 			try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(csvPath));
 				 CSVWriter writer = new CSVWriter(outputStreamWriter)) {
 				writer.writeNext(CSV_HEADER.split(","));
@@ -131,11 +127,8 @@ public class CSVDataFetcher {
 			// results ready
 			Email.notifyUser(request);
 		} catch (Throwable t) {
-			Email.notifyUserErr(request);
-			Email.notifyDevErr(request, t);
-		} finally {
-			if (request.getFile() != null)
-				FileUtils.tryDelete(request.getFile());
+			Email.notifyUserErr(request, inputs);
+			Email.notifyDevErr(request, inputs, t);
 		}
 	}
 
