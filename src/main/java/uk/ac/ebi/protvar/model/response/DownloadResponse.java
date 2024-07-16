@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class DownloadResponse {
     //String inputType;
     LocalDateTime requested; // "requested": "2024-06-20T22:02:31.157133154" in json
-    String downloadId;
+    String downloadId; // corresponds to the input ID
     int status;
     String jobName;
     String url;
