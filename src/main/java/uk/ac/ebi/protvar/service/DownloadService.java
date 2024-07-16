@@ -32,9 +32,6 @@ import java.util.*;
 public class DownloadService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadService.class);
-    //public static final String FILE_INPUT = "FILE";
-    //public static final String TEXT_INPUT = "TEXT";
-    //public static final String ID_INPUT = "ID";
     private String downloadDir;
     private CSVDataFetcher csvDataFetcher;
     private final RabbitTemplate rabbitTemplate;
@@ -44,7 +41,7 @@ public class DownloadService {
     }
 
     public DownloadResponse queueRequest(DownloadRequest downloadRequest) {
-        LOGGER.info("Queuing request " + downloadRequest.getId());
+        LOGGER.info("Queuing request " + downloadRequest.getFname());
         rabbitTemplate.convertAndSend("", RabbitMQConfig.DOWNLOAD_QUEUE, downloadRequest);
 
         DownloadResponse response = new DownloadResponse();
@@ -73,12 +70,12 @@ public class DownloadService {
 
     @RabbitListener(queues = {RabbitMQConfig.DOWNLOAD_QUEUE}, concurrency="2", ackMode = "NONE")
     public void onDownloadRequest(DownloadRequest request) {
-        LOGGER.info("Processing request " + request.getId());
+        LOGGER.info("Processing request " + request.getFname());
         csvDataFetcher.writeCSVResult(request);
     }
 
-    public FileInputStream getFileResource(String id) {
-        String fileName = downloadDir + "/" + id + ".csv.zip";
+    public FileInputStream getFileResource(String filename) {
+        String fileName = downloadDir + "/" + filename + ".csv.zip";
         FileInputStream fileInputStream;
         try {
             fileInputStream = new FileInputStream(fileName);
@@ -89,10 +86,10 @@ public class DownloadService {
         return fileInputStream;
     }
 
-    public Map<String, DownloadStatus> getDownloadStatus(List<String> ids) {
+    public Map<String, DownloadStatus> getDownloadStatus(List<String> fs) {
         Map<String, DownloadStatus> resultMap = new LinkedHashMap<>();
-        ids.stream().forEach(id -> {
-            String csvFile = downloadDir + "/" + id + ".csv";
+        fs.stream().forEach(filename -> {
+            String csvFile = downloadDir + "/" + filename + ".csv";
             String zipFile = csvFile + ".zip";
             Path zipFilePath = Paths.get(zipFile);
             if (Files.exists(zipFilePath)) {
@@ -102,12 +99,12 @@ public class DownloadService {
                 } catch (IOException e) {
                     LOGGER.error("Error getting file size for: " + zipFile);
                 }
-                resultMap.put(id, new DownloadStatus(1, bytes));
+                resultMap.put(filename, new DownloadStatus(1, bytes));
             }
             else if (Files.exists(Paths.get(csvFile)))
-                resultMap.put(id, new DownloadStatus(0));
+                resultMap.put(filename, new DownloadStatus(0));
             else
-                resultMap.put(id, new DownloadStatus(-1));
+                resultMap.put(filename, new DownloadStatus(-1));
         });
         return resultMap;
     }
