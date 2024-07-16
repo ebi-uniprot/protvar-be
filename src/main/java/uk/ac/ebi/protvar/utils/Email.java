@@ -13,6 +13,8 @@ import javax.mail.internet.MimeMessage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class Email {
@@ -73,21 +75,17 @@ public class Email {
         }
     }
 
-    public static void notifyUserErr(DownloadRequest request) {
+    public static void notifyUserErr(DownloadRequest request, List<String> inputs) {
         if (Commons.notNullNotEmpty(request.getEmail())) {
             String subject = String.format("ProtVar job: %s failed", request.getJobName());
             String body = notifyErrEmailBody();
-            if (request.getFile() == null) {
-                String userInputs = String.join("\n", request.getInputs());
-                sendSimpleMessage(request.getEmail(), DEVELOPER, subject,
-                        String.format("%s\n\n%s", body, userInputs));
-            } else {
-                sendMimeMessage(request.getEmail(), DEVELOPER, subject, body, request.getFile());
-            }
+            sendSimpleMessage(request.getEmail(), DEVELOPER, subject,
+                    String.format("%s\n\n%s", body, first10Inputs(inputs)));
+            //sendMimeMessage(request.getEmail(), DEVELOPER, subject, body, request.getFileInput());
         }
     }
 
-    public static void notifyDevErr(DownloadRequest request, Throwable t) {
+    public static void notifyDevErr(DownloadRequest request, List<String> inputs, Throwable t) {
         LOGGER.error("notifyDevErr", t);
         String subject = String.format("Download job failed: %s", request.getJobName());
         String body = "unknown error";
@@ -96,14 +94,20 @@ public class Email {
             t.printStackTrace(new PrintWriter(sw));
             body = String.format("%s\n\n%s", t.getMessage(), sw);
         }
+        sendSimpleMessage(DEVELOPER, null, subject,
+                String.format("%s\n\n%s", body, first10Inputs(inputs)));
+        //sendMimeMessage(DEVELOPER, null, subject, body, request.getFileInput());
+    }
 
-        if (request.getFile() == null) {
-            String userInputs = String.join("\n", request.getInputs());
-            sendSimpleMessage(DEVELOPER, null, subject,
-                    String.format("%s\n\n%s", body, userInputs));
-        } else {
-            sendMimeMessage(DEVELOPER, null, subject, body, request.getFile());
+    private static String first10Inputs(List<String> inputs) {
+        if (inputs != null) {
+            String first10 = inputs.stream().limit(10).collect(Collectors.joining("\n"));
+            if (inputs.size() > 10) {
+                first10 += "\n...";
+            }
+            return first10;
         }
+        return "";
     }
 
     private static String notifyEmailBody(String url) {
