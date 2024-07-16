@@ -7,36 +7,25 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.model.response.IDResponse;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.service.PagedMappingService;
 import static uk.ac.ebi.protvar.config.PagedMapping.*;
-
-import java.io.IOException;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 
 @Tag(name = "Coordinate Mapping")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
 public class PagedMappingController {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(PagedMappingController.class);
     public final static String PAGE_DESC = "The page number to retrieve.";
     public final static String PAGE_SIZE_DESC = "The number of results per page. Minimum 10, maximum 1000. Uses default value if not within this range.";
 
-    private RedisTemplate redisTemplate;
     // CacheMgr
     // PREFIX-uuid:value
     // "TEXT-uuid":inputText
@@ -48,24 +37,8 @@ public class PagedMappingController {
     // e.g. getPage(uuid, page) <- avoids re-splitting input
     // etc.
 
+    private InputCache inputCache;
     private PagedMappingService pagedMappingService;
-
-    private String generateChecksum(byte[] data) {
-        try {
-            byte[] hash = MessageDigest.getInstance("MD5").digest(data);
-            String checksum = new BigInteger(1, hash).toString(16);
-            return checksum;
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private void cacheInput(String id, String input) {
-        if (!redisTemplate.hasKey(id)) {
-            redisTemplate.opsForValue().set(id, input);
-            redisTemplate.expireAt(id, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
-        }
-    }
 
     @Operation(
             summary = "Submit either a text input or a file for processing",
@@ -98,30 +71,25 @@ public class PagedMappingController {
             ) {
         String id = null;
         if (file != null) {
-            try {
-                byte[] b = file.getBytes();
-                id = generateChecksum(b);
-                text = new String(b);
-                cacheInput(id, text);
-            } catch (IOException ex) {
-                // will default to BAD_REQUEST
-                LOGGER.error("Submitted file error", ex);
-            }
+            id = inputCache.cacheFileInput(file);
         } else if (text != null) {
-            id = generateChecksum(text.getBytes());
-            cacheInput(id, text);
+            id = inputCache.cacheTextInput(text);
         }
         if (id != null) {
             if (idOnly)
                 return new ResponseEntity<>(new IDResponse(id), HttpStatus.OK);
-            else if (text != null) {
-                PagedMappingResponse response = pagedMappingService.newInput(id, text, assembly);
-                long ttl = redisTemplate.getExpire(id);
-                response.setTtl(ttl);
-                return new ResponseEntity<>(response, HttpStatus.OK);
-            }
+            else
+                return getPagedResponse(id, DEFAULT_PAGE, DEFAULT_PAGE_SIZE, assembly);
         }
         return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    }
+
+    private ResponseEntity<?> getPagedResponse(String id, int page, int pageSize, String assembly) {
+        PagedMappingResponse response = pagedMappingService.getInputResult(id, page, pageSize, assembly);
+        if (response != null)
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        else
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @Operation(
@@ -130,7 +98,7 @@ public class PagedMappingController {
                     "You can specify the page number and page size for pagination. Additionally, you can specify the assembly version."
     )
     @GetMapping(value = "/mapping/input/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PagedMappingResponse> getResult(
+    public ResponseEntity<?> getResult(
             @Parameter(description = "The unique ID of the input to retrieve mappings for.", example = "id")
             @PathVariable("id") String id,
             @Parameter(description = PAGE_DESC, example = PAGE)
@@ -145,32 +113,7 @@ public class PagedMappingController {
         if (pageSize < PAGE_SIZE_MIN || pageSize > PAGE_SIZE_MAX)
             pageSize = DEFAULT_PAGE_SIZE;
 
-        if (redisTemplate.hasKey(id)) {
-            //System.out.println(Arrays.toString(redisTemplate.keys(uuid).toArray()));
-
-            //if sort or filter enabled
-            //   process input as a whole, then paginate
-            //otherwise
-            //   process section of input by page no
-
-            // input processing steps:
-            // a. group input by type
-            //      1. genomic -> no additional step
-            //      2. protein/cDNA/ID -> get genomic coordinates
-            // b. gen coords list w/ alternate var (w/
-            //      - scores?
-            //      - features(annotations)?
-            //      - pdbe/AF structures?
-            //      to enable sort)
-
-            String originalInput = redisTemplate.opsForValue().get(id).toString();
-            PagedMappingResponse response = pagedMappingService.getInputResult(id, originalInput, page, pageSize, assembly);
-            long ttl = redisTemplate.getExpire(id);
-            response.setTtl(ttl);
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        return getPagedResponse(id, page, pageSize, assembly);
     }
 
     @Operation(
@@ -178,12 +121,9 @@ public class PagedMappingController {
     )
     @GetMapping(value = "/mapping/input/{id}/renew")
     public ResponseEntity<?> extendExpiry(@PathVariable("id") String id) {
-        if (redisTemplate.hasKey(id)) {
-            redisTemplate.expireAt(id, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
+        if (inputCache.extendExpiry(id))
             return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        return ResponseEntity.notFound().build();
     }
 
     @Operation(

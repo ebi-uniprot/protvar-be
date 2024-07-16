@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.builder.OptionBuilder;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
@@ -11,7 +12,6 @@ import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
-import static uk.ac.ebi.protvar.config.PagedMapping.*;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,32 +25,36 @@ public class PagedMappingService {
     private ProtVarDataRepo protVarDataRepo;
     private MappingFetcher mappingFetcher;
 
+    private RedisTemplate redisTemplate;
 
-    public PagedMappingResponse newInput(String id, String requestBody, String assembly) {
-        // return first page result
-        return getInputResult(id, requestBody, DEFAULT_PAGE, DEFAULT_PAGE_SIZE, assembly);
-    }
 
-    public PagedMappingResponse getInputResult(String id, String input, int pageNo, int pageSize, String assembly) {
-        List<String> inputs = Arrays.asList(input.split("\\R|,"));
-        int totalElements = inputs.size();
-        int totalPages = totalElements / pageSize + ((totalElements % pageSize == 0) ? 0 : 1);
+    public PagedMappingResponse getInputResult(String id, int pageNo, int pageSize, String assembly) {
+        if (redisTemplate.hasKey(id)) {
+            String input = redisTemplate.opsForValue().get(id).toString();
+            List<String> inputs = Arrays.asList(input.split("\\R|,"));
+            int totalElements = inputs.size();
+            int totalPages = totalElements / pageSize + ((totalElements % pageSize == 0) ? 0 : 1);
 
-        PagedMappingResponse response = new PagedMappingResponse();
-        response.setId(id);
-        response.setPage(pageNo);
-        response.setPageSize(pageSize);
-        response.setAssembly(assembly);
-        response.setTotalItems(totalElements);
-        response.setTotalPages(totalPages);
-        response.setLast(pageNo == totalPages);
+            PagedMappingResponse response = new PagedMappingResponse();
+            response.setId(id);
+            response.setPage(pageNo);
+            response.setPageSize(pageSize);
+            response.setAssembly(assembly);
+            response.setTotalItems(totalElements);
+            response.setTotalPages(totalPages);
+            response.setLast(pageNo == totalPages);
 
-        List<String> results = getPage(inputs, pageNo, pageSize);
+            List<String> results = getPage(inputs, pageNo, pageSize);
 
-        MappingResponse mappingContent = mappingService.getMapping(results, false, false, false, assembly);
-        response.setContent(mappingContent);
+            MappingResponse mappingContent = mappingService.getMapping(results, false, false, false, assembly);
+            response.setContent(mappingContent);
 
-        return response;
+            long ttl = redisTemplate.getExpire(id);
+            response.setTtl(ttl);
+
+            return response;
+        }
+        return null;
     }
 
     public static List getPage(List sourceList, int pageNo, int pageSize) {
