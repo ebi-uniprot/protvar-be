@@ -117,7 +117,7 @@ public class DownloadController implements WebMvcConfigurer {
 
   @Operation(summary = "Submit download request for the input ID and provided parameters including page and pageSize. " +
           "If no page is specified, the full original input is processed.")
-  @PostMapping(value = "/download/id", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+  @PostMapping(value = "/download", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
   @ResponseBody
   public ResponseEntity<?> download(HttpServletRequest request,
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -142,7 +142,7 @@ public class DownloadController implements WebMvcConfigurer {
     // <id>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
     String filename = getFilename(id, function, population, structure, page, pageSize, assembly);
     downloadRequest.setFname(filename);
-    String url = request.getRequestURL().toString().replace("id", filename);
+    String url = request.getRequestURL().append("/").append(filename).toString();
     downloadRequest.setUrl(url);
     DownloadResponse response = downloadService.queueRequest(downloadRequest);
     return new ResponseEntity<>(response, HttpStatus.OK);
