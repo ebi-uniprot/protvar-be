@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 public class DownloadRequest {
     LocalDateTime timestamp;
     String id;
+    boolean protein;
     boolean function;
     boolean population;
     boolean structure;

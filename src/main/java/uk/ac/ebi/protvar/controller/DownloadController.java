@@ -66,7 +66,7 @@ public class DownloadController implements WebMvcConfigurer {
                                     @RequestParam(required = false) String email,
                                     @RequestParam(required = false) String jobName) throws Exception {
     String id = inputCache.cacheFileInput(file);
-    DownloadRequest downloadRequest = newDownloadRequest(id, function, population, structure,
+    DownloadRequest downloadRequest = newDownloadRequest(id, false, function, population, structure,
             assembly, email, jobName);
 
     // <id>[-fun][-pop][-str][-ASSEMBLY]
@@ -101,8 +101,7 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
     String id = inputCache.cacheTextInput(String.join(System.lineSeparator(), inputs));
-
-    DownloadRequest downloadRequest = newDownloadRequest(id, function, population, structure,
+    DownloadRequest downloadRequest = newDownloadRequest(id, false, function, population, structure,
             assembly, email, jobName);
 
     // <id>[-fun][-pop][-str][-ASSEMBLY]
@@ -125,6 +124,7 @@ public class DownloadController implements WebMvcConfigurer {
           )
           @RequestBody String id,
           @Parameter(description = "The page number to retrieve. If not specified, download file is generated for all inputs.")
+          @RequestParam(required = false, defaultValue = "false") boolean protein,
           @RequestParam(required = false) Integer page,
           @Parameter(description = "The number of results per page.")
           @RequestParam(required = false) Integer pageSize,
@@ -134,7 +134,7 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false) String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
-    DownloadRequest downloadRequest = newDownloadRequest(id, function, population, structure,
+    DownloadRequest downloadRequest = newDownloadRequest(id, protein, function, population, structure,
             assembly, email, jobName);
 
     downloadRequest.setPage(page);
@@ -182,11 +182,12 @@ public class DownloadController implements WebMvcConfigurer {
     return filename;
   }
 
-  private DownloadRequest newDownloadRequest(String id, boolean function, boolean population, boolean structure,
+  private DownloadRequest newDownloadRequest(String id, boolean protein, boolean function, boolean population, boolean structure,
                                                  String assembly, String email, String jobName) {
     DownloadRequest downloadRequest = new DownloadRequest();
     downloadRequest.setTimestamp(LocalDateTime.now());
     downloadRequest.setId(id);
+    downloadRequest.setProtein(protein);
     downloadRequest.setFunction(function);
     downloadRequest.setPopulation(population);
     downloadRequest.setStructure(structure);
