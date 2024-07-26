@@ -27,6 +27,7 @@ import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.service.PagedMappingService;
 import uk.ac.ebi.protvar.utils.*;
 import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
@@ -67,6 +68,8 @@ public class CSVDataFetcher {
 	private CSVStructureDataFetcher csvStructureDataFetcher;
 	private InputProcessor inputProcessor;
 
+	private ProtVarDataRepo protVarDataRepo;
+
 	private String downloadDir;
 	private RedisTemplate redisTemplate;
 
@@ -77,25 +80,36 @@ public class CSVDataFetcher {
 
 			Path zipPath = Paths.get(downloadDir, request.getFname() + ".csv.zip");
 			if (Files.exists(zipPath)) {
-				LOGGER.warn("{} exists", zipPath);
+				LOGGER.warn("{} exists", zipPath.getFileName());
 				return;
 			}
 
-			if (redisTemplate.hasKey(request.getId())) {
-				String originalInput = redisTemplate.opsForValue().get(request.getId()).toString();
-				if (originalInput != null) {
-					List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
-					Integer page = request.getPage();
-					if (request.getPage() == null) {
-						inputs = originalInputList;
-					} else {
-						Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
-						inputs = PagedMappingService.getPage(originalInputList, page, pageSize);
-					}
+			if (request.isProtein()) {
+				if (request.getPage() == null) {
+					inputs = protVarDataRepo.getGenInputsByAccession(request.getId(), null, null);
+
+				} else {
+					Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
+					inputs = protVarDataRepo.getGenInputsByAccession(request.getId(), request.getPage(), pageSize);
+
 				}
 			} else {
-				LOGGER.warn("{} id not found", request.getId());
-				return;
+
+				if (redisTemplate.hasKey(request.getId())) {
+					String originalInput = redisTemplate.opsForValue().get(request.getId()).toString();
+					if (originalInput != null) {
+						List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
+						if (request.getPage() == null) {
+							inputs = originalInputList;
+						} else {
+							Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
+							inputs = PagedMappingService.getPage(originalInputList, request.getPage(), pageSize);
+						}
+					}
+				} else {
+					LOGGER.warn("{} id not found", request.getId());
+					return;
+				}
 			}
 
 			if (inputs == null || inputs.size() == 0) {
