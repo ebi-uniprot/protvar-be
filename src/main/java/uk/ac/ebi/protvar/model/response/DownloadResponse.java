@@ -10,8 +10,8 @@ import java.time.LocalDateTime;
 public class DownloadResponse {
     //String inputType;
     LocalDateTime requested; // "requested": "2024-06-20T22:02:31.157133154" in json
-    String downloadId; // corresponds to the input ID
-    int status;
+    String downloadId; // corresponds to the download file name (without ext): <id>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
     String jobName;
     String url;
+    int status;
 }
