@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.cache;
 
+import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -13,6 +14,7 @@ import java.time.temporal.ChronoUnit;
 
 import static uk.ac.ebi.protvar.config.PagedMapping.INPUT_EXPIRES_AFTER_DAYS;
 
+@AllArgsConstructor
 @Repository
 public class InputCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(InputCache.class);
