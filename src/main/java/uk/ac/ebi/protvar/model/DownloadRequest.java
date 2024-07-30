@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 public class DownloadRequest {
     LocalDateTime timestamp;
     String id;
-    boolean protein;
+    ResultType type = ResultType.CUSTOM_INPUT; // default
     boolean function;
     boolean population;
     boolean structure;

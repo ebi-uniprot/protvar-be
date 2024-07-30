@@ -26,6 +26,7 @@ import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
+import uk.ac.ebi.protvar.model.ResultType;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.service.PagedMappingService;
@@ -84,7 +85,7 @@ public class CSVDataFetcher {
 				return;
 			}
 
-			if (request.isProtein()) {
+			if (request.getType() == ResultType.PROTEIN_ACC) {
 				if (request.getPage() == null) {
 					inputs = protVarDataRepo.getGenInputsByAccession(request.getId(), null, null);
 

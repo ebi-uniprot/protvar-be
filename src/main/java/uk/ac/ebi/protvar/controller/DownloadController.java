@@ -15,6 +15,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.config.PagedMapping;
 import uk.ac.ebi.protvar.model.DownloadRequest;
+import uk.ac.ebi.protvar.model.ResultType;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
@@ -66,7 +67,7 @@ public class DownloadController implements WebMvcConfigurer {
                                     @RequestParam(required = false) String email,
                                     @RequestParam(required = false) String jobName) throws Exception {
     String id = inputCache.cacheFileInput(file);
-    DownloadRequest downloadRequest = newDownloadRequest(id, false, function, population, structure,
+    DownloadRequest downloadRequest = newDownloadRequest(id, ResultType.CUSTOM_INPUT, function, population, structure,
             assembly, email, jobName);
 
     // <id>[-fun][-pop][-str][-ASSEMBLY]
@@ -101,7 +102,7 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
     String id = inputCache.cacheTextInput(String.join(System.lineSeparator(), inputs));
-    DownloadRequest downloadRequest = newDownloadRequest(id, false, function, population, structure,
+    DownloadRequest downloadRequest = newDownloadRequest(id, ResultType.CUSTOM_INPUT, function, population, structure,
             assembly, email, jobName);
 
     // <id>[-fun][-pop][-str][-ASSEMBLY]
@@ -124,7 +125,7 @@ public class DownloadController implements WebMvcConfigurer {
           )
           @RequestBody String id,
           @Parameter(description = "The page number to retrieve. If not specified, download file is generated for all inputs.")
-          @RequestParam(required = false, defaultValue = "false") boolean protein,
+          @RequestParam(required = false, defaultValue = "CUSTOM_INPUT") ResultType type,
           @RequestParam(required = false) Integer page,
           @Parameter(description = "The number of results per page.")
           @RequestParam(required = false) Integer pageSize,
@@ -134,7 +135,7 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false) String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
-    DownloadRequest downloadRequest = newDownloadRequest(id, protein, function, population, structure,
+    DownloadRequest downloadRequest = newDownloadRequest(id, type, function, population, structure,
             assembly, email, jobName);
 
     downloadRequest.setPage(page);
@@ -182,12 +183,13 @@ public class DownloadController implements WebMvcConfigurer {
     return filename;
   }
 
-  private DownloadRequest newDownloadRequest(String id, boolean protein, boolean function, boolean population, boolean structure,
+  private DownloadRequest newDownloadRequest(String id, ResultType type, boolean function, boolean population, boolean structure,
                                                  String assembly, String email, String jobName) {
     DownloadRequest downloadRequest = new DownloadRequest();
     downloadRequest.setTimestamp(LocalDateTime.now());
     downloadRequest.setId(id);
-    downloadRequest.setProtein(protein);
+    if (type != null)
+      downloadRequest.setType(type);
     downloadRequest.setFunction(function);
     downloadRequest.setPopulation(population);
     downloadRequest.setStructure(structure);
