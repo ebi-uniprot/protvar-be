@@ -9,7 +9,6 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.utils.HGVS;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
-import uk.ac.ebi.protvar.utils.AminoAcid;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,7 +72,7 @@ public class HGVSp extends ProteinInput {
         return HGVS.startsWithPrefix(PREFIX, inputStr);
     }
 
-    public static boolean generalPattern(String input) {
+    public static boolean matchesPattern(String input) {
         return input.matches(GENERAL_HGVS_P_PATTERN_REGEX);
     }
 
@@ -103,7 +102,7 @@ public class HGVSp extends ProteinInput {
                     }
                 }
             } else {
-                throw new InvalidInputException("No match");
+                throw new InvalidInputException("No match found.");
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);

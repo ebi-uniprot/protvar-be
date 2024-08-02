@@ -88,7 +88,7 @@ public class HGVSc extends CodingInput {
         return HGVS.startsWithPrefix(PREFIX, inputStr);
     }
 
-    public static boolean generalPattern(String input) {
+    public static boolean matchesPattern(String input) {
         return input.matches(GENERAL_HGVS_C_PATTERN_REGEX);
     }
 
@@ -137,7 +137,7 @@ public class HGVSc extends CodingInput {
                     parsedInput.addError(ErrorConstants.HGVS_C_VARDESC_INVALID);
                 }
             } else {
-                throw new InvalidInputException("No match");
+                throw new InvalidInputException("No match found.");
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);

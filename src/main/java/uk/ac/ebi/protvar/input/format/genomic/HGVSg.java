@@ -54,7 +54,7 @@ public class HGVSg extends GenomicInput {
         return HGVS.startsWithPrefix(PREFIX, inputStr);
     }
 
-    public static boolean generalPattern(String input) {
+    public static boolean matchesPattern(String input) {
         return input.matches(GENERAL_HGVS_G_PATTERN_REGEX);
     }
 
@@ -96,7 +96,7 @@ public class HGVSg extends GenomicInput {
                     parsedInput.addError(ErrorConstants.HGVS_G_VARDESC_INVALID);
                 }
             } else {
-                throw new InvalidInputException("No match");
+                throw new InvalidInputException("No match found.");
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);

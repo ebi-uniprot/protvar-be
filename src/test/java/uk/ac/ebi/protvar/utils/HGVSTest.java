@@ -8,24 +8,24 @@ class HGVSTest {
 
     @Test
     void test_generalPattern() {
-        assertFalse(HGVS.generalPattern("")); // empty
-        assertFalse(HGVS.generalPattern(":")); // single colon
-        assertFalse(HGVS.generalPattern("xxx:")); // left side only
-        assertFalse(HGVS.generalPattern(":xxx")); // right side only
-        assertFalse(HGVS.generalPattern("xxx:yyy")); // no scheme
-        assertFalse(HGVS.generalPattern("xxx:xxx:zzz")); // multi colon
+        assertFalse(HGVS.matchesPattern("")); // empty
+        assertFalse(HGVS.matchesPattern(":")); // single colon
+        assertFalse(HGVS.matchesPattern("xxx:")); // left side only
+        assertFalse(HGVS.matchesPattern(":xxx")); // right side only
+        assertFalse(HGVS.matchesPattern("xxx:yyy")); // no scheme
+        assertFalse(HGVS.matchesPattern("xxx:xxx:zzz")); // multi colon
 
-        assertTrue(HGVS.generalPattern("xxx:g.yyy"));
-        assertTrue(HGVS.generalPattern("xxx:p.yyy"));
-        assertTrue(HGVS.generalPattern("xxx:c.yyy"));
-        assertTrue(HGVS.generalPattern("xxx:n.yyy"));
-        assertTrue(HGVS.generalPattern("xxx:m.yyy"));
-        assertTrue(HGVS.generalPattern("xxx:r.yyy"));
-        assertTrue(HGVS.generalPattern("xxx:x.yyy"));
-        assertTrue(HGVS.generalPattern("xxx: x.yyy")); // single space after : (lenient HGVS)
-        assertTrue(HGVS.generalPattern("xxx:  x.yyy")); // multiple space after : (lenient HGVS)
-        assertTrue(HGVS.generalPattern("xxx:    x.yyy")); // tab after : (lenient HGVS)
-        assertFalse(HGVS.generalPattern("xxx:*.yyy"));
+        assertTrue(HGVS.matchesPattern("xxx:g.yyy"));
+        assertTrue(HGVS.matchesPattern("xxx:p.yyy"));
+        assertTrue(HGVS.matchesPattern("xxx:c.yyy"));
+        assertTrue(HGVS.matchesPattern("xxx:n.yyy"));
+        assertTrue(HGVS.matchesPattern("xxx:m.yyy"));
+        assertTrue(HGVS.matchesPattern("xxx:r.yyy"));
+        assertTrue(HGVS.matchesPattern("xxx:x.yyy"));
+        assertTrue(HGVS.matchesPattern("xxx: x.yyy")); // single space after : (lenient HGVS)
+        assertTrue(HGVS.matchesPattern("xxx:  x.yyy")); // multiple space after : (lenient HGVS)
+        assertTrue(HGVS.matchesPattern("xxx:    x.yyy")); // tab after : (lenient HGVS)
+        assertFalse(HGVS.matchesPattern("xxx:*.yyy"));
     }
 
     @Test
