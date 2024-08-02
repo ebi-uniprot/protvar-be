@@ -51,10 +51,10 @@ public class ID2Gen {
         if (dbsnpIdInputs == null || dbsnpIdInputs.isEmpty())
             return;
 
-        Set<String> dbsnpIds = dbsnpIdInputs.stream()
-                .map(i -> ((DbsnpID) i).getId()).collect(Collectors.toSet());
+        Set<Object[]> dbsnpIds = dbsnpIdInputs.stream()
+                .map(i -> new Object[]{((DbsnpID) i).getId()}).collect(Collectors.toSet());
 
-        Map<String, List<Dbsnp>> dbsnpMap = dbsnpRepo.findAllById(dbsnpIds).stream().collect(Collectors.groupingBy(Dbsnp::getId));
+        Map<String, List<Dbsnp>> dbsnpMap = dbsnpRepo.getById(dbsnpIds).stream().collect(Collectors.groupingBy(Dbsnp::getId));
 
         dbsnpIdInputs.stream().map(i -> (DbsnpID) i).forEach(input -> {
                     String id = input.getId();
