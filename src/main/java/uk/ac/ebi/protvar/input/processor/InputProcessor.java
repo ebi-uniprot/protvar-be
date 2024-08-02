@@ -22,8 +22,7 @@ import uk.ac.ebi.protvar.utils.RegexUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import static uk.ac.ebi.protvar.utils.RegexUtils.SPACES;
+import java.util.stream.Collectors;
 
 @Service
 public class InputProcessor {
@@ -35,14 +34,13 @@ public class InputProcessor {
      * @return
      */
     public List<UserInput> parse(List<String> inputs) {
-        List<UserInput> userInputs = new ArrayList<>();
-        inputs.stream().map(String::trim)
-                .filter(i -> !i.isEmpty())
-                .filter(i -> !i.startsWith("#")).forEach(input -> {
-                    UserInput pInput = parse(input);
-                    userInputs.add(pInput);
-                });
-        return userInputs;
+        return inputs.stream()
+                .filter(s -> s != null)                       // Remove null strings
+                .map(String::trim)                            // Trim the strings
+                .filter(s -> !s.isEmpty())                    // Remove empty strings (after trimming)
+                .filter(s -> !s.startsWith("#"))              // Remove strings starting with '#' (comments)
+                .map(InputProcessor::parse)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -51,98 +49,101 @@ public class InputProcessor {
      *             Input string will have been trimmed as well.
      * @return
      */
-    public UserInput parse(String inputStr) {
-        if (inputStr == null || inputStr.isEmpty())
+    public static UserInput parse(String inputStr) {
+        if (inputStr == null || inputStr.isEmpty()) // prior checks will not make this be true
             return null;
 
-        // General pattern checks (S=SPACES)
-        // _               IDs (single word - no space - and startsWithPrefix)
-        // _-_-_-_         genomic gnomAD
-        // _S_S_S_S_()?    genomic VCF
-        // _S_S_(/|>|S)_   genomic custom - chr, pos, ref, alt
-        // _S_S_           genomic custom - chr, pos, ref
-        // _S_             genomic custom - chr, pos        -- if valid chr or pos, else invalid custom genomic
-        //                 or
-        // _S_             custom protein e.g.  P22304 A205P, P07949 asn783thr
-        // _S_S_S_         custom protein e.g.  P22309 71 Gly Arg
-        // _S_S_/_         custom protein e.g.  P22304 205 A/P
-        // _S_             custom protein e.g.  ACC POS
-
-        // note: Ter|*|= allowed for alt amino acid only.
-
-        // _:[a-z]._       hgvs
-        // _:g._           hgvs g
-        // _:p._           hgvs p
-        // _:c._           hgvs c
-        // _:n._           hgvs non-coding scheme (n.) not supported
-        // _:m._           hgvs mitochondrial scheme (m.) not supported
-        // _:r._           hgvs RNA scheme (r.) not supported
-        // _:*._       anything else: Invalid HGVS scheme.
-
+        /** General Pattern
+         * regex:
+         *   ^XXX -> starts with XXX
+         *   YYY$ -> ends with YYY
+         *   (ZZZ)? -> optional ZZZ
+         *
+         * ID (single word - no space - and startsWithPrefix)
+         *      caution: hgvs and gnomad also pass single word check!
+         *  dbsnp       ^rs
+         *  ClinVar     ^RCV|VCV
+         *  COSMIC      ^COSV|COSM|COSN
+         *
+         * Genomic
+         *  gnomAD      ^chr-pos-ref-alt$
+         *  VCF         ^chr pos id ref alt...
+         *  custom      ^chr pos( ref( alt)?)?$
+         *                  note: ref(\s+|/|>)alt
+         *                      ref & alt can be 1 letter base (ATCG)
+         * Protein
+         *  custom      ^acc (p.)?refPosAlt$    e.g. P22304 A205P, P07949 asn783thr
+         *              ^acc pos( ref( alt)?)?$ e.g. P22309 71 (Gly (Arg)?)?
+         *              ^acc pos ref/alt$       e.g. P22304 205 A/P
+         *                  note: ref & alt can be 1- or 3-letter amino acid, and
+         *                  alt Ter, *, =
+         * HGVS
+         *  General pattern  _:[a-z]._
+         *  HGVS genomic     _:g._
+         *  HGVS protein     _:p._
+         *  HGVS codingDNA   _:c._
+         *
+         *  Unsupported formats:
+         *  HGVS non-coding, mitochondrial, and RNA schemes (n., m., r.)
+         *  Invalid scheme   _:*._ (anything else)
+         *
+         */
 
         // Steps:
-        // LEVEL 1 (first-level) CHECK
-        // Only check if input meets "general" pattern for a specific type for e.g. if input starts with a certain
-        // prefix, for e.g. XX, we assume it is of a specific type.
-        // This happens at the top-level "if" condition below, before using the appropriate parser for full parsing.
-        // LEVEL 2 (second-level) CHECK
-        // Full parsing of input string to extract all attributes happens in L2.
-        // Here we may find that we are dealing with a specific input type, but it doesn't fully parse (or contain all
-        // the info we require)
+        // L1 First-level check (top-level if condition) to see if input fits
+        // a "general" pattern for e.g. _:[a-z]._ or starts with prefix
+        // L2 Second-level check attempts a full parse to extract expected attributes
+        // of the specific format/input type
 
-        boolean isSingleWord = RegexUtils.isSingleWord(inputStr);
+        // General pattern checks may include
+        // - single/multi-word check
+        // - prefix check
+        // - special character check e.g. :g.
+        boolean singleWord = RegexUtils.WORD.matcher(inputStr).matches();
 
-        // IDs checks - these should be single-word input
-        if (isSingleWord && DbsnpID.startsWithPrefix(inputStr)) {
-            return DbsnpID.parse(inputStr);
+        if (singleWord) {
+            // IDs should be single word input
+            if (DbsnpID.startsWithPrefix(inputStr))
+                return DbsnpID.parse(inputStr);
+
+            if (ClinVarID.startsWithPrefix(inputStr))
+                return ClinVarID.parse(inputStr);
+
+            if (CosmicID.startsWithPrefix(inputStr))
+                return CosmicID.parse(inputStr);
         }
-        else if (isSingleWord && ClinVarID.startsWithPrefix(inputStr)) {
-            return ClinVarID.parse(inputStr);
-        }
-        else if (isSingleWord && CosmicID.startsWithPrefix(inputStr)) {
-            return CosmicID.parse(inputStr);
-        }
-        // HGVS inputs
-        // general pattern _:(S?)[a-z]._
-        //               /         \
-        //          REF_SEQ        VAR_DESC
-        else if (HGVS.generalPattern(inputStr)) {
-            if (HGVSg.generalPattern(inputStr)) {
-                // process as HGVS genomic
+        /**
+         * HGVS general pattern _:(S?)[a-z]._
+         *                     /            \
+         *                 REF_SEQ        VAR_DESC
+         */
+        if (HGVS.matchesPattern(inputStr)) {
+            if (HGVSg.matchesPattern(inputStr))
                 return HGVSg.parse(inputStr);
-            }
-            if (HGVSc.generalPattern(inputStr)) {
-                // process as HGVS cDNA
+
+            if (HGVSc.matchesPattern(inputStr))
                 return HGVSc.parse(inputStr);
-            }
-            if (HGVSp.generalPattern(inputStr)) {
-                // process as HGVS protein
+
+            if (HGVSp.matchesPattern(inputStr))
                 return HGVSp.parse(inputStr);
-            }
+
             return HGVS.invalid(inputStr);
         }
-        // GNOMAD ID check
-        // single-word input
-        // pattern: _-_-_-_ (4 dash-sep values)
-        else if (Gnomad.preCheck(inputStr)) { // (Gnomad.isValid(inputStr)) {
-            return Gnomad.parse(inputStr);
-        }
-        // Remaining input formats at this point
-        // - custom protein -> always starts with an accession
-        // - VCF and generic/custom genomic -> always starts with a chr
-        else if (ProteinInput.startsWithAccession(inputStr)) {
+
+        if (ProteinInput.startsWithAccession(inputStr))
             return ProteinInput.parse(inputStr);
-        }
-        else if (GenomicInput.startsWithChromo(inputStr)) {
-            // VCF if input sticks to strict format, otherwise, maybe custom
-            if (VCF.isValid(inputStr)) {
+
+        if (GenomicInput.startsWithChromo(inputStr)) {
+            if (Gnomad.matchesPattern(inputStr)) // ^chr-pos-ref-alt$
+                return Gnomad.parse(inputStr);
+
+            if (VCF.matchesPattern(inputStr)) // ^chr pos id ref alt...
                 return VCF.parse(inputStr);
-            }
-            else if (GenomicInput.isValid(inputStr)) {
+
+            if (GenomicInput.matchesPattern(inputStr)) // ^chr pos( ref( alt)?)?$
                 return GenomicInput.parse(inputStr);
-            }
         }
-        return GenomicInput.invalidInput(inputStr); // default (or most common) input is expected to be genomic, so
+        return GenomicInput.invalid(inputStr); // default (or most common) input is expected to be genomic, so
         // let's assume any invalid input is of GenomicInput type.
     }
 
