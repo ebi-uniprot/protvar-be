@@ -16,23 +16,30 @@ import java.util.Set;
 @Repository
 @AllArgsConstructor
 public class ClinVarRepo {
-
-    public static final String SELECT_CLINVAR_WHERE_RCV_IN = "SELECT DISTINCT * FROM clinvar WHERE rcv in (:rcv)";
-    public static final String SELECT_CLINVAR_WHERE_VCV_IN = "SELECT DISTINCT * FROM clinvar WHERE vcv in (:vcv)";
+    public static final String SELECT_CLINVAR_WHERE_RCV_IN = """
+        SELECT DISTINCT c.* FROM clinvar c
+        INNER JOIN (VALUES :rcvs) AS t(rcv)
+        ON t.rcv=c.rcv
+        """;
+    public static final String SELECT_CLINVAR_WHERE_VCV_IN = """
+        SELECT DISTINCT c.* FROM clinvar c
+        INNER JOIN (VALUES :vcvs) AS t(vcv)
+        ON t.vcv=c.vcv
+        """;
 
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public List<ClinVar> getByRCV(Set<String> rcv) {
-        if (rcv == null || rcv.isEmpty())
+    public List<ClinVar> getByRCV(Set<Object[]> rcvs) {
+        if (rcvs == null || rcvs.isEmpty())
             return new ArrayList<>();
-        SqlParameterSource parameters = new MapSqlParameterSource("rcv", rcv);
+        SqlParameterSource parameters = new MapSqlParameterSource("rcvs", rcvs);
         return namedParameterJdbcTemplate.query(SELECT_CLINVAR_WHERE_RCV_IN, parameters, (rs, rowNum) -> createClinVar(rs));
     }
 
-    public List<ClinVar> getByVCV(Set<String> vcv) {
-        if (vcv == null || vcv.isEmpty())
+    public List<ClinVar> getByVCV(Set<Object[]> vcvs) {
+        if (vcvs == null || vcvs.isEmpty())
             return new ArrayList<>();
-        SqlParameterSource parameters = new MapSqlParameterSource("vcv", vcv);
+        SqlParameterSource parameters = new MapSqlParameterSource("vcvs", vcvs);
         return namedParameterJdbcTemplate.query(SELECT_CLINVAR_WHERE_VCV_IN, parameters, (rs, rowNum) -> createClinVar(rs));
     }
 

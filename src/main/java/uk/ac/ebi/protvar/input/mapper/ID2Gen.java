@@ -90,12 +90,12 @@ public class ID2Gen {
         Map<String, List<ClinVar>> clinvarVCVMap = null;
 
         if (clinvarIdTypeMap.get(ClinVarID.RCV) != null) {
-            Set<String> rcvIds = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toSet());
+            Set<Object[]> rcvIds = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toSet());
             clinvarRCVMap = clinVarRepo.getByRCV(rcvIds).stream().collect(Collectors.groupingBy(ClinVar::getRcv));
         }
 
         if (clinvarIdTypeMap.get(ClinVarID.VCV) != null) {
-            Set<String> vcvIds = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toSet());
+            Set<Object[]> vcvIds = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toSet());
             clinvarVCVMap = clinVarRepo.getByVCV(vcvIds).stream().collect(Collectors.groupingBy(ClinVar::getVcv));
         }
 
@@ -119,11 +119,11 @@ public class ID2Gen {
 
         Map<String, List<UserInput>> cosmicIdTypeMap = cosmicIdInputs.stream().collect(Collectors.groupingBy(UserInput::getCosmicIDPrefix));
 
-        Set<String> ids = cosmicIdTypeMap.get(CosmicID.COSV) == null ? null :
-                cosmicIdTypeMap.get(CosmicID.COSV).stream().map(i -> ((CosmicID) i).getId()).collect(Collectors.toSet());
-        Set<String> legacyIds = Stream.concat(cosmicIdTypeMap.get(CosmicID.COSM) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicID.COSM).stream(),
+        Set<Object[]> ids = cosmicIdTypeMap.get(CosmicID.COSV) == null ? null :
+                cosmicIdTypeMap.get(CosmicID.COSV).stream().map(i -> new Object[]{((CosmicID) i).getId()}).collect(Collectors.toSet());
+        Set<Object[]> legacyIds = Stream.concat(cosmicIdTypeMap.get(CosmicID.COSM) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicID.COSM).stream(),
                         cosmicIdTypeMap.get(CosmicID.COSN) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicID.COSN).stream())
-                .map(i -> ((CosmicID) i).getId()).collect(Collectors.toSet());
+                .map(i -> new Object[]{((CosmicID) i).getId()}).collect(Collectors.toSet());
 
         Map<String, List<Cosmic>> cosmicIdMap = cosmicRepo.getById(ids).stream().collect(Collectors.groupingBy(Cosmic::getId));
         Map<String, List<Cosmic>> cosmicLegacyIdMap = cosmicRepo.getByLegacyId(legacyIds).stream().collect(Collectors.groupingBy(Cosmic::getLegacyId));
