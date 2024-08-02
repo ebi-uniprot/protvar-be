@@ -3,14 +3,13 @@ package uk.ac.ebi.protvar.input.format.genomic;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.ac.ebi.protvar.exception.InvalidInputException;
 import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
-import uk.ac.ebi.protvar.utils.Commons;
-import uk.ac.ebi.protvar.utils.Constants;
-import uk.ac.ebi.protvar.utils.RegexUtils;
 
-import static uk.ac.ebi.protvar.utils.RegexUtils.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * StrictVCF format has 8 fixed and mandatory columns:
@@ -29,58 +28,61 @@ import static uk.ac.ebi.protvar.utils.RegexUtils.*;
 public class VCF extends GenomicInput {
     private static final Logger LOGGER = LoggerFactory.getLogger(VCF.class);
 
-    public static final String ID = "(.|[a-zA-Z0-9]+)"; // '.' if unknown or any alphanum string
+    // "s" stands for space
+    // "S" stands for non-space
 
-    public static final String REGEX = CHR + SPACES +
-            POS + SPACES +
-            ID + SPACES +
-            BASE + SPACES + BASE +
-            "((\\s?)|(\\s?).?)?"; // everything after the base substitution is optional
+    /** regex pattern for the first five columns of a VCF format string
+     * ^(\\S+): Matches the first non-whitespace sequence at the start of the line (CHROM).
+     * (\\d+): Matches one or more digits (POS).
+     * (\\S+): Matches the next non-whitespace sequence (ID).
+     * (\\S+): Matches the next non-whitespace sequence (REF).
+     * (\\S+): Matches the next non-whitespace sequence (ALT).
+     *
+     * \\t: Matches a tab character. (strict VCF, needs to be a tab)
+     * replaced \\t with \\s+
+     * also replace \\d+ for pos with \\S+, check is done in parse
+     */
+    static final Pattern PATTERN = Pattern.compile("^(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)", Pattern.CASE_INSENSITIVE);
 
     private VCF(String inputStr) {
         super(inputStr);
         setFormat(Format.VCF);
     }
 
-    public static boolean isValid(String inputStr) {
-        inputStr = Commons.trim(inputStr);
-        return RegexUtils.matchIgnoreCase(REGEX, inputStr);
+    public static boolean matchesPattern(String inputStr) {
+        return PATTERN.matcher(inputStr).find();
     }
 
     public static VCF parse(String inputStr) {
-        // pre-condition: isValid
+        // pre-condition: matchesPattern
         VCF parsedInput = new VCF(inputStr);
         try {
-            String[] params = inputStr.split(SPACES);
-            String chr = convertChromosome(params[0]);
-            Integer pos = convertPosition(params[1]);
-            String id = convertId(params[2]);
-            String ref = params[3].toUpperCase();
-            String alt = params[4].toUpperCase();
+            Matcher matcher = PATTERN.matcher(inputStr);
+            if (matcher.find()) {
+                String chr = matcher.group(1);
+                String pos = matcher.group(2);
+                String id = matcher.group(3);
+                String ref = matcher.group(4);
+                String alt = matcher.group(5);
 
-            parsedInput.setChr(chr);
-            parsedInput.setPos(pos);
-            parsedInput.setId(id);
-            parsedInput.setRef(ref);
-            parsedInput.setAlt(alt);
+                GenomicInput.parseChr(chr, parsedInput);
+                GenomicInput.parsePos(pos, parsedInput);
+                GenomicInput.parseId(id, parsedInput);
+                GenomicInput.parseRef(ref, parsedInput);
+                GenomicInput.parseAlt(alt, parsedInput);
 
-            // Skip check here - done later after ref base is checked to be correct
-            //if (ref.equals(alt)) {
-            //    parsedInput.addWarning("Ref and alt base are the same");
-            //}
-        }
-        catch(Exception ex) {
+                // Skip check here - done later after ref base is checked to be correct
+                //if (ref.equals(alt)) {
+                //    parsedInput.addWarning("Ref and alt base are the same");
+                //}
+            } else {
+                throw new InvalidInputException("No match found.");
+            }
+        } catch(Exception ex) {
             parsedInput.addError(ErrorConstants.INVALID_VCF_INPUT);
             LOGGER.error(parsedInput + ": parsing error", ex);
         }
         return parsedInput;
-    }
-
-    public static String convertId(String id) {
-        id = id.trim();
-        if (id.equals("."))
-            return null;
-        return id;
     }
 
     @Override

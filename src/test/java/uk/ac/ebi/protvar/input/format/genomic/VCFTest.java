@@ -2,7 +2,6 @@ package uk.ac.ebi.protvar.input.format.genomic;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import uk.ac.ebi.protvar.utils.Constants;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -30,10 +29,13 @@ class VCFTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"9 123 . a", "10 456 c1 c", "11 789 1g g", "12 987 45 t",
-          "y 987654321 rs123 t gXYZ"})
-  void test_invalidInputs(String inputStr) {
-    assertFalse(VCF.isValid(inputStr));
+  @ValueSource(strings = {"9 ", // 1 col
+          "10 456 ", // 2 cols
+          "11 789 1g", // 3 cols
+          "12 987 45 t", // 4 cols
+          })
+  void test_matchesPatternFalse(String inputStr) {
+    assertFalse(VCF.matchesPattern(inputStr));
   }
 
   private void assertParsedInput(boolean valid, String inputStr, String chr, Integer pos, String id, String ref, String alt,
