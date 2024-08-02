@@ -72,7 +72,7 @@ public enum ErrorConstants {
 
     INVALID_GENOMIC_INPUT("", "Invalid Genomic input."),
 
-    INVALID_GENERIC_INPUT("", "Invalid input."),
+    INVALID_GENERIC_INPUT("", "Could not parse input."),
 
 
     ///
