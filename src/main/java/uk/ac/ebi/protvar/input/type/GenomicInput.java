@@ -9,7 +9,6 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.format.genomic.VCF;
 import uk.ac.ebi.protvar.model.response.GenomeProteinMapping;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.protvar.utils.Constants;
@@ -40,13 +39,34 @@ public class GenomicInput extends UserInput {
     //        alter table genomic_protein_mapping alter chromosome type VARCHAR(2);
     //        tbl size 64.2GB -> XGB
     // [ ] in code, map any other Mitochondrion string to MT
-    //
 
-    public static final String CHR_1_23 = "0*(2[0-2]|1[0-9]|[1-9])";
+    /**
+     * numeric chromosome 1-22 with leading zeroes accepted
+     * Leading zeroes is removed during parsing (convertChr)
+     */
+    public static final String CHR_1_22 = "0*([1-9]|1[0-9]|2[0-2])";
+
+    /**
+     * chromosome with 'chr' prefix incl. all numeric (without leading zeroes), X, Y and M, MT
+     * e.g. chr1, chrX, etc
+     * Prefix is removed during parsing (convertChr)
+     * M is converted to MT after prefix removed
+     */
+    public static final String CHR_chr = "chr([1-9]|1[0-9]|2[0-2]|X|Y|M|MT)";
+
+    /**
+     * X and Y chromosome
+     */
     public static final String CHR_XY = "(X|Y)";
-    public static final String CHR_MT = "(chrM|mitochondria|mitochondrion|MT|mtDNA|mit)";
+
+    /**
+     * All acceptable M chromosome names.
+     * Converted to MT during parsing (convertChr)
+     */
+    public static final String CHR_MT = "(M|MT|mit|mtDNA|mitochondria|mitochondrion)";
+
     public static final String MT = "MT";
-    public static final String CHR = String.format("(%s|%s|%s)", CHR_1_23, CHR_XY, CHR_MT);
+    public static final String CHR = String.format("(%s|%s|%s|%s)", CHR_1_22, CHR_chr, CHR_XY, CHR_MT);
     public static final String POS = "([0-9]*[1-9][0-9]*)";  // positive-only integers incl. w/ leading zeros
     public static final String BASE = "(A|T|C|G)";
 
@@ -55,47 +75,14 @@ public class GenomicInput extends UserInput {
 
 
     // Custom genomic formats
-    // (Note VCF class captures strict VCF format, and Gnomad class captures Gnomad format)
+    // For (strict) VCF and Gnomad, see corresponding classes
+    // regex = "chr pos( ref( alt)?)?";
+    // format 1 - chr pos only
+    // format 2 - chr pos ref
+    // format 3 - chr pos ref alt (ref>alt|ref/alt)
 
-    public static final String SUB = SPACES_OR_SLASH_OR_GREATER;
-
-    // Format 1 - chr pos only
-    public static final String CUSTOM_GENOMIC_CHR_POS = CHR + SPACES + POS;
-
-    // Format 2 - chr pos & 1 base
-    public static final String CUSTOM_GENOMIC_CHR_POS_BASE = CHR + SPACES + POS + SPACES + BASE;
-
-    // Format 3 - chr pos & base sub (both ref and alt base)
-    public static final String CUSTOM_GENOMIC_CHR_POS_BASE_SUB = CHR + SPACES + POS + SPACES
-            + BASE + SUB + BASE;
-
-    // ^^^ above covers (lenient) VCF w/o variant ID
-    // TODO need to cover following loose VCF formats as well:
-    // chr pos id
-    // chr pos id ref
-    // chr pos id ref alt -> should be captured by VCF class
-    //                       BUT NOT ref>alt & ref/alt
-    public static final String REGEX = "(?<chr>"+CHR + ")" + SPACES +
-            "(?<pos>"+POS + ")" +
-            // Note a valid base (A|T|C|G) may be captured as an ID in the regex below, check needed
-            "(?<c1>(("+ SPACES + ")" + VCF.ID + "))?" +
-            "(?<c2>(("+ SPACES + ")" + BASE + "))?" +
-            "(?<c3>(("+ SUB + ")" + BASE + "))?";
-
-    // Following does not work because group name duplicate.
-    // "(SPACES + (?<ref>BASE
-    //              | ?<ref>BASE + SPACES + ?<alt>BASE
-    //              | ?<id>VCF.ID
-    //              | ?<id>VCF.ID + SPACES + ?<ref>BASE
-    //              | ?<id>VCF.ID + SPACES + ?<ref>BASE + SPACES + ?<alt>BASE))?"
-    // NOTHING
-    // base             <- order matters as any base (A,T,C,G) will also match ID regex
-    // base base
-    // id
-    // id base
-    // id base base
-
-    private static Pattern pattern = Pattern.compile(REGEX, Pattern.CASE_INSENSITIVE);
+    // note: nested optional group ( ref ( alt)?)?  group 1         2     3    4    5 6         7
+    static final Pattern PATTERN = Pattern.compile("^(\\S+)\\s+(\\S+)(\\s+(\\S+)((\\s+|/|>)(\\S+))?)?$", Pattern.CASE_INSENSITIVE);
 
     String chr;
     Integer pos;
@@ -124,103 +111,52 @@ public class GenomicInput extends UserInput {
         setRef(ref);
     }
 
-    public static boolean isValid_(String inputStr) {
-        return RegexUtils.matchIgnoreCase(REGEX, inputStr);
-    }
-
-    public static boolean isValid(String inputStr) {
-        inputStr = Commons.trim(inputStr);
-        return RegexUtils.matchIgnoreCase(CUSTOM_GENOMIC_CHR_POS, inputStr)
-                || RegexUtils.matchIgnoreCase(CUSTOM_GENOMIC_CHR_POS_BASE, inputStr)
-                || RegexUtils.matchIgnoreCase(CUSTOM_GENOMIC_CHR_POS_BASE_SUB, inputStr);
-    }
-
-    public static GenomicInput parse_(String inputStr) {
-        GenomicInput parsedInput = new GenomicInput(inputStr);
-        try {
-            Matcher matcher = pattern.matcher(inputStr);
-            if (matcher.matches()) {
-                String chr = matcher.group("chr");
-                String pos = matcher.group("pos");
-                String c1 = matcher.group("c1");
-                String c2 = matcher.group("c2");
-                String c3 = matcher.group("c3");
-
-                parsedInput.setChr(convertChromosome(chr));
-                parsedInput.setPos(convertPosition(pos));
-
-                if (c1 != null && validBase(c1)) { // no ID
-                    //parsedInput.setId(Constants.NA);
-                    parsedInput.setRef(c1 != null ? c1.toUpperCase() : null);
-                    parsedInput.setAlt(c2 != null ? c2.toUpperCase() : null);
-                } else { // consider c1 is ID
-                    parsedInput.setId(VCF.convertId(c1));
-                    parsedInput.setRef(c2 != null ? c2.toUpperCase() : null);
-                    parsedInput.setAlt(c3 != null ? c3.toUpperCase() : null);
-                }
-
-            } else {
-                throw new InvalidInputException("No match");
-            }
-        } catch (Exception ex) {
-
-            String msg = parsedInput + ": parsing error";
-            parsedInput.addError(msg);
-            LOGGER.error(msg, ex);
-        }
-        return parsedInput;
+    public static boolean matchesPattern(String inputStr) {
+        return PATTERN.matcher(inputStr).find();
     }
 
     public static GenomicInput parse(String inputStr) {
-        // pre-condition: isValid
         GenomicInput parsedInput = new GenomicInput(inputStr);
-        String[] params = inputStr.split(SPACES_OR_SLASH_OR_GREATER);
+        try {
+            Matcher matcher = PATTERN.matcher(inputStr);
+            if (matcher.matches()) {
+                String chr = matcher.group(1);
+                String pos = matcher.group(2);
+                String sub = matcher.group(3);
 
-        if (params.length <= 1) {
+                GenomicInput.parseChr(chr, parsedInput);
+                GenomicInput.parsePos(pos, parsedInput);
+                if (sub != null) {
+                    String[] bases = sub.trim().split(SPACES_OR_SLASH_OR_GREATER);
+                    if (bases.length > 0) {
+                        GenomicInput.parseRef(bases[0], parsedInput);
+                    }
+                    if (bases.length > 1) {
+                        GenomicInput.parseAlt(bases[1], parsedInput);
+                    }
+                }
+            } else {
+                throw new InvalidInputException("No match found.");
+            }
+        } catch (Exception ex) {
             parsedInput.addError(ErrorConstants.INVALID_GENOMIC_INPUT);
-            LOGGER.error(parsedInput + ": parsing error");
+            LOGGER.error(parsedInput + ": parsing error", ex);
         }
-        if (params.length > 1) {
-            parsedInput.setChr(convertChromosome(params[0]));
-            parsedInput.setPos(convertPosition(params[1]));
-        }
-
-        if (params.length > 2)
-            parsedInput.setRef(params[2].toUpperCase());
-
-        if (params.length > 3)
-            parsedInput.setAlt(params[3].toUpperCase());
-
-        // Skip check here - done later after ref base is checked to be correct
-        //if (parsedInput.getRef() != null && parsedInput.getRef().equals(parsedInput.getAlt())) {
-        //    parsedInput.addWarning("Ref and alt base are the same");
-        //}
-        //parsedInput.setId(Constants.NA);
         return parsedInput;
     }
 
-
-    public static UserInput invalidInput(String userInput){
+    public static UserInput invalid(String userInput){
         GenomicInput invalid = new GenomicInput(userInput);
         invalid.addError(ErrorConstants.INVALID_GENERIC_INPUT);
         return invalid;
     }
 
-    /**
-     * Default check - uses SPACE as delimiter.
-     * @param input
-     * @return
-     */
     public static boolean startsWithChromo(String input) {
-        return GenomicInput.startsWithChromo(input, SPACES);
-    }
-
-    public static boolean startsWithChromo(String input, String sep) {
         if (input != null && !input.isEmpty()) {
-            String[] params = input.split(sep);
+            String[] params = input.split("\\s+|-"); // space (for VCF and custom genomic format)
+            // or dash (for Gnomad)
             if (params.length > 0) {
-                String p1 = params[0].toUpperCase();
-                return validChr(p1);
+                return validChr(params[0]);
             }
         }
         return false;
@@ -240,16 +176,67 @@ public class GenomicInput extends UserInput {
         return RegexUtils.matchIgnoreCase(BASE, Commons.trim(base));
     }
 
-    public static String convertChromosome(String chr) {
-        chr = Commons.trim(chr)
-                .toUpperCase()
-                .replaceFirst("^0+(?!$)", ""); // remove any leading zeros
+    public static String convertChr(String chr) {
+        chr = Commons.trim(chr).toUpperCase();
+        if (RegexUtils.matchIgnoreCase(CHR_1_22, chr))
+            return chr.replaceFirst("^0+(?!$)", ""); // remove any leading zeros
+
+        if (RegexUtils.matchIgnoreCase(CHR_chr, chr)) {
+            chr = chr.substring(3); // remove 'chr' prefix
+            if (chr.equalsIgnoreCase("M"))
+                return MT;
+            return chr;
+        }
         if (RegexUtils.matchIgnoreCase(CHR_MT, chr))
             return MT;
         // for any other chr
         if (validChr(chr))
             return chr;
         return Constants.NA;
+    }
+
+    public static String convertId(String id) {
+        id = id.trim();
+        if (id.equals("."))
+            return null;
+        return id;
+    }
+
+    public static void parseChr(String chr, GenomicInput input) {
+        if (RegexUtils.matchIgnoreCase(CHR, chr))
+            input.setChr(convertChr(chr));
+        else
+            input.addError(ErrorConstants.INVALID_CHR);
+    }
+
+    public static void parsePos(String pos, GenomicInput input) {
+        if (RegexUtils.matchIgnoreCase(POS, pos)) {
+            try {
+                input.setPos(Integer.parseInt(pos));
+            } catch (NumberFormatException ex) {
+                input.addError(ErrorConstants.INVALID_POS);
+            }
+        }
+        else
+            input.addError(ErrorConstants.INVALID_POS);
+    }
+
+    public static void parseId(String id, GenomicInput input) {
+        input.setId(convertId(id));
+    }
+
+    public static void parseRef(String ref, GenomicInput input) {
+        if (RegexUtils.matchIgnoreCase(BASE, ref))
+            input.setRef(ref.toUpperCase());
+        else
+            input.addError(ErrorConstants.INVALID_REF);
+    }
+
+    public static void parseAlt(String alt, GenomicInput input) {
+        if (RegexUtils.matchIgnoreCase(BASE, alt))
+            input.setAlt(alt.toUpperCase());
+        else
+            input.addError(ErrorConstants.INVALID_ALT);
     }
 
     public static Integer convertPosition(String sPosition) {
