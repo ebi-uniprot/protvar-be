@@ -151,7 +151,7 @@ public class ProteinInput extends UserInput {
             else if (tryParseInput(CUSTOM_PROTEIN_ACC_XXX_POS_YYY, inputStr, parsedInput))
                 return parsedInput;
             else {
-                throw new InvalidInputException("No match");
+                throw new InvalidInputException("No match found.");
             }
         }
         catch (Exception ex) {
