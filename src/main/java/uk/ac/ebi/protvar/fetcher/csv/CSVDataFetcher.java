@@ -130,11 +130,13 @@ public class CSVDataFetcher {
 				//	writer.writeAll(resultList);
 				//});
 				// v2
-				//List<List <String[]>> resultParts = inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, options)).collect(Collectors.toList());
-				//resultParts.stream().forEach(writer::writeAll);
-				// v3
-				inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, request.getAssembly(), options))
-						.forEach(writer::writeAll);
+				List<List <String[]>> resultParts = inputPartitions.parallelStream()
+						.map(partition -> buildCSVResult(partition, request.getAssembly(), options))
+						.collect(Collectors.toList());
+				resultParts.stream().forEach(writer::writeAll);
+				// v3 - probably causing input order in csv to change
+				//inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, request.getAssembly(), options))
+				//		.forEach(writer::writeAll);
 			}
 
 			// zip csv
