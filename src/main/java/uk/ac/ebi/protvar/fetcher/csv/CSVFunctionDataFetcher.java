@@ -206,7 +206,7 @@ public class CSVFunctionDataFetcher {
 			builder.append(";rad_gyration:").append(pocket.getRadGyration());
 			builder.append(";energy_per_vol:").append(pocket.getEnergyPerVol());
 			builder.append(";buriedness:").append(pocket.getBuriedness());
-			builder.append(";resid:").append(getResids(pocket.getResid()));
+			builder.append(";resid:").append(formatIntegers(pocket.getResid()));
 			builder.append(";mean_plddt:").append(pocket.getMeanPlddt());
 			builder.append(";score:").append(pocket.getScore());
 			joiner.add(builder.toString());
@@ -223,12 +223,47 @@ public class CSVFunctionDataFetcher {
 
 			StringBuilder builder = new StringBuilder();
 			builder.append(interaction.getA()).append("-").append(interaction.getB());
-			builder.append(";A residues:").append(getResids(interaction.getAresidues()));
-			builder.append(";B residues:").append(getResids(interaction.getBresidues()));
+			builder.append(";A residues:").append(formatIntegers(interaction.getAresidues()));
+			builder.append(";B residues:").append(formatIntegers(interaction.getBresidues()));
 			builder.append(";pDockQ:").append(interaction.getPdockq());
 			joiner.add(builder.toString());
 		});
 		return joiner.toString();
+	}
+
+	private String formatIntegers(List<Integer> numbers) {
+		if (numbers == null || numbers.isEmpty()) {
+			return "";
+		}
+
+		Collections.sort(numbers);
+
+		StringBuilder result = new StringBuilder();
+		int startRange = numbers.get(0);
+		int endRange = startRange;
+
+		for (int i = 1; i < numbers.size(); i++) {
+			if (numbers.get(i) == endRange + 1) {
+				endRange = numbers.get(i);
+			} else {
+				if (startRange == endRange) {
+					result.append(startRange).append(" ");
+				} else {
+					result.append(startRange).append("-").append(endRange).append(" ");
+				}
+				startRange = numbers.get(i);
+				endRange = startRange;
+			}
+		}
+
+		// Handle the last range
+		if (startRange == endRange) {
+			result.append(startRange);
+		} else {
+			result.append(startRange).append("-").append(endRange);
+		}
+
+		return result.toString();
 	}
 
 	private String getResids(List<Integer> resids) {
