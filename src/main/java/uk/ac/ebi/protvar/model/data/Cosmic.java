@@ -5,7 +5,11 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class Cosmic extends Base {
+public class Cosmic {
     String id;
     String legacyId;
+    String chr;
+    Integer pos;
+    String ref;
+    String alt;
 }
