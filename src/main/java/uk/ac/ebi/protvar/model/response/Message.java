@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.Objects;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -15,4 +17,11 @@ public class Message {
     }
     MessageType type;
     String text;
+
+    @Override
+    public String toString() {
+        if (type != null && text != null) {
+            return type + ":" + text;
+        } else return Objects.requireNonNullElse(text, "");
+    }
 }
