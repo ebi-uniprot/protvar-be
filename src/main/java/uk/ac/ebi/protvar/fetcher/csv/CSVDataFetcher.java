@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -47,15 +48,16 @@ public class CSVDataFetcher {
 	private static final String CSV_HEADER_NOTES = "Notes";
 	private static final String CSV_HEADER_OUTPUT_MAPPING = "Gene,Codon_change,Strand,CADD_phred_like_score,"
 		+ "Canonical_isoform_transcripts,MANE_transcript,Uniprot_canonical_isoform_(non_canonical),"
-		+ "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences";
+		+ "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences"; //len=12
 	private static final String CSV_HEADER_OUTPUT_FUNCTION = "Residue_function_(evidence),Region_function_(evidence),"
 		+ "Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,"
 		+ "Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene),"
 		+ "Predicted_pockets(energy;per_vol;score;resids),Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ),"
-		+ "Foldx_prediction(foldxDdg;plddt),Conservation_score,AlphaMissense_pathogenicity(class),EVE_score(class),ESM1b_score";
+		+ "Foldx_prediction(foldxDdg;plddt),Conservation_score,AlphaMissense_pathogenicity(class),EVE_score(class),ESM1b_score"; // len=18
 	private static final String CSV_HEADER_OUTPUT_POPULATION = "Genomic_location,Cytogenetic_band,Other_identifiers_for_the_variant,"
-		+ "Diseases_associated_with_variant,Variants_colocated_at_residue_position";
-	private static final String CSV_HEADER_OUTPUT_STRUCTURE = "Position_in_structures";
+		+ "Diseases_associated_with_variant,Variants_colocated_at_residue_position"; // len=5
+	private static final String CSV_HEADER_OUTPUT_STRUCTURE = "Position_in_structures"; // len=1
+	// total len=36
 	private static final String CSV_HEADER_OUTPUT = CSV_HEADER_OUTPUT_MAPPING + Constants.COMMA + CSV_HEADER_OUTPUT_FUNCTION + Constants.COMMA
 		+ CSV_HEADER_OUTPUT_POPULATION + Constants.COMMA + CSV_HEADER_OUTPUT_STRUCTURE;
 
@@ -166,25 +168,25 @@ public class CSVDataFetcher {
 
 		response.getInputs().forEach(input -> {
 			if (input.getType() == Type.GENOMIC) {
-				GenomicInput genInput = (GenomicInput) input;
-				addGenInputMappingsToOutput(genInput, genInput.getMappings(), csvOutput, options);
+				GenomicInput userInput = (GenomicInput) input;
+				addGenInputMappingsToOutput(userInput, userInput, csvOutput, options);
 			}
 			else if (input.getType() == Type.CODING) {
-				HGVSc cDNAInput = (HGVSc) input;
-				cDNAInput.getDerivedGenomicInputs().forEach(gInput -> {
-					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
+				HGVSc userInput = (HGVSc) input;
+				userInput.getDerivedGenomicInputs().forEach(genInput -> {
+					addGenInputMappingsToOutput(userInput, genInput, csvOutput, options);
 				});
 			}
 			else if (input.getType() == Type.PROTEIN) {
-				ProteinInput proInput = (ProteinInput) input;
-				proInput.getDerivedGenomicInputs().forEach(gInput -> {
-					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
+				ProteinInput userInput = (ProteinInput) input;
+				userInput.getDerivedGenomicInputs().forEach(genInput -> {
+					addGenInputMappingsToOutput(userInput, genInput, csvOutput, options);
 				});
 			}
 			else if (input.getType() == Type.ID) {
-				IDInput idInput = (IDInput) input;
-				idInput.getDerivedGenomicInputs().forEach(gInput -> {
-					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
+				IDInput userInput = (IDInput) input;
+				userInput.getDerivedGenomicInputs().forEach(genInput -> {
+					addGenInputMappingsToOutput(userInput, genInput, csvOutput, options);
 				});
 			}
 		});
@@ -195,38 +197,69 @@ public class CSVDataFetcher {
 		return csvOutput;
 	}
 
-	private void addGenInputMappingsToOutput(GenomicInput gInput, List<GenomeProteinMapping> mappings, List<String[]> csvOutput, List<OPTIONS> options) {
+	private void addGenInputMappingsToOutput(UserInput userInput, GenomicInput genInput, List<String[]> csvOutput, List<OPTIONS> options) {
 
-		String chr = gInput.getChr();
-		Integer genomicLocation = gInput.getPos();
-		String varAllele = gInput.getAlt();
-		String id = gInput.getId();
-		String input = gInput.getInputStr();
-		mappings.forEach(mapping -> {
+		if (!userInput.isValid()) {
+			csvOutput.add(getCsvDataInvalidInput(userInput));
+			return;
+		}
+
+		String chr = genInput.getChr();
+		Integer genomicLocation = genInput.getPos();
+		String varAllele = genInput.getAlt();
+		String id = genInput.getId();
+		String input = genInput.getInputStr();
+		String messages = Stream.concat(
+						userInput.getMessages().stream().map(Message::toString),
+						genInput.getMessages().stream().map(Message::toString)
+				)
+				.filter(msg -> !msg.isEmpty()) // Filter for non-empty messages
+				.collect(Collectors.joining(";"));
+		final String notes = messages.isEmpty() ? Constants.NA : messages;
+
+		genInput.getMappings().forEach(mapping -> {
 			var genes = mapping.getGenes();
 			if(genes.isEmpty())
-				csvOutput.add(getCsvDataMappingNotFound(input));
+				csvOutput.add(getCsvDataMappingNotFound(genInput));
 			else
-				genes.forEach(gene -> csvOutput.add(getCSVData(gene, chr, genomicLocation, varAllele, id, input, options)));
+				genes.forEach(gene -> csvOutput.add(getCSVData(notes, gene, chr, genomicLocation, varAllele, id, input, options)));
 		});
 	}
 
-	String[] getCsvDataMappingNotFound(String input){
-		//UserInput p = UserInput.getInput(input);
-		return concatNaOutputCols(List.of(input, MAPPING_NOT_FOUND));
-	}
-
-	String[] getCsvDataInvalidInput(UserInput input){
-		return concatNaOutputCols(List.of(input.getInputStr(), String.join("|", input.getErrors())));
-	}
-
-	private String[] concatNaOutputCols(List<String> inputAndNotes){
-		var valList = new ArrayList<>(inputAndNotes);
-		valList.addAll(Arrays.stream(CSV_HEADER_OUTPUT.split(Constants.COMMA)).map(ignore -> Constants.NA).toList());
+	String[] getCsvDataMappingNotFound(GenomicInput genInput){
+		List<String> valList = List.of(genInput.getInputStr(), // User_input
+				strValOrNA(genInput.getChr()), // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
+				intValOrNA(genInput.getPos()),
+				strValOrNA(genInput.getId()),
+				strValOrNA(genInput.getRef()),
+				strValOrNA(genInput.getAlt())
+		);
+		valList.add(MAPPING_NOT_FOUND); // Notes
+		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));
 		return valList.toArray(String[]::new);
 	}
 
-	private String[] getCSVData(Gene gene, String chr, Integer genomicLocation, String varAllele, String id, String input, List<OPTIONS> options) {
+	String[] getCsvDataInvalidInput(UserInput input){
+		List<String> valList = List.of(input.getInputStr()); // User_input
+		valList.addAll(Collections.nCopies(5, Constants.NA)); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
+		valList.add(input.getMessages().stream().map(Message::toString).collect(Collectors.joining(";"))); // Notes
+		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));
+		return valList.toArray(String[]::new);
+	}
+
+	String strValOrNA(String val) {
+		if (val == null || val.trim().isEmpty())
+			return Constants.NA;
+		return val.trim();
+	}
+
+	String intValOrNA(Integer val) {
+		if (val == null)
+			return Constants.NA;
+		return val.toString();
+	}
+
+	private String[] getCSVData(String notes, Gene gene, String chr, Integer genomicLocation, String varAllele, String id, String input, List<OPTIONS> options) {
 		String cadd = null;
 		if (gene.getCaddScore() != null)
 			cadd = gene.getCaddScore().toString();
@@ -241,7 +274,7 @@ public class CSVDataFetcher {
 		List<String> ensps = getEnsps(mapping.getTranslatedSequences());
 
 		List<String> output = new ArrayList<>(Arrays.asList(input, chr, genomicLocation.toString(), id, gene.getRefAllele(),
-			varAllele, Constants.NA, gene.getGeneName(), mapping.getCodonChange(), strand, cadd,
+			varAllele, notes, gene.getGeneName(), mapping.getCodonChange(), strand, cadd,
 			ensps.toString(), Constants.NA,mapping.getAccession(), CSVUtils.getValOrNA(alternateInformDetails), mapping.getProteinName(),
 			String.valueOf(mapping.getIsoformPosition()), mapping.getAminoAcidChange(),
 			mapping.getConsequences()));
