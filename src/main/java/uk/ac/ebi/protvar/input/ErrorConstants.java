@@ -9,6 +9,14 @@ public enum ErrorConstants {
     COSMIC_ID_INVALID("", "Invalid COSMIC ID. Prefix 'COSV', 'COSM' or 'COSN' should follow one or more digits."),
     COSMIC_ID_NO_MAPPING("", "No mapping found for COSMIC ID."),
 
+    AUTO_DETECT_NOT_POSSIBLE("", "Auto-detect not possible on fewer than 10 genomic inputs. Variants assumed to be based on the GRCh38 assembly."),
+
+    AUTO_DETECT_38("", "Auto detect assumes that your variants are based on the GRCh38 assembly (%d% nts matched the reference sequence). If your variants are from GRCh37 then please select the appropriate radio button on the submission page."),
+
+    AUTO_DETECT_37("", "Auto detect assumes that your variants are based on the GRCh37 assembly (%d% nts matched the reference sequence). If your variants are from GRCh38 then please select the appropriate radio button on the submission page."),
+
+    AUTO_DETECT_FAILED("", "Auto detect has been unable to detect which build the variants are based on. (%d% match GRCh38, %d% match GRCh37). Please check your variant input format. Mixed GRCh37/38 VCFs not permitted. Please separate them if you have mixed inputs."),
+
     GEN_ASSEMBLY_CONVERT_INFO("", "%d input%s marked for GRCh37 to GRCh38 conversion."),
     GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND("", "Unable to map GRCh37 to GRCh38 coordinate."),
 

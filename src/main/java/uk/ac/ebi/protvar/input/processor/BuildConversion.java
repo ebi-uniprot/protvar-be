@@ -15,13 +15,11 @@ import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
-import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class BuildConversion {
@@ -36,7 +34,7 @@ public class BuildConversion {
             List<UserInput> genomicInputs = groupedInputs.get(Type.GENOMIC);
 
             // separate inputs that need to be converted irrespective of user-specified assembly
-            List<UserInput> hgvsGs = new ArrayList<>();
+            //List<UserInput> hgvsGs = new ArrayList<>();
             List<UserInput> hgvsGs37 = new ArrayList<>(); // to convert
 
             List<UserInput> nonHgvsGs = new ArrayList<>();
@@ -44,7 +42,7 @@ public class BuildConversion {
             genomicInputs.stream().filter(UserInput::isValid) // filter out invalid gen inputs
                     .forEach(i -> {
                 if (i.getFormat() == Format.HGVS_GEN) {
-                    hgvsGs.add(i); // all hgvsGs, may be mix of 38 and 37 RefSeq accession
+                    //hgvsGs.add(i); // all hgvsGs, may be mix of 38 and 37 RefSeq accession
                     Boolean g37 = ((HGVSg) i).getRsAcc37();
                     if (g37 != null && g37)
                         hgvsGs37.add(i);
@@ -64,8 +62,30 @@ public class BuildConversion {
 
             if (nonHgvsGs.size() > 0) { // convert nonHgvsGs to 38, if condition met
                 if (autodetect) {
-                    if (percentage37Over50(nonHgvsGs)) {
+                    /*if (percentage37Over50(nonHgvsGs)) {
                         convertList.addAll(nonHgvsGs);
+                    }*/
+                    if (nonHgvsGs.size() < 10) {
+                        messages.add(new Message(Message.MessageType.INFO,
+                                ErrorConstants.AUTO_DETECT_NOT_POSSIBLE.getErrorMessage()));
+                    } else {
+                        double match38 = buildPercentageMatch(nonHgvsGs, "38");
+                        if (match38 > 75) {
+                            // assumes 38, no conversion
+                            messages.add(new Message(Message.MessageType.INFO,
+                                    String.format(ErrorConstants.AUTO_DETECT_38.getErrorMessage(), match38)));
+                        } else {
+                            double match37 = buildPercentageMatch(nonHgvsGs, "37");
+                            if (match37 > 75) {
+                                // assumes 37, convert to 38
+                                messages.add(new Message(Message.MessageType.INFO,
+                                        String.format(ErrorConstants.AUTO_DETECT_37.getErrorMessage(), match37)));
+                                convertList.addAll(nonHgvsGs);
+                            } else {
+                                messages.add(new Message(Message.MessageType.INFO,
+                                        String.format(ErrorConstants.AUTO_DETECT_FAILED.getErrorMessage(), match38, match37)));
+                            }
+                        }
                     }
                 } else {
                     Assembly assembly = Assembly.of(assemblyVersion);
@@ -76,9 +96,9 @@ public class BuildConversion {
             }
 
             if (convertList.size() > 0) {
-                messages.add(new Message(Message.MessageType.INFO,
-                        String.format(ErrorConstants.GEN_ASSEMBLY_CONVERT_INFO.getErrorMessage(),
-                                convertList.size(), FetcherUtils.pluralise(convertList.size()))));
+                //messages.add(new Message(Message.MessageType.INFO,
+                //        String.format(ErrorConstants.GEN_ASSEMBLY_CONVERT_INFO.getErrorMessage(),
+                //                convertList.size(), FetcherUtils.pluralise(convertList.size()))));
                 convert(convertList);
             }
         }
@@ -165,5 +185,12 @@ public class BuildConversion {
             return true;
         }
         return false;
+    }
+    private double buildPercentageMatch(List<UserInput> nonHgvsGs, String build) {
+        List<Object[]> chrPosRefList = new ArrayList<>();
+        nonHgvsGs.stream().map(i -> (GenomicInput) i).forEach(input -> {
+            chrPosRefList.add(new Object[]{input.getChr(), input.getPos(), input.getRef()});
+        });
+        return protVarDataRepo.getPercentageMatch(chrPosRefList, build);
     }
 }

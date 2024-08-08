@@ -64,7 +64,8 @@ public class MappingFetcher {
 	}
 
 	/**
-	 *
+	 * Called by CSVDataFetcher (for download CSV generation), and
+	 * MappingService (for mapping endpoint)
 	 * @param userInputs is list of user inputs
 	 * @return MappingResponse
 	 */
@@ -74,6 +75,9 @@ public class MappingFetcher {
 		Map<Type, List<UserInput>> groupedInputs = userInputs.stream().filter(UserInput::isValid) // filter out any invalid inputs
 				.collect(Collectors.groupingBy(UserInput::getType));
 
+		// adds to top-level messages so when partitioned for download,
+		// messages will appear for each input partitions
+		// TODO review (same behaviour for initMappingResponse inputSummary
 		buildConversion.process(groupedInputs, assemblyVersion, response);
 
 		// ID to genomic coords conversion
