@@ -227,20 +227,21 @@ public class CSVDataFetcher {
 	}
 
 	String[] getCsvDataMappingNotFound(GenomicInput genInput){
-		List<String> valList = List.of(genInput.getInputStr(), // User_input
-				strValOrNA(genInput.getChr()), // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
-				intValOrNA(genInput.getPos()),
-				strValOrNA(genInput.getId()),
-				strValOrNA(genInput.getRef()),
-				strValOrNA(genInput.getAlt())
-		);
+		List<String> valList = new ArrayList<>();
+		valList.add(genInput.getInputStr()); // User_input
+		valList.add(strValOrNA(genInput.getChr())); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
+		valList.add(intValOrNA(genInput.getPos()));
+		valList.add(strValOrNA(genInput.getId()));
+		valList.add(strValOrNA(genInput.getRef()));
+		valList.add(strValOrNA(genInput.getAlt()));
 		valList.add(MAPPING_NOT_FOUND); // Notes
 		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));
 		return valList.toArray(String[]::new);
 	}
 
 	String[] getCsvDataInvalidInput(UserInput input){
-		List<String> valList = List.of(input.getInputStr()); // User_input
+		List<String> valList = new ArrayList<>();
+		valList.add(input.getInputStr()); // User_input
 		valList.addAll(Collections.nCopies(5, Constants.NA)); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
 		valList.add(input.getMessages().stream().map(Message::toString).collect(Collectors.joining(";"))); // Notes
 		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));

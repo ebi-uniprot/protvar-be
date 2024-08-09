@@ -63,7 +63,7 @@ public class DownloadController implements WebMvcConfigurer {
                                     @RequestParam(required = false, defaultValue = "false") boolean function,
                                     @RequestParam(required = false, defaultValue = "false") boolean population,
                                     @RequestParam(required = false, defaultValue = "false") boolean structure,
-                                    @RequestParam(required = false) String assembly,
+                                    @RequestParam(required = false, defaultValue = "AUTO") String assembly,
                                     @RequestParam(required = false) String email,
                                     @RequestParam(required = false) String jobName) throws Exception {
     String id = inputCache.cacheFileInput(file);
@@ -98,7 +98,7 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false, defaultValue = "false") boolean function,
           @RequestParam(required = false, defaultValue = "false") boolean population,
           @RequestParam(required = false, defaultValue = "false") boolean structure,
-          @RequestParam(required = false) String assembly,
+          @RequestParam(required = false, defaultValue = "AUTO") String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
     String id = inputCache.cacheTextInput(String.join(System.lineSeparator(), inputs));
@@ -132,7 +132,7 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false, defaultValue = "false") boolean function,
           @RequestParam(required = false, defaultValue = "false") boolean population,
           @RequestParam(required = false, defaultValue = "false") boolean structure,
-          @RequestParam(required = false) String assembly,
+          @RequestParam(required = false, defaultValue = "AUTO") String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
     DownloadRequest downloadRequest = newDownloadRequest(id, type, function, population, structure,
