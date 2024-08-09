@@ -95,7 +95,7 @@ public class Email {
             body = String.format("%s\n\n%s", t.getMessage(), sw);
         }
         sendSimpleMessage(DEVELOPER, null, subject,
-                String.format("%s\n\n%s", body, first10Inputs(inputs)));
+                String.format("%s\n\n%s\n\n%s", body, request, first10Inputs(inputs)));
         //sendMimeMessage(DEVELOPER, null, subject, body, request.getFileInput());
     }
 
