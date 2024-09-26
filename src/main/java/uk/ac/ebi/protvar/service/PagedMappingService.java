@@ -4,57 +4,109 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import uk.ac.ebi.protvar.builder.OptionBuilder;
+import uk.ac.ebi.protvar.cache.InputBuild;
+import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
 import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.params.InputParams;
+import uk.ac.ebi.protvar.input.processor.BuildProcessor;
+import uk.ac.ebi.protvar.input.processor.InputProcessor;
+import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Service
 @AllArgsConstructor
 public class PagedMappingService {
-    private MappingService mappingService;
-
     private ProtVarDataRepo protVarDataRepo;
     private MappingFetcher mappingFetcher;
+    private InputCache inputCache;
 
-    private RedisTemplate redisTemplate;
-
+    private BuildProcessor buildProcessor;
 
     public PagedMappingResponse getInputResult(String id, int pageNo, int pageSize, String assembly) {
-        if (redisTemplate.hasKey(id)) {
-            String input = redisTemplate.opsForValue().get(id).toString();
-            List<String> inputs = Arrays.asList(input.split("\\R|,"));
-            int totalElements = inputs.size();
-            int totalPages = totalElements / pageSize + ((totalElements % pageSize == 0) ? 0 : 1);
+        String originalInput = inputCache.getInput(id);
+        if (originalInput == null)
+            return null;
 
-            PagedMappingResponse response = new PagedMappingResponse();
-            response.setId(id);
-            response.setPage(pageNo);
-            response.setPageSize(pageSize);
-            response.setAssembly(assembly);
-            response.setTotalItems(totalElements);
-            response.setTotalPages(totalPages);
-            response.setLast(pageNo == totalPages);
+        List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
+        int totalElements = originalInputList.size();
+        int totalPages = totalElements / pageSize + ((totalElements % pageSize == 0) ? 0 : 1);
 
-            List<String> results = getPage(inputs, pageNo, pageSize);
+        PagedMappingResponse response = new PagedMappingResponse();
+        response.setId(id);
+        response.setPage(pageNo);
+        response.setPageSize(pageSize);
+        response.setAssembly(assembly);
+        response.setTotalItems(totalElements);
+        response.setTotalPages(totalPages);
+        response.setLast(pageNo == totalPages);
 
-            MappingResponse mappingContent = mappingService.getMapping(results, false, false, false, assembly);
-            response.setContent(mappingContent);
+        /** Accepted values: The assembly can be one of the following:
+         *  - null, empty, not AUTO, 37, or 38 (treated as null or not provided)
+         *  - AUTO, 37, or 38
+         *
+         *  Rules:
+         *  - Use auto-detection only if explicitly specified as AUTO.
+         *  - Perform build conversion if 37 is specified.
+         *  - Default to 38 in all other cases, including when auto-detection is inconclusive.
+         *
+         *  Steps:
+         *  1. Check the user-specified assembly.
+         *  2. If it's 37, convert to 38.
+         *  3. If it's 38, no conversion is needed.
+         *  4. If it's AUTO, check if the input ID has a cached detected build;
+         *      if yes, use it, otherwise, detect, cache, and use the detected build.
+         *  5. In all other cases, no conversion is required.
+         *
+         *  Note:
+         *  - BuildProcessor always converts hgvsGs37 inputs, if any.
+         *  - The same input with a specified ID might be requested with a different assembly parameter in another
+         *    request, so always verify the submitted assembly.
+         */
+        List<String> inputs = getPage(originalInputList, pageNo, pageSize);
+        InputParams params = InputParams.builder()
+                .id(id)
+                .inputs(InputProcessor.parse(inputs))
+                .assembly(assembly)
+                .summarise(true)
+                .build();
 
-            long ttl = redisTemplate.getExpire(id);
-            response.setTtl(ttl);
-
-            return response;
+        boolean convert = false;
+        InputBuild inputBuild = null;
+        if (Assembly.autodetect(assembly)) {
+            // we bother to check if we actually have any genomic inputs if the user has specified autodetect
+            List<UserInput> genomicInputs = buildProcessor.genomicInputs(originalInputList);
+            if (!genomicInputs.isEmpty()) {
+                inputBuild = inputCache.getInputBuild(id);
+                if (inputBuild == null) {
+                    inputBuild = buildProcessor.detect(genomicInputs);
+                    inputCache.cacheInputBuild(id, inputBuild);
+                }
+                convert = inputBuild.getAssembly() != null && inputBuild.getAssembly() == Assembly.GRCH37;
+            }
+        } else {
+            convert = Assembly.is37(assembly);
         }
-        return null;
+        params.setConvert(convert);
+        // TODO review - convert may not be needed here, doesn't work for single input
+        // use is37 instead
+
+        MappingResponse mappingContent = mappingFetcher.getMapping(params);
+        if (inputBuild != null && inputBuild.getMessage() != null) {
+            mappingContent.getMessages().add(inputBuild.getMessage());
+        }
+        response.setContent(mappingContent);
+
+
+        long ttl = inputCache.expires(id);
+        response.setTtl(ttl);
+
+        return response;
     }
 
     public static List getPage(List sourceList, int pageNo, int pageSize) {
@@ -77,9 +129,12 @@ public class PagedMappingService {
         Page<UserInput> page = protVarDataRepo.getGenInputsByAccession(accession, pageable);
         // Get content for page object
         List<UserInput> inputs = page.getContent();
+        InputParams params = InputParams.builder()
+                .inputs(inputs)
+                .build(); // default values for annotations will be false
+        // for function, population and structure
 
-        List<OptionBuilder.OPTIONS> options = OptionBuilder.build(false, false, false);
-        MappingResponse content = mappingFetcher.getGenMappings(inputs, options);//getMappings(inputs, options, null);
+        MappingResponse content = mappingFetcher.getGenMappings(params);
 
         PagedMappingResponse response = new PagedMappingResponse();
         response.setContent(content);
