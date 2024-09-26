@@ -9,9 +9,8 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.fetcher.PDBeFetcher;
 import uk.ac.ebi.protvar.fetcher.ProteinsFetcher;
-import uk.ac.ebi.protvar.fetcher.VariationFetcher;
+import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.utils.Constants;
-import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.Protein;
@@ -19,7 +18,7 @@ import uk.ac.ebi.protvar.model.response.Variation;
 
 @Service
 @AllArgsConstructor
-public class OptionalAttributesBuilder {
+public class AnnotationsBuilder {
 
 	private static final String API_BASE_URL = "/";
 	private static final String STRUCTURE_API = "structure";
@@ -30,13 +29,13 @@ public class OptionalAttributesBuilder {
 	private ProteinsFetcher proteinsFetcher;
 	private PDBeFetcher pdbeFetcher;
 
-	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion, Map<String, List<Variation>> variationMap, List<OPTIONS> options,
-			IsoFormMapping.IsoFormMappingBuilder builder) {
-		buildPopulationObservation(accession, isoformPostion, variationMap, options.contains(OPTIONS.POPULATION), genomicLocation, builder);
+	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion, Map<String, List<Variation>> variationMap,
+			InputParams params, IsoFormMapping.IsoFormMappingBuilder builder) {
+		buildPopulationObservation(accession, isoformPostion, variationMap, params.isPop(), genomicLocation, builder);
 
-		buildFunction(accession, isoformPostion, variantAA, options.contains(OPTIONS.FUNCTION), builder);
+		buildFunction(accession, isoformPostion, variantAA, params.isFun(), builder);
 
-		buildStructure(accession, isoformPostion, options.contains(OPTIONS.STRUCTURE), builder);
+		buildStructure(accession, isoformPostion, params.isStr(), builder);
 	}
 
 	private void buildStructure(String accession, int isoformPostion, boolean isStructure,
