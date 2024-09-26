@@ -15,7 +15,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.config.PagedMapping;
 import uk.ac.ebi.protvar.model.DownloadRequest;
-import uk.ac.ebi.protvar.model.ResultType;
+import uk.ac.ebi.protvar.model.InputType;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
@@ -30,14 +30,11 @@ import java.util.Map;
 @RestController
 @CrossOrigin
 @AllArgsConstructor
-/**
- * Download request using:
- * 1. file input            -> returns all
- * 2. string (text) inputs  -> returns all
- * 3. id input              -> returns specified page num (and page size)
- *
- */
 public class DownloadController implements WebMvcConfigurer {
+  // Download request using
+  // -file                  : return all
+  // -text (string inputs)  : return all
+  // -inputId               : return specific page/pageSize
 
   private InputCache inputCache;
   private DownloadService downloadService;
@@ -66,8 +63,8 @@ public class DownloadController implements WebMvcConfigurer {
                                     @RequestParam(required = false, defaultValue = "AUTO") String assembly,
                                     @RequestParam(required = false) String email,
                                     @RequestParam(required = false) String jobName) throws Exception {
-    String id = inputCache.cacheFileInput(file);
-    DownloadRequest downloadRequest = newDownloadRequest(id, ResultType.CUSTOM_INPUT, function, population, structure,
+    String id = inputCache.cache(file);
+    DownloadRequest downloadRequest = newDownloadRequest(InputType.ID, id, function, population, structure,
             assembly, email, jobName);
 
     // <id>[-fun][-pop][-str][-ASSEMBLY]
@@ -101,8 +98,8 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false, defaultValue = "AUTO") String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
-    String id = inputCache.cacheTextInput(String.join(System.lineSeparator(), inputs));
-    DownloadRequest downloadRequest = newDownloadRequest(id, ResultType.CUSTOM_INPUT, function, population, structure,
+    String id = inputCache.cache(String.join(System.lineSeparator(), inputs));
+    DownloadRequest downloadRequest = newDownloadRequest(InputType.ID, id, function, population, structure,
             assembly, email, jobName);
 
     // <id>[-fun][-pop][-str][-ASSEMBLY]
@@ -115,17 +112,18 @@ public class DownloadController implements WebMvcConfigurer {
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
-  @Operation(summary = "Submit download request for the input ID and provided parameters including page and pageSize. " +
-          "If no page is specified, the full original input is processed.")
+  @Operation(summary = "Submit download request for the input, which can be an ID, protein accession, or" +
+          "single variant (used for direct link). Optional parameters include page and pageSize. " +
+          "If no page is specified, the full input (in the case of ID and protein accession) is processed.")
   @PostMapping(value = "/download", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
   @ResponseBody
   public ResponseEntity<?> download(HttpServletRequest request,
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                  description = "The unique ID of the input to generate download for."
+                  description = "The input ID, protein accession, or single variant input to generate download for."
           )
-          @RequestBody String id,
+          @RequestBody String input,
+          @RequestParam(required = false, defaultValue = "ID") InputType inputType,
           @Parameter(description = "The page number to retrieve. If not specified, download file is generated for all inputs.")
-          @RequestParam(required = false, defaultValue = "CUSTOM_INPUT") ResultType type,
           @RequestParam(required = false) Integer page,
           @Parameter(description = "The number of results per page.")
           @RequestParam(required = false) Integer pageSize,
@@ -135,13 +133,20 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false, defaultValue = "AUTO") String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
-    DownloadRequest downloadRequest = newDownloadRequest(id, type, function, population, structure,
+    DownloadRequest downloadRequest = newDownloadRequest(inputType, input, function, population, structure,
             assembly, email, jobName);
 
     downloadRequest.setPage(page);
     downloadRequest.setPageSize(pageSize);
-    // <id>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
-    String filename = getFilename(id, function, population, structure, page, pageSize, assembly);
+    String pref;
+    if (inputType == InputType.SINGLE_VARIANT) {
+      pref = InputCache.checksum(input);
+    } else {
+      pref = input; // i.e. input ID or protein accession
+    }
+
+    // <pref>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
+    String filename = getFilename(pref, function, population, structure, page, pageSize, assembly);
     downloadRequest.setFname(filename);
     String url = request.getRequestURL().append("/").append(filename).toString();
     downloadRequest.setUrl(url);
@@ -149,11 +154,11 @@ public class DownloadController implements WebMvcConfigurer {
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
-  private String getFilename(String id,
+  private String getFilename(String pref,
                              boolean function, boolean population, boolean structure,
                              Integer page, Integer pageSize, String assembly) {
 
-    String filename = id; // <id>[OPTIONS]
+    String filename = pref; // <pref>[OPTIONS]
 
     if (function)
       filename += "-fun";
@@ -183,13 +188,13 @@ public class DownloadController implements WebMvcConfigurer {
     return filename;
   }
 
-  private DownloadRequest newDownloadRequest(String id, ResultType type, boolean function, boolean population, boolean structure,
-                                                 String assembly, String email, String jobName) {
+  private DownloadRequest newDownloadRequest(InputType inputType, String input, boolean function, boolean population, boolean structure,
+                                             String assembly, String email, String jobName) {
     DownloadRequest downloadRequest = new DownloadRequest();
     downloadRequest.setTimestamp(LocalDateTime.now());
-    downloadRequest.setId(id);
-    if (type != null)
-      downloadRequest.setType(type);
+    if (inputType != null)  // default ID
+      downloadRequest.setType(inputType);
+    downloadRequest.setInput(input);
     downloadRequest.setFunction(function);
     downloadRequest.setPopulation(population);
     downloadRequest.setStructure(structure);
@@ -201,7 +206,8 @@ public class DownloadController implements WebMvcConfigurer {
 
   /**
    * Download results as CSV file.
-   * @param filename <id>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
+   * pref is input ID, protein accession or hashCode of single variant string.
+   * @param filename <pref>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
    * @return
    */
   @Operation(summary = "Download results file")
@@ -228,7 +234,7 @@ public class DownloadController implements WebMvcConfigurer {
   /**
    * Check download status.
    * @param fs List of download files. The file name follows the pattern:
-   *           <id>[-PAGE][-PAGE_SIZE][-ASSEMBLY]
+   *           <pref>[-PAGE][-PAGE_SIZE][-ASSEMBLY]
    * @return
    */
   @Operation(summary = "Check status of a list of download requests")
