@@ -15,9 +15,8 @@ public enum ErrorConstants {
 
     AUTO_DETECT_37("", "Auto detect assumes that your variants are based on the GRCh37 assembly (%1$,.2f%% nts matched the reference sequence). If your variants are from GRCh38 then please select the appropriate radio button on the submission page."),
 
-    AUTO_DETECT_FAILED("", "Auto detect has been unable to detect which build the variants are based on. (%1$,.2f%% match GRCh38, %1$,.2f%% match GRCh37). Please check your variant input format. Mixed GRCh37/38 VCFs not permitted. Please separate them if you have mixed inputs."),
+    AUTO_DETECT_FAILED("", "Auto detect has been unable to detect which build the variants are based on (%1$,.2f%% match GRCh38, %1$,.2f%% match GRCh37). Please check your variant input format. Mixed GRCh37/38 VCFs not permitted. Please separate them if you have mixed inputs."),
 
-    GEN_ASSEMBLY_CONVERT_INFO("", "%d input%s marked for GRCh37 to GRCh38 conversion."),
     GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND("", "Unable to map GRCh37 to GRCh38 coordinate."),
 
     // HGVS input parsing errors
