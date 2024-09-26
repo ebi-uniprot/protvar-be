@@ -36,7 +36,7 @@ public class ID2Gen {
      * It is possible that an ID gives multiple variants - in which case they are added to the genomicInputList.
      * @param groupedInputs
      */
-    public void convert(Map<Type, List<UserInput>> groupedInputs) {
+    public void map(Map<Type, List<UserInput>> groupedInputs) {
         if (groupedInputs.containsKey(Type.ID)) {
             List<UserInput> idInputs = groupedInputs.get(Type.ID);
             Map<Format, List<UserInput>> idGroups = idInputs.stream().collect(Collectors.groupingBy(UserInput::getFormat));
