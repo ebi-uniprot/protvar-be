@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum Assembly {
+
     GRCH38("GRCh38", "h38", "38"),
     GRCH37("GRCh37", "h37", "37");
 
@@ -35,4 +36,14 @@ public enum Assembly {
             return null;
         return BY_NAME_STR.get(str.toUpperCase());
     }
+
+    public static boolean autodetect(String assembly) {
+        return assembly != null && assembly.equalsIgnoreCase("AUTO");
+    }
+
+    public static boolean is37(String assembly) {
+        Assembly parsedAssembly = Assembly.of(assembly);
+        return parsedAssembly != null && parsedAssembly == Assembly.GRCH37;
+    }
+
 }

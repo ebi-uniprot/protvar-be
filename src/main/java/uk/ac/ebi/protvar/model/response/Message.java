@@ -1,15 +1,17 @@
 package uk.ac.ebi.protvar.model.response;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
+import java.io.Serializable;
 import java.util.Objects;
+
 
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
 @AllArgsConstructor
-public class Message {
+public class Message implements Serializable {
     public enum MessageType {
         INFO, // (?)
         WARN, // (!) for e.g. ref base or ref aa mismatch - > show a warning in icon tooltip

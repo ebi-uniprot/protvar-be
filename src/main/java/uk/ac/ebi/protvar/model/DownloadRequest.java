@@ -11,8 +11,14 @@ import java.time.LocalDateTime;
 @ToString
 public class DownloadRequest {
     LocalDateTime timestamp;
-    String id;
-    ResultType type = ResultType.CUSTOM_INPUT; // default
+    InputType type = InputType.ID; // default
+    String input;
+    /*  type                 input
+     *  ----                 -----
+     *  ID                   input id - checksum of original input
+     *  PROTEIN_ACCESSION    protein accession
+     *  SINGLE_VARIANT       single variant
+     */
     boolean function;
     boolean population;
     boolean structure;
@@ -24,4 +30,5 @@ public class DownloadRequest {
 
     String fname; // filename: <id>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
     String url;
+
 }
