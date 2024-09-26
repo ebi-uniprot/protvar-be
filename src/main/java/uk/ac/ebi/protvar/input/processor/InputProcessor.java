@@ -33,7 +33,7 @@ public class InputProcessor {
      * @param inputs
      * @return
      */
-    public List<UserInput> parse(List<String> inputs) {
+    public static List<UserInput> parse(List<String> inputs) {
         return inputs.stream()
                 .filter(s -> s != null)                       // Remove null strings
                 .map(String::trim)                            // Trim the strings
@@ -112,6 +112,7 @@ public class InputProcessor {
             if (CosmicID.startsWithPrefix(inputStr))
                 return CosmicID.parse(inputStr);
         }
+
         /**
          * HGVS general pattern _:(S?)[a-z]._
          *                     /            \
@@ -147,8 +148,10 @@ public class InputProcessor {
         // let's assume any invalid input is of GenomicInput type.
     }
 
-    public String summary(List<UserInput> userInputs) {
-        String inputSummary = String.format("Processed %d input%s ", userInputs.size(), FetcherUtils.pluralise(userInputs.size()));
+
+    // Summary of given input partition, not whole input
+    public static String summary(List<UserInput> userInputs) {
+        String inputSummary = String.format("Showing %d input%s ", userInputs.size(), FetcherUtils.pluralise(userInputs.size()));
         int[] counts = {0,0,0,0}; //genomic, coding, protein, ID
         List<String> invalidInputs = new ArrayList<>();
 
