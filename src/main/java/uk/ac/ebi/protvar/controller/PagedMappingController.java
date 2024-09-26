@@ -71,9 +71,9 @@ public class PagedMappingController {
             ) {
         String id = null;
         if (file != null) {
-            id = inputCache.cacheFileInput(file);
+            id = inputCache.cache(file);
         } else if (text != null) {
-            id = inputCache.cacheTextInput(text);
+            id = inputCache.cache(text);
         }
         if (id != null) {
             if (idOnly)
@@ -121,7 +121,7 @@ public class PagedMappingController {
     )
     @GetMapping(value = "/mapping/input/{id}/renew")
     public ResponseEntity<?> extendExpiry(@PathVariable("id") String id) {
-        if (inputCache.extendExpiry(id))
+        if (inputCache.extend(id))
             return new ResponseEntity<>(HttpStatus.OK);
         return ResponseEntity.notFound().build();
     }
