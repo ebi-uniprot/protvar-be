@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
+import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
 import uk.ac.ebi.protvar.model.response.Gene;
@@ -29,7 +29,7 @@ public class Mappings2GeneConverter {
 								  Set<String> altBases,
 								  List<CADDPrediction> caddScores,
 								  Map<String, List<Score>>  scoreMap,
-								  Map<String, List<Variation>> variationMap, List<OPTIONS> options) {
+								  Map<String, List<Variation>> variationMap, InputParams params) {
 
 		List<Gene> ensgMappingList = new ArrayList<>();
 		if (mappings == null)
@@ -50,7 +50,7 @@ public class Mappings2GeneConverter {
 			altBases.forEach(alt -> {
 
 				List<IsoFormMapping> isoforms = isformConverter.createIsoforms(mappingList, userAllele, alt,
-						scoreMap, variationMap, options);
+						scoreMap, variationMap, params);
 
 				ensgMappingList.add(Gene.builder().ensg(ensg).reverseStrand(genomeToProteinMapping.isReverseStrand())
 						.geneName(genomeToProteinMapping.getGeneName())
