@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.cache.VariationCache;
 import uk.ac.ebi.protvar.converter.VariationAPI2VariationConverter;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.Variation;
@@ -24,8 +25,6 @@ import static uk.ac.ebi.protvar.utils.Commons.notNullNotEmpty;
 @AllArgsConstructor
 public class VariationFetcher {
 	private static final Logger logger = LoggerFactory.getLogger(VariationFetcher.class);
-
-	private static final String VAR_CACHE_PREFIX = "VAR-";
 	private VariationAPI2VariationConverter converter;
 	private VariationAPI variationAPI; // from API
 	private VariationRepo variationRepo; // from Repo i.e. ProtVar DB tbl
@@ -39,7 +38,7 @@ public class VariationFetcher {
 	public void prefetch(Set<String> accessionLocations) {
 		Map<Boolean, List<String>> partitioned =
 				accessionLocations.stream().collect(
-						Collectors.partitioningBy(acc -> variationCache.hasKey(VAR_CACHE_PREFIX+acc)));
+						Collectors.partitioningBy(accLoc -> variationCache.hasKey(VariationCache.keyOf(accLoc))));
 
 		Set<String> cached = new HashSet(partitioned.get(true));
 		Set<String> notCached = new HashSet(partitioned.get(false));
@@ -81,7 +80,7 @@ public class VariationFetcher {
 				logger.info("Caching variation: {}", String.join(",", accessionLocations));
 				// update cache
 				for (String key : variationMap.keySet()) {
-					variationCache.opsForValue().set(VAR_CACHE_PREFIX+key, variationMap.get(key));
+					variationCache.opsForValue().set(VariationCache.keyOf(key), variationMap.get(key));
 				}
 			}
 		}
@@ -91,14 +90,15 @@ public class VariationFetcher {
 	}
 
 	public List<Variation> fetch(String uniprotAccession, int proteinLocation) {
-		String key = uniprotAccession + ":" + proteinLocation;
-		if (variationCache.hasKey(VAR_CACHE_PREFIX+key))
-			return (List<Variation>) variationCache.opsForValue().get(VAR_CACHE_PREFIX+key);
+		String accLoc = uniprotAccession + ":" + proteinLocation;
+		String key = VariationCache.keyOf(accLoc);
+		if (variationCache.hasKey(key))
+			return (List<Variation>) variationCache.opsForValue().get(key);
 
-		cacheAPIResponse(new HashSet<>(Arrays.asList(key)));
+		cacheAPIResponse(new HashSet<>(Arrays.asList(accLoc)));
 
-		if (variationCache.hasKey(VAR_CACHE_PREFIX+key))
-			return (List<Variation>) variationCache.opsForValue().get(VAR_CACHE_PREFIX+key);
+		if (variationCache.hasKey(key))
+			return (List<Variation>) variationCache.opsForValue().get(key);
 
 		return Collections.emptyList();
 	}
