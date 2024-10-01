@@ -131,10 +131,10 @@ public class PagedMappingController {
             description = "Fetch paginated genomic-protein mappings for a specified UniProt accession. This endpoint returns the results in JSON format. " +
                     "You can specify the page number and the number of results per page for pagination."
     )
-    @GetMapping(value = "/mapping/protein/{accession}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/mapping/accession/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PagedMappingResponse> getResultByAccession(
             @Parameter(description = "The UniProt accession to retrieve mappings for.", example = "Q9UHP9")
-            @PathVariable("accession") String accession,
+            @PathVariable("id") String accession,
             @Parameter(description = PAGE_DESC, example = PAGE)
             @RequestParam(value = "page", defaultValue = PAGE, required = false) int page,
             @Parameter(description = PAGE_SIZE_DESC, example = PAGE_SIZE)
