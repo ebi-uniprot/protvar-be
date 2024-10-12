@@ -168,6 +168,10 @@ public class CSVDataFetcher {
 		List<String[]> csvOutput = new ArrayList<>();
 
 		response.getInputs().forEach(input -> {
+			if (!input.isValid()) {
+				csvOutput.add(getCsvDataInvalidInput(input));
+				return;
+			}
 			if (input.getType() == Type.GENOMIC) {
 				GenomicInput userInput = (GenomicInput) input;
 				addGenInputMappingsToOutput(userInput, userInput, csvOutput, params);
@@ -200,12 +204,6 @@ public class CSVDataFetcher {
 
 	private void addGenInputMappingsToOutput(UserInput userInput, GenomicInput genInput, List<String[]> csvOutput,
 											 InputParams params) {
-
-		if (!userInput.isValid()) {
-			csvOutput.add(getCsvDataInvalidInput(userInput));
-			return;
-		}
-
 		String chr = genInput.getChr();
 		Integer genomicLocation = genInput.getPos();
 		String varAllele = genInput.getAlt();
