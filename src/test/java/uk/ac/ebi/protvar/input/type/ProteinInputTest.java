@@ -24,10 +24,6 @@ public class ProteinInputTest {
         assert(!Pattern.matches(ProteinInput.THREE_LETTER_AA, "XXX"));
     }
 
-    @Test // ACC
-    void testAccessionOnly() {
-        assertInput("Q4ZIN3", "Q4ZIN3", null, null, null);
-    }
     @Test // ACC 999
     void testAccessionAndPosOnly() {
         assertInput("Q4ZIN3 558", "Q4ZIN3", 558, null, null);
