@@ -38,7 +38,7 @@ import static uk.ac.ebi.protvar.config.PagedMapping.DEFAULT_PAGE_SIZE;
 public class CSVDataFetcher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CSVDataFetcher.class);
 
-	private static final String MAPPING_NOT_FOUND = "Mapping not found";
+	private static final String NO_MAPPING = "No mapping found";
 
 	private static final String CSV_HEADER_INPUT = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele";
 	private static final String CSV_HEADER_NOTES = "Notes";
@@ -236,7 +236,7 @@ public class CSVDataFetcher {
 		valList.add(strValOrNA(genInput.getId()));
 		valList.add(strValOrNA(genInput.getRef()));
 		valList.add(strValOrNA(genInput.getAlt()));
-		valList.add(MAPPING_NOT_FOUND); // Notes
+		valList.add(NO_MAPPING); // Notes
 		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));
 		return valList.toArray(String[]::new);
 	}
