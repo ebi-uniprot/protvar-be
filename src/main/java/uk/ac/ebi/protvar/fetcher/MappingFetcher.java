@@ -17,7 +17,6 @@ import uk.ac.ebi.protvar.input.mapper.ID2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
-import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.Coord;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
@@ -227,11 +226,6 @@ public class MappingFetcher {
 				});
 			});
 
-		}
-		// Post-fetch: add input summary to response
-		if (params.isSummarise()) {
-			String inputSummary = InputProcessor.summary(params.getInputs());
-			response.getMessages().add(new Message(Message.MessageType.INFO, inputSummary));
 		}
 		return response;
 	}
