@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 public class RegexUtils {
 
     public static final String SPACES = "\\s+";
-    public static final String SPACES_OR_SLASH = "(\\s+|/)";
+    public static final String SPACES_OR_SLASH = "(\\s+|/)"; // spaces, or /
     public static final String SPACES_OR_SLASH_OR_GREATER = "(\\s+|/|>)";
 
     // regex pattern to match a word without any spaces

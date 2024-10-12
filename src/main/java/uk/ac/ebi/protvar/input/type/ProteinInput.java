@@ -21,18 +21,19 @@ import java.util.stream.Collectors;
 
 /**
  * Supported custom formats:
- * 1. ACC
- * 2. ACC POS
- * 3. ACC POS X[ |/]Y
+ * 1. ACC                --> NOT SUPPORTED AS A VARIANT INPUT
+ * 2. ACC POS            --> without AA substitution
+ * 3. ACC POS X[ |/]Y    --> 3. & 4. effectively - ACC POS( AA[ |/]AA)
  * 4. ACC POS XXX[ |/]YYY
  * 5. ACC X999Y
  * 6. ACC [p.]XXX999YYY
  *
  * where
- * ACC=protein accession
- * 999=protein position
- * X/XXX=1-/3-letter ref AA
- * Y/YYY=1-/3-letter alt AA
+ * ACC=UniProt accession
+ * POS=protein position
+ * AA=1- or 3-letter ref/alt aa
+ * X/XXX=1-/3-letter ref aa
+ * Y/YYY=1-/3-letter alt aa
  *
  */
 @Getter
@@ -62,16 +63,21 @@ public class ProteinInput extends UserInput {
     public final static String X_Y = ONE_LETTER_AA + RegexUtils.SPACES_OR_SLASH + ONE_LETTER_AA;
     public final static String XXX_YYY = THREE_LETTER_AA + RegexUtils.SPACES_OR_SLASH + THREE_LETTER_AA;
 
-    // covers 1. and 2.
-    public final static String CUSTOM_PROTEIN_ACC_POS = "(?<acc>" + UNIPROT_ACC + ")" +
-            "("+ RegexUtils.SPACES + "(?<pos>"+ POS+"))?"; // optional pos
-
-    // covers 3. and 4.
-    public final static String CUSTOM_PROTEIN_ACC_POS_AA_AA = "(?<acc>" + UNIPROT_ACC + ")" +
+    // covers 2-4.
+    // ACC POS( REF( ALT)?)?
+    public final static String CUSTOM_PROTEIN_ACC_POS_X_Y =
+            "(?<acc>" + UNIPROT_ACC + ")" +
             RegexUtils.SPACES +
             "(?<pos>"+ POS+")" +
-            RegexUtils.SPACES +
-            "(?<sub>("+X_Y + "|" + XXX_YYY +"))";
+            "(" + RegexUtils.SPACES + "(?<ref>"+ ONE_LETTER_AA+")" +
+            "(" + RegexUtils.SPACES_OR_SLASH + "(?<alt>"+ ONE_LETTER_AA +"))?)?";
+
+    public final static String CUSTOM_PROTEIN_ACC_POS_XXX_YYY =
+            "(?<acc>" + UNIPROT_ACC + ")" +
+                    RegexUtils.SPACES +
+                    "(?<pos>"+ POS+")" +
+                    "(" + RegexUtils.SPACES + "(?<ref>"+ THREE_LETTER_AA+")" +
+                    "(" + RegexUtils.SPACES_OR_SLASH + "(?<alt>"+ THREE_LETTER_AA +"))?)?";
 
     // covers 5.
     public final static String CUSTOM_PROTEIN_ACC_X_POS_Y = "(?<acc>" + UNIPROT_ACC + ")" +
@@ -86,6 +92,12 @@ public class ProteinInput extends UserInput {
             "(?<ref>"+THREE_LETTER_AA+")" +
             "(?<pos>"+POS+")" +
             "(?<alt>"+THREE_LETTER_AA+")";
+
+    final static Pattern PATTERN_ACC = Pattern.compile(UNIPROT_ACC, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_POS_X_Y = Pattern.compile(CUSTOM_PROTEIN_ACC_POS_X_Y, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_POS_XXX_YYY = Pattern.compile(CUSTOM_PROTEIN_ACC_POS_XXX_YYY, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_X_POS_Y = Pattern.compile(CUSTOM_PROTEIN_ACC_X_POS_Y, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_XXX_POS_YYY = Pattern.compile(CUSTOM_PROTEIN_ACC_XXX_POS_YYY, Pattern.CASE_INSENSITIVE);
 
 
     protected String acc; // UniProt accession
@@ -110,49 +122,21 @@ public class ProteinInput extends UserInput {
     }
 
     public static boolean validAccession(String acc) {
-        return Pattern.matches(UNIPROT_ACC, acc);
+        return PATTERN_ACC.matcher(acc).matches();
     }
 
     public static ProteinInput parse(String inputStr) {
         ProteinInput parsedInput = new ProteinInput(inputStr);
         try {
-
-            Pattern pattern = Pattern.compile(CUSTOM_PROTEIN_ACC_POS, Pattern.CASE_INSENSITIVE);
-            Matcher matcher = pattern.matcher(inputStr);
-            if (matcher.matches()) {
-                String acc = matcher.group("acc"); // uniprot accession
-                String pos = matcher.group("pos");
-                parsedInput.setAcc(acc);
-                if (pos == null) {
-                    parsedInput.addError(ErrorConstants.INVALID_PROTEIN_INPUT);
-                    LOGGER.error(parsedInput + ": parsing error");
-                } else {
-                    parsedInput.setPos(Integer.parseInt(pos));
-                }
+            if (tryParseInput(PATTERN_ACC_POS_X_Y, inputStr, parsedInput))
                 return parsedInput;
-            }
-            pattern = Pattern.compile(CUSTOM_PROTEIN_ACC_POS_AA_AA, Pattern.CASE_INSENSITIVE);
-            matcher = pattern.matcher(inputStr);
-
-            if (matcher.matches()) {
-                String acc = matcher.group("acc"); // uniprot accession
-                String pos = matcher.group("pos");
-                parsedInput.setAcc(acc);
-                parsedInput.setPos(Integer.parseInt(pos));
-                String sub = matcher.group("sub");
-                String[] aa = sub.split(RegexUtils.SPACES_OR_SLASH);
-                parsedInput.setRef(AminoAcid.oneLetter(aa[0]));
-                parsedInput.setAlt(AminoAcid.oneLetter(aa[1]));
+            if (tryParseInput(PATTERN_ACC_POS_XXX_YYY, inputStr, parsedInput))
                 return parsedInput;
-            }
-
-            if (tryParseInput(CUSTOM_PROTEIN_ACC_X_POS_Y, inputStr, parsedInput))
+            if (tryParseInput(PATTERN_ACC_X_POS_Y, inputStr, parsedInput))
                 return parsedInput;
-            else if (tryParseInput(CUSTOM_PROTEIN_ACC_XXX_POS_YYY, inputStr, parsedInput))
+            if (tryParseInput(PATTERN_ACC_XXX_POS_YYY, inputStr, parsedInput))
                 return parsedInput;
-            else {
-                throw new InvalidInputException("No match found.");
-            }
+            throw new InvalidInputException("No match found.");
         }
         catch (Exception ex) {
             parsedInput.addError(ErrorConstants.INVALID_PROTEIN_INPUT);
@@ -161,15 +145,14 @@ public class ProteinInput extends UserInput {
         return parsedInput;
     }
 
-    private static boolean tryParseInput(String regex, String inputStr, ProteinInput parsedInput) {
-        Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+    private static boolean tryParseInput(Pattern pattern, String inputStr, ProteinInput parsedInput) {
         Matcher matcher= pattern.matcher(inputStr);
         if (matcher.matches()) {
             String acc = matcher.group("acc"); // uniprot accession
             String pos = matcher.group("pos");
             String ref = matcher.group("ref");
             String alt = matcher.group("alt");
-            parsedInput.setAcc(acc);
+            parsedInput.setAcc(acc.toUpperCase());
             parsedInput.setPos(Integer.parseInt(pos));
             parsedInput.setRef(AminoAcid.oneLetter(ref));
             parsedInput.setAlt(AminoAcid.oneLetter(alt));

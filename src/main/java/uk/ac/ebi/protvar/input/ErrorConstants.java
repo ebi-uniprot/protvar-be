@@ -74,7 +74,7 @@ public enum ErrorConstants {
     INVALID_REF("", "Invalid reference allele. Enter one of A, C, T, and G."),
     INVALID_ALT("", "Invalid alternate allele. Enter one of A, C, T, and G."),
 
-    INVALID_PROTEIN_INPUT("", "Invalid protein input. Check the format is correct and includes a valid protein position, reference and alternate amino acid. "),
+    INVALID_PROTEIN_INPUT("", "Invalid protein input. Ensure the format is correct and includes a valid protein position. Reference and alternate amino acids are optional. "),
     INVALID_VCF_INPUT("", "Invalid VCF input. Check the format is correct and includes a chromosome, position, variant ID, reference and alternate allele. "),
 
     INVALID_GENOMIC_INPUT("", "Invalid Genomic input."),

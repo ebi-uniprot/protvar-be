@@ -174,6 +174,7 @@ public class Pro2Gen {
 
                         AminoAcid gCoordRefAA = AminoAcid.fromOneOrThreeLetter(gCoordAa);
 
+                        // both ref and alt not provided
                         if (input.getRef() == null && input.getAlt() == null) {
                             // Ref & var empty
                             if (!errors.contains(ERR_CODE_REF_EMPTY)) {
@@ -197,7 +198,7 @@ public class Pro2Gen {
                                 gInput.setAlt(altAllele);
                                 input.getDerivedGenomicInputs().add(gInput);
                             }
-                        } else if (input.getRef() != null) {
+                        } else if (input.getRef() != null) { // ref provided
 
                             AminoAcid refAA = AminoAcid.fromOneOrThreeLetter(input.getRef());
 
@@ -211,7 +212,14 @@ public class Pro2Gen {
                             }
 
                             AminoAcid userAltAA = null;
-                            if (input.getAlt() != null) {
+                            if (input.getAlt() == null) { // alt not provided
+                                if (!errors.contains(ERR_CODE_VAR_EMPTY)) {
+                                    errors.add(ERR_CODE_VAR_EMPTY);
+                                    input.getMessages().add(new Message(Message.MessageType.WARN,
+                                            ERR_CODE_VAR_EMPTY.getErrorMessage()));
+                                }
+                            }
+                            else {
                                 userAltAA = AminoAcid.fromOneOrThreeLetter(input.getAlt());
 
                                 // variant non SNV
