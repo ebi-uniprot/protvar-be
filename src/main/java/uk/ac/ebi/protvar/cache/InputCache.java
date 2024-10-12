@@ -6,12 +6,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
+import uk.ac.ebi.protvar.input.processor.InputProcessor;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static uk.ac.ebi.protvar.config.PagedMapping.INPUT_EXPIRES_AFTER_DAYS;
 
@@ -22,6 +25,10 @@ public class InputCache {
 
     public static final String INPUT_CACHE_PREFIX = "INPUT-";
     public static final String BUILD_CACHE_PREFIX = "BUILD-";
+    public static final String SUMMARY_CACHE_PREFIX = "SUMMARY-";
+
+    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
+
 
     private RedisTemplate redisTemplate;
 
@@ -31,6 +38,9 @@ public class InputCache {
 
     public String buildKeyOf(String id) {
         return BUILD_CACHE_PREFIX + id;
+    }
+    public String summaryKeyOf(String id) {
+        return SUMMARY_CACHE_PREFIX + id;
     }
 
     public String getInput(String id) {
@@ -44,6 +54,13 @@ public class InputCache {
         String buildKey = buildKeyOf(id);
         if (redisTemplate.hasKey(buildKey))
             return (InputBuild) redisTemplate.opsForValue().get(buildKey);
+        return null;
+    }
+
+    public InputSummary getInputSummary(String id) {
+        String summaryKey = summaryKeyOf(id);
+        if (redisTemplate.hasKey(summaryKey))
+            return (InputSummary) redisTemplate.opsForValue().get(summaryKey);
         return null;
     }
 
@@ -93,6 +110,14 @@ public class InputCache {
         redisTemplate.opsForValue().set(key, input);
         redisTemplate.expireAt(key, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
         //}
+
+        // Launch job to generate summary
+        executorService.submit(() -> {
+            InputSummary inputSummary = InputProcessor.summary(input);
+            String summaryKey = summaryKeyOf(id);
+            redisTemplate.opsForValue().set(summaryKey, inputSummary);
+            redisTemplate.expireAt(summaryKey, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
+        });
     }
 
     public boolean extend(String id) {

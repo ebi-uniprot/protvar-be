@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputCache;
+import uk.ac.ebi.protvar.cache.InputSummary;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.params.InputParams;
@@ -14,8 +15,10 @@ import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
+import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.*;
 
@@ -102,6 +105,16 @@ public class PagedMappingService {
         }
         response.setContent(mappingContent);
 
+        // Post-fetch: add input summary to response
+        InputSummary inputSummary = inputCache.getInputSummary(id);
+        String summary;
+        if (inputSummary == null) { // probably still calculating...
+            // use tmp/basic summary
+            summary = String.format("%d user input%s ", originalInputList.size(), FetcherUtils.pluralise(originalInputList.size()));
+        } else {
+            summary = inputSummary.toString();
+        }
+        mappingContent.getMessages().add(0, new Message(Message.MessageType.INFO, summary));
 
         long ttl = inputCache.expires(id);
         response.setTtl(ttl);

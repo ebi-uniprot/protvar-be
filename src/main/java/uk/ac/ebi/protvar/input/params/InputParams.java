@@ -4,7 +4,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.model.grc.Assembly;
 
 import java.util.List;
 

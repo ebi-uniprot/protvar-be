@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.input.processor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.cache.InputSummary;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
@@ -15,12 +16,11 @@ import uk.ac.ebi.protvar.input.format.id.DbsnpID;
 import uk.ac.ebi.protvar.input.format.protein.HGVSp;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
-import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.utils.HGVS;
 import uk.ac.ebi.protvar.utils.RegexUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -148,39 +148,38 @@ public class InputProcessor {
         // let's assume any invalid input is of GenomicInput type.
     }
 
-
-    // Summary of given input partition, not whole input
-    public static String summary(List<UserInput> userInputs) {
-        String inputSummary = String.format("Showing %d input%s ", userInputs.size(), FetcherUtils.pluralise(userInputs.size()));
-        int[] counts = {0,0,0,0}; //genomic, coding, protein, ID
-        List<String> invalidInputs = new ArrayList<>();
-
-
-        userInputs.stream().forEach(input -> {
-            if (input.getType() == Type.GENOMIC) counts[0]++;
-            else if (input.getType() == Type.CODING) counts[1]++;
-            else if (input.getType() == Type.PROTEIN) counts[2]++;
-            else if (input.getType() == Type.ID) counts[3]++;
-
-            if (!input.isValid()) {
-                String invalidMsg = String.format("Invalid input (%s): %s ", input.getInputStr(), Arrays.toString(input.getErrors().toArray()));
-                invalidInputs.add(invalidMsg);
-                LOGGER.warn(invalidMsg);
-            }
-        });
-        List<String> inputTypes = new ArrayList<>();
-        if (counts[0] > 0) inputTypes.add(String.format("%d genomic", counts[0]));
-        if (counts[1] > 0) inputTypes.add(String.format("%d cDNA", counts[1]));
-        if (counts[2] > 0) inputTypes.add(String.format("%d protein", counts[2]));
-        if (counts[3] > 0) inputTypes.add(String.format("%d ID", counts[3]));
-
-        if (inputTypes.size() > 0) inputSummary += "(" + String.join(", ", inputTypes) + ")";
-
-        if (invalidInputs.size() > 0) {
-            inputSummary += String.format("%d input%s %s not valid", invalidInputs.size(), FetcherUtils.pluralise(invalidInputs.size()), FetcherUtils.isOrAre(invalidInputs.size()));
-        }
-
-        return inputSummary;
+    /**
+     * Summary of original input, that needs to be parsed.
+     * @param originalInput
+     * @return
+     */
+    public static InputSummary summary(String originalInput) {
+        List<String> inputs = Arrays.asList(originalInput.split("\\R|,"));
+        List<UserInput> userInputs = parse(inputs);
+        return summary(userInputs);
     }
 
+    /**
+     * Summary of a list of parsed user inputs.
+     * @param userInputs may be for an input partition or whole input
+     * @return
+     */
+    public static InputSummary summary(List<UserInput> userInputs) {
+        EnumMap<Type, Integer> inputCounts = new EnumMap<>(Type.class);
+        for (Type type : Type.values()) {
+            inputCounts.put(type, 0);
+        }
+
+        userInputs.stream().forEach(input -> {
+            if (input.isValid() && input.getType() != null) {
+                inputCounts.put(input.getType(), inputCounts.get(input.getType()) + 1);
+            } else {
+                inputCounts.put(Type.INVALID, inputCounts.get(Type.INVALID) + 1);
+            }
+        });
+        return InputSummary.builder()
+                .totalCount(userInputs.size())
+                .inputCounts(inputCounts)
+                .build();
+    }
 }
