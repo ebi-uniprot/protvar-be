@@ -27,6 +27,7 @@ public class CoordinateMappingController {
     public final static int MAX_INPUT = 1000;
     public final static String ASSEMBLY_DESC = "Specify the human genome assembly version. Accepted values are: GRCh38/h38/38, GRCh37/h37/37 or AUTO (default, auto-detects the version).";
     private MappingFetcher mappingFetcher;
+    private BuildProcessor buildProcessor;
 
     @Operation(
             summary = "Legacy genomic-to-protein mapping endpoint.",
@@ -57,12 +58,21 @@ public class CoordinateMappingController {
             processList = inputs.subList(0, MAX_INPUT);
         }
         List<UserInput> userInputs = InputProcessor.parse(processList);
+        InputBuild inputBuild = null;
+        if (Assembly.autodetect(assembly)) {
+            List<UserInput> genomicInputs = buildProcessor.filterGenomicInputs(processList);
+            if (!genomicInputs.isEmpty()) {
+                inputBuild = buildProcessor.detect(genomicInputs);
+            }
+        }
+
         InputParams params = InputParams.builder()
                 .inputs(userInputs)
                 .fun(function)
                 .pop(population)
                 .str(structure)
                 .assembly(assembly)
+                .inputBuild(inputBuild)
                 .summarise(true) // not needed anymore
                 .build();
 

@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
+import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
@@ -33,13 +34,31 @@ public class BuildProcessor {
 
     @Autowired
     private ProtVarDataRepo protVarDataRepo;
+    @Autowired
+    private InputCache inputCache;
+
+
+    public InputBuild determinedBuild(String id, List<String> originalInputList, String assembly) {
+        InputBuild inputBuild = null;
+        if (Assembly.autodetect(assembly)) {
+            inputBuild = inputCache.getInputBuild(id); // if already detected
+            if (inputBuild == null) { // if not
+                List<UserInput> genomicInputs = filterGenomicInputs(originalInputList);
+                if (!genomicInputs.isEmpty()) {
+                    inputBuild = detect(genomicInputs);
+                    inputCache.cacheInputBuild(id, inputBuild);
+                }
+            }
+        }
+        return inputBuild;
+    }
 
     /**
      * Filter out non-genomic inputs (incl. hgvs inputs as the build for these are implicit).
      * @param inputs
      * @return
      */
-    public List<UserInput> genomicInputs(List<String> inputs) {
+    public List<UserInput> filterGenomicInputs(List<String> inputs) {
         return inputs.stream()
                 .map(inputStr -> {
                     if (GenomicInput.startsWithChromo(inputStr)) {
@@ -60,34 +79,51 @@ public class BuildProcessor {
 
 
     /**
+     * TODO review and maybe incorporate following.
+     * <10
+     * sample s = population P
+     * i.e.
+     * %match is exact, say x% h37, y% h38
+     *
+     * >10
+     * sample s
+     * involves CL in sample estimate
+     * here,
+     * %match is an estimate of the true value.
+     * ideally message accompanied by a CL, margin of error used.
+     *
+     */
+    /**
      * Detect the build of the given list of genomic inputs, if minimum input threshold is met.
      * Fallbacks to GRCh38 if autodetect is inconclusive.
      * @param genomicInputs
      * @return
      */
     public InputBuild detect(List<UserInput> genomicInputs) {
-        if (genomicInputs.isEmpty() || genomicInputs.size() < AUTO_DETECT_MIN_SIZE) {
-            return new InputBuild(Assembly.GRCH38, new Message(Message.MessageType.INFO,
-                    ErrorConstants.AUTO_DETECT_NOT_POSSIBLE.getErrorMessage()));
+        List<UserInput> sampleGenomicInputs;
+        if (genomicInputs.size() < AUTO_DETECT_MIN_SIZE) {
+            sampleGenomicInputs = genomicInputs;
         } else {
-            List<UserInput> sampleGenomicInputs = randomSublist(genomicInputs, AUTO_DETECT_SAMPLE_SIZE);
-            double match38 = buildPercentageMatch(sampleGenomicInputs, "38");
-            if (match38 > 75) {
-                // assumes 38, no conversion
-                return new InputBuild(Assembly.GRCH38, new Message(Message.MessageType.INFO,
-                        String.format(ErrorConstants.AUTO_DETECT_38.getErrorMessage(), match38)));
-            } else {
-                double match37 = buildPercentageMatch(sampleGenomicInputs, "37");
-                if (match37 > 75) {
-                    // assumes 37, convert to 38
-                    return new InputBuild(Assembly.GRCH37, new Message(Message.MessageType.INFO,
-                            String.format(ErrorConstants.AUTO_DETECT_37.getErrorMessage(), match37)));
-                } else {
-                    return new InputBuild(Assembly.GRCH38, new Message(Message.MessageType.INFO,
-                            String.format(ErrorConstants.AUTO_DETECT_FAILED.getErrorMessage(), match38, match37)));
-                }
-            }
+            sampleGenomicInputs = randomSublist(genomicInputs, AUTO_DETECT_SAMPLE_SIZE);
         }
+
+        double match38 = buildPercentageMatch(sampleGenomicInputs, "38");
+        double match37 = buildPercentageMatch(sampleGenomicInputs, "37");
+        String match38Str = String.format("%.2f", match38);
+        String match37Str = String.format("%.2f", match37);
+
+        if (match38 > 75 && match37 < 25) {
+            return new InputBuild(Assembly.GRCH38, new Message(Message.MessageType.INFO,
+                    String.format(ErrorConstants.AUTO_DETECT_38.getErrorMessage(), match38Str, match37Str)));
+        }
+
+        if (match37 > 75 && match38 < 25) {
+            return new InputBuild(Assembly.GRCH37, new Message(Message.MessageType.INFO,
+                    String.format(ErrorConstants.AUTO_DETECT_37.getErrorMessage(), match37Str, match38Str)));
+        }
+
+        return new InputBuild(Assembly.GRCH38, new Message(Message.MessageType.WARN,
+                String.format(ErrorConstants.AUTO_DETECT_UNKNOWN.getErrorMessage(), match38Str, match37Str)));
     }
 
 
@@ -95,6 +131,14 @@ public class BuildProcessor {
         List<UserInput> genomicInputs = groupedInputs.get(Type.GENOMIC);
         if (genomicInputs == null || genomicInputs.isEmpty()) {
             return;
+        }
+        boolean is37 = false;
+        if (Assembly.autodetect(params.getAssembly())) {
+            InputBuild detectedBuild = params.getInputBuild();
+            is37 = detectedBuild != null && detectedBuild.getAssembly() != null
+                    && detectedBuild.getAssembly() == Assembly.GRCH37;
+        } else {
+            is37 = Assembly.is37(params.getAssembly());
         }
 
         // Separate inputs that need to be converted irrespective of user-specified assembly e.g. HGVSg37
@@ -113,7 +157,7 @@ public class BuildProcessor {
 
         List<UserInput> convertList = new ArrayList<>(hgvsGs37);
 
-        if (!nonHgvsGs.isEmpty() && params.isConvert()) {
+        if (!nonHgvsGs.isEmpty() && is37) {
             convertList.addAll(nonHgvsGs);
         }
 

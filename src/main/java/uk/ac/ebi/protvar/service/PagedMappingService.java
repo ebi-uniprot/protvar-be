@@ -13,7 +13,6 @@ import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.input.processor.InputProcessor;
-import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
@@ -50,7 +49,7 @@ public class PagedMappingService {
         response.setLast(pageNo == totalPages);
 
         /** Accepted values: The assembly can be one of the following:
-         *  - null, empty, not AUTO, 37, or 38 (treated as null or not provided)
+         *  - null, empty, anything else (treated as null or not provided)
          *  - AUTO, 37, or 38
          *
          *  Rules:
@@ -60,44 +59,26 @@ public class PagedMappingService {
          *
          *  Steps:
          *  1. Check the user-specified assembly.
-         *  2. If it's 37, convert to 38.
-         *  3. If it's 38, no conversion is needed.
-         *  4. If it's AUTO, check if the input ID has a cached detected build;
+         *  2. If AUTO, check if the input ID has a cached detected build;
          *      if yes, use it, otherwise, detect, cache, and use the detected build.
-         *  5. In all other cases, no conversion is required.
+         *  3. If 37, convert to 38.
+         *  4. If 38, no conversion is needed.
+         *  5. In all other cases, no conversion is required. Defaults to 38.
          *
          *  Note:
          *  - BuildProcessor always converts hgvsGs37 inputs, if any.
-         *  - The same input with a specified ID might be requested with a different assembly parameter in another
+         *  - The same input ID may be requested with a different assembly parameter in another
          *    request, so always verify the submitted assembly.
          */
         List<String> inputs = getPage(originalInputList, pageNo, pageSize);
+        InputBuild inputBuild = buildProcessor.determinedBuild(id, originalInputList, assembly);
         InputParams params = InputParams.builder()
                 .id(id)
                 .inputs(InputProcessor.parse(inputs))
                 .assembly(assembly)
+                .inputBuild(inputBuild)
                 .summarise(true)
                 .build();
-
-        boolean convert = false;
-        InputBuild inputBuild = null;
-        if (Assembly.autodetect(assembly)) {
-            // we bother to check if we actually have any genomic inputs if the user has specified autodetect
-            List<UserInput> genomicInputs = buildProcessor.genomicInputs(originalInputList);
-            if (!genomicInputs.isEmpty()) {
-                inputBuild = inputCache.getInputBuild(id);
-                if (inputBuild == null) {
-                    inputBuild = buildProcessor.detect(genomicInputs);
-                    inputCache.cacheInputBuild(id, inputBuild);
-                }
-                convert = inputBuild.getAssembly() != null && inputBuild.getAssembly() == Assembly.GRCH37;
-            }
-        } else {
-            convert = Assembly.is37(assembly);
-        }
-        params.setConvert(convert);
-        // TODO review - convert may not be needed here, doesn't work for single input
-        // use is37 instead
 
         MappingResponse mappingContent = mappingFetcher.getMapping(params);
         if (inputBuild != null && inputBuild.getMessage() != null) {

@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.input.params;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.input.UserInput;
 
 import java.util.List;
@@ -24,5 +25,5 @@ public class InputParams {
      boolean str; // default false
      String assembly; // default null
      boolean summarise; // default false
-     boolean convert; // default false
+     InputBuild inputBuild; // not provided, detected if assembly=AUTO
 }

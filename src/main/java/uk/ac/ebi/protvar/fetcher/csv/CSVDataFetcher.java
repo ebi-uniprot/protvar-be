@@ -16,11 +16,13 @@ import org.springframework.stereotype.Service;
 
 import com.opencsv.CSVWriter;
 
+import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.input.params.InputParams;
+import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.IDInput;
@@ -71,8 +73,12 @@ public class CSVDataFetcher {
 	private String downloadDir;
 	private InputCache inputCache;
 
+	private BuildProcessor buildProcessor;
+
 	public void writeCSVResult(DownloadRequest request) {
 		List<String> inputs = null;
+		String inputId = null;
+		InputBuild inputBuild = null;
 		try {
 			Path zipPath = Paths.get(downloadDir, request.getFname() + ".csv.zip");
 			if (Files.exists(zipPath)) {
@@ -82,13 +88,14 @@ public class CSVDataFetcher {
 
 			switch (request.getType()) {
 				case ID:
-					String inputId = request.getInput();
+					inputId = request.getInput();
 					String originalInput = inputCache.getInput(inputId);
 					if (originalInput == null) {
 						LOGGER.warn("{} id not found", inputId);
 						return;
 					} else {
 						List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
+						inputBuild = buildProcessor.determinedBuild(inputId, originalInputList, request.getAssembly());
 						if (request.getPage() == null) {
 							inputs = originalInputList;
 						} else {
@@ -129,23 +136,29 @@ public class CSVDataFetcher {
 
 				if (inputs.size() <= PARTITION_SIZE) {
 					InputParams params = InputParams.builder()
+							.id(inputId)
 							.inputs(InputProcessor.parse(inputs))
 							.fun(request.isFunction())
 							.pop(request.isPopulation())
 							.str(request.isStructure())
 							.assembly(request.getAssembly())
+							.inputBuild(inputBuild)
 							.build();
 					List<String[]> result = buildCSVResult(params);
 					writer.writeAll(result);
 				} else {
+					final String id = inputId;
+					final InputBuild detectedBuild = inputBuild;
 					Lists.partition(inputs, PARTITION_SIZE).parallelStream()
 							.map(partition -> {
 								InputParams params = InputParams.builder()
+										.id(id)
 										.inputs(InputProcessor.parse(partition))
 										.fun(request.isFunction())
 										.pop(request.isPopulation())
 										.str(request.isStructure())
 										.assembly(request.getAssembly())
+										.inputBuild(detectedBuild)
 										.build();
 								return buildCSVResult(params);
 							})

@@ -9,13 +9,11 @@ public enum ErrorConstants {
     COSMIC_ID_INVALID("", "Invalid COSMIC ID. Prefix 'COSV', 'COSM' or 'COSN' should follow one or more digits."),
     COSMIC_ID_NO_MAPPING("", "No mapping found for COSMIC ID."),
 
-    AUTO_DETECT_NOT_POSSIBLE("", "Auto-detect not possible on fewer than 10 genomic inputs. Variants assumed to be based on the GRCh38 assembly."),
+    AUTO_DETECT_38("", "Genomic variants assembly predicted to be GRCh38 (%s%% GRCh38, %s%% GRCh37 matches)."),
 
-    AUTO_DETECT_38("", "Auto detect assumes that your variants are based on the GRCh38 assembly (%1$,.2f%% nts matched the reference sequence). If your variants are from GRCh37 then please select the appropriate radio button on the submission page."),
+    AUTO_DETECT_37("", "Genomic variants assembly predicted to be GRCh37 (%s%% GRCh37, %s%% GRCh38 matches)."),
 
-    AUTO_DETECT_37("", "Auto detect assumes that your variants are based on the GRCh37 assembly (%1$,.2f%% nts matched the reference sequence). If your variants are from GRCh38 then please select the appropriate radio button on the submission page."),
-
-    AUTO_DETECT_FAILED("", "Auto detect has been unable to detect which build the variants are based on (%1$,.2f%% match GRCh38, %1$,.2f%% match GRCh37). Please check your variant input format. Mixed GRCh37/38 VCFs not permitted. Please separate them if you have mixed inputs."),
+    AUTO_DETECT_UNKNOWN("", "Unable to predict which genome assembly was inputted (%s%% GRCh38, %s%% GRCh37 matches). Defaulting to GRCh38."),
 
     GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND("", "Unable to map GRCh37 to GRCh38 coordinate."),
 
@@ -62,7 +60,7 @@ public enum ErrorConstants {
     HGVS_REFSEQ_NO_PROTEIN("", "Could not map RefSeq ID to a Uniprot protein."),
 
     HGVS_UNIPROT_ACC_NOT_FOUND("", "We mapped %s to %s but the accession cannot be found in UniProt. "),
-    PROT_UNIPROT_ACC_NOT_FOUND("", "UniProt accession not found %s. "),
+    PROT_UNIPROT_ACC_NOT_FOUND("", "%s is not a human UniProt accession. "),
 
     PROT_NO_GEN_MAPPING("", "Could not map protein input to genomic coordinate(s). "),
     CDNA_NO_GEN_MAPPING("", "Could not map cDNA input to genomic coordinate(s). "),
