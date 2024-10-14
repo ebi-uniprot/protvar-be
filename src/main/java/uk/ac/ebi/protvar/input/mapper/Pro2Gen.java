@@ -87,7 +87,7 @@ public class Pro2Gen {
                 accPosSet.add(new Object[]{customProt.getAcc(), customProt.getPos()});
 
                 if (!uniprotEntryCache.isValidEntry(customProt.getAcc())) {
-                    customProt.addWarning(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), customProt.getAcc()));
+                    customProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), customProt.getAcc()));
                 }
 
             } else if (input instanceof HGVSc) {
