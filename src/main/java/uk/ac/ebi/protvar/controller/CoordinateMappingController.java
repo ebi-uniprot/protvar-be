@@ -88,7 +88,11 @@ public class CoordinateMappingController {
         if (mappingResponse != null) {
             String inputSummary = InputProcessor.summary(userInputs).toString();
             mappingResponse.getMessages().add(new Message(Message.MessageType.INFO, inputSummary));
+            if (inputBuild != null && inputBuild.getMessage() != null) {
+                mappingResponse.getMessages().add(inputBuild.getMessage());
+            }
         }
+
 
         return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
     }
