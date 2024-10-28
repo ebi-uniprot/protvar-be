@@ -49,9 +49,9 @@ public class HGVSc extends CodingInput {
                     // OPTIONALLY, with or without space followed by protein substitution
                     "(("+ RegexUtils.SPACES +")?" +
                     "(p.\\(|\\(p.)" + // lenient on where the opening bracket is
-                    "(?<protRef>"+ ProteinInput.THREE_LETTER_AA + ")" +
+                    "(?<protRef>"+ ProteinInput.AMINO_ACID_REF3 + ")" +
                     "(?<protPos>" + POS + ")" +
-                    "(?<protAlt>" + ProteinInput.THREE_LETTER_AA_INCL_STOP_AND_EQ+")\\))?";
+                    "(?<protAlt>" + ProteinInput.AMINO_ACID_ALT3 +")\\))?";
 
     private static Pattern GENERAL_PATTERN = Pattern.compile(GENERAL_HGVS_C_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
     private static Pattern REF_SEQ_PATTERN = Pattern.compile(REF_SEQ_REGEX, Pattern.CASE_INSENSITIVE);

@@ -54,46 +54,53 @@ public class ProteinInput extends UserInput {
 
     // 3. Amino acid
     // a. one-letter (X|X|...|*)
-    public final static String ONE_LETTER_AA = String.format("(%s)", String.join("|", AminoAcid.VALID_AA1)).replace("*", STOP_CODON);
+
+    // incl. stop codon (*)
+    public final static String AMINO_ACID_REF1 = String.format("(%s)", String.join("|", AminoAcid.VALID_AA1)).replace("*", STOP_CODON);
+
+    // incl. unchanged, or "silent" (=)
+    public final static String AMINO_ACID_ALT1 = String.format("(%s|=)", String.join("|", AminoAcid.VALID_AA1)).replace("*", STOP_CODON);
 
     // b. three-letter (XXX|XXX|..|Ter)
-    public final static String THREE_LETTER_AA = String.format("(%s)", String.join("|", AminoAcid.VALID_AA3));
-    public final static String THREE_LETTER_AA_INCL_STOP_AND_EQ = String.format("(%s|%s|=)", String.join("|", AminoAcid.VALID_AA3), STOP_CODON);
+    public final static String AMINO_ACID_REF3 = String.format("(%s)", String.join("|", AminoAcid.VALID_AA3));
+    // incl. stop codon (*) and unchanged (=)
+    public final static String AMINO_ACID_ALT3 = String.format("(%s|%s|=)", String.join("|", AminoAcid.VALID_AA3), STOP_CODON);
 
-    public final static String X_Y = ONE_LETTER_AA + RegexUtils.SPACES_OR_SLASH + ONE_LETTER_AA;
-    public final static String XXX_YYY = THREE_LETTER_AA + RegexUtils.SPACES_OR_SLASH + THREE_LETTER_AA;
+    public final static String CUSTOM_PROTEIN_ACC_POS =
+            "(?<acc>" + UNIPROT_ACC + ")" +
+            RegexUtils.SPACES +
+            "(?<pos>"+ POS+")";
 
     // covers 2-4.
     // ACC POS( REF( ALT)?)?
     public final static String CUSTOM_PROTEIN_ACC_POS_X_Y =
-            "(?<acc>" + UNIPROT_ACC + ")" +
-            RegexUtils.SPACES +
-            "(?<pos>"+ POS+")" +
-            "(" + RegexUtils.SPACES + "(?<ref>"+ ONE_LETTER_AA+")" +
-            "(" + RegexUtils.SPACES_OR_SLASH + "(?<alt>"+ ONE_LETTER_AA +"))?)?";
+            CUSTOM_PROTEIN_ACC_POS +
+            "(" + RegexUtils.SPACES + "(?<ref>"+ AMINO_ACID_REF1 +")" +
+            "(" + RegexUtils.SPACES_OR_SLASH + "(?<alt>"+ AMINO_ACID_ALT1 +"))?)?";
 
     public final static String CUSTOM_PROTEIN_ACC_POS_XXX_YYY =
-            "(?<acc>" + UNIPROT_ACC + ")" +
-                    RegexUtils.SPACES +
-                    "(?<pos>"+ POS+")" +
-                    "(" + RegexUtils.SPACES + "(?<ref>"+ THREE_LETTER_AA+")" +
-                    "(" + RegexUtils.SPACES_OR_SLASH + "(?<alt>"+ THREE_LETTER_AA +"))?)?";
+            CUSTOM_PROTEIN_ACC_POS +
+            "(" + RegexUtils.SPACES + "(?<ref>"+ AMINO_ACID_REF3 +")" +
+            "(" + RegexUtils.SPACES_OR_SLASH + "(?<alt>"+ AMINO_ACID_ALT3 +"))?)?";
 
     // covers 5.
-    public final static String CUSTOM_PROTEIN_ACC_X_POS_Y = "(?<acc>" + UNIPROT_ACC + ")" +
-            RegexUtils.SPACES +
-            "(?<ref>"+ONE_LETTER_AA+")" +
+    public final static String CUSTOM_PROTEIN_ACC_X_POS_Y =
+            "(?<acc>" + UNIPROT_ACC + ")" +
+            RegexUtils.SPACES + "(p.)?" +
+            "(?<ref>"+ AMINO_ACID_REF1 +")" +
             "(?<pos>"+POS+")" +
-            "(?<alt>"+ONE_LETTER_AA+")";
+            "(?<alt>"+ AMINO_ACID_ALT1 +")";
 
     // covers 6.
-    public final static String CUSTOM_PROTEIN_ACC_XXX_POS_YYY = "(?<acc>" + UNIPROT_ACC + ")" +
+    public final static String CUSTOM_PROTEIN_ACC_XXX_POS_YYY =
+            "(?<acc>" + UNIPROT_ACC + ")" +
             RegexUtils.SPACES + "(p.)?" +
-            "(?<ref>"+THREE_LETTER_AA+")" +
+            "(?<ref>"+ AMINO_ACID_REF3 +")" +
             "(?<pos>"+POS+")" +
-            "(?<alt>"+THREE_LETTER_AA+")";
+            "(?<alt>"+ AMINO_ACID_ALT3 +")";
 
     final static Pattern PATTERN_ACC = Pattern.compile(UNIPROT_ACC, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_POS = Pattern.compile(CUSTOM_PROTEIN_ACC_POS, Pattern.CASE_INSENSITIVE);
     final static Pattern PATTERN_ACC_POS_X_Y = Pattern.compile(CUSTOM_PROTEIN_ACC_POS_X_Y, Pattern.CASE_INSENSITIVE);
     final static Pattern PATTERN_ACC_POS_XXX_YYY = Pattern.compile(CUSTOM_PROTEIN_ACC_POS_XXX_YYY, Pattern.CASE_INSENSITIVE);
     final static Pattern PATTERN_ACC_X_POS_Y = Pattern.compile(CUSTOM_PROTEIN_ACC_X_POS_Y, Pattern.CASE_INSENSITIVE);
@@ -152,6 +159,7 @@ public class ProteinInput extends UserInput {
             String pos = matcher.group("pos");
             String ref = matcher.group("ref");
             String alt = matcher.group("alt");
+            alt = fixAlt(alt, ref);
             parsedInput.setAcc(acc.toUpperCase());
             parsedInput.setPos(Integer.parseInt(pos));
             parsedInput.setRef(AminoAcid.oneLetter(ref));
@@ -159,6 +167,13 @@ public class ProteinInput extends UserInput {
             return true;
         }
         return false;
+    }
+
+    public static String fixAlt(String alt, String ref) {
+        if (alt != null && alt.equals("=")) {
+            alt = ref;
+        }
+        return alt;
     }
 
     @Override
