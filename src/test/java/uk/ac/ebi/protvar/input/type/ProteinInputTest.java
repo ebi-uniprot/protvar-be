@@ -11,23 +11,19 @@ public class ProteinInputTest {
     @Test
     void testOneLetterAA() {
         for (String c : AminoAcid.VALID_AA1) {
-            assert (Pattern.matches(ProteinInput.ONE_LETTER_AA, c));
+            assert (Pattern.matches(ProteinInput.AMINO_ACID_REF1, c));
         }
     }
 
     @Test
     void testThreeLetterAA() {
         for (String c : AminoAcid.VALID_AA3) {
-            assert(Pattern.matches(ProteinInput.THREE_LETTER_AA, c));
+            assert(Pattern.matches(ProteinInput.AMINO_ACID_REF3, c));
         }
-        assert(Pattern.matches(ProteinInput.THREE_LETTER_AA, "VAL"));
-        assert(!Pattern.matches(ProteinInput.THREE_LETTER_AA, "XXX"));
+        assert(Pattern.matches(ProteinInput.AMINO_ACID_REF3, "VAL"));
+        assert(!Pattern.matches(ProteinInput.AMINO_ACID_REF3, "XXX"));
     }
 
-    @Test // ACC
-    void testAccessionOnly() {
-        assertInput("Q4ZIN3", "Q4ZIN3", null, null, null);
-    }
     @Test // ACC 999
     void testAccessionAndPosOnly() {
         assertInput("Q4ZIN3 558", "Q4ZIN3", 558, null, null);

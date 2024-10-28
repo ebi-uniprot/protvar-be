@@ -71,9 +71,9 @@ public class HGVS {
 
     public static final String GENERAL_HGVS_PATTERN_REGEX = "^(?<refSeq>[^:]+):(?<scheme>(\\s+)?[a-z]\\.)[^:]+$";
 
-    private static Pattern GENERAL_HGVS_PATTERN = Pattern.compile(GENERAL_HGVS_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
+    private static final Pattern GENERAL_HGVS_PATTERN = Pattern.compile(GENERAL_HGVS_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
 
-    public static boolean generalPattern(String input) {
+    public static boolean matchesPattern(String input) {
         return input.matches(GENERAL_HGVS_PATTERN_REGEX);
     }
 
@@ -83,20 +83,19 @@ public class HGVS {
     }
 
     public static HGVSg invalid(String inputStr) {
+        // has to be one of the HGVS, so HGVSg
         HGVSg invalid = new HGVSg(inputStr);
         Matcher generalMatcher = GENERAL_HGVS_PATTERN.matcher(inputStr);
         if (generalMatcher.matches()) {
             String scheme = generalMatcher.group("scheme");
             scheme = scheme == null ? "" : scheme.trim();
 
-            if (scheme.equals("n."))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_N);
-            else if (scheme.equals(":m."))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_M);
-            else if (scheme.equals(":r."))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_R);
-            else
-                invalid.addError(ErrorConstants.HGVS_INVALID_SCHEME);
+            switch (scheme) {
+                case "n." -> invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_N);
+                case "m." -> invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_M);
+                case "r." -> invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_R);
+                default -> invalid.addError(ErrorConstants.HGVS_INVALID_SCHEME);
+            }
 
             String refSeq = generalMatcher.group("refSeq");
             refSeq = refSeq == null ? "" : refSeq.trim().toUpperCase();

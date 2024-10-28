@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import uk.ac.ebi.protvar.cache.ProteinCache;
 import uk.ac.ebi.protvar.converter.ProteinsAPI2ProteinConverter;
 import uk.ac.ebi.protvar.model.response.Protein;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
@@ -26,7 +27,6 @@ import java.util.stream.Collectors;
 public class ProteinsFetcher {
 	private static final Logger logger = LoggerFactory.getLogger(ProteinsFetcher.class);
 
-	private static final String PROT_CACHE_PREFIX = "PROT-";
 	// first option tried
 	//private final Map<String, DataServiceProtein> dspCache = new ConcurrentHashMap<>();
 	// second option, guava cache offered automatic eviction when cache reaches specified max
@@ -49,7 +49,7 @@ public class ProteinsFetcher {
 
 		Map<Boolean, List<String>> partitioned =
 				accessions.stream().collect(
-						Collectors.partitioningBy(acc -> dspCache.hasKey(PROT_CACHE_PREFIX+acc)));
+						Collectors.partitioningBy(acc -> dspCache.hasKey(ProteinCache.keyOf(acc))));
 
 		Set<String> cached = new HashSet(partitioned.get(true));
 		Set<String> notCached = new HashSet(partitioned.get(false));
@@ -63,7 +63,7 @@ public class ProteinsFetcher {
 			DataServiceProtein[] dataServiceProteins = proteinsAPI.getProtein(String.join(",", accessionsSet));
 			Set<String> newCached = new HashSet<>();
 			for (DataServiceProtein dsp : dataServiceProteins) {
-				dspCache.opsForValue().set(PROT_CACHE_PREFIX+dsp.getAccession(), dsp);
+				dspCache.opsForValue().set(ProteinCache.keyOf(dsp.getAccession()), dsp);
 				newCached.add(dsp.getAccession());
 			}
 			logger.info("New cached proteins: {}", String.join(",", newCached.toString()));
@@ -80,13 +80,14 @@ public class ProteinsFetcher {
 		if (!StringUtils.isEmpty(accession)) {
 
 			DataServiceProtein dsp = null;
-			if (dspCache.hasKey(PROT_CACHE_PREFIX+accession))
-				dsp = (DataServiceProtein) dspCache.opsForValue().get(PROT_CACHE_PREFIX+accession);
+			String key = ProteinCache.keyOf(accession);
+			if (dspCache.hasKey(key))
+				dsp = (DataServiceProtein) dspCache.opsForValue().get(key);
 			if (dsp == null) {
 				DataServiceProtein[] dataServiceProteins = proteinsAPI.getProtein(accession);
 				if (dataServiceProteins != null && dataServiceProteins.length > 0) {
 					dsp = dataServiceProteins[0];
-					dspCache.opsForValue().set(PROT_CACHE_PREFIX+accession, dsp);
+					dspCache.opsForValue().set(key, dsp);
 				}
 			}
 

@@ -235,7 +235,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	@Override
 	public Page<UserInput> getGenInputsByAccession(String accession, Pageable pageable) {
 		String rowCountSql = """
-    		SELECT COUNT(DISTINCT (chromosome, genomic_position, allele)) 
+    		SELECT COUNT(DISTINCT (chromosome, genomic_position, allele, protein_position)) 
 				AS row_count 
 			FROM genomic_protein_mapping 
 			WHERE accession = :acc
@@ -244,11 +244,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		SqlParameterSource parameters = new MapSqlParameterSource("acc", accession);
 		int total = jdbcTemplate.queryForObject(rowCountSql, parameters, Integer.class);
 
-
 		String querySql = """
-    		SELECT DISTINCT chromosome, genomic_position, allele from genomic_protein_mapping 
+    		SELECT DISTINCT chromosome, genomic_position, allele, protein_position from genomic_protein_mapping 
     		WHERE accession = :acc 
-    		ORDER BY chromosome, genomic_position 
+    		ORDER BY protein_position 
     		LIMIT %d OFFSET %d
     		""".formatted(pageable.getPageSize(), pageable.getOffset());
 
@@ -260,6 +259,30 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				);
 
 		return new PageImpl<>(genomicInputs, pageable, total);
+	}
+
+	/**
+	 * Unpaged - used for protein download
+	 * @param accession
+	 * @return
+	 */
+	@Override
+	public List<String> getGenInputsByAccession(String accession, Integer page, Integer pageSize) {
+		String querySql = """
+    		SELECT DISTINCT chromosome, genomic_position, allele, protein_position from genomic_protein_mapping 
+    		WHERE accession = :acc 
+    		ORDER BY protein_position 
+    		""";
+		if (page != null)
+			querySql += "LIMIT %d OFFSET %d".formatted(page, pageSize);
+
+		SqlParameterSource queryParameters = new MapSqlParameterSource("acc", accession);
+
+		List<String> genomicInputs =
+				jdbcTemplate.query(querySql, queryParameters,
+						(rs, rowNum) -> String.format("%s %d %s", rs.getString("chromosome"), rs.getInt("genomic_position"), rs.getString("allele"))
+				);
+		return genomicInputs;
 	}
 
 	@Override

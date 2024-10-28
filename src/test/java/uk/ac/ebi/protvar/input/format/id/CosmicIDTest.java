@@ -9,18 +9,18 @@ class CosmicIDTest {
 
     @Test
     void test_valid() {
-        assertTrue(CosmicID.isValid("COSV123456789")); // upper case
-        assertTrue(CosmicID.isValid("cosv123456789")); // lower case / ignore case
-        assertTrue(CosmicID.isValid("COSM123456789"));
-        assertTrue(CosmicID.isValid("COSN123456789"));
+        assertTrue(CosmicID.valid("COSV123456789")); // upper case
+        assertTrue(CosmicID.valid("cosv123456789")); // lower case / ignore case
+        assertTrue(CosmicID.valid("COSM123456789"));
+        assertTrue(CosmicID.valid("COSN123456789"));
     }
 
     @Test
     void test_invalid() {
-        assertFalse(CosmicID.isValid(""));  // empty
-        assertFalse(CosmicID.isValid("COS123456789"));  // invalid prefix
-        assertFalse(CosmicID.isValid("COSXXX"));  // invalid prefix
-        assertFalse(CosmicID.isValid("COSMXXX"));  // invalid post-fix
+        assertFalse(CosmicID.valid(""));  // empty
+        assertFalse(CosmicID.valid("COS123456789"));  // invalid prefix
+        assertFalse(CosmicID.valid("COSXXX"));  // invalid prefix
+        assertFalse(CosmicID.valid("COSMXXX"));  // invalid post-fix
     }
 
 }

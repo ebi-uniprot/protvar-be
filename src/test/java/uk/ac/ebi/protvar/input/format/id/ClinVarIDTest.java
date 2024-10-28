@@ -9,16 +9,16 @@ class ClinVarIDTest {
 
     @Test
     void test_valid() {
-        assertTrue(ClinVarID.isValid("RCV123456789")); // upper case
-        assertTrue(ClinVarID.isValid("rcv123456789")); // lower case / ignore case
+        assertTrue(ClinVarID.valid("RCV123456789")); // upper case
+        assertTrue(ClinVarID.valid("rcv123456789")); // lower case / ignore case
     }
 
     @Test
     void test_invalid() {
-        assertFalse(ClinVarID.isValid(""));  // empty
-        assertFalse(ClinVarID.isValid("xy123456789"));  // invalid prefix
-        assertFalse(ClinVarID.isValid("rc123456789"));  // invalid prefix
-        assertFalse(ClinVarID.isValid("rcvXXX"));  // invalid post-fix
+        assertFalse(ClinVarID.valid(""));  // empty
+        assertFalse(ClinVarID.valid("xy123456789"));  // invalid prefix
+        assertFalse(ClinVarID.valid("rc123456789"));  // invalid prefix
+        assertFalse(ClinVarID.valid("rcvXXX"));  // invalid post-fix
     }
 
 }

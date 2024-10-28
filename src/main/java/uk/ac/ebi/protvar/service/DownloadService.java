@@ -10,9 +10,11 @@ import uk.ac.ebi.protvar.fetcher.csv.CSVDataFetcher;
 import uk.ac.ebi.protvar.messaging.RabbitMQConfig;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
+import uk.ac.ebi.protvar.model.response.DownloadStatus;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,8 +32,6 @@ import java.util.*;
 public class DownloadService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadService.class);
-    public static final String FILE_INPUT = "FILE";
-    public static final String TEXT_INPUT = "TEXT";
     private String downloadDir;
     private CSVDataFetcher csvDataFetcher;
     private final RabbitTemplate rabbitTemplate;
@@ -41,13 +41,13 @@ public class DownloadService {
     }
 
     public DownloadResponse queueRequest(DownloadRequest downloadRequest) {
-        LOGGER.info("Queuing request " + downloadRequest.getId());
+        LOGGER.info("Queuing request " + downloadRequest.getFname());
         rabbitTemplate.convertAndSend("", RabbitMQConfig.DOWNLOAD_QUEUE, downloadRequest);
 
         DownloadResponse response = new DownloadResponse();
-        response.setInputType(downloadRequest.getFile() == null ? TEXT_INPUT : FILE_INPUT);
+        //response.setInputType(downloadRequest.getFile() == null ? TEXT_INPUT : FILE_INPUT);
         response.setRequested(downloadRequest.getTimestamp());
-        response.setDownloadId(downloadRequest.getId().toString());
+        response.setDownloadId(downloadRequest.getFname());
         response.setStatus(-1);
         response.setJobName(downloadRequest.getJobName());
         response.setUrl(downloadRequest.getUrl());
@@ -70,12 +70,12 @@ public class DownloadService {
 
     @RabbitListener(queues = {RabbitMQConfig.DOWNLOAD_QUEUE}, concurrency="2", ackMode = "NONE")
     public void onDownloadRequest(DownloadRequest request) {
-        LOGGER.info("Processing request " + request.getId());
+        LOGGER.info("Processing request " + request.getFname());
         csvDataFetcher.writeCSVResult(request);
     }
 
-    public FileInputStream getFileResource(String id) {
-        String fileName = downloadDir + "/" + id + ".csv.zip";
+    public FileInputStream getFileResource(String filename) {
+        String fileName = downloadDir + "/" + filename + ".csv.zip";
         FileInputStream fileInputStream;
         try {
             fileInputStream = new FileInputStream(fileName);
@@ -86,16 +86,25 @@ public class DownloadService {
         return fileInputStream;
     }
 
-    public Map<String, Integer> getDownloadStatus(List<String> ids) {
-        Map<String, Integer> resultMap = new LinkedHashMap<>();
-        ids.stream().forEach(id -> {
-            String fileName = downloadDir + "/" + id + ".csv";
-            if (Files.exists(Paths.get(fileName + ".zip")))
-                resultMap.put(id, 1);
-            else if (Files.exists(Paths.get(fileName)))
-                resultMap.put(id, 0);
+    public Map<String, DownloadStatus> getDownloadStatus(List<String> fs) {
+        Map<String, DownloadStatus> resultMap = new LinkedHashMap<>();
+        fs.stream().forEach(filename -> {
+            String csvFile = downloadDir + "/" + filename + ".csv";
+            String zipFile = csvFile + ".zip";
+            Path zipFilePath = Paths.get(zipFile);
+            if (Files.exists(zipFilePath)) {
+                long bytes = 0;
+                try {
+                    bytes = Files.size(zipFilePath);
+                } catch (IOException e) {
+                    LOGGER.error("Error getting file size for: " + zipFile);
+                }
+                resultMap.put(filename, new DownloadStatus(1, bytes));
+            }
+            else if (Files.exists(Paths.get(csvFile)))
+                resultMap.put(filename, new DownloadStatus(0));
             else
-                resultMap.put(id, -1);
+                resultMap.put(filename, new DownloadStatus(-1));
         });
         return resultMap;
     }

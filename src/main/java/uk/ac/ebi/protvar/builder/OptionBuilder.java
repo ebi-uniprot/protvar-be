@@ -14,11 +14,11 @@ public class OptionBuilder {
 		}
 	}
 
-	public static List<OPTIONS> build(boolean function, boolean variation, boolean structure) {
+	public static List<OPTIONS> build(boolean function, boolean population, boolean structure) {
 		List<OPTIONS> options = new ArrayList<>();
 		if (function)
 			options.add(OPTIONS.FUNCTION);
-		if (variation)
+		if (population)
 			options.add(OPTIONS.POPULATION);
 		if (structure)
 			options.add(OPTIONS.STRUCTURE);

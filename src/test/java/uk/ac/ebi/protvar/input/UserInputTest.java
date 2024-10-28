@@ -42,36 +42,36 @@ public class UserInputTest {
 	@ValueSource(strings = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
 		"17", "18", "19", "20", "21", "22"})
 	void numberChromosomeTest(String chromosome) {
-		assertEquals(chromosome, VCF.convertChromosome(chromosome));
+		assertEquals(chromosome, VCF.convertChr(chromosome));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"x", "X", " x", "x ", " X "})
 	void xChromosomeTest(String chromosome) {
-		assertEquals("X", VCF.convertChromosome(chromosome));
+		assertEquals("X", VCF.convertChr(chromosome));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"y", "Y", " y", "Y ", " Y "})
 	void yChromosomeTest(String chromosome) {
-		assertEquals("Y", VCF.convertChromosome(chromosome));
+		assertEquals("Y", VCF.convertChr(chromosome));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"chrM", "CHRM", "mitochondria", " mitoCHondria", "mitochondrion", "MITOchondrion ", "MT ", "mtDNA", "mit"})
 	void mtChromosomeTest(String chromosome) {
-		Assertions.assertEquals(VCF.MT, VCF.convertChromosome(chromosome));
+		Assertions.assertEquals(VCF.MT, VCF.convertChr(chromosome));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"23", "24", "a", "b", " ",""})
 	void invalidChromosomeTest(String chromosome) {
-		Assertions.assertEquals(Constants.NA, VCF.convertChromosome(chromosome));
+		Assertions.assertEquals(Constants.NA, VCF.convertChr(chromosome));
 	}
 
 	@Test
 	void nullChromosomeTest() {
-		Assertions.assertEquals(Constants.NA, VCF.convertChromosome(null));
+		Assertions.assertEquals(Constants.NA, VCF.convertChr(null));
 	}
 
 	@ParameterizedTest

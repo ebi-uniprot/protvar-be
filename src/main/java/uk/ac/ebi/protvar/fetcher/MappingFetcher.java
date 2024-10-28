@@ -5,7 +5,6 @@ import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
 import uk.ac.ebi.protvar.converter.Mappings2GeneConverter;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
@@ -16,8 +15,8 @@ import uk.ac.ebi.protvar.input.format.protein.HGVSp;
 import uk.ac.ebi.protvar.input.mapper.Coding2Pro;
 import uk.ac.ebi.protvar.input.mapper.ID2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
-import uk.ac.ebi.protvar.input.processor.BuildConversion;
-import uk.ac.ebi.protvar.input.processor.InputProcessor;
+import uk.ac.ebi.protvar.input.params.InputParams;
+import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.Coord;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
@@ -31,12 +30,40 @@ import uk.ac.ebi.protvar.utils.Commons;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ *  CACHE/REPO                 CONTROLLER                     SERVICE                    FETCHER
+ *
+ *                             CoordinateMapping                                           MappingFetcher
+ *                             POST mappings --------<input/s,a>------------------------->  -getMapping
+ *                             GET  mapping                                              ^                    ^
+ *                                                                                      |                       \
+ *  InputCache                 PagedMapping                     PagedMappingSrv        |                         |
+ *  -cacheFile/Text <--------- POST postInput                                         |  if "a" specified, use it|
+ *          ^                       |-------------- <id,p,ps,a> --> -getInputResult  |   else use pre-determined |
+ *           \                                     /                   |             |                           |
+ *            \                GET  getResult ____/                    |            <id,inputs,a>                |
+ *  -get <-----\-------<id>--------------------------------------------|____________/ (page of)inputs            |
+ *               \                                                                       retrieved by id         |
+ *                  \___       GET getResultByAcc--<acc,p,ps>-----> -getMappingByAccession                       |
+ *  ProtVarDataRepo      \                                                  |                                    |
+ *  -getGenInputsByAcc <--\-------------------------------------------------|----------> -getGenMappings         |
+ *                         \                                                                                     |
+ *                          \  Download                          DownloadSrv              CSVDataFetcher         |
+ *                           \ -file (ID)           \                                     -writeCSVResult -------
+ *                             -text (ID)        --------------> -queueRequest             ID inputs=inputCache.get(inputId)
+ *                             -input(ID|PROT|SING) /                                      PROT inputs=protVarDataRepo.getGenInputsByAcc
+ *                                                                                         SING inputs=input
+ * p: page
+ * ps: pageSize
+ * a: assembly
+ * ann: annotations (fun, pop, str)
+ * e: email
+ * jn: jobName
+ */
 @Service
 @AllArgsConstructor
 public class MappingFetcher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MappingFetcher.class);
-
-	private InputProcessor inputProcessor;
 	private ProtVarDataRepo protVarDataRepo;
 
 	private UniprotRefseqRepo uniprotRefseqRepo;
@@ -49,39 +76,27 @@ public class MappingFetcher {
 
 	private VariationFetcher variationFetcher;
 
-	private BuildConversion buildConversion;
+	private BuildProcessor buildProcessor;
 
 	private Coding2Pro coding2Pro;
 
-	private MappingResponse initMappingResponse(List<UserInput> userInputs) {
-		MappingResponse response = new MappingResponse();
-		List<Message> messages = new ArrayList<>();
-		response.setMessages(messages);
-		response.setInputs(userInputs);
-		String inputSummary = inputProcessor.summary(userInputs);
-		messages.add(new Message(Message.MessageType.INFO, inputSummary));
-		return response;
-	}
+	public MappingResponse getMapping(InputParams params) {
+		if (params.getInputs() == null || params.getInputs().isEmpty())
+			return new MappingResponse(List.of());
 
-	/**
-	 *
-	 * @param userInputs is list of user inputs
-	 * @return MappingResponse
-	 */
-	public MappingResponse getMappings(List<UserInput> userInputs, List<OPTIONS> options, String assemblyVersion) {
-		MappingResponse response = initMappingResponse(userInputs);
+		MappingResponse response = new MappingResponse(params.getInputs());
 
-		Map<Type, List<UserInput>> groupedInputs = userInputs.stream().filter(UserInput::isValid) // filter out any invalid inputs
+		Map<Type, List<UserInput>> groupedInputs = params.getInputs().stream().filter(UserInput::isValid) // filter out any invalid inputs
 				.collect(Collectors.groupingBy(UserInput::getType));
 
-		buildConversion.process(groupedInputs, assemblyVersion, response);
+		buildProcessor.process(groupedInputs, params);
 
 		// ID to genomic coords conversion
-		id2Gen.convert(groupedInputs);
+		id2Gen.map(groupedInputs);
 
 		// get refseq-uniprot accession mapping
 		Set<String> rsAccs = new HashSet<>();
-		userInputs.stream().forEach(userInput -> {
+		params.getInputs().stream().forEach(userInput -> {
 			String rsAcc = null;
 			if (userInput instanceof HGVSp)
 				rsAcc = ((HGVSp) userInput).getRsAcc();
@@ -107,7 +122,7 @@ public class MappingFetcher {
 
 		// get all chrPos combination
 		Set<Object[]> chrPosSet = new HashSet<>();
-		userInputs.stream().forEach(userInput -> {
+		params.getInputs().stream().forEach(userInput -> {
 			chrPosSet.addAll(userInput.chrPos());
 		});
 
@@ -132,14 +147,10 @@ public class MappingFetcher {
 			});
 			Set<Object[]> accPosSet = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toSet());
 
-			final Map<String, List<Variation>> variationMap = options.contains(OPTIONS.POPULATION) ? variationFetcher.prefetchdb(accPosSet) : new HashedMap();
+			final Map<String, List<Variation>> variationMap = params.isPop() ? variationFetcher.prefetchdb(accPosSet) : new HashedMap();
 
-			options.parallelStream().forEach(o -> {
-				if (o.equals(OPTIONS.FUNCTION))
-					proteinsFetcher.prefetch(canonicalAccessions);
-				//if (o.equals(OPTIONS.POPULATION))
-				//	variationFetcher.prefetch(canonicalAccessionLocations);
-			});
+			if (params.isFun())
+				proteinsFetcher.prefetch(canonicalAccessions);
 
 			// retrieve AA scores
 			Map<String, List<Score>>  scoreMap = protVarDataRepo.getScores(accPosSet)
@@ -148,7 +159,7 @@ public class MappingFetcher {
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
 					.collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));
 
-			userInputs.stream().filter(UserInput::isValid).forEach(input -> {
+			params.getInputs().stream().filter(UserInput::isValid).forEach(input -> {
 
 				List<GenomicInput> gInputs = new ArrayList<>();
 				gInputs.addAll(input.genInputs());
@@ -203,7 +214,7 @@ public class MappingFetcher {
 
 								}
 							}
-							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, scoreMap, variationMap, options);
+							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, scoreMap, variationMap, params);
 						}
 
 						GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
@@ -213,6 +224,99 @@ public class MappingFetcher {
 						LOGGER.error(ex.getMessage());
 					}
 				});
+			});
+
+		}
+		return response;
+	}
+
+	/**
+	 * Specialised and greatly simplified getMappings for genomic inputs only, by-passing many checks;
+	 * used getMappingByAccession endpoint
+	 * Differences
+	 * 0. no need to groupInputs into type, may still need to filter out any invalid inputs(?) (in case incorrectly formed chr, pos, allele from db)
+	 * 1. assembly param not needed
+	 * 2. buildConversion not needed
+	 * 3. id2Gen not needed
+	 * 4. get refseq-uniprot accession mapping not needed
+	 * 5. coding2Pro cDNA to protein inputs conversion not needed
+	 * 6. pro2Gen protein to genomic inputs conversion not needed
+	 *
+	 * 7. a number of checks around instance of UserInput not needed as list will contain only genomic inputs
+	 * 8. a number of checks around ref/alt allele not needed, including
+	 * 	ERR_REF_ALLELE_EMPTY		ref and alt empty check
+	 *	ERR_REF_ALLELE_MISMATCH		user input-UniProtseq ref mismatch check
+	 *	ERR_VAR_ALLELE_EMPTY		alt empty check
+	 *	ERR_REF_AND_VAR_ALLELE_SAME	ref and var same check
+	 *
+	 * Only that is needed is GenomicInput.getAlternates based on ref retrieved from db
+	 *
+	 * @param params
+	 * @return
+	 */
+	public MappingResponse getGenMappings(InputParams params) {
+		MappingResponse response = new MappingResponse(params.getInputs());
+
+		// get all chrPos combination
+		Set<Object[]> chrPosSet = new HashSet<>();
+		params.getInputs().stream().forEach(userInput -> {
+			chrPosSet.addAll(userInput.chrPos());
+		});
+
+		if (!chrPosSet.isEmpty()) {
+
+			// retrieve CADD predictions
+			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosSet)
+					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
+
+			// retrieve main mappings
+			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosSet);
+
+			// get all protein accessions and positions from retrieved mappings
+			Set<String> canonicalAccessions = new HashSet<>();
+			Set<Coord.Prot> protCoords = new HashSet<>();
+			g2pMappings.stream().filter(GenomeToProteinMapping::isCanonical).forEach(m -> {
+				if (!Commons.nullOrEmpty(m.getAccession())) {
+					canonicalAccessions.add(m.getAccession());
+					if (Commons.notNull(m.getIsoformPosition()))
+						protCoords.add(new Coord.Prot(m.getAccession(), m.getIsoformPosition()));
+				}
+			});
+			Set<Object[]> accPosSet = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toSet());
+
+			final Map<String, List<Variation>> variationMap = params.isPop() ? variationFetcher.prefetchdb(accPosSet) : new HashedMap();
+
+			if (params.isFun())
+				proteinsFetcher.prefetch(canonicalAccessions);
+
+			// retrieve AA scores
+			Map<String, List<Score>> scoreMap = protVarDataRepo.getScores(accPosSet)
+					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
+
+			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
+					.collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));
+
+			params.getInputs().stream().filter(UserInput::isValid).map(i -> (GenomicInput) i).forEach(gInput -> { // all inputs are genomic
+
+				try {
+					List<GenomeToProteinMapping> mappingList = map.get(gInput.groupByChrAndPos());
+					List<CADDPrediction> caddScores = predictionMap.get(gInput.groupByChrAndPos());
+
+					List<Gene> ensgMappingList;
+
+					if (mappingList == null || mappingList.isEmpty()) {
+						ensgMappingList = new ArrayList<>();
+					} else {
+						Set<String> altBases = GenomicInput.getAlternates(gInput.getRef());
+						ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, scoreMap, variationMap, params);
+					}
+
+					GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
+					gInput.getMappings().add(mapping);
+				} catch (Exception ex) {
+					gInput.getErrors().add("An exception occurred while processing this input");
+					LOGGER.error(ex.getMessage());
+				}
 			});
 
 		}

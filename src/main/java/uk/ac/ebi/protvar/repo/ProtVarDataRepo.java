@@ -19,6 +19,7 @@ public interface ProtVarDataRepo {
 	List<GenomeToProteinMapping> getMappingsByAccPos(Set<Object[]> accPosList);
 
 
+	List<String> getGenInputsByAccession(String accession, Integer page, Integer pageSize);
 	Page<UserInput> getGenInputsByAccession(String accession, Pageable pageable);
 
 	//================================================================================

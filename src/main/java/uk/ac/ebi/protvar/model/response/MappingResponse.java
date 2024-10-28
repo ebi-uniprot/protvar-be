@@ -10,4 +10,9 @@ import uk.ac.ebi.protvar.input.UserInput;
 public class MappingResponse {
 	List<UserInput> inputs;
 	List<Message> messages;
+
+	public MappingResponse(List<UserInput> inputs) {
+		this.inputs = inputs;
+		this.messages = new ArrayList<>();
+	}
 }

@@ -6,139 +6,205 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletResponse;
+import java.util.stream.Stream;
 
 import com.google.common.collect.Lists;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.opencsv.CSVWriter;
 
-import uk.ac.ebi.protvar.builder.OptionBuilder;
+import uk.ac.ebi.protvar.cache.InputBuild;
+import uk.ac.ebi.protvar.cache.InputCache;
+import uk.ac.ebi.protvar.fetcher.MappingFetcher;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
+import uk.ac.ebi.protvar.input.params.InputParams;
+import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.service.PagedMappingService;
 import uk.ac.ebi.protvar.utils.*;
-import uk.ac.ebi.protvar.builder.OptionBuilder.OPTIONS;
-import uk.ac.ebi.protvar.fetcher.MappingFetcher;
+
+import static uk.ac.ebi.protvar.config.PagedMapping.DEFAULT_PAGE_SIZE;
 
 @Service
 @AllArgsConstructor
 public class CSVDataFetcher {
+	private static final Logger LOGGER = LoggerFactory.getLogger(CSVDataFetcher.class);
 
-	private static final String MAPPING_NOT_FOUND = "Mapping not found";
+	private static final String NO_MAPPING = "No mapping found";
 
 	private static final String CSV_HEADER_INPUT = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele";
 	private static final String CSV_HEADER_NOTES = "Notes";
 	private static final String CSV_HEADER_OUTPUT_MAPPING = "Gene,Codon_change,Strand,CADD_phred_like_score,"
 		+ "Canonical_isoform_transcripts,MANE_transcript,Uniprot_canonical_isoform_(non_canonical),"
-		+ "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences";
+		+ "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences"; //len=12
 	private static final String CSV_HEADER_OUTPUT_FUNCTION = "Residue_function_(evidence),Region_function_(evidence),"
 		+ "Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,"
 		+ "Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene),"
 		+ "Predicted_pockets(energy;per_vol;score;resids),Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ),"
-		+ "Foldx_prediction(foldxDdg;plddt),Conservation_score,AlphaMissense_pathogenicity(class),EVE_score(class),ESM1b_score";
+		+ "Foldx_prediction(foldxDdg;plddt),Conservation_score,AlphaMissense_pathogenicity(class),EVE_score(class),ESM1b_score"; // len=18
 	private static final String CSV_HEADER_OUTPUT_POPULATION = "Genomic_location,Cytogenetic_band,Other_identifiers_for_the_variant,"
-		+ "Diseases_associated_with_variant,Variants_colocated_at_residue_position";
-	private static final String CSV_HEADER_OUTPUT_STRUCTURE = "Position_in_structures";
+		+ "Diseases_associated_with_variant,Variants_colocated_at_residue_position"; // len=5
+	private static final String CSV_HEADER_OUTPUT_STRUCTURE = "Position_in_structures"; // len=1
+	// total len=36
 	private static final String CSV_HEADER_OUTPUT = CSV_HEADER_OUTPUT_MAPPING + Constants.COMMA + CSV_HEADER_OUTPUT_FUNCTION + Constants.COMMA
 		+ CSV_HEADER_OUTPUT_POPULATION + Constants.COMMA + CSV_HEADER_OUTPUT_STRUCTURE;
 
 	static final String CSV_HEADER = CSV_HEADER_INPUT + Constants.COMMA + CSV_HEADER_NOTES + Constants.COMMA + CSV_HEADER_OUTPUT;
 
-	private static final int PAGE_SIZE = 1000;
+	private static final int PARTITION_SIZE = 1000;
 
 	private MappingFetcher mappingFetcher;
 	private CSVFunctionDataFetcher functionDataFetcher;
 	private CSVPopulationDataFetcher populationFetcher;
 	private CSVStructureDataFetcher csvStructureDataFetcher;
-	private InputProcessor inputProcessor;
+
+	private ProtVarDataRepo protVarDataRepo;
 
 	private String downloadDir;
+	private InputCache inputCache;
+
+	private BuildProcessor buildProcessor;
 
 	public void writeCSVResult(DownloadRequest request) {
+		List<String> inputs = null;
+		String inputId = null;
+		InputBuild inputBuild = null;
 		try {
-			List<OptionBuilder.OPTIONS> options = OptionBuilder.build(request.isFunction(), request.isPopulation(), request.isStructure());
-			List<String> inputs = request.getFile() == null ? request.getInputs() :
-					Files.lines(request.getFile()).collect(Collectors.toList());
+			Path zipPath = Paths.get(downloadDir, request.getFname() + ".csv.zip");
+			if (Files.exists(zipPath)) {
+				LOGGER.warn("{} exists", zipPath.getFileName());
+				return;
+			}
 
-			List<List<String>> inputPartitions = Lists.partition(inputs, PAGE_SIZE);
+			switch (request.getType()) {
+				case ID:
+					inputId = request.getInput();
+					String originalInput = inputCache.getInput(inputId);
+					if (originalInput == null) {
+						LOGGER.warn("{} id not found", inputId);
+						return;
+					} else {
+						List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
+						inputBuild = buildProcessor.determinedBuild(inputId, originalInputList, request.getAssembly());
+						if (request.getPage() == null) {
+							inputs = originalInputList;
+						} else {
+							Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
+							inputs = PagedMappingService.getPage(originalInputList, request.getPage(), pageSize);
+						}
+					}
+					break;
 
-			Path filePath = Paths.get(downloadDir, request.getId() + ".csv");
-			String fileName = filePath.toString();
+				case PROTEIN_ACCESSION:
+					// assembly irrelevant for protein accession input
+					String proteinAcc = request.getInput();
+					if (request.getPage() == null) {
+						inputs = protVarDataRepo.getGenInputsByAccession(proteinAcc, null, null);
+					} else {
+						Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
+						inputs = protVarDataRepo.getGenInputsByAccession(proteinAcc, request.getPage(), pageSize);
+					}
+					break;
+
+				case SINGLE_VARIANT:
+					String singleVariant = request.getInput();
+					inputs = Arrays.asList(singleVariant);
+					break;
+
+			}
+
+			if (inputs == null || inputs.size() == 0) {
+				LOGGER.warn("no inputs to generate download file");
+				return;
+			}
 
 			// write csv
-			try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(filePath));
+			Path csvPath = Paths.get(downloadDir, request.getFname() + ".csv");
+			try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(csvPath));
 				 CSVWriter writer = new CSVWriter(outputStreamWriter)) {
 				writer.writeNext(CSV_HEADER.split(","));
-				// v1
-				//inputPartitions.parallelStream().forEachOrdered(partition -> {
-				//	List<String[]> resultList = buildCSVResult(partition, options);
-				//	writer.writeAll(resultList);
-				//});
-				// v2
-				//List<List <String[]>> resultParts = inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, options)).collect(Collectors.toList());
-				//resultParts.stream().forEach(writer::writeAll);
-				// v3
-				inputPartitions.parallelStream().map(partition -> buildCSVResult(partition, request.getAssembly(), options))
-						.forEach(writer::writeAll);
+
+				if (inputs.size() <= PARTITION_SIZE) {
+					InputParams params = InputParams.builder()
+							.id(inputId)
+							.inputs(InputProcessor.parse(inputs))
+							.fun(request.isFunction())
+							.pop(request.isPopulation())
+							.str(request.isStructure())
+							.assembly(request.getAssembly())
+							.inputBuild(inputBuild)
+							.build();
+					List<String[]> result = buildCSVResult(params);
+					writer.writeAll(result);
+				} else {
+					final String id = inputId;
+					final InputBuild detectedBuild = inputBuild;
+					Lists.partition(inputs, PARTITION_SIZE).parallelStream()
+							.map(partition -> {
+								InputParams params = InputParams.builder()
+										.id(id)
+										.inputs(InputProcessor.parse(partition))
+										.fun(request.isFunction())
+										.pop(request.isPopulation())
+										.str(request.isStructure())
+										.assembly(request.getAssembly())
+										.inputBuild(detectedBuild)
+										.build();
+								return buildCSVResult(params);
+							})
+							.forEachOrdered(writer::writeAll);
+				}
 			}
 
 			// zip csv
-			FileUtils.zipFile(fileName, fileName + ".zip");
+			FileUtils.zipFile(csvPath.toString(), zipPath.toString());
 			// results ready
 			Email.notifyUser(request);
 		} catch (Throwable t) {
-			Email.notifyUserErr(request);
-			Email.notifyDevErr(request, t);
-		} finally {
-			if (request.getFile() != null)
-				FileUtils.tryDelete(request.getFile());
+			Email.notifyUserErr(request, inputs);
+			Email.notifyDevErr(request, inputs, t);
 		}
 	}
 
-	public void downloadCSVResult(List<String> inputs, List<OPTIONS> options, HttpServletResponse response) throws IOException {
-		PrintWriter outStream = response.getWriter();
-		CSVWriter writer = new CSVWriter(new BufferedWriter(outStream));
-		writer.writeNext(CSV_HEADER.split(","));
-		List<String[]> contentList = buildCSVResult(inputs, null, options);
-		writer.writeAll(contentList);
-		writer.flush();
-		writer.close();
-	}
-
-	private List<String[]> buildCSVResult(List<String> inputList, String assembly, List<OPTIONS> options) {
-		List<UserInput> userInputs = inputProcessor.parse(inputList);
-		MappingResponse response = mappingFetcher.getMappings(userInputs, options, assembly);
+	private List<String[]> buildCSVResult(InputParams params) {
+		MappingResponse response = mappingFetcher.getMapping(params);
 		List<String[]> csvOutput = new ArrayList<>();
 
 		response.getInputs().forEach(input -> {
+			if (!input.isValid()) {
+				csvOutput.add(getCsvDataInvalidInput(input));
+				return;
+			}
 			if (input.getType() == Type.GENOMIC) {
-				GenomicInput genInput = (GenomicInput) input;
-				addGenInputMappingsToOutput(genInput, genInput.getMappings(), csvOutput, options);
+				GenomicInput userInput = (GenomicInput) input;
+				addGenInputMappingsToOutput(userInput, userInput, csvOutput, params);
 			}
 			else if (input.getType() == Type.CODING) {
-				HGVSc cDNAInput = (HGVSc) input;
-				cDNAInput.getDerivedGenomicInputs().forEach(gInput -> {
-					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
+				HGVSc userInput = (HGVSc) input;
+				userInput.getDerivedGenomicInputs().forEach(genInput -> {
+					addGenInputMappingsToOutput(userInput, genInput, csvOutput, params);
 				});
 			}
 			else if (input.getType() == Type.PROTEIN) {
-				ProteinInput proInput = (ProteinInput) input;
-				proInput.getDerivedGenomicInputs().forEach(gInput -> {
-					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
+				ProteinInput userInput = (ProteinInput) input;
+				userInput.getDerivedGenomicInputs().forEach(genInput -> {
+					addGenInputMappingsToOutput(userInput, genInput, csvOutput, params);
 				});
 			}
 			else if (input.getType() == Type.ID) {
-				IDInput idInput = (IDInput) input;
-				idInput.getDerivedGenomicInputs().forEach(gInput -> {
-					addGenInputMappingsToOutput(gInput, gInput.getMappings(), csvOutput, options);
+				IDInput userInput = (IDInput) input;
+				userInput.getDerivedGenomicInputs().forEach(genInput -> {
+					addGenInputMappingsToOutput(userInput, genInput, csvOutput, params);
 				});
 			}
 		});
@@ -149,38 +215,66 @@ public class CSVDataFetcher {
 		return csvOutput;
 	}
 
-	private void addGenInputMappingsToOutput(GenomicInput gInput, List<GenomeProteinMapping> mappings, List<String[]> csvOutput, List<OPTIONS> options) {
+	private void addGenInputMappingsToOutput(UserInput userInput, GenomicInput genInput, List<String[]> csvOutput,
+											 InputParams params) {
+		String chr = genInput.getChr();
+		Integer genomicLocation = genInput.getPos();
+		String varAllele = genInput.getAlt();
+		String id = genInput.getId();
+		String input = genInput.getInputStr();
+		String messages = Stream.concat(
+						userInput.getMessages().stream().map(Message::toString),
+						genInput.getMessages().stream().map(Message::toString)
+				)
+				.filter(msg -> !msg.isEmpty()) // Filter for non-empty messages
+				.collect(Collectors.joining(";"));
+		final String notes = messages.isEmpty() ? Constants.NA : messages;
 
-		String chr = gInput.getChr();
-		Integer genomicLocation = gInput.getPos();
-		String varAllele = gInput.getAlt();
-		String id = gInput.getId();
-		String input = gInput.getInputStr();
-		mappings.forEach(mapping -> {
+		genInput.getMappings().forEach(mapping -> {
 			var genes = mapping.getGenes();
 			if(genes.isEmpty())
-				csvOutput.add(getCsvDataMappingNotFound(input));
+				csvOutput.add(getCsvDataMappingNotFound(genInput));
 			else
-				genes.forEach(gene -> csvOutput.add(getCSVData(gene, chr, genomicLocation, varAllele, id, input, options)));
+				genes.forEach(gene -> csvOutput.add(getCSVData(notes, gene, chr, genomicLocation, varAllele, id, input, params)));
 		});
 	}
 
-	String[] getCsvDataMappingNotFound(String input){
-		//UserInput p = UserInput.getInput(input);
-		return concatNaOutputCols(List.of(input, MAPPING_NOT_FOUND));
-	}
-
-	String[] getCsvDataInvalidInput(UserInput input){
-		return concatNaOutputCols(List.of(input.getInputStr(), String.join("|", input.getErrors())));
-	}
-
-	private String[] concatNaOutputCols(List<String> inputAndNotes){
-		var valList = new ArrayList<>(inputAndNotes);
-		valList.addAll(Arrays.stream(CSV_HEADER_OUTPUT.split(Constants.COMMA)).map(ignore -> Constants.NA).toList());
+	String[] getCsvDataMappingNotFound(GenomicInput genInput){
+		List<String> valList = new ArrayList<>();
+		valList.add(genInput.getInputStr()); // User_input
+		valList.add(strValOrNA(genInput.getChr())); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
+		valList.add(intValOrNA(genInput.getPos()));
+		valList.add(strValOrNA(genInput.getId()));
+		valList.add(strValOrNA(genInput.getRef()));
+		valList.add(strValOrNA(genInput.getAlt()));
+		valList.add(NO_MAPPING); // Notes
+		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));
 		return valList.toArray(String[]::new);
 	}
 
-	private String[] getCSVData(Gene gene, String chr, Integer genomicLocation, String varAllele, String id, String input, List<OPTIONS> options) {
+	String[] getCsvDataInvalidInput(UserInput input){
+		List<String> valList = new ArrayList<>();
+		valList.add(input.getInputStr()); // User_input
+		valList.addAll(Collections.nCopies(5, Constants.NA)); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
+		valList.add(input.getMessages().stream().map(Message::toString).collect(Collectors.joining(";"))); // Notes
+		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));
+		return valList.toArray(String[]::new);
+	}
+
+	String strValOrNA(String val) {
+		if (val == null || val.trim().isEmpty())
+			return Constants.NA;
+		return val.trim();
+	}
+
+	String intValOrNA(Integer val) {
+		if (val == null)
+			return Constants.NA;
+		return val.toString();
+	}
+
+	private String[] getCSVData(String notes, Gene gene, String chr, Integer genomicLocation, String varAllele, String id, String input,
+								InputParams params) {
 		String cadd = null;
 		if (gene.getCaddScore() != null)
 			cadd = gene.getCaddScore().toString();
@@ -195,22 +289,22 @@ public class CSVDataFetcher {
 		List<String> ensps = getEnsps(mapping.getTranslatedSequences());
 
 		List<String> output = new ArrayList<>(Arrays.asList(input, chr, genomicLocation.toString(), id, gene.getRefAllele(),
-			varAllele, Constants.NA, gene.getGeneName(), mapping.getCodonChange(), strand, cadd,
+			varAllele, notes, gene.getGeneName(), mapping.getCodonChange(), strand, cadd,
 			ensps.toString(), Constants.NA,mapping.getAccession(), CSVUtils.getValOrNA(alternateInformDetails), mapping.getProteinName(),
 			String.valueOf(mapping.getIsoformPosition()), mapping.getAminoAcidChange(),
 			mapping.getConsequences()));
 
-		if (options.contains(OPTIONS.FUNCTION) && mapping.getReferenceFunction() != null)
+		if (params.isFun() && mapping.getReferenceFunction() != null)
 			output.addAll(functionDataFetcher.fetch(mapping));
 		else
 			addNaForNonRequestedData(output, CSV_HEADER_OUTPUT_FUNCTION);
 
-		if (options.contains(OPTIONS.POPULATION) && mapping.getPopulationObservations() != null)
+		if (params.isPop() && mapping.getPopulationObservations() != null)
 				output.addAll(populationFetcher.fetch(mapping.getPopulationObservations(), mapping.getRefAA(), mapping.getVariantAA(), genomicLocation));
 		else
 			addNaForNonRequestedData(output, CSV_HEADER_OUTPUT_POPULATION);
 
-		if (options.contains(OPTIONS.STRUCTURE) && mapping.getProteinStructure() != null)
+		if (params.isStr() && mapping.getProteinStructure() != null)
 			output.add(csvStructureDataFetcher.fetch(mapping.getProteinStructure()));
 		else
 			addNaForNonRequestedData(output, CSV_HEADER_OUTPUT_STRUCTURE);

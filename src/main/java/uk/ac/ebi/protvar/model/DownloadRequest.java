@@ -1,27 +1,34 @@
 package uk.ac.ebi.protvar.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.UUID;
 
-@NoArgsConstructor
-@AllArgsConstructor
 @Getter
+@Setter
+@ToString
 public class DownloadRequest {
-    UUID id;
     LocalDateTime timestamp;
-    Path file;
-    List<String> inputs;
+    InputType type = InputType.ID; // default
+    String input;
+    /*  type                 input
+     *  ----                 -----
+     *  ID                   input id - checksum of original input
+     *  PROTEIN_ACCESSION    protein accession
+     *  SINGLE_VARIANT       single variant
+     */
     boolean function;
     boolean population;
     boolean structure;
+    Integer page;
+    Integer pageSize;
     String assembly;
     String email;
     String jobName;
+
+    String fname; // filename: <id>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
     String url;
+
 }

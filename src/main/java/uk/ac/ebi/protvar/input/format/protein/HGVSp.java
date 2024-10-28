@@ -9,7 +9,6 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.utils.HGVS;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
-import uk.ac.ebi.protvar.utils.AminoAcid;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,21 +38,21 @@ public class HGVSp extends ProteinInput {
             //"(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq.NP accession
             "(NM_|NP_)" + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM;
 
-    private static final String VAR_DESC_REGEX1 = "(\\()?" +
-            "(?<ref>"+ONE_LETTER_AA + ")" +
+    private static final String VAR_DESC_X_POS_Y = "(\\()?" +
+            "(?<ref>"+ AMINO_ACID_REF1 + ")" +
             "(?<pos>" + POS + ")" +
-            "(?<alt>" + ONE_LETTER_AA + ")" + // includes STOP_CODON (*)
+            "(?<alt>" + AMINO_ACID_ALT1 + ")" + // includes STOP_CODON (*)
             "(\\))?";
-    private static final String VAR_DESC_REGEX2 = "(\\()?" +
-            "(?<ref>"+THREE_LETTER_AA + ")" +
+    private static final String VAR_DESC_XXX_POS_YYY = "(\\()?" +
+            "(?<ref>"+ AMINO_ACID_REF3 + ")" +
             "(?<pos>" + POS + ")" +
-            "(?<alt>" + THREE_LETTER_AA_INCL_STOP_AND_EQ + ")" +
+            "(?<alt>" + AMINO_ACID_ALT3 + ")" +
             "(\\))?";
 
     private static Pattern GENERAL_PATTERN = Pattern.compile(GENERAL_HGVS_P_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
     private static Pattern REF_SEQ_PATTERN = Pattern.compile(REF_SEQ_REGEX, Pattern.CASE_INSENSITIVE);
-    private static Pattern VAR_DESC_PATTERN1 = Pattern.compile(VAR_DESC_REGEX1, Pattern.CASE_INSENSITIVE);
-    private static Pattern VAR_DESC_PATTERN2 = Pattern.compile(VAR_DESC_REGEX2, Pattern.CASE_INSENSITIVE);
+    private static Pattern PATTERN_VAR_DESC_X_POS_Y = Pattern.compile(VAR_DESC_X_POS_Y, Pattern.CASE_INSENSITIVE);
+    private static Pattern PATTERN_VAR_DESC_XXX_POS_YYY = Pattern.compile(VAR_DESC_XXX_POS_YYY, Pattern.CASE_INSENSITIVE);
 
     String rsAcc;
 
@@ -73,7 +72,7 @@ public class HGVSp extends ProteinInput {
         return HGVS.startsWithPrefix(PREFIX, inputStr);
     }
 
-    public static boolean generalPattern(String input) {
+    public static boolean matchesPattern(String input) {
         return input.matches(GENERAL_HGVS_P_PATTERN_REGEX);
     }
 
@@ -91,11 +90,11 @@ public class HGVSp extends ProteinInput {
                 }
 
                 String varDesc = generalMatcher.group("varDesc");
-                Matcher varDescMatcher1 = VAR_DESC_PATTERN1.matcher(varDesc);
+                Matcher varDescMatcher1 = PATTERN_VAR_DESC_X_POS_Y.matcher(varDesc);
                 if (varDescMatcher1.matches()) { // 1 letter AA
                     parsedInput.setParams(varDescMatcher1);
                 } else {
-                    Matcher varDescMatcher2 = VAR_DESC_PATTERN2.matcher(varDesc);
+                    Matcher varDescMatcher2 = PATTERN_VAR_DESC_XXX_POS_YYY.matcher(varDesc);
                     if (varDescMatcher2.matches()) { // 3 letter AA
                         parsedInput.setParams(varDescMatcher2);
                     } else {
@@ -103,7 +102,7 @@ public class HGVSp extends ProteinInput {
                     }
                 }
             } else {
-                throw new InvalidInputException("No match");
+                throw new InvalidInputException("No match found.");
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);
@@ -116,9 +115,10 @@ public class HGVSp extends ProteinInput {
         String pos = matcher.group("pos");
         String ref = matcher.group("ref");
         String alt = matcher.group("alt");
+        alt = fixAlt(alt, ref);
         this.pos = Integer.parseInt(pos);
         this.ref = ref;
-        this.alt = alt.equals("=") ? ref : alt;
+        this.alt = alt;
     }
 
     @Override
