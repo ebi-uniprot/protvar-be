@@ -68,7 +68,7 @@ public class DownloadService {
      * @throws InterruptedException
      */
 
-    @RabbitListener(queues = {RabbitMQConfig.DOWNLOAD_QUEUE}, concurrency="2", ackMode = "NONE")
+    @RabbitListener(queues = {RabbitMQConfig.DOWNLOAD_QUEUE}, concurrency="16", ackMode = "NONE")
     public void onDownloadRequest(DownloadRequest request) {
         LOGGER.info("Processing request " + request.getFname());
         csvDataFetcher.writeCSVResult(request);
