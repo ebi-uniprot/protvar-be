@@ -16,7 +16,7 @@ import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.model.response.IDResponse;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.service.PagedMappingService;
-import static uk.ac.ebi.protvar.config.PagedMapping.*;
+import static uk.ac.ebi.protvar.constants.PagedMapping.*;
 
 @Tag(name = "Coordinate Mapping")
 @RestController

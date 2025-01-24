@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import uk.ac.ebi.protvar.cache.InputCache;
-import uk.ac.ebi.protvar.config.PagedMapping;
+import uk.ac.ebi.protvar.constants.PagedMapping;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.InputType;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;

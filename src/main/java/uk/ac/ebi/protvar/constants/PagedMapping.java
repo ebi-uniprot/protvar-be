@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.config;
+package uk.ac.ebi.protvar.constants;
 
 public class PagedMapping {
 
