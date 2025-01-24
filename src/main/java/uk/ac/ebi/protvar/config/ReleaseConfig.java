@@ -44,6 +44,14 @@ public class ReleaseConfig {
     private String releaseTable;
 
     // Newly added table for protvar-be
+    @Value("${tbl.crossmap}")
+    @Getter
+    private String crossmapTable;
+
+    @Value("${tbl.cadd}")
+    @Getter
+    private String caddTable;
+
     @Value("${tbl.clinvar}")
     @Getter
     private String clinvarTable;

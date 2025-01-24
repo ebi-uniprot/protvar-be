@@ -7,10 +7,12 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
+import uk.ac.ebi.protvar.config.ReleaseConfig;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.*;
@@ -27,47 +29,42 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProtVarDataRepoImpl.class);
 
+	private ReleaseConfig releaseConfig;
 	private static final List EMPTY_RESULT = new ArrayList<>();
 
-	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN_ = """
-   			SELECT * FROM cadd_prediction 
-   			WHERE (chromosome, position) IN (:chrPosSet)
-   			""";
-
-	// SQL query optimised for large "IN" input
-	// Refer to https://stackoverflow.com/questions/1009706/
-	// PostgreSQL - max number of parameters in "IN" clause
-
-	private static final String SELECT_FROM_CADD_WHERE_CHR_POS_IN = """
-   			SELECT * FROM cadd_prediction 
+	private static final String CADDS_IN_CHR_POS = """
+   			SELECT * FROM %s 
    			INNER JOIN (VALUES :chrPosSet) AS t(chr,pos) 
    			ON t.chr=chromosome AND t.pos=position
-   			""";
+   			"""; // optimised from: SELECT * FROM <tbl.cadd> WHERE (chromosome,position) IN (:chrPosSet)
+			// to avoid max num of "in" values reached. Refer to https://stackoverflow.com/questions/1009706/
 
-	private static final String SELECT_FROM_MAPPING_WHERE_CHR_POS_IN = """
-   			SELECT * FROM genomic_protein_mapping 
+	private static final String MAPPINGS_IN_CHR_POS = """
+   			SELECT * FROM %s 
    			INNER JOIN (VALUES :chrPosSet) AS t(chr,pos) 
    			ON t.chr=chromosome AND t.pos=genomic_position 
    			ORDER BY is_canonical DESC
    			""";
-
-	// TODO: optimise: may need to create multi-column index in addition
-	//  to the two separate column indexes to improve lookup performance
-	private static final String SELECT_FROM_MAPPING_WHERE_ACC_POS_IN = """
+	private static final String MAPPINGS_IN_ACC_POS = """
 			SELECT
-				chromosome, genomic_position, allele, accession, protein_position, protein_seq, 
+				chromosome, genomic_position, allele, 
+				accession, protein_position, protein_seq, 
 				codon, codon_position, reverse_strand
-			FROM genomic_protein_mapping 
+			FROM %s 
 			INNER JOIN (VALUES :accPosSet) as t(acc,pos) 
 			ON t.acc=accession AND t.pos=protein_position
 			""";
 
-	//private static final String SELECT_DBSNPS = "SELECT * FROM dbsnp WHERE id IN (:ids) ";
-	private static final String SELECT_CROSSMAPS = "SELECT * FROM crossmap WHERE grch{VER}_pos IN (:pos) ";
+	private static final String CROSSMAPS_IN_GRCHX_POS = """
+			SELECT c.* FROM %s c 
+			INNER JOIN (VALUES :pos) AS t(pos)
+			ON t.pos=c.grch%s_pos
+			""";
 
-	private static final String SELECT_CROSSMAPS2 = """
-   			SELECT * FROM crossmap 
-   			WHERE (chr, grch37_pos) IN (:chrPos37)
+	private static final String CROSSMAPS_IN_CHR_GRCH37_POS = """
+   			SELECT c.* FROM %s c 
+   			INNER JOIN (VALUES :chrPos37) AS t(chr,pos)
+   			ON t.chr=c.chr AND t.pos=c.grch37_pos
    			""";
 
 	// SQL syntax for array
@@ -192,19 +189,19 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	// 1 A
 	// 2 T
 	// 3 G
-	// select * from genomic_protein_mapping where accession = 'P05067' and protein_position=1;
+	// select * from <tbl.mapping> where accession = 'P05067' and protein_position=1;
 	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensgv   ensp	enspv	enst	enstv	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name
 	// 1	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein
 	// 2	21	1	M	26170619	A	aUg	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	2	true	true	Amyloid-beta precursor protein
 	// 3	21	1	M	26170618	C	auG	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	3	true	true	Amyloid-beta precursor protein
 	//
-	// select *, ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)  from genomic_protein_mapping where accession = 'P05067' and protein_position=1;
+	// select *, ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)  from <tbl.mapping> where accession = 'P05067' and protein_position=1;
 	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensgv	ensp	enspv	enst	enstv	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name	array_remove
 	// 1	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	{A,G,C}
 	// 2	21	1	M	26170619	A	aUg	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	2	true	true	Amyloid-beta precursor protein	{T,G,C}
 	// 3	21	1	M	26170618	C	auG	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	3	true	true	Amyloid-beta precursor protein	{A,T,G}
 	//
-	// select *, unnest(ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)) as altallele  from genomic_protein_mapping where accession = 'P05067' and protein_position=1;
+	// select *, unnest(ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)) as altallele  from <tbl.mapping> where accession = 'P05067' and protein_position=1;
 	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensgv	ensp	enspv	enst	enstv	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name	altallele
 	// 1	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	A
 	// 2	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	G
@@ -218,14 +215,14 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	// select g2p.*, cadd.*
 	// from (
 	// select *, unnest(ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)) as altallele
-	// from genomic_protein_mapping g2p
+	// from <tbl.mapping> g2p
 	// where accession = 'P05067' and protein_position=1) g2p
 	// inner join cadd_prediction cadd on (g2p.chromosome = cadd.chromosome
 	// and g2p.genomic_position = cadd.position
 	// and g2p.allele = cadd.allele
 	// and g2p.altallele = cadd.altallele);
 	//
-	// select * from cadd_prediction
+	// select * from <tbl.cadd>
 	// where chromosome='21'
 	// and position=26170620; -- should return 3 rows but returning 9!
 	// -- duplicates! using distinct fixes it but issue needs to be
@@ -234,22 +231,22 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	@Override
 	public Page<UserInput> getGenInputsByAccession(String accession, Pageable pageable) {
-		String rowCountSql = """
+		String rowCountSql = String.format("""
     		SELECT COUNT(DISTINCT (chromosome, genomic_position, allele, protein_position)) 
 				AS row_count 
-			FROM genomic_protein_mapping 
+			FROM %s 
 			WHERE accession = :acc
-			""";
+			""", releaseConfig.getMappingTable());
 
 		SqlParameterSource parameters = new MapSqlParameterSource("acc", accession);
 		int total = jdbcTemplate.queryForObject(rowCountSql, parameters, Integer.class);
 
-		String querySql = """
-    		SELECT DISTINCT chromosome, genomic_position, allele, protein_position from genomic_protein_mapping 
+		String querySql = String.format("""
+    		SELECT DISTINCT chromosome, genomic_position, allele, protein_position from %s 
     		WHERE accession = :acc 
     		ORDER BY protein_position 
     		LIMIT %d OFFSET %d
-    		""".formatted(pageable.getPageSize(), pageable.getOffset());
+    		""", releaseConfig.getMappingTable(), pageable.getPageSize(), pageable.getOffset());
 
 		SqlParameterSource queryParameters = new MapSqlParameterSource("acc", accession);
 
@@ -268,11 +265,11 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	 */
 	@Override
 	public List<String> getGenInputsByAccession(String accession, Integer page, Integer pageSize) {
-		String querySql = """
-    		SELECT DISTINCT chromosome, genomic_position, allele, protein_position from genomic_protein_mapping 
+		String querySql = String.format("""
+    		SELECT DISTINCT chromosome, genomic_position, allele, protein_position from %s 
     		WHERE accession = :acc 
     		ORDER BY protein_position 
-    		""";
+    		""", releaseConfig.getMappingTable());
 		if (page != null)
 			querySql += "LIMIT %d OFFSET %d".formatted(page, pageSize);
 
@@ -290,7 +287,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		if (chrPosSet == null || chrPosSet.isEmpty())
 			return EMPTY_RESULT;
 		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
-		return jdbcTemplate.query(SELECT_FROM_CADD_WHERE_CHR_POS_IN, parameters, (rs, rowNum) -> createPrediction(rs));
+		return jdbcTemplate.query(String.format(CADDS_IN_CHR_POS, releaseConfig.getCaddTable()), parameters, (rs, rowNum) -> createPrediction(rs));
 	}
 
 	private CADDPrediction createPrediction(ResultSet rs) throws SQLException {
@@ -304,7 +301,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			return EMPTY_RESULT;
 		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
 
-		return jdbcTemplate.query(SELECT_FROM_MAPPING_WHERE_CHR_POS_IN, parameters, (rs, rowNum) -> createMapping(rs))
+		return jdbcTemplate.query(String.format(MAPPINGS_IN_CHR_POS, releaseConfig.getMappingTable()), parameters, (rs, rowNum) -> createMapping(rs))
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
@@ -341,7 +338,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			return EMPTY_RESULT;
 		SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
 
-		return jdbcTemplate.query(SELECT_FROM_MAPPING_WHERE_ACC_POS_IN, parameters, (rs, rowNum) ->
+		return jdbcTemplate.query(String.format(MAPPINGS_IN_ACC_POS, releaseConfig.getMappingTable()), parameters, (rs, rowNum) ->
 						GenomeToProteinMapping.builder()
 								.chromosome(rs.getString("chromosome"))
 								.genomeLocation(rs.getInt("genomic_position"))
@@ -356,12 +353,12 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	public double getPercentageMatch(List<Object[]> chrPosRefList, String ver) {
-		String sql = """
+		String sql = String.format("""
     		SELECT 100 * COUNT (DISTINCT (chr, grchVER_pos, grchVER_base)) / :num 
-    		FROM crossmap 
+    		FROM %s
     		WHERE (chr, grchVER_pos, grchVER_base) 
     		IN (:chrPosRef)
-    		""";
+    		""", releaseConfig.getCrossmapTable());
 
 		sql = sql.replaceAll("VER", ver);
 
@@ -371,35 +368,20 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return jdbcTemplate.queryForObject(sql, parameters, Integer.class);
 	}
 
-
-/*
-	@Override
-	public List<Dbsnp> getDbsnps(List<String> ids) {
-		if (ids.isEmpty())
-			return new ArrayList<>();
-		SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
-		return jdbcTemplate.query(SELECT_DBSNPS, parameters, (rs, rowNum) ->
-				new Dbsnp(rs.getString("chr"), rs.getInt("pos"), rs.getString("id"),
-						rs.getString("ref"),rs.getString("alt")));
-	}
-*/
-	public List<Crossmap> getCrossmaps(List<Integer> positions, String from) {
+	public List<Crossmap> getCrossmaps(List<Integer> positions, String grch) {
 		if (positions.isEmpty())
 			return new ArrayList<>();
-		String sql = SELECT_CROSSMAPS.replace("{VER}", from);
+		String sql = String.format(CROSSMAPS_IN_GRCHX_POS, releaseConfig.getCrossmapTable(), grch);
 		SqlParameterSource parameters = new MapSqlParameterSource("pos", positions);
-		return jdbcTemplate.query(sql, parameters, (rs, rowNum) ->
-				new Crossmap(rs.getString("chr"), rs.getInt("grch38_pos"), rs.getString("grch38_base"),
-						rs.getInt("grch37_pos"),rs.getString("grch37_base")));
+		return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(Crossmap.class));
 	}
 
 	public List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37) {
 		if (chrPos37.isEmpty())
 			return new ArrayList<>();
 		SqlParameterSource parameters = new MapSqlParameterSource("chrPos37", chrPos37);
-		return jdbcTemplate.query(SELECT_CROSSMAPS2, parameters, (rs, rowNum) ->
-				new Crossmap(rs.getString("chr"), rs.getInt("grch38_pos"), rs.getString("grch38_base"),
-						rs.getInt("grch37_pos"),rs.getString("grch37_base")));
+		return jdbcTemplate.query(String.format(CROSSMAPS_IN_CHR_GRCH37_POS, releaseConfig.getCrossmapTable()),
+				parameters, new BeanPropertyRowMapper<>(Crossmap.class));
 	}
 
 	//================================================================================
