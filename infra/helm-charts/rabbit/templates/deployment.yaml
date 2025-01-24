@@ -36,8 +36,6 @@ spec:
         resources:
           requests:
             storage: 5Gi
-            memory: 200Mi
           limits:
-            memory: 200Mi
             storage: 5Gi
         storageClassName: standard-nfs-production
