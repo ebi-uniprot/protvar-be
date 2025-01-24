@@ -193,19 +193,19 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	// 2 T
 	// 3 G
 	// select * from genomic_protein_mapping where accession = 'P05067' and protein_position=1;
-	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensg_ver	ensp	ensp_ver	enst	enst_ver	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name
+	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensgv   ensp	enspv	enst	enstv	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name
 	// 1	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein
 	// 2	21	1	M	26170619	A	aUg	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	2	true	true	Amyloid-beta precursor protein
 	// 3	21	1	M	26170618	C	auG	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	3	true	true	Amyloid-beta precursor protein
 	//
 	// select *, ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)  from genomic_protein_mapping where accession = 'P05067' and protein_position=1;
-	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensg_ver	ensp	ensp_ver	enst	enst_ver	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name	array_remove
+	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensgv	ensp	enspv	enst	enstv	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name	array_remove
 	// 1	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	{A,G,C}
 	// 2	21	1	M	26170619	A	aUg	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	2	true	true	Amyloid-beta precursor protein	{T,G,C}
 	// 3	21	1	M	26170618	C	auG	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	3	true	true	Amyloid-beta precursor protein	{A,T,G}
 	//
 	// select *, unnest(ARRAY_REMOVE(array['A', 'T', 'G', 'C'], allele::text)) as altallele  from genomic_protein_mapping where accession = 'P05067' and protein_position=1;
-	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensg_ver	ensp	ensp_ver	enst	enst_ver	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name	altallele
+	// #	chromosome	protein_position	protein_seq	genomic_position	allele	codon	accession	reverse_strand	ensg	ensgv	ensp	enspv	enst	enstv	ense	is_match	patch_name	gene_name	codon_position	is_canonical	is_mane_select	protein_name	altallele
 	// 1	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	A
 	// 2	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	G
 	// 3	21	1	M	26170620	T	Aug	P05067	true	ENSG00000142192	22	ENSP00000284981	4	ENST00000346798	8	ENSE00003845466	true	Chromosome 21	APP	1	true	true	Amyloid-beta precursor protein	C
@@ -317,9 +317,9 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				.aa(rs.getString("protein_seq"))
 				.codon(rs.getString("codon"))
 				.accession(rs.getString("accession"))
-				.ensg(ensXVersion(rs.getString("ensg"), rs.getString("ensg_ver")))
-				.ensp(ensXVersion(rs.getString("ensp"), rs.getString("ensp_ver")))
-				.enst(ensXVersion(rs.getString("enst"), rs.getString("enst_ver")))
+				.ensg(ensXVersion(rs.getString("ensg"), rs.getString("ensgv")))
+				.ensp(ensXVersion(rs.getString("ensp"), rs.getString("enspv")))
+				.enst(ensXVersion(rs.getString("enst"), rs.getString("enstv")))
 				.ense(rs.getString("ense"))
 				.reverseStrand(rs.getBoolean("reverse_strand"))
 				.isValidRecord(rs.getBoolean("is_match"))
