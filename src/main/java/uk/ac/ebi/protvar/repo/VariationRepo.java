@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
+import uk.ac.ebi.protvar.config.ReleaseConfig;
 import uk.ac.ebi.uniprot.variation.model.Feature;
 
 import java.sql.ResultSet;
@@ -22,29 +23,29 @@ import java.util.*;
 @Repository
 @AllArgsConstructor
 public class VariationRepo {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(VariationRepo.class);
 
-    public static final String SELECT_VARIATION_WHERE_ACC_AND_POS_IN =
-            "SELECT * FROM variation WHERE (accession,position) in (:accPosSet)";
+    private ReleaseConfig releaseConfig;
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public List<Feature> getFeatures(String accession, int proteinLocation) {
         Set<Object[]> params = new HashSet<>();
         params.add(new Object[] {accession, proteinLocation});
+        String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosSet)",
+                releaseConfig.getVariationTable());
         SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", params);
-        return namedParameterJdbcTemplate.query(SELECT_VARIATION_WHERE_ACC_AND_POS_IN, parameters, (rs, rowNum) -> createFeature(rs));
+        return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) -> createFeature(rs));
     }
 
     public Map<String, List<Feature>> getFeatureMap(Set<Object[]> accPosSet) {
         if (accPosSet == null || accPosSet.isEmpty())
             return new HashedMap();
-
+        String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosSet)",
+                releaseConfig.getVariationTable());
         SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
-        return namedParameterJdbcTemplate.query(SELECT_VARIATION_WHERE_ACC_AND_POS_IN, parameters, new ResultSetExtractor<Map>() {
+        return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<Map>() {
             @Override
             public Map extractData(ResultSet rs) throws SQLException, DataAccessException {
                 Map<String, List<Feature>> featureMap = new HashMap();

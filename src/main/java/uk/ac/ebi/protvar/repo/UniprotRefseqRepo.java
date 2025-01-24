@@ -7,6 +7,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
+import uk.ac.ebi.protvar.config.ReleaseConfig;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,10 +16,7 @@ import java.util.*;
 @Repository
 @AllArgsConstructor
 public class UniprotRefseqRepo {
-
-    public static final String SELECT_UP_RS_WHERE_RSACC_IN = "SELECT * FROM uniprot_refseq WHERE refseq_acc IN (:rsAccs)";
-
-    public static final String SELECT_WITHOUT_RS_VERSION = "SELECT * FROM uniprot_refseq WHERE split_part(refseq_acc, '.', 1) IN (:rsAccs)";
+    private ReleaseConfig releaseConfig;
 
     /**
      * Check the number of RefSeq accession without version
@@ -32,8 +30,10 @@ public class UniprotRefseqRepo {
     public Map<String, List<String>> getRefSeqUniprotMap(Set<String> rsAccs) {
         if (rsAccs == null || rsAccs.isEmpty())
             return new HashMap();
+        String sql = String.format("SELECT * FROM %s WHERE refseq_acc IN (:rsAccs)",
+                releaseConfig.getUniprotRefseqTable());
         SqlParameterSource parameters = new MapSqlParameterSource("rsAccs", rsAccs);
-        return namedParameterJdbcTemplate.query(SELECT_UP_RS_WHERE_RSACC_IN, parameters, new ResultSetExtractor<Map>() {
+        return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<Map>() {
             @Override
             public Map extractData(ResultSet rs) throws SQLException, DataAccessException {
                 Map<String, List<String>> resultMap = new HashMap();
@@ -52,8 +52,10 @@ public class UniprotRefseqRepo {
     public TreeMap<String, List<String>> getRefSeqNoVerUniprotMap(Set<String> rsAccs) {
         if (rsAccs == null || rsAccs.isEmpty())
             return new TreeMap<>();
+        String sql = String.format("SELECT * FROM %s WHERE split_part(refseq_acc, '.', 1) IN (:rsAccs)",
+                releaseConfig.getUniprotRefseqTable());
         SqlParameterSource parameters = new MapSqlParameterSource("rsAccs", rsAccs);
-        return namedParameterJdbcTemplate.query(SELECT_WITHOUT_RS_VERSION, parameters, new ResultSetExtractor<TreeMap>() {
+        return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<TreeMap>() {
             @Override
             public TreeMap extractData(ResultSet rs) throws SQLException, DataAccessException {
                 TreeMap<String, List<String>> resultMap = new TreeMap<>();

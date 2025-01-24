@@ -1,12 +1,22 @@
 package uk.ac.ebi.protvar.repo;
 
-import org.springframework.data.repository.CrudRepository;
+import lombok.AllArgsConstructor;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+import uk.ac.ebi.protvar.config.ReleaseConfig;
 import uk.ac.ebi.protvar.model.data.UniprotEntry;
 
 import java.util.List;
 
-public interface UniprotEntryRepo extends CrudRepository<UniprotEntry, String> {
+@Repository
+@AllArgsConstructor
+public class UniprotEntryRepo {
+    private ReleaseConfig releaseConfig;
+    private JdbcTemplate jdbcTemplate;
 
-    List<UniprotEntry> findAll();
-
+    public List<UniprotEntry> findAll() {
+        String sql = "SELECT * FROM " + releaseConfig.getUniprotEntryTable();
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper(UniprotEntry.class));
+    }
 }
