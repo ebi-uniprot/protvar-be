@@ -1,6 +1,0 @@
-#!/usr/bin/env bash
-set -a
-DEPLOYMENT_ENV=fb
-K8S_CLUSTER=team-admin-hx-wp-webadmin-43
-K8S_NAMESPACE=protvar
-set +a
