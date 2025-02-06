@@ -1,5 +1,4 @@
 variables:
-  URL_DEPLOY_SH: "https://gitlab.ebi.ac.uk/api/v4/projects/3377/repository/files/helm-deploy.sh/raw?ref=master&private_token=${GITLAB_USER_API_TOKEN}"
   UPSTREAM_CI_COMMIT_BRANCH: $CI_COMMIT_BRANCH
 
 stages:
@@ -62,10 +61,8 @@ build_docker_image:
 .kubectl:
   image: dockerhub.ebi.ac.uk/uniprot/deployment/containers/helm
   before_script:
-    - wget -O deploy.sh "${URL_DEPLOY_SH}"
-    - echo "--no-cache --no-cookies was not used by wget"
-    - if [ ! -f deploy.sh ]; then echo "k8s deployment script is missing"; exit 1; fi
-    - chmod +x deploy.sh
+    - if [ ! -f deploy/helm-deploy.sh ]; then echo "Helm deploy script is missing"; exit 1; fi
+    - chmod +x deploy/helm-deploy.sh
 
 dev-deploy:
   only:
@@ -74,17 +71,17 @@ dev-deploy:
   stage: deploy
   extends: .kubectl
   script:
-    - ./deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev imageTag="${CI_COMMIT_SHORT_SHA}"
+    - deploy/helm-deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev imageTag="${CI_COMMIT_SHORT_SHA}"
 
-prod-deploy:
+main-deploy:
   only:
     refs:
       - main
   stage: deploy
   extends: .kubectl
   script:
-    - ./deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
-    - ./deploy.sh ENV=PD APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
+    - deploy/helm-deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
+    - deploy/helm-deploy.sh ENV=PB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
 
 trigger_integration_tests:
   only:
