@@ -1,11 +1,11 @@
 package uk.ac.ebi.protvar.repo;
 
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
-import uk.ac.ebi.protvar.config.ReleaseConfig;
 import uk.ac.ebi.protvar.model.data.ClinVar;
 
 import java.util.ArrayList;
@@ -15,7 +15,8 @@ import java.util.Set;
 @Repository
 @AllArgsConstructor
 public class ClinVarRepo {
-    private ReleaseConfig releaseConfig;
+    @Value("${tbl.clinvar}")
+    private String clinvarTable;
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public List<ClinVar> getByRCV(Set<Object[]> rcvs) {
@@ -25,7 +26,7 @@ public class ClinVarRepo {
                 SELECT DISTINCT c.rcv, c.chr, c.pos, c.ref, c.alt FROM %s c
                 INNER JOIN (VALUES :rcvs) AS t(rcv)
                 ON t.rcv=c.rcv
-                """, releaseConfig.getClinvarTable());
+                """, clinvarTable);
         SqlParameterSource parameters = new MapSqlParameterSource("rcvs", rcvs);
         return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) ->
                 ClinVar.builder().rcv(rs.getString("rcv"))
@@ -43,7 +44,7 @@ public class ClinVarRepo {
                 SELECT DISTINCT c.vcv, c.chr, c.pos, c.ref, c.alt FROM %s c
                 INNER JOIN (VALUES :vcvs) AS t(vcv)
                 ON t.vcv=c.vcv
-                """, releaseConfig.getClinvarTable());
+                """, clinvarTable);
         SqlParameterSource parameters = new MapSqlParameterSource("vcvs", vcvs);
         return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) ->
                 ClinVar.builder().vcv(rs.getString("vcv"))

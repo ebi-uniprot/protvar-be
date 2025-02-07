@@ -7,13 +7,13 @@ import lombok.AllArgsConstructor;
 import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
-import uk.ac.ebi.protvar.config.ReleaseConfig;
 import uk.ac.ebi.uniprot.variation.model.Feature;
 
 import java.sql.ResultSet;
@@ -25,7 +25,8 @@ import java.util.*;
 public class VariationRepo {
     private static final Logger LOGGER = LoggerFactory.getLogger(VariationRepo.class);
 
-    private ReleaseConfig releaseConfig;
+    @Value("${tbl.variation}")
+    private String variationTable;
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -34,7 +35,7 @@ public class VariationRepo {
         Set<Object[]> params = new HashSet<>();
         params.add(new Object[] {accession, proteinLocation});
         String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosSet)",
-                releaseConfig.getVariationTable());
+                variationTable);
         SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", params);
         return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) -> createFeature(rs));
     }
@@ -43,7 +44,7 @@ public class VariationRepo {
         if (accPosSet == null || accPosSet.isEmpty())
             return new HashedMap();
         String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosSet)",
-                releaseConfig.getVariationTable());
+                variationTable);
         SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
         return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<Map>() {
             @Override

@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.repo;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -12,7 +13,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
-import uk.ac.ebi.protvar.config.ReleaseConfig;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.*;
@@ -29,7 +29,16 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProtVarDataRepoImpl.class);
 
-	private ReleaseConfig releaseConfig;
+	@Value("${tbl.mapping}")
+	private String mappingTable;
+
+	@Value("${tbl.crossmap}")
+	private String crossmapTable;
+
+	@Value("${tbl.cadd}")
+	private String caddTable;
+
+
 	private static final List EMPTY_RESULT = new ArrayList<>();
 
 	private static final String CADDS_IN_CHR_POS = """
@@ -236,7 +245,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				AS row_count 
 			FROM %s 
 			WHERE accession = :acc
-			""", releaseConfig.getMappingTable());
+			""", mappingTable);
 
 		SqlParameterSource parameters = new MapSqlParameterSource("acc", accession);
 		int total = jdbcTemplate.queryForObject(rowCountSql, parameters, Integer.class);
@@ -246,7 +255,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
     		WHERE accession = :acc 
     		ORDER BY protein_position 
     		LIMIT %d OFFSET %d
-    		""", releaseConfig.getMappingTable(), pageable.getPageSize(), pageable.getOffset());
+    		""", mappingTable, pageable.getPageSize(), pageable.getOffset());
 
 		SqlParameterSource queryParameters = new MapSqlParameterSource("acc", accession);
 
@@ -269,7 +278,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
     		SELECT DISTINCT chromosome, genomic_position, allele, protein_position from %s 
     		WHERE accession = :acc 
     		ORDER BY protein_position 
-    		""", releaseConfig.getMappingTable());
+    		""", mappingTable);
 		if (page != null)
 			querySql += "LIMIT %d OFFSET %d".formatted(page, pageSize);
 
@@ -287,7 +296,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		if (chrPosSet == null || chrPosSet.isEmpty())
 			return EMPTY_RESULT;
 		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
-		return jdbcTemplate.query(String.format(CADDS_IN_CHR_POS, releaseConfig.getCaddTable()), parameters, (rs, rowNum) -> createPrediction(rs));
+		return jdbcTemplate.query(String.format(CADDS_IN_CHR_POS, caddTable), parameters, (rs, rowNum) -> createPrediction(rs));
 	}
 
 	private CADDPrediction createPrediction(ResultSet rs) throws SQLException {
@@ -301,7 +310,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			return EMPTY_RESULT;
 		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
 
-		return jdbcTemplate.query(String.format(MAPPINGS_IN_CHR_POS, releaseConfig.getMappingTable()), parameters, (rs, rowNum) -> createMapping(rs))
+		return jdbcTemplate.query(String.format(MAPPINGS_IN_CHR_POS, mappingTable), parameters, (rs, rowNum) -> createMapping(rs))
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
@@ -338,7 +347,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			return EMPTY_RESULT;
 		SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
 
-		return jdbcTemplate.query(String.format(MAPPINGS_IN_ACC_POS, releaseConfig.getMappingTable()), parameters, (rs, rowNum) ->
+		return jdbcTemplate.query(String.format(MAPPINGS_IN_ACC_POS, mappingTable), parameters, (rs, rowNum) ->
 						GenomeToProteinMapping.builder()
 								.chromosome(rs.getString("chromosome"))
 								.genomeLocation(rs.getInt("genomic_position"))
@@ -358,7 +367,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
     		FROM %s
     		WHERE (chr, grchVER_pos, grchVER_base) 
     		IN (:chrPosRef)
-    		""", releaseConfig.getCrossmapTable());
+    		""", crossmapTable);
 
 		sql = sql.replaceAll("VER", ver);
 
@@ -371,7 +380,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	public List<Crossmap> getCrossmaps(List<Integer> positions, String grch) {
 		if (positions.isEmpty())
 			return new ArrayList<>();
-		String sql = String.format(CROSSMAPS_IN_GRCHX_POS, releaseConfig.getCrossmapTable(), grch);
+		String sql = String.format(CROSSMAPS_IN_GRCHX_POS, crossmapTable, grch);
 		SqlParameterSource parameters = new MapSqlParameterSource("pos", positions);
 		return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(Crossmap.class));
 	}
@@ -380,7 +389,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		if (chrPos37.isEmpty())
 			return new ArrayList<>();
 		SqlParameterSource parameters = new MapSqlParameterSource("chrPos37", chrPos37);
-		return jdbcTemplate.query(String.format(CROSSMAPS_IN_CHR_GRCH37_POS, releaseConfig.getCrossmapTable()),
+		return jdbcTemplate.query(String.format(CROSSMAPS_IN_CHR_GRCH37_POS, crossmapTable),
 				parameters, new BeanPropertyRowMapper<>(Crossmap.class));
 	}
 

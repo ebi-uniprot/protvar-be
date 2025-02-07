@@ -1,13 +1,13 @@
 package uk.ac.ebi.protvar.repo;
 
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
-import uk.ac.ebi.protvar.config.ReleaseConfig;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,7 +16,8 @@ import java.util.*;
 @Repository
 @AllArgsConstructor
 public class UniprotRefseqRepo {
-    private ReleaseConfig releaseConfig;
+    @Value("${tbl.uprefseq}")
+    private String uniprotRefseqTable;
 
     /**
      * Check the number of RefSeq accession without version
@@ -31,7 +32,7 @@ public class UniprotRefseqRepo {
         if (rsAccs == null || rsAccs.isEmpty())
             return new HashMap();
         String sql = String.format("SELECT * FROM %s WHERE refseq_acc IN (:rsAccs)",
-                releaseConfig.getUniprotRefseqTable());
+                uniprotRefseqTable);
         SqlParameterSource parameters = new MapSqlParameterSource("rsAccs", rsAccs);
         return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<Map>() {
             @Override
@@ -53,7 +54,7 @@ public class UniprotRefseqRepo {
         if (rsAccs == null || rsAccs.isEmpty())
             return new TreeMap<>();
         String sql = String.format("SELECT * FROM %s WHERE split_part(refseq_acc, '.', 1) IN (:rsAccs)",
-                releaseConfig.getUniprotRefseqTable());
+                uniprotRefseqTable);
         SqlParameterSource parameters = new MapSqlParameterSource("rsAccs", rsAccs);
         return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<TreeMap>() {
             @Override

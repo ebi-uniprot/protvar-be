@@ -1,11 +1,11 @@
 package uk.ac.ebi.protvar.repo;
 
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
-import uk.ac.ebi.protvar.config.ReleaseConfig;
 import uk.ac.ebi.protvar.model.data.Cosmic;
 
 import java.sql.ResultSet;
@@ -17,7 +17,8 @@ import java.util.Set;
 @Repository
 @AllArgsConstructor
 public class CosmicRepo {
-    private ReleaseConfig releaseConfig;
+    @Value("${tbl.cosmic}")
+    private String cosmicTable;
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     public List<Cosmic> getById(Set<Object[]> ids) {
@@ -27,7 +28,7 @@ public class CosmicRepo {
                 SELECT DISTINCT c.id, c.chr, c.pos, c.ref, c.alt FROM %s c
                 INNER JOIN (VALUES :ids) AS t(id)
                 ON t.id=c.id
-                """, releaseConfig.getCosmicTable());
+                """, cosmicTable);
         SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
         return jdbcTemplate.query(sql, parameters, (rs, rowNum) -> {
             Cosmic cosmic = createCosmic(rs);
@@ -43,7 +44,7 @@ public class CosmicRepo {
                 SELECT DISTINCT c.legacy_id, c.chr, c.pos, c.ref, c.alt FROM %s c
                 INNER JOIN (VALUES :ids) AS t(id)
                 ON t.id=c.legacy_id
-                """, releaseConfig.getCosmicTable());
+                """, cosmicTable);
         SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
         return jdbcTemplate.query(sql, parameters, (rs, rowNum) -> {
             Cosmic cosmic = createCosmic(rs);
