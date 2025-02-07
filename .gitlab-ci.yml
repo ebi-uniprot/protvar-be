@@ -59,8 +59,14 @@ build_docker_image:
     - docker logout "$CI_REGISTRY"
 
 .kubectl:
-  image: dockerhub.ebi.ac.uk/uniprot/deployment/containers/helm
+  image: alpine
   before_script:
+    - apk add --no-cache curl git bash
+    - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+    - chmod +x ./kubectl
+    - mv ./kubectl /usr/local/bin/kubectl
+    - export VERIFY_CHECKSUM=false
+    - curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
     - if [ ! -f deploy/helm-deploy.sh ]; then echo "Helm deploy script is missing"; exit 1; fi
     - chmod +x deploy/helm-deploy.sh
 
