@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e  # Exit on error
+set -x
 
 # Parse arguments and export them as environment variables
 for ARG in "$@"; do
