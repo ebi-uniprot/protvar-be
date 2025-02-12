@@ -51,7 +51,6 @@ build_docker_image:
     refs:
       - main
       - dev
-  #extends: .build_docker
   stage: build_docker_image
   image: docker:latest
   tags:
@@ -61,7 +60,7 @@ build_docker_image:
   script:
     - docker --version
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - export CONTAINER_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - CONTAINER_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
     - echo "Building image: $CONTAINER_IMAGE"
     - docker build -t "$CONTAINER_IMAGE" --no-cache -f deploy/Dockerfile .
     - docker push "$CONTAINER_IMAGE"
