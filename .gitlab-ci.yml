@@ -48,6 +48,8 @@ build_docker_image:
       - dev
   extends: .build_docker
   stage: build_docker_image
+  after_script:
+    - echo "Build image complete"
 
 dev-deploy:
   only:
