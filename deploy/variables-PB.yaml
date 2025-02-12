@@ -1,6 +1,0 @@
-jvmOptions: -Dhttp.proxyHost=hh-wwwcache.ebi.ac.uk -Dhttps.proxyHost=hh-wwwcache.ebi.ac.uk
-env:
-  dbURL: ${GITLAB_PV_PB_DB_URL}
-  dbUser: ${GITLAB_PV_PB_DB_USER}
-  dbPassword: ${GITLAB_PV_PB_DB_PWD}
-  emailSMTP: hh-smtp.ebi.ac.uk
