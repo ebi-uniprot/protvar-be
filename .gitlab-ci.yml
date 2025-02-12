@@ -51,15 +51,8 @@ build_docker_image:
     refs:
       - main
       - dev
-  extends: .build_docker
+  #extends: .build_docker
   stage: build_docker_image
-
-dev-deploy:
-  only:
-    refs:
-      - dev
-  #extends: .deploy
-  stage: deploy
   image: docker:latest
   tags:
     - dind
@@ -74,6 +67,14 @@ dev-deploy:
     - docker push "$CONTAINER_IMAGE"
     - docker rmi "$CONTAINER_IMAGE"
     - docker logout "$CI_REGISTRY"
+
+dev-deploy:
+  only:
+    refs:
+      - dev
+  extends: .deploy
+  stage: deploy
+  script:
     - ./protvar-deploy/scripts/deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev imageTag="${CI_COMMIT_SHORT_SHA}"
 
 main-deploy:
