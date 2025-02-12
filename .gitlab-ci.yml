@@ -60,10 +60,8 @@ dev-deploy:
       - dev
   extends: .deploy
   stage: deploy
-  before_script:
-    - git clone https://gitlab.ebi.ac.uk/uniprot/framework/protvar-deploy.git
   script:
-    - protvar-deploy/scripts/deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev imageTag="${CI_COMMIT_SHORT_SHA}"
+    - ./protvar-deploy/scripts/deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev imageTag="${CI_COMMIT_SHORT_SHA}"
 
 main-deploy:
   only:
@@ -72,8 +70,8 @@ main-deploy:
   extends: .deploy
   stage: deploy
   script:
-    - protvar-deploy/scripts/deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
-    - protvar-deploy/scripts/deploy.sh ENV=PB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
+    - ./protvar-deploy/scripts/deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
+    - ./protvar-deploy/scripts/deploy.sh ENV=PB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
 
 trigger_integration_tests:
   only:
