@@ -46,10 +46,23 @@ build_docker_image:
     refs:
       - main
       - dev
-  extends: .build_docker
   stage: build_docker_image
-  after_script:
-    - echo "Build image complete"
+  image: docker:latest
+  tags:
+    - dind
+  services:
+    - docker:dind
+  script:
+    - docker --version
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u $CI_REGISTRY_USER $CI_REGISTRY
+      --password-stdin
+    - CONTAINER_IMAGE=${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+    - echo "image name will be ${CONTAINER_IMAGE}"
+    - docker build -t ${CONTAINER_IMAGE} --no-cache -f deploy/Dockerfile .
+    - docker image ls
+    - docker push ${CONTAINER_IMAGE}
+    - docker rmi ${CONTAINER_IMAGE}
+    - docker logout "$CI_REGISTRY"
 
 dev-deploy:
   only:
