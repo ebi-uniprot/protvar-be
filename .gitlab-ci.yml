@@ -58,9 +58,22 @@ dev-deploy:
   only:
     refs:
       - dev
-  extends: .deploy
+  #extends: .deploy
   stage: deploy
+  image: docker:latest
+  tags:
+    - dind
+  services:
+    - docker:dind
   script:
+    - docker --version
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - export CONTAINER_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - echo "Building image: $CONTAINER_IMAGE"
+    - docker build -t "$CONTAINER_IMAGE" --no-cache -f deploy/Dockerfile .
+    - docker push "$CONTAINER_IMAGE"
+    - docker rmi "$CONTAINER_IMAGE"
+    - docker logout "$CI_REGISTRY"
     - ./protvar-deploy/scripts/deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev imageTag="${CI_COMMIT_SHORT_SHA}"
 
 main-deploy:
