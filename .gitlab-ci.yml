@@ -1,15 +1,10 @@
 include:
-  - project: 'uniprot/framework/protvar-deploy'
+  - project: uniprot/framework/protvar-deploy
     ref: master
-    file: '/ci-templates/gitlab-ci-template.yml'
+    file: /ci-templates/gitlab-ci-template.yml
 
 variables:
   UPSTREAM_CI_COMMIT_BRANCH: $CI_COMMIT_BRANCH
-  CI_REGISTRY_PASSWORD: $CI_REGISTRY_PASSWORD # ensures the included pipeline has access to registry variables
-  CI_REGISTRY_USER: $CI_REGISTRY_USER
-  CI_REGISTRY: $CI_REGISTRY
-  CI_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE
-  CI_COMMIT_SHORT_SHA: $CI_COMMIT_SHORT_SHA
 
 stages:
   - test
@@ -51,21 +46,8 @@ build_docker_image:
     refs:
       - main
       - dev
+  extends: .build_docker
   stage: build_docker_image
-  image: docker:latest
-  tags:
-    - dind
-  services:
-    - docker:dind
-  script:
-    - docker --version
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
-    - CONTAINER_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
-    - echo "Building image: $CONTAINER_IMAGE"
-    - docker build -t "$CONTAINER_IMAGE" --no-cache -f deploy/Dockerfile .
-    - docker push "$CONTAINER_IMAGE"
-    - docker rmi "$CONTAINER_IMAGE"
-    - docker logout "$CI_REGISTRY"
 
 dev-deploy:
   only:
