@@ -228,8 +228,8 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	// where accession = 'P05067' and protein_position=1) g2p
 	// inner join cadd_prediction cadd on (g2p.chromosome = cadd.chromosome
 	// and g2p.genomic_position = cadd.position
-	// and g2p.allele = cadd.allele
-	// and g2p.altallele = cadd.altallele);
+	// and g2p.allele = cadd.reference_allele
+	// and g2p.altallele = cadd.alt_allele);
 	//
 	// select * from <tbl.cadd>
 	// where chromosome='21'
@@ -296,12 +296,13 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		if (chrPosSet == null || chrPosSet.isEmpty())
 			return EMPTY_RESULT;
 		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
-		return jdbcTemplate.query(String.format(CADDS_IN_CHR_POS, caddTable), parameters, (rs, rowNum) -> createPrediction(rs));
+		String sql = String.format(CADDS_IN_CHR_POS, caddTable);
+		return jdbcTemplate.query(sql, parameters, (rs, rowNum) -> createPrediction(rs));
 	}
 
 	private CADDPrediction createPrediction(ResultSet rs) throws SQLException {
-		return new CADDPrediction(rs.getString("chromosome"), rs.getInt("position"), rs.getString("allele"),
-				rs.getString("altallele"), rs.getDouble("rawscores"), rs.getDouble("scores"));
+		return new CADDPrediction(rs.getString("chromosome"), rs.getInt("position"), rs.getString("reference_allele"),
+				rs.getString("alt_allele"), rs.getDouble("raw_score"), rs.getDouble("score"));
 	}
 
 	@Override
