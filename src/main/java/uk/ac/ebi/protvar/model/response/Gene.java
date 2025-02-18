@@ -15,4 +15,5 @@ public class Gene {
 	private String altAllele;
 	private List<IsoFormMapping> isoforms;
 	private Double caddScore;
+	private Double alleleFreq;
 }

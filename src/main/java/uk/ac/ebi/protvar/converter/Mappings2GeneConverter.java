@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.model.data.AlleleFreq;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
@@ -28,6 +29,7 @@ public class Mappings2GeneConverter {
 								  GenomicInput gInput,
 								  Set<String> altBases,
 								  List<CADDPrediction> caddScores,
+								  List<AlleleFreq> alleleFreqs,
 								  Map<String, List<Score>>  scoreMap,
 								  Map<String, List<Variation>> variationMap, InputParams params) {
 
@@ -58,6 +60,7 @@ public class Mappings2GeneConverter {
 						.altAllele(alt)
 						.isoforms(isoforms)
 						.caddScore(getCaddScore(caddScores, alt))
+						.alleleFreq(getAlleleFreq(alleleFreqs, alt))
 						.build());
 			});
 		});
@@ -70,6 +73,17 @@ public class Mappings2GeneConverter {
 					.filter(p -> alt.equalsIgnoreCase(p.getAltAllele())).findAny();
 			if (prediction.isPresent())
 				return prediction.get().getScore();
+			return null;
+		}
+		return null;
+	}
+
+	private Double getAlleleFreq(List<AlleleFreq> alleleFreqs, String alt) {
+		if (alleleFreqs != null && !alleleFreqs.isEmpty()) {
+			Optional<AlleleFreq> freq = alleleFreqs.stream()
+					.filter(p -> alt.equalsIgnoreCase(p.getAlt())).findAny();
+			if (freq.isPresent())
+				return freq.get().getAf();
 			return null;
 		}
 		return null;
