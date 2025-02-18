@@ -37,6 +37,8 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	@Value("${tbl.cadd}")
 	private String caddTable;
+	@Value("${tbl.foldx}")
+	private String foldxTable;
 
 
 	private static final List EMPTY_RESULT = new ArrayList<>();
@@ -102,18 +104,6 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			WHERE struct_id=:accession AND (:resid)=ANY(pocket_resid)
 			ORDER BY pocket_score_combined_scaled DESC
  			"""; //with score in v1 is score_combined_scaled in v2
-
-	private static final String SELECT_FOLDXS_BY_ACC_AND_POS = """
- 			SELECT * FROM afdb_foldx 
- 			WHERE protein_acc=:accession AND position=:position
- 			""";
-
-	private static final String SELECT_FOLDXS_BY_ACC_AND_POS_VARIANT = """
- 			SELECT * FROM afdb_foldx 
- 			WHERE protein_acc=:accession 
- 			AND position=:position 
- 			AND mutated_type=:variantAA
- 			""";
 
 	private static final String SELECT_INTERACTIONS_BY_ACC_AND_RESID = """
 			SELECT a, a_residues, b, b_residues, pdockq 
@@ -187,7 +177,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private NamedParameterJdbcTemplate jdbcTemplate;
 
-	// Joining eve (or other genomic-based) score
+	// TODO CHECK - Joining eve (or other genomic-based) score
 	// One way of doing it, basically to enable sorting at db level
 
 	// select ARRAY_REMOVE(array['A', 'T', 'G', 'C'], 'C')
@@ -398,19 +388,39 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	// Foldxs, pockets, and protein interactions
 	//================================================================================
 	public List<Foldx> getFoldxs(String accession, Integer position, String variantAA) {
-		SqlParameterSource parameters;
-		String query;
+		MapSqlParameterSource  parameters = new MapSqlParameterSource();
+		parameters.addValue("accession", accession);
+		parameters.addValue("position", position);
+		String sql = String.format("""
+				SELECT * FROM %s 
+				WHERE protein_acc=:accession 
+				AND position=:position 
+				""", foldxTable);
+
 		if (variantAA != null && !variantAA.isEmpty()) {
-			parameters = new MapSqlParameterSource("accession", accession)
-					.addValue("position", position)
-					.addValue("variantAA", variantAA);
-			query = SELECT_FOLDXS_BY_ACC_AND_POS_VARIANT;
-		} else {
-			parameters = new MapSqlParameterSource("accession", accession)
-					.addValue("position", position);
-			query = SELECT_FOLDXS_BY_ACC_AND_POS;
+			parameters.addValue("variantAA", variantAA);
+			sql += " AND mutated_type=:variantAA";
 		}
-		return jdbcTemplate.query(query, parameters, (rs, rowNum) -> createFoldx(rs));
+
+		List<Foldx> foldxs = jdbcTemplate.query(sql, parameters, (rs, rowNum) -> createFoldx(rs));
+		Map<String, List<Foldx>> foldxsMap = foldxs.stream().collect(Collectors.groupingBy(Foldx::getGroupBy));
+
+		if (foldxs.size() == foldxsMap.size()) // no protein with multiple fragments
+			return foldxs;
+
+		List<Foldx> newFoldxs = new ArrayList<>();
+		for (List<Foldx> foldxList : foldxsMap.values()) {
+			// Sort by afId
+			foldxList.sort(Comparator.comparing(Foldx::getAfId));
+			// Get middle element
+			int numFragments = foldxList.size();
+			int middleIndex = numFragments / 2;
+			Foldx middleElement = foldxList.get(middleIndex);
+			middleElement.setNumFragments(numFragments);
+			newFoldxs.add(middleElement);
+		}
+
+		return newFoldxs;
 	}
 
 	public List<Pocket> getPockets(String accession, Integer resid) {
@@ -445,8 +455,9 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	private Foldx createFoldx(ResultSet rs) throws SQLException  {
-		return new Foldx(rs.getString("protein_acc"), rs.getInt("position"), rs.getString("wild_type"),
-				rs.getString("mutated_type"), rs.getDouble("foldx_ddg"), rs.getDouble("plddt"));
+		return new Foldx(rs.getString("protein_acc"), rs.getInt("position"),
+				rs.getString("af_id"), rs.getInt("af_pos"), rs.getString("wild_type"),
+				rs.getString("mutated_type"), rs.getDouble("foldx_ddg"), rs.getDouble("plddt"), 1);
 	}
 
 	private Interaction createInteraction(ResultSet rs) throws SQLException  {
