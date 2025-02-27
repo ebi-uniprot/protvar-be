@@ -102,10 +102,10 @@ public class GenomicInput extends UserInput {
         // of custom genomic input.
         setInputStr(userInput);
     }
-    public GenomicInput(String acc, String chr, Integer pos, String ref) {
+    public GenomicInput(String inputStr, String chr, Integer pos, String ref) {
         setType(Type.GENOMIC);
         setFormat(Format.CUSTOM_GEN);
-        setInputStr(acc);
+        setInputStr(inputStr);
         setChr(chr);
         setPos(pos);
         setRef(ref);

@@ -21,6 +21,7 @@ public interface ProtVarDataRepo {
 
 	List<String> getGenInputsByAccession(String accession, Integer page, Integer pageSize);
 	Page<UserInput> getGenInputsByAccession(String accession, Pageable pageable);
+	Page<UserInput> getGenInputsByEnsemblID(String id, Pageable pageable);
 
 	//================================================================================
 	// CADDPrediction

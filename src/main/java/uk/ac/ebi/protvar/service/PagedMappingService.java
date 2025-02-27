@@ -17,6 +17,7 @@ import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.utils.EnsemblIDValidator;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.*;
@@ -130,8 +131,42 @@ public class PagedMappingService {
 
         MappingResponse content = mappingFetcher.getGenMappings(params);
 
-        PagedMappingResponse response = new PagedMappingResponse();
+        PagedMappingResponse response = newPagedMappingResponse(pageNo, page);
         response.setContent(content);
+        return response;
+    }
+
+
+    public PagedMappingResponse getMappingByEnsemblID(String id, int pageNo, int pageSize) {
+        // Create a Pageable instance
+        Pageable pageable = PageRequest.of(pageNo-1, pageSize);
+
+        if (!EnsemblIDValidator.isValidEnsemblID(id)) {
+            PagedMappingResponse response = newPagedMappingResponse(pageNo, Page.empty());
+            MappingResponse content = new MappingResponse(List.of());
+            content.getMessages().add(new Message(Message.MessageType.ERROR, "Invalid Ensembl ID"));
+            response.setContent(content);
+            return response;
+        }
+
+        // Retrieve a page of chr-pos for accession
+        Page<UserInput> page = protVarDataRepo.getGenInputsByEnsemblID(id, pageable);
+        // Get content for page object
+        List<UserInput> inputs = page.getContent();
+        InputParams params = InputParams.builder()
+                .inputs(inputs)
+                .build(); // default values for annotations will be false
+        // for function, population and structure
+
+        MappingResponse content = mappingFetcher.getGenMappings(params);
+
+        PagedMappingResponse response = newPagedMappingResponse(pageNo, page);
+        response.setContent(content);
+        return response;
+    }
+
+    private PagedMappingResponse newPagedMappingResponse(int pageNo, Page<?> page) {
+        PagedMappingResponse response = new PagedMappingResponse();
         response.setPage(pageNo);//(page.getNumber());
         response.setPageSize(page.getSize());
         response.setTotalItems(page.getTotalElements());
@@ -139,5 +174,4 @@ public class PagedMappingService {
         response.setLast(page.isLast());
         return response;
     }
-
 }

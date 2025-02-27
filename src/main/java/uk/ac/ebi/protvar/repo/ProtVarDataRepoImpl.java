@@ -257,6 +257,60 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return new PageImpl<>(genomicInputs, pageable, total);
 	}
 
+	@Override
+	public Page<UserInput> getGenInputsByEnsemblID(String id, Pageable pageable) {
+		// Pre-condition: ensemblID will have been validated (using EnsemblIDValidator)
+
+		String ensemblID = id;
+
+		// Determine if there is a version suffix
+		String version = null;
+		if (ensemblID.contains(".")) {
+			// Extracts the version number without the "."
+			version = ensemblID.substring(ensemblID.lastIndexOf(".") + 1);
+			ensemblID = ensemblID.substring(0, ensemblID.lastIndexOf("."));
+		}
+
+		// Get the column name based on Ensembl ID prefix
+		String column = ensemblID.substring(0, 4).toLowerCase(); // "ensg", "enst", "ensp", "ense"
+		String condition = column + " = :id";
+
+		if (version != null) {
+			// If version suffix is present, add the version column condition
+			condition += " AND " + column + "v = :ver";
+		}
+
+		String rowCountSql = String.format("""
+			SELECT COUNT(DISTINCT (chromosome, genomic_position, allele, protein_position)) 
+			AS row_count 
+			FROM %s 
+			WHERE %s
+        """, mappingTable, condition);
+
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue("id", ensemblID);
+		if (version != null) {
+			parameters.addValue("ver", version);
+		}
+
+		int total = jdbcTemplate.queryForObject(rowCountSql, parameters, Integer.class);
+
+		String querySql = String.format("""
+    		SELECT DISTINCT chromosome, genomic_position, allele, protein_position 
+    		FROM %s 
+    		WHERE %s
+    		ORDER BY protein_position 
+    		LIMIT %d OFFSET %d
+    		""", mappingTable, condition, pageable.getPageSize(), pageable.getOffset());
+
+		List<UserInput> genomicInputs =
+				jdbcTemplate.query(querySql, parameters,
+						(rs, rowNum) -> new GenomicInput(id, rs.getString("chromosome"), rs.getInt("genomic_position"), rs.getString("allele"))
+				);
+
+		return new PageImpl<>(genomicInputs, pageable, total);
+	}
+
 	/**
 	 * Unpaged - used for protein download
 	 * @param accession
