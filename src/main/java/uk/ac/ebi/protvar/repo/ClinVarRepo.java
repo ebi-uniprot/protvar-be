@@ -11,6 +11,7 @@ import uk.ac.ebi.protvar.model.data.ClinVarExtended;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.*;
 
 @Repository
@@ -67,18 +68,16 @@ public class ClinVarRepo {
             """, clinvarExtendedTable);
 
         // Create the parameter map for the query
-        SqlParameterSource parameters = new MapSqlParameterSource("rcvs", rcvs.toArray());
+        SqlParameterSource parameters = new MapSqlParameterSource()
+                // Convert Java List to PostgreSQL ARRAY (Properly Bind Parameter)
+                .addValue("rcvs", rcvs.toArray(new String[0]), Types.ARRAY);
 
         // Query the database and map the results to ClinVarExtended objects
         List<ClinVarExtended> clinVarExtendedList = namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) -> getClinVarExtendedFromRs(rs));
 
-        // Initialize the Map with the input RCVs
+        // Initialize the result map with empty lists for each RCV
         Map<String, List<ClinVarExtended>> result = new HashMap<>();
-
-        // Initialize empty lists for each RCV in the input
-        for (String rcv : rcvs) {
-            result.put(rcv, new ArrayList<>());
-        }
+        rcvs.forEach(rcv -> result.put(rcv, new ArrayList<>()));
 
         // Add ClinVarExtended to the corresponding RCV key in the map
         for (ClinVarExtended clinVarExtended : clinVarExtendedList) {
@@ -105,18 +104,15 @@ public class ClinVarRepo {
             """, clinvarExtendedTable);
 
         // Create the parameter map for the query
-        SqlParameterSource parameters = new MapSqlParameterSource("vcvs", vcvs.toArray());
+        SqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("vcvs", vcvs.toArray(new String[0]), Types.ARRAY);
 
         // Query the database and map the results to ClinVarExtended objects
         List<ClinVarExtended> clinVarExtendedList = namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) ->  getClinVarExtendedFromRs(rs));
 
         // Initialize the Map with the input VCVs
         Map<String, List<ClinVarExtended>> result = new HashMap<>();
-
-        // Initialize empty lists for each VCV in the input
-        for (String vcv : vcvs) {
-            result.put(vcv, new ArrayList<>());
-        }
+        vcvs.forEach(vcv -> result.put(vcv, new ArrayList<>()));
 
         // Add ClinVarExtended to the corresponding VCV key in the map
         for (ClinVarExtended clinVarExtended : clinVarExtendedList) {
