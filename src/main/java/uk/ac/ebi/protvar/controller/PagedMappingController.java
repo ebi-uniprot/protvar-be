@@ -16,7 +16,7 @@ import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.model.response.IDResponse;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.service.PagedMappingService;
-import static uk.ac.ebi.protvar.config.PagedMapping.*;
+import static uk.ac.ebi.protvar.constants.PagedMapping.*;
 
 @Tag(name = "Coordinate Mapping")
 @RestController
@@ -153,9 +153,44 @@ public class PagedMappingController {
 
         accession = accession.trim().toUpperCase();
 
-        PagedMappingResponse response = pagedMappingService.getMappingByAccession(accession.toUpperCase(), page, pageSize);
+        PagedMappingResponse response = pagedMappingService.getMappingByAccession(accession, page, pageSize);
         if (response != null)
             response.setId(accession);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
+
+
+    @Operation(
+            summary = "Retrieve all mappings for the provided Ensembl ID",
+            description = "Fetch paginated genomic-protein mappings for a specified Ensembl ID. This endpoint returns the results in JSON format. " +
+                    "You can specify the page number and the number of results per page for pagination."
+    )
+    @GetMapping(value = "/mapping/ensembl/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PagedMappingResponse> getResultByEnsemblID(
+            @Parameter(description = "The Ensembl ID to retrieve mappings for.", example = "ENSG00000010404")
+            @PathVariable("id") String id,
+            @Parameter(description = PAGE_DESC, example = PAGE)
+            @RequestParam(value = "page", defaultValue = PAGE, required = false) int page,
+            @Parameter(description = PAGE_SIZE_DESC, example = PAGE_SIZE)
+            @RequestParam(value = "pageSize", defaultValue = PAGE_SIZE, required = false) int pageSize) {
+
+        if (page < 1)
+            page = DEFAULT_PAGE;
+        if (pageSize < PAGE_SIZE_MIN || pageSize > PAGE_SIZE_MAX)
+            pageSize = DEFAULT_PAGE_SIZE;
+
+        if (id == null || id.trim().isEmpty())
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+
+        id = id.trim().toUpperCase();
+
+        PagedMappingResponse response = pagedMappingService.getMappingByEnsemblID(id, page, pageSize);
+        if (response != null)
+            response.setId(id);
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+    // Ensembl gene ID
+    // Ensembl transcript ID
+    // Ensembl protein ID
+    // Ensembl exon ID
 }

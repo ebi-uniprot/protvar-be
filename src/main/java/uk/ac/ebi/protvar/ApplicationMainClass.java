@@ -24,7 +24,7 @@ import java.util.concurrent.Executor;
 @OpenAPIDefinition(info =
 	@Info(
 		title = "ProtVar API",
-		version = "1.3",
+		version = "1.4",
 		description = "ProtVar API's Swagger documentation page. The API serves the ProtVar UI and enables programmatic access to the ProtVar data.",
 		license = @License(name = "Creative Commons", url = "https://creativecommons.org/licenses/by/4.0/"),
 		contact = @Contact(url = "https://www.ebi.ac.uk/ProtVar", name = "ProtVar", email = "protvar@ebi.ac.uk")

@@ -16,7 +16,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static uk.ac.ebi.protvar.config.PagedMapping.INPUT_EXPIRES_AFTER_DAYS;
+import static uk.ac.ebi.protvar.constants.PagedMapping.INPUT_EXPIRES_AFTER_DAYS;
 
 @AllArgsConstructor
 @Repository

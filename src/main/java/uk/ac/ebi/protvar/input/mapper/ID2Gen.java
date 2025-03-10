@@ -10,7 +10,7 @@ import uk.ac.ebi.protvar.input.format.id.ClinVarID;
 import uk.ac.ebi.protvar.input.format.id.CosmicID;
 import uk.ac.ebi.protvar.input.format.id.DbsnpID;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
-import uk.ac.ebi.protvar.model.data.ClinVar;
+import uk.ac.ebi.protvar.model.data.ClinVarExtended;
 import uk.ac.ebi.protvar.model.data.Cosmic;
 import uk.ac.ebi.protvar.model.data.Dbsnp;
 import uk.ac.ebi.protvar.repo.ClinVarRepo;
@@ -86,17 +86,21 @@ public class ID2Gen {
 
         Map<String, List<UserInput>> clinvarIdTypeMap = clinvarIdInputs.stream().collect(Collectors.groupingBy(UserInput::getClinVarIDPrefix));
 
-        Map<String, List<ClinVar>> clinvarRCVMap = null;
-        Map<String, List<ClinVar>> clinvarVCVMap = null;
+        Map<String, List<ClinVarExtended>> clinvarRCVMap = null; // Changed to ClinVarExtended
+        Map<String, List<ClinVarExtended>> clinvarVCVMap = null; // Changed to ClinVarExtended
 
         if (clinvarIdTypeMap.get(ClinVarID.RCV) != null) {
-            Set<Object[]> rcvIds = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toSet());
-            clinvarRCVMap = clinVarRepo.getByRCV(rcvIds).stream().collect(Collectors.groupingBy(ClinVar::getRcv));
+            //Set<Object[]> rcvIds = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toSet());
+            //clinvarRCVMap = clinVarRepo.getByRCV(rcvIds).stream().collect(Collectors.groupingBy(ClinVar::getRcv));
+            Set<String> rcvs = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toSet());
+            clinvarRCVMap = clinVarRepo.getByRCVMap(rcvs);
         }
 
         if (clinvarIdTypeMap.get(ClinVarID.VCV) != null) {
-            Set<Object[]> vcvIds = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toSet());
-            clinvarVCVMap = clinVarRepo.getByVCV(vcvIds).stream().collect(Collectors.groupingBy(ClinVar::getVcv));
+            //Set<Object[]> vcvIds = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toSet());
+            //clinvarVCVMap = clinVarRepo.getByVCV(vcvIds).stream().collect(Collectors.groupingBy(ClinVar::getVcv));
+            Set<String> vcvs = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toSet());
+            clinvarVCVMap = clinVarRepo.getByVCVMap(vcvs);
         }
 
         for (UserInput ui : clinvarIdInputs) {
@@ -143,7 +147,8 @@ public class ID2Gen {
 
     }
 
-    private void addDerivedGenomicInputs(List<ClinVar> clinVars, ClinVarID input) {
+    // ClinVar changed to ClinVarExtended
+    private void addDerivedGenomicInputs(List<ClinVarExtended> clinVars, ClinVarID input) {
         if (clinVars != null && !clinVars.isEmpty()) {
             clinVars.forEach(clinVar -> {
                 GenomicInput newInput = new GenomicInput(input.getInputStr());

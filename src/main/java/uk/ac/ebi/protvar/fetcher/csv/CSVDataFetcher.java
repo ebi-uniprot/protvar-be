@@ -33,7 +33,7 @@ import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.service.PagedMappingService;
 import uk.ac.ebi.protvar.utils.*;
 
-import static uk.ac.ebi.protvar.config.PagedMapping.DEFAULT_PAGE_SIZE;
+import static uk.ac.ebi.protvar.constants.PagedMapping.DEFAULT_PAGE_SIZE;
 
 @Service
 @AllArgsConstructor
@@ -170,6 +170,10 @@ public class CSVDataFetcher {
 			FileUtils.zipFile(csvPath.toString(), zipPath.toString());
 			// results ready
 			Email.notifyUser(request);
+
+			// clean up csv (uncompressed) file
+			Files.deleteIfExists(csvPath);
+
 		} catch (Throwable t) {
 			Email.notifyUserErr(request, inputs);
 			Email.notifyDevErr(request, inputs, t);

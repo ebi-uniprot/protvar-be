@@ -1,6 +1,7 @@
 package uk.ac.ebi.protvar.repo;
 
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -16,24 +17,20 @@ import java.util.Set;
 @Repository
 @AllArgsConstructor
 public class CosmicRepo {
-    public static final String SELECT_COSMIC_WHERE_ID_IN = """
-            SELECT DISTINCT c.id, c.chr, c.pos, c.ref, c.alt FROM cosmic c
-            INNER JOIN (VALUES :ids) AS t(id)
-            ON t.id=c.id
-            """;
-    public static final String SELECT_COSMIC_WHERE_LEGACY_ID_IN = """
-            SELECT DISTINCT c.legacy_id, c.chr, c.pos, c.ref, c.alt FROM cosmic c
-            INNER JOIN (VALUES :ids) AS t(id)
-            ON t.id=c.legacy_id
-            """;
-
+    @Value("${tbl.cosmic}")
+    private String cosmicTable;
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     public List<Cosmic> getById(Set<Object[]> ids) {
         if (ids == null || ids.isEmpty())
             return new ArrayList<>();
+        String sql = String.format("""
+                SELECT DISTINCT c.id, c.chr, c.pos, c.ref, c.alt FROM %s c
+                INNER JOIN (VALUES :ids) AS t(id)
+                ON t.id=c.id
+                """, cosmicTable);
         SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
-        return jdbcTemplate.query(SELECT_COSMIC_WHERE_ID_IN, parameters, (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, parameters, (rs, rowNum) -> {
             Cosmic cosmic = createCosmic(rs);
             cosmic.setId(rs.getString("id"));
             return cosmic;
@@ -43,8 +40,13 @@ public class CosmicRepo {
     public List<Cosmic> getByLegacyId(Set<Object[]> ids) {
         if (ids == null || ids.isEmpty())
             return new ArrayList<>();
+        String sql = String.format("""
+                SELECT DISTINCT c.legacy_id, c.chr, c.pos, c.ref, c.alt FROM %s c
+                INNER JOIN (VALUES :ids) AS t(id)
+                ON t.id=c.legacy_id
+                """, cosmicTable);
         SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
-        return jdbcTemplate.query(SELECT_COSMIC_WHERE_LEGACY_ID_IN, parameters, (rs, rowNum) -> {
+        return jdbcTemplate.query(sql, parameters, (rs, rowNum) -> {
             Cosmic cosmic = createCosmic(rs);
             cosmic.setLegacyId(rs.getString("legacy_id"));
             return cosmic;

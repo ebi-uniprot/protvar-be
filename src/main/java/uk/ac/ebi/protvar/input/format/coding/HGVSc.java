@@ -41,8 +41,7 @@ public class HGVSc extends CodingInput {
                     // OPTIONALLY, gene name
                     "(("+ RegexUtils.SPACES +")?\\((?<gene>"+GENE+")\\))?";
 
-    private static final String VAR_DESC_REGEX =
-                    "(?<pos>" + POS + ")" +
+    private static final String VAR_DESC_REGEX_ =
                     "(?<ref>" + GenomicInput.BASE + ")" +
                     "(" + HGVS.SUB_SIGN + ")" +
                     "(?<alt>" + GenomicInput.BASE + ")" +
@@ -53,10 +52,21 @@ public class HGVSc extends CodingInput {
                     "(?<protPos>" + POS + ")" +
                     "(?<protAlt>" + ProteinInput.AMINO_ACID_ALT3 +")\\))?";
 
+    private static final String VAR_DESC_REGEX =
+            "(?<pos>" + POS + ")" + VAR_DESC_REGEX_;
     private static Pattern GENERAL_PATTERN = Pattern.compile(GENERAL_HGVS_C_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
     private static Pattern REF_SEQ_PATTERN = Pattern.compile(REF_SEQ_REGEX, Pattern.CASE_INSENSITIVE);
     private static Pattern VAR_DESC_PATTERN = Pattern.compile(VAR_DESC_REGEX, Pattern.CASE_INSENSITIVE);
 
+    private static final String REGEX_5_PRIME_UTR = "-(?<pos>" + POS + ")";  // 5' UTR
+    private static final String REGEX_INTRON_5_SIDE = "(?<pos>" + POS + ")\\+(?<offset>[1-9]\\d*)"; // Intron, 5' side
+    private static final String REGEX_INTRON_3_SIDE = "(?<pos>" + POS + ")-(?<offset>[1-9]\\d*)";  // Intron, 3' side
+    private static final String REGEX_3_PRIME_UTR = "\\*(?<pos>" + POS + ")"; // 3' UTR
+
+    private static final Pattern PATTERN_5_PRIME_UTR = Pattern.compile(REGEX_5_PRIME_UTR + VAR_DESC_REGEX_);
+    private static final Pattern PATTERN_INTRON_5_SIDE = Pattern.compile(REGEX_INTRON_5_SIDE + VAR_DESC_REGEX_);
+    private static final Pattern PATTERN_INTRON_3_SIDE = Pattern.compile(REGEX_INTRON_3_SIDE + VAR_DESC_REGEX_);
+    private static final Pattern PATTERN_3_PRIME_UTR = Pattern.compile(REGEX_3_PRIME_UTR + VAR_DESC_REGEX_);
 
     String rsAcc; // refseq id
     Integer pos; // Coding DNA position
@@ -122,11 +132,12 @@ public class HGVSc extends CodingInput {
                     parsedInput.setRef(ref);
                     parsedInput.setAlt(alt);
 
-                    // optional fields
+                    // Optional fields
                     String protRef = varDescMatcher.group("protRef");
                     String protAlt = varDescMatcher.group("protAlt");
-                    if (protAlt != null && protAlt.equals("="))
+                    if (protAlt != null && protAlt.equals("=")) {
                         protAlt = protRef;
+                    }
                     String protPos = varDescMatcher.group("protPos");
 
                     parsedInput.setProtRef(protRef);
@@ -134,7 +145,17 @@ public class HGVSc extends CodingInput {
                     parsedInput.setProtPos(protPos == null ? null : Integer.parseInt(protPos));
 
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_C_VARDESC_INVALID);
+                    if (PATTERN_5_PRIME_UTR.matcher(varDesc).matches()) {
+                        parsedInput.addError("5' UTR positions are not supported (e.g., c.-128A>G).");
+                    } else if (PATTERN_INTRON_5_SIDE.matcher(varDesc).matches()) {
+                        parsedInput.addError("Intronic positions (5' side) are not supported (e.g., c.128+1G>A).");
+                    } else if (PATTERN_INTRON_3_SIDE.matcher(varDesc).matches()) {
+                        parsedInput.addError("Intronic positions (3' side) are not supported (e.g., c.128-1G>A).");
+                    } else if (PATTERN_3_PRIME_UTR.matcher(varDesc).matches()) {
+                        parsedInput.addError("3' UTR positions are not supported (e.g., c.*128A>G).");
+                    } else {
+                        parsedInput.addError(ErrorConstants.HGVS_C_VARDESC_INVALID);
+                    }
                 }
             } else {
                 throw new InvalidInputException("No match found.");

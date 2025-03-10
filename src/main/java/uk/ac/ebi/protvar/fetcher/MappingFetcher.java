@@ -19,10 +19,12 @@ import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.Coord;
+import uk.ac.ebi.protvar.model.data.AlleleFreq;
 import uk.ac.ebi.protvar.model.data.CADDPrediction;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.model.score.Score;
+import uk.ac.ebi.protvar.repo.AlleleFreqRepo;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 import uk.ac.ebi.protvar.utils.Commons;
@@ -65,6 +67,9 @@ import java.util.stream.Collectors;
 public class MappingFetcher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MappingFetcher.class);
 	private ProtVarDataRepo protVarDataRepo;
+
+
+	private AlleleFreqRepo alleleFreqRepo;
 
 	private UniprotRefseqRepo uniprotRefseqRepo;
 
@@ -132,6 +137,10 @@ public class MappingFetcher {
 			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosSet)
 					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
+			// retrieve allele freq
+			Map<String, List<AlleleFreq>> alleleFreqMap = alleleFreqRepo.getAlleleFreqs(chrPosSet)
+					.stream().collect(Collectors.groupingBy(AlleleFreq::getGroupBy));
+
 			// retrieve main mappings
 			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosSet);
 
@@ -168,6 +177,7 @@ public class MappingFetcher {
 					try {
 						List<GenomeToProteinMapping> mappingList = map.get(gInput.groupByChrAndPos());
 						List<CADDPrediction> caddScores = predictionMap.get(gInput.groupByChrAndPos());
+						List<AlleleFreq> alleleFreqs = alleleFreqMap.get(gInput.groupByChrAndPos());
 
 						List<Gene> ensgMappingList;
 
@@ -214,7 +224,7 @@ public class MappingFetcher {
 
 								}
 							}
-							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, scoreMap, variationMap, params);
+							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, alleleFreqs, scoreMap, variationMap, params);
 						}
 
 						GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
@@ -269,6 +279,10 @@ public class MappingFetcher {
 			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosSet)
 					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
+			// retrieve allele freq
+			Map<String, List<AlleleFreq>> alleleFreqMap = alleleFreqRepo.getAlleleFreqs(chrPosSet)
+					.stream().collect(Collectors.groupingBy(AlleleFreq::getGroupBy));
+
 			// retrieve main mappings
 			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosSet);
 
@@ -301,6 +315,7 @@ public class MappingFetcher {
 				try {
 					List<GenomeToProteinMapping> mappingList = map.get(gInput.groupByChrAndPos());
 					List<CADDPrediction> caddScores = predictionMap.get(gInput.groupByChrAndPos());
+					List<AlleleFreq> alleleFreqs = alleleFreqMap.get(gInput.groupByChrAndPos());
 
 					List<Gene> ensgMappingList;
 
@@ -308,7 +323,7 @@ public class MappingFetcher {
 						ensgMappingList = new ArrayList<>();
 					} else {
 						Set<String> altBases = GenomicInput.getAlternates(gInput.getRef());
-						ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, scoreMap, variationMap, params);
+						ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, alleleFreqs, scoreMap, variationMap, params);
 					}
 
 					GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
