@@ -12,20 +12,21 @@ import java.util.Optional;
 @Repository
 public interface StatsRepository extends JpaRepository<Stats, Long> {
 
-    // Retrieves the latest stats entry for a given import type and keyName
+    // Retrieves the latest stats entry for a given release, stats type, and key
     @Query("SELECT s FROM Stats s " +
-            "WHERE s.importType = :importType " +
-            "AND s.keyName = :keyName " +
-            "ORDER BY s.createdAt DESC")
-    Optional<Stats> findLatestStat(@Param("importType") String importType, @Param("keyName") String keyName);
+            "WHERE s.release = :release " +
+            "AND s.type = :type " +
+            "AND s.key = :key " +
+            "ORDER BY s.created DESC")
+    Optional<Stats> findLatestStat(@Param("release") String release,
+                                   @Param("type") String type,
+                                   @Param("key") String key);
 
-    // Retrieves the latest stats entry for each keyName
+    // Retrieves the latest stats entry for each key for a specific release
     @Query("SELECT s FROM Stats s WHERE s.id IN " +
             "(SELECT sub.id FROM Stats sub " +
-            "WHERE sub.createdAt = (SELECT MAX(s2.createdAt) FROM Stats s2 WHERE s2.keyName = sub.keyName))")
-    List<Stats> findAllLatestStats();
-
-    // Retrieves all 'core' dataset stats sorted by creation date
-    @Query("SELECT s FROM Stats s WHERE s.datasetType = 'core' ORDER BY s.createdAt DESC")
-    List<Stats> findCoreStatsByKeyName();
+            "WHERE sub.release = :release " +
+            "AND sub.created = (SELECT MAX(s2.created) FROM Stats s2 " +
+            "WHERE s2.key = sub.key AND s2.release = :release))")
+    List<Stats> findAllLatestStats(@Param("release") String release);
 }

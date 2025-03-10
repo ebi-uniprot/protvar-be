@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.controller;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.data.Stats;
@@ -19,21 +20,24 @@ public class StatsController {
     @Autowired
     private StatsService statsService;
 
-    @GetMapping("/{importType}/{keyName}")
-    public ResponseEntity<?> getLatestStat(@PathVariable String importType, @PathVariable String keyName) {
-        return statsService.getLatestStat(importType, keyName)
+    @Value("${uniprot.release}")
+    private String defaultRelease;
+
+    @GetMapping("/{type}/{key}")
+    public ResponseEntity<?> getLatestStat(
+            @PathVariable String type,
+            @PathVariable String key,
+            @RequestParam(value = "release", required = false) String release) {
+        String effectiveRelease = (release != null) ? release : defaultRelease;
+        return statsService.getLatestStat(effectiveRelease, type, key)
                 .map(stat -> ResponseEntity.ok(stat.getValue()))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/latest")
-    public ResponseEntity<List<Stats>> getAllLatestStats() {
-        return ResponseEntity.ok(statsService.getAllLatestStats());
-    }
-
-    @GetMapping("/core")
-    public ResponseEntity<List<Stats>> getCoreStats() {
-        List<Stats> coreStats = statsService.getCoreStats();
-        return ResponseEntity.ok(coreStats);
+    public ResponseEntity<List<Stats>> getAllLatestStats(
+            @RequestParam(value = "release", required = false) String release) {
+        String effectiveRelease = (release != null) ? release : defaultRelease;
+        return ResponseEntity.ok(statsService.getAllLatestStats(effectiveRelease));
     }
 }

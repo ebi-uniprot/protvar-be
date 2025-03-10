@@ -13,15 +13,11 @@ public class StatsService {
     @Autowired
     private StatsRepository statsRepository;
 
-    public Optional<Stats> getLatestStat(String importType, String keyName) {
-        return statsRepository.findLatestStat(importType, keyName);
+    public Optional<Stats> getLatestStat(String release, String type, String key) {
+        return statsRepository.findLatestStat(release, type, key);
     }
 
-    public List<Stats> getAllLatestStats() {
-        return statsRepository.findAllLatestStats();
-    }
-
-    public List<Stats> getCoreStats() {
-        return statsRepository.findCoreStatsByKeyName();
+    public List<Stats> getAllLatestStats(String release) {
+        return statsRepository.findAllLatestStats(release);
     }
 }

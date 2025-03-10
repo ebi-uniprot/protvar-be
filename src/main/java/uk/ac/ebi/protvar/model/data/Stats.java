@@ -18,31 +18,26 @@ public class Stats {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "import_type", nullable = false) // Use importCategory to better differentiate from dataset type(?)
-    private String importType; // e.g., "clinvar_import"
+    @Column(name = "release", nullable = false)
+    private String release; // e.g., "2025_01" (add: "pre_2025_01")
 
-    @Column(name = "key_name", nullable = false)
-    private String keyName;    // e.g., "clinvar_ids"
+    @Column(name = "type", nullable = false) // Use importCategory to better differentiate from dataset type(?)
+    private String type; // e.g., "mapping"
+
+    @Column(name = "category", nullable = false)
+    private String category; // e.g., "g2p"
+
+    @Column(name = "key", nullable = false)
+    private String key;    // e.g., "mapping_count"
 
     @Column(name = "value", nullable = false)
     private Long value;        // e.g., 3960831
 
     @Column(name = "note", nullable = true)
-    private String note;       // e.g., "Release v1.2.0 - Includes new mappings" or Table name used for import
+    private String note;       // e.g., Table name used for import
 
-    @Column(name = "datasetType", nullable = false)
-    private String datasetType; // e.g., "core", "individual"
-
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created", nullable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     @CreationTimestamp
-    private Date createdAt;
-
-    public Stats(String importType, String keyName, Long value, String note, String datasetType) {
-        this.importType = importType;
-        this.keyName = keyName;
-        this.value = value;
-        this.note = note;
-        this.datasetType = datasetType;
-    }
+    private Date created;
 }
