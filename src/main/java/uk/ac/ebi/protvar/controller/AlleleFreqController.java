@@ -6,12 +6,11 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uk.ac.ebi.protvar.model.Coord;
 import uk.ac.ebi.protvar.model.data.AlleleFreq;
 import uk.ac.ebi.protvar.repo.AlleleFreqRepo;
 
@@ -57,16 +56,8 @@ public class AlleleFreqController {
                                     "]")
                     )
             )
-            @RequestBody List<ChrPosDTO> chrPosList) {
-        List<AlleleFreq> alleleFreqs = alleleFreqRepo.getAlleleFreqs(chrPosList.stream().map(p -> new Object[]{p.chr, p.pos}).collect(Collectors.toList()));
+            @RequestBody List<Coord.Gen> chrPosList) {
+        List<AlleleFreq> alleleFreqs = alleleFreqRepo.getAlleleFreqs(chrPosList.stream().map(p -> p.toObjectArray()).collect(Collectors.toList()));
         return new ResponseEntity<>(alleleFreqs, HttpStatus.OK);
-    }
-
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class ChrPosDTO {
-        private String chr;
-        private int pos;
     }
 }

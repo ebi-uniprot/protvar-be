@@ -1,12 +1,14 @@
 package uk.ac.ebi.protvar.model;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 public class Coord {
 
+    @Data
     @AllArgsConstructor
-    @Getter
+    @NoArgsConstructor
     public static class Gen {
 
         String chr;
