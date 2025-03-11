@@ -16,7 +16,7 @@ import uk.ac.ebi.protvar.input.processor.InputProcessor;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
-import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.utils.EnsemblIDValidator;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 
@@ -25,7 +25,7 @@ import java.util.*;
 @Service
 @AllArgsConstructor
 public class PagedMappingService {
-    private ProtVarDataRepo protVarDataRepo;
+    private MappingRepo mappingRepo;
     private MappingFetcher mappingFetcher;
     private InputCache inputCache;
 
@@ -121,7 +121,7 @@ public class PagedMappingService {
         // Create a Pageable instance
         Pageable pageable = PageRequest.of(pageNo-1, pageSize);
         // Retrieve a page of chr-pos for accession
-        Page<UserInput> page = protVarDataRepo.getGenInputsByAccession(accession, pageable);
+        Page<UserInput> page = mappingRepo.getGenInputsByAccession(accession, pageable);
         // Get content for page object
         List<UserInput> inputs = page.getContent();
         InputParams params = InputParams.builder()
@@ -150,7 +150,7 @@ public class PagedMappingService {
         }
 
         // Retrieve a page of chr-pos for accession
-        Page<UserInput> page = protVarDataRepo.getGenInputsByEnsemblID(id, pageable);
+        Page<UserInput> page = mappingRepo.getGenInputsByEnsemblID(id, pageable);
         // Get content for page object
         List<UserInput> inputs = page.getContent();
         InputParams params = InputParams.builder()

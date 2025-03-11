@@ -24,9 +24,7 @@ import uk.ac.ebi.protvar.model.data.CADDPrediction;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.model.score.Score;
-import uk.ac.ebi.protvar.repo.AlleleFreqRepo;
-import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
-import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
+import uk.ac.ebi.protvar.repo.*;
 import uk.ac.ebi.protvar.utils.Commons;
 
 import java.util.*;
@@ -66,8 +64,11 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class MappingFetcher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MappingFetcher.class);
-	private ProtVarDataRepo protVarDataRepo;
+	private MappingRepo mappingRepo;
 
+	private PredictionRepo predictionRepo;
+
+	private ScoreRepo scoreRepo;
 
 	private AlleleFreqRepo alleleFreqRepo;
 
@@ -134,7 +135,7 @@ public class MappingFetcher {
 		if (!chrPosList.isEmpty()) {
 
 			// retrieve CADD predictions
-			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosList)
+			Map<String, List<CADDPrediction>> predictionMap = predictionRepo.getCADDByChrPos(chrPosList)
 					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
 			// retrieve allele freq
@@ -142,7 +143,7 @@ public class MappingFetcher {
 					.stream().collect(Collectors.groupingBy(AlleleFreq::getGroupBy));
 
 			// retrieve main mappings
-			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosList);
+			List<GenomeToProteinMapping> g2pMappings = mappingRepo.getMappingsByChrPos(chrPosList);
 
 			// get all protein accessions and positions from retrieved mappings
 			Set<String> canonicalAccessions = new HashSet<>();
@@ -162,7 +163,7 @@ public class MappingFetcher {
 				proteinsFetcher.prefetch(canonicalAccessions);
 
 			// retrieve AA scores
-			Map<String, List<Score>>  scoreMap = protVarDataRepo.getScores(chrPosList)
+			Map<String, List<Score>>  scoreMap = scoreRepo.getScores(chrPosList)
 					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
@@ -276,7 +277,7 @@ public class MappingFetcher {
 		if (!chrPosList.isEmpty()) {
 
 			// retrieve CADD predictions
-			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosList)
+			Map<String, List<CADDPrediction>> predictionMap = predictionRepo.getCADDByChrPos(chrPosList)
 					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
 			// retrieve allele freq
@@ -284,7 +285,7 @@ public class MappingFetcher {
 					.stream().collect(Collectors.groupingBy(AlleleFreq::getGroupBy));
 
 			// retrieve main mappings
-			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosList);
+			List<GenomeToProteinMapping> g2pMappings = mappingRepo.getMappingsByChrPos(chrPosList);
 
 			// get all protein accessions and positions from retrieved mappings
 			Set<String> canonicalAccessions = new HashSet<>();
@@ -304,7 +305,7 @@ public class MappingFetcher {
 				proteinsFetcher.prefetch(canonicalAccessions);
 
 			// retrieve AA scores
-			Map<String, List<Score>> scoreMap = protVarDataRepo.getScores(accPosList)
+			Map<String, List<Score>> scoreMap = scoreRepo.getScores(accPosList)
 					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()

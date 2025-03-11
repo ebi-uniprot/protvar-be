@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
-import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.fetcher.MappingFetcher;
 
@@ -15,7 +15,7 @@ class CSVDataFetcherTest {
 
   private static final int TOTAL_CSV_COLUMNS = 43;
   CSVDataFetcher mockDeps = new CSVDataFetcher(mock(MappingFetcher.class), mock(CSVFunctionDataFetcher.class),
-    mock(CSVPopulationDataFetcher.class), mock(CSVStructureDataFetcher.class), mock(ProtVarDataRepo.class),
+    mock(CSVPopulationDataFetcher.class), mock(CSVStructureDataFetcher.class), mock(MappingRepo.class),
           "", mock(InputCache.class), mock(BuildProcessor.class));
 
   @Nested
