@@ -5,20 +5,14 @@ import java.util.Map;
 
 public class ReverseCompliment {
 
-	private static Map<String, String> COMPLPIMENT_MAP = null;
-
-	private static void init() {
-		COMPLPIMENT_MAP = new HashMap<>();
-		COMPLPIMENT_MAP.put("A", "T");
-		COMPLPIMENT_MAP.put("T", "A");
-		COMPLPIMENT_MAP.put("G", "C");
-		COMPLPIMENT_MAP.put("C", "G");
-	}
+	private static final Map<String, String> COMPLEMENT_MAP = new HashMap<>() {{
+		put("A", "T");
+		put("T", "A");
+		put("G", "C");
+		put("C", "G");
+	}};
 
 	public static String getCompliment(String baseNucleotide) {
-		if (COMPLPIMENT_MAP == null)
-			init();
-		return COMPLPIMENT_MAP.get(baseNucleotide);
+		return COMPLEMENT_MAP.get(baseNucleotide);
 	}
-
 }
