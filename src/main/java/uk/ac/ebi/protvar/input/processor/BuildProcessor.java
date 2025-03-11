@@ -18,6 +18,7 @@ import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.Crossmap;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.Message;
+import uk.ac.ebi.protvar.repo.CrossmapRepo;
 import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 
 import java.util.ArrayList;
@@ -34,6 +35,8 @@ public class BuildProcessor {
 
     @Autowired
     private ProtVarDataRepo protVarDataRepo;
+    @Autowired
+    private CrossmapRepo crossmapRepo;
     @Autowired
     private InputCache inputCache;
 
@@ -181,7 +184,7 @@ public class BuildProcessor {
             chrPos37.add(new Object[]{input.getChr(), input.getPos()});
         });
 
-        Map<String, List<Crossmap>> groupedCrossmaps = protVarDataRepo.getCrossmapsByChrPos37(chrPos37)
+        Map<String, List<Crossmap>> groupedCrossmaps = crossmapRepo.getCrossmapsByChrPos37(chrPos37)
                 .stream().collect(Collectors.groupingBy(Crossmap::getGroupByChrAnd37Pos));
 
         genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
@@ -209,7 +212,7 @@ public class BuildProcessor {
         nonHgvsGs.stream().map(i -> (GenomicInput) i).forEach(input -> {
             chrPosRefList.add(new Object[]{input.getChr(), input.getPos(), input.getRef()});
         });
-        return protVarDataRepo.getPercentageMatch(chrPosRefList, build);
+        return crossmapRepo.getPercentageMatch(chrPosRefList, build);
     }
 
     public <T> List<T> randomSublist(List<T> originalList, int sublistSize) {

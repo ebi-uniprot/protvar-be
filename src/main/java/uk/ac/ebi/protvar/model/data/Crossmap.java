@@ -2,10 +2,13 @@ package uk.ac.ebi.protvar.model.data;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import uk.ac.ebi.protvar.utils.Commons;
 
 @Getter
 @Setter
+@NoArgsConstructor
 @AllArgsConstructor
 public class Crossmap {
     String chr;
@@ -15,6 +18,6 @@ public class Crossmap {
     String grch37Base;
 
     public String getGroupByChrAnd37Pos() {
-        return this.chr+"-"+this.grch37Pos;
+        return Commons.joinWithDash(chr, grch37Pos);
     }
 }

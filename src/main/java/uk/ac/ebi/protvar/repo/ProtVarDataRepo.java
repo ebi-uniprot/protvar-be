@@ -29,18 +29,6 @@ public interface ProtVarDataRepo {
 	List<CADDPrediction> getCADDByChrPos(Set<Object[]> chrPosSet);
 
 
-	//================================================================================
-	// DBSNP
-	//================================================================================
-	//List<Dbsnp> getDbsnps(List<String> rsIds);
-
-
-	//================================================================================
-	// Crossmap
-	//================================================================================
-	List<Crossmap> getCrossmaps(List<Integer> positions, String from);
-	List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37);
-	double getPercentageMatch(List<Object[]> chrPosRefList, String ver);
 
 	//================================================================================
 	// Conservation, EVE, ESM1b and AM scores

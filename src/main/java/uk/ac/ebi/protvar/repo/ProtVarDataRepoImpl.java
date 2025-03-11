@@ -8,7 +8,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -31,9 +30,6 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	@Value("${tbl.mapping}")
 	private String mappingTable;
-
-	@Value("${tbl.crossmap}")
-	private String crossmapTable;
 
 	@Value("${tbl.cadd}")
 	private String caddTable;
@@ -65,18 +61,6 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 			INNER JOIN (VALUES :accPosSet) as t(acc,pos) 
 			ON t.acc=accession AND t.pos=protein_position
 			""";
-
-	private static final String CROSSMAPS_IN_GRCHX_POS = """
-			SELECT c.* FROM %s c 
-			INNER JOIN (VALUES :pos) AS t(pos)
-			ON t.pos=c.grch%s_pos
-			""";
-
-	private static final String CROSSMAPS_IN_CHR_GRCH37_POS = """
-   			SELECT c.* FROM %s c 
-   			INNER JOIN (VALUES :chrPos37) AS t(chr,pos)
-   			ON t.chr=c.chr AND t.pos=c.grch37_pos
-   			""";
 
 	// SQL syntax for array
 	// search for only one value
@@ -404,38 +388,6 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 								.codonPosition(rs.getInt("codon_position"))
 								.reverseStrand(rs.getBoolean("reverse_strand")).build())
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
-	}
-
-	public double getPercentageMatch(List<Object[]> chrPosRefList, String ver) {
-		String sql = String.format("""
-    		SELECT 100 * COUNT (DISTINCT (chr, grchVER_pos, grchVER_base)) / :num 
-    		FROM %s
-    		WHERE (chr, grchVER_pos, grchVER_base) 
-    		IN (:chrPosRef)
-    		""", crossmapTable);
-
-		sql = sql.replaceAll("VER", ver);
-
-		SqlParameterSource parameters = new MapSqlParameterSource("num", chrPosRefList.size())
-				.addValue("chrPosRef", chrPosRefList);
-
-		return jdbcTemplate.queryForObject(sql, parameters, Integer.class);
-	}
-
-	public List<Crossmap> getCrossmaps(List<Integer> positions, String grch) {
-		if (positions.isEmpty())
-			return new ArrayList<>();
-		String sql = String.format(CROSSMAPS_IN_GRCHX_POS, crossmapTable, grch);
-		SqlParameterSource parameters = new MapSqlParameterSource("pos", positions);
-		return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(Crossmap.class));
-	}
-
-	public List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37) {
-		if (chrPos37.isEmpty())
-			return new ArrayList<>();
-		SqlParameterSource parameters = new MapSqlParameterSource("chrPos37", chrPos37);
-		return jdbcTemplate.query(String.format(CROSSMAPS_IN_CHR_GRCH37_POS, crossmapTable),
-				parameters, new BeanPropertyRowMapper<>(Crossmap.class));
 	}
 
 	//================================================================================
