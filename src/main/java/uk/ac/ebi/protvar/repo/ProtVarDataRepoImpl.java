@@ -334,10 +334,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	@Override
-	public List<GenomeToProteinMapping> getMappingsByChrPos(Set<Object[]> chrPosSet) {
-		if (chrPosSet == null || chrPosSet.isEmpty())
+	public List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList) {
+		if (chrPosList == null || chrPosList.isEmpty())
 			return EMPTY_RESULT;
-		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
+		SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
 
 		return jdbcTemplate.query(String.format(MAPPINGS_IN_CHR_POS, mappingTable), parameters, (rs, rowNum) -> createMapping(rs))
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
