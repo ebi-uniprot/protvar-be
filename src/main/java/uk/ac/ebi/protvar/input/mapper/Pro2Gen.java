@@ -46,7 +46,7 @@ public class Pro2Gen {
 
     private void convert(List<UserInput> proteinInputs, TreeMap<String, List<String>> rsAccsMap) {
         // 1. get all the accessions and positions
-        Set<Object[]> accPosSet = new HashSet<>();
+        List<Object[]> accPosList = new ArrayList<>();
         for (UserInput input : proteinInputs) {
 
             if (input instanceof HGVSp) {
@@ -57,7 +57,7 @@ public class Pro2Gen {
                     List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());
 
                     hgvsProt.setAcc(head.get(0));
-                    accPosSet.add(new Object[]{head.get(0), hgvsProt.getPos()});
+                    accPosList.add(new Object[]{head.get(0), hgvsProt.getPos()});
 
                     if (tail != null) {
                         /*
@@ -84,7 +84,7 @@ public class Pro2Gen {
 
             } else if(input instanceof ProteinInput) { // custom Protein
                 ProteinInput customProt = (ProteinInput) input;
-                accPosSet.add(new Object[]{customProt.getAcc(), customProt.getPos()});
+                accPosList.add(new Object[]{customProt.getAcc(), customProt.getPos()});
 
                 if (!uniprotEntryCache.isValidEntry(customProt.getAcc())) {
                     customProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), customProt.getAcc()));
@@ -102,13 +102,13 @@ public class Pro2Gen {
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
                                         , cDNAProt.getRsAcc(), cDNAProt.getDerivedUniprotAcc()));
                     if (cDNAProt.getDerivedProtPos() != null)
-                        accPosSet.add(new Object[]{cDNAProt.getDerivedUniprotAcc(), cDNAProt.getDerivedProtPos()});
+                        accPosList.add(new Object[]{cDNAProt.getDerivedUniprotAcc(), cDNAProt.getDerivedProtPos()});
                 }
             }
         }
 
         // 2. get all the relevant db records by accessions and positions
-        Map<String, List<GenomeToProteinMapping>> gCoords = protVarDataRepo.getMappingsByAccPos(accPosSet)
+        Map<String, List<GenomeToProteinMapping>> gCoords = protVarDataRepo.getMappingsByAccPos(accPosList)
                 .stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupByProteinAccAndPos));
 
         // 3. we expect each protein input to have 3 genomic coordinates (in normal cases),

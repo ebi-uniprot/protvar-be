@@ -25,7 +25,7 @@ public class ClinVarRepo {
 
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public List<ClinVar> getByRCV(Set<Object[]> rcvs) {
+    public List<ClinVar> getByRCV(List<Object[]> rcvs) {
         if (rcvs == null || rcvs.isEmpty())
             return new ArrayList<>();
         String sql = String.format("""
@@ -38,7 +38,7 @@ public class ClinVarRepo {
         return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) -> getClinVaFromRs(rs));
     }
 
-    public List<ClinVar> getByVCV(Set<Object[]> vcvs) {
+    public List<ClinVar> getByVCV(List<Object[]> vcvs) {
         if (vcvs == null || vcvs.isEmpty())
             return new ArrayList<>();
         String sql = String.format("""
@@ -52,7 +52,7 @@ public class ClinVarRepo {
     }
 
     // New clinvar extended table queries
-    public Map<String, List<ClinVarExtended>> getByRCVMap(Set<String> rcvs) {
+    public Map<String, List<ClinVarExtended>> getByRCVMap(List<String> rcvs) {
         if (rcvs == null || rcvs.isEmpty()) {
             return new HashMap<>();
         }
@@ -91,7 +91,7 @@ public class ClinVarRepo {
     }
 
     // New clinvar extended table query for vcv column
-    public Map<String, List<ClinVarExtended>> getByVCVMap(Set<String> vcvs) {
+    public Map<String, List<ClinVarExtended>> getByVCVMap(List<String> vcvs) {
         if (vcvs == null || vcvs.isEmpty()) {
             return new HashMap<>();
         }

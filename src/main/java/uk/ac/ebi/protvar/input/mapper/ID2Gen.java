@@ -51,8 +51,8 @@ public class ID2Gen {
         if (dbsnpIdInputs == null || dbsnpIdInputs.isEmpty())
             return;
 
-        Set<Object[]> dbsnpIds = dbsnpIdInputs.stream()
-                .map(i -> new Object[]{((DbsnpID) i).getId()}).collect(Collectors.toSet());
+        List<Object[]> dbsnpIds = dbsnpIdInputs.stream()
+                .map(i -> new Object[]{((DbsnpID) i).getId()}).collect(Collectors.toList());
 
         Map<String, List<Dbsnp>> dbsnpMap = dbsnpRepo.getById(dbsnpIds).stream().collect(Collectors.groupingBy(Dbsnp::getId));
 
@@ -90,16 +90,16 @@ public class ID2Gen {
         Map<String, List<ClinVarExtended>> clinvarVCVMap = null; // Changed to ClinVarExtended
 
         if (clinvarIdTypeMap.get(ClinVarID.RCV) != null) {
-            //Set<Object[]> rcvIds = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toSet());
+            //List<Object[]> rcvIds = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toList());
             //clinvarRCVMap = clinVarRepo.getByRCV(rcvIds).stream().collect(Collectors.groupingBy(ClinVar::getRcv));
-            Set<String> rcvs = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toSet());
+            List<String> rcvs = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toList());
             clinvarRCVMap = clinVarRepo.getByRCVMap(rcvs);
         }
 
         if (clinvarIdTypeMap.get(ClinVarID.VCV) != null) {
-            //Set<Object[]> vcvIds = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toSet());
+            //List<Object[]> vcvIds = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toList());
             //clinvarVCVMap = clinVarRepo.getByVCV(vcvIds).stream().collect(Collectors.groupingBy(ClinVar::getVcv));
-            Set<String> vcvs = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toSet());
+            List<String> vcvs = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toList());
             clinvarVCVMap = clinVarRepo.getByVCVMap(vcvs);
         }
 
@@ -123,11 +123,11 @@ public class ID2Gen {
 
         Map<String, List<UserInput>> cosmicIdTypeMap = cosmicIdInputs.stream().collect(Collectors.groupingBy(UserInput::getCosmicIDPrefix));
 
-        Set<Object[]> ids = cosmicIdTypeMap.get(CosmicID.COSV) == null ? null :
-                cosmicIdTypeMap.get(CosmicID.COSV).stream().map(i -> new Object[]{((CosmicID) i).getId()}).collect(Collectors.toSet());
-        Set<Object[]> legacyIds = Stream.concat(cosmicIdTypeMap.get(CosmicID.COSM) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicID.COSM).stream(),
+        List<Object[]> ids = cosmicIdTypeMap.get(CosmicID.COSV) == null ? null :
+                cosmicIdTypeMap.get(CosmicID.COSV).stream().map(i -> new Object[]{((CosmicID) i).getId()}).collect(Collectors.toList());
+        List<Object[]> legacyIds = Stream.concat(cosmicIdTypeMap.get(CosmicID.COSM) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicID.COSM).stream(),
                         cosmicIdTypeMap.get(CosmicID.COSN) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicID.COSN).stream())
-                .map(i -> new Object[]{((CosmicID) i).getId()}).collect(Collectors.toSet());
+                .map(i -> new Object[]{((CosmicID) i).getId()}).collect(Collectors.toList());
 
         Map<String, List<Cosmic>> cosmicIdMap = cosmicRepo.getById(ids).stream().collect(Collectors.groupingBy(Cosmic::getId));
         Map<String, List<Cosmic>> cosmicLegacyIdMap = cosmicRepo.getByLegacyId(legacyIds).stream().collect(Collectors.groupingBy(Cosmic::getLegacyId));

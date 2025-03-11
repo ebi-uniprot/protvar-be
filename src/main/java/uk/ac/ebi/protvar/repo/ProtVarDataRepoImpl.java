@@ -8,7 +8,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -32,9 +31,6 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	@Value("${tbl.mapping}")
 	private String mappingTable;
 
-	@Value("${tbl.crossmap}")
-	private String crossmapTable;
-
 	@Value("${tbl.cadd}")
 	private String caddTable;
 	@Value("${tbl.foldx}")
@@ -45,14 +41,14 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private static final String CADDS_IN_CHR_POS = """
    			SELECT * FROM %s 
-   			INNER JOIN (VALUES :chrPosSet) AS t(chr,pos) 
+   			INNER JOIN (VALUES :chrPosList) AS t(chr,pos) 
    			ON t.chr=chromosome AND t.pos=position
-   			"""; // optimised from: SELECT * FROM <tbl.cadd> WHERE (chromosome,position) IN (:chrPosSet)
+   			"""; // optimised from: SELECT * FROM <tbl.cadd> WHERE (chromosome,position) IN (:chrPosList)
 			// to avoid max num of "in" values reached. Refer to https://stackoverflow.com/questions/1009706/
 
 	private static final String MAPPINGS_IN_CHR_POS = """
    			SELECT * FROM %s 
-   			INNER JOIN (VALUES :chrPosSet) AS t(chr,pos) 
+   			INNER JOIN (VALUES :chrPosList) AS t(chr,pos) 
    			ON t.chr=chromosome AND t.pos=genomic_position 
    			ORDER BY is_canonical DESC
    			""";
@@ -62,21 +58,9 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				accession, protein_position, protein_seq, 
 				codon, codon_position, reverse_strand
 			FROM %s 
-			INNER JOIN (VALUES :accPosSet) as t(acc,pos) 
+			INNER JOIN (VALUES :accPosList) as t(acc,pos) 
 			ON t.acc=accession AND t.pos=protein_position
 			""";
-
-	private static final String CROSSMAPS_IN_GRCHX_POS = """
-			SELECT c.* FROM %s c 
-			INNER JOIN (VALUES :pos) AS t(pos)
-			ON t.pos=c.grch%s_pos
-			""";
-
-	private static final String CROSSMAPS_IN_CHR_GRCH37_POS = """
-   			SELECT c.* FROM %s c 
-   			INNER JOIN (VALUES :chrPos37) AS t(chr,pos)
-   			ON t.chr=c.chr AND t.pos=c.grch37_pos
-   			""";
 
 	// SQL syntax for array
 	// search for only one value
@@ -149,22 +133,22 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private static final String SCORES = """
     		select 'CONSERV' as type, acc as accession, pos as position, null as mt_aa, score, null as class
     		from conserv_score 
-    		inner join (values :accPosSet) as t(_acc,_pos)
+    		inner join (values :accPosList) as t(_acc,_pos)
     		on t._acc=acc and t._pos=pos
 			union    		
          	select 'EVE' as type, accession, position, mt_aa, score, class 
 			from eve_score 
-			inner join (values :accPosSet) as t(_acc,_pos)
+			inner join (values :accPosList) as t(_acc,_pos)
 			on t._acc=accession and t._pos=position
 			union
 			select 'ESM' as type, accession, position, mt_aa, score, null as class 
 			from esm 
-    		inner join (values :accPosSet) as t(_acc,_pos)
+    		inner join (values :accPosList) as t(_acc,_pos)
 			on t._acc=accession and t._pos=position
 			union
 			select 'AM' as type, accession, position, mt_aa, am_pathogenicity as score, am_class as class 
 			from alphamissense 
-    		inner join (values :accPosSet) as t(_acc,_pos)
+    		inner join (values :accPosList) as t(_acc,_pos)
 			on t._acc=accession and t._pos=position
 			""";
 
@@ -336,10 +320,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	@Override
-	public List<CADDPrediction> getCADDByChrPos(Set<Object[]> chrPosSet) {
-		if (chrPosSet == null || chrPosSet.isEmpty())
+	public List<CADDPrediction> getCADDByChrPos(List<Object[]> chrPosList) {
+		if (chrPosList == null || chrPosList.isEmpty())
 			return EMPTY_RESULT;
-		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
+		SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
 		String sql = String.format(CADDS_IN_CHR_POS, caddTable);
 		return jdbcTemplate.query(sql, parameters, (rs, rowNum) -> createPrediction(rs));
 	}
@@ -350,10 +334,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	@Override
-	public List<GenomeToProteinMapping> getMappingsByChrPos(Set<Object[]> chrPosSet) {
-		if (chrPosSet == null || chrPosSet.isEmpty())
+	public List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList) {
+		if (chrPosList == null || chrPosList.isEmpty())
 			return EMPTY_RESULT;
-		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
+		SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
 
 		return jdbcTemplate.query(String.format(MAPPINGS_IN_CHR_POS, mappingTable), parameters, (rs, rowNum) -> createMapping(rs))
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
@@ -387,10 +371,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return (ens == null ? "" : ens) + "." + (ver == null ? "" : ver);
 	}
 
-	public List<GenomeToProteinMapping> getMappingsByAccPos(Set<Object[]> accPosSet) {
-		if (accPosSet == null || accPosSet.isEmpty())
+	public List<GenomeToProteinMapping> getMappingsByAccPos(List<Object[]> accPosList) {
+		if (accPosList == null || accPosList.isEmpty())
 			return EMPTY_RESULT;
-		SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
+		SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
 
 		return jdbcTemplate.query(String.format(MAPPINGS_IN_ACC_POS, mappingTable), parameters, (rs, rowNum) ->
 						GenomeToProteinMapping.builder()
@@ -404,38 +388,6 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 								.codonPosition(rs.getInt("codon_position"))
 								.reverseStrand(rs.getBoolean("reverse_strand")).build())
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
-	}
-
-	public double getPercentageMatch(List<Object[]> chrPosRefList, String ver) {
-		String sql = String.format("""
-    		SELECT 100 * COUNT (DISTINCT (chr, grchVER_pos, grchVER_base)) / :num 
-    		FROM %s
-    		WHERE (chr, grchVER_pos, grchVER_base) 
-    		IN (:chrPosRef)
-    		""", crossmapTable);
-
-		sql = sql.replaceAll("VER", ver);
-
-		SqlParameterSource parameters = new MapSqlParameterSource("num", chrPosRefList.size())
-				.addValue("chrPosRef", chrPosRefList);
-
-		return jdbcTemplate.queryForObject(sql, parameters, Integer.class);
-	}
-
-	public List<Crossmap> getCrossmaps(List<Integer> positions, String grch) {
-		if (positions.isEmpty())
-			return new ArrayList<>();
-		String sql = String.format(CROSSMAPS_IN_GRCHX_POS, crossmapTable, grch);
-		SqlParameterSource parameters = new MapSqlParameterSource("pos", positions);
-		return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(Crossmap.class));
-	}
-
-	public List<Crossmap> getCrossmapsByChrPos37(List<Object[]> chrPos37) {
-		if (chrPos37.isEmpty())
-			return new ArrayList<>();
-		SqlParameterSource parameters = new MapSqlParameterSource("chrPos37", chrPos37);
-		return jdbcTemplate.query(String.format(CROSSMAPS_IN_CHR_GRCH37_POS, crossmapTable),
-				parameters, new BeanPropertyRowMapper<>(Crossmap.class));
 	}
 
 	//================================================================================
@@ -569,9 +521,9 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return results;
 	}
 
-	public List<Score> getScores(Set<Object[]> accPosSet) {
-		if (accPosSet.size() > 0) {
-			SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
+	public List<Score> getScores(List<Object[]> accPosList) {
+		if (accPosList.size() > 0) {
+			SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
 			List results = jdbcTemplate.query(SCORES,
 					parameters,
 					(rs, rowNum) -> {

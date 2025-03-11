@@ -21,7 +21,7 @@ public class CosmicRepo {
     private String cosmicTable;
     private NamedParameterJdbcTemplate jdbcTemplate;
 
-    public List<Cosmic> getById(Set<Object[]> ids) {
+    public List<Cosmic> getById(List<Object[]> ids) {
         if (ids == null || ids.isEmpty())
             return new ArrayList<>();
         String sql = String.format("""
@@ -37,7 +37,7 @@ public class CosmicRepo {
         });
     }
 
-    public List<Cosmic> getByLegacyId(Set<Object[]> ids) {
+    public List<Cosmic> getByLegacyId(List<Object[]> ids) {
         if (ids == null || ids.isEmpty())
             return new ArrayList<>();
         String sql = String.format("""
