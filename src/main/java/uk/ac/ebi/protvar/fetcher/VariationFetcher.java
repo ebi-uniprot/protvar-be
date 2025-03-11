@@ -117,8 +117,8 @@ public class VariationFetcher {
 		return populationObservation;
 	}
 
-	public Map<String, List<Variation>> prefetchdb(Set<Object[]> accPosSet) {
-		Map<String, List<Feature>> featureMap = variationRepo.getFeatureMap(accPosSet);
+	public Map<String, List<Variation>> prefetchdb(List<Object[]> accPosList) {
+		Map<String, List<Feature>> featureMap = variationRepo.getFeatureMap(accPosList);
 		Map<String, List<Variation>> varMap = featureMap.entrySet()
 				.stream()
 				.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().stream()

@@ -41,14 +41,14 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 
 	private static final String CADDS_IN_CHR_POS = """
    			SELECT * FROM %s 
-   			INNER JOIN (VALUES :chrPosSet) AS t(chr,pos) 
+   			INNER JOIN (VALUES :chrPosList) AS t(chr,pos) 
    			ON t.chr=chromosome AND t.pos=position
-   			"""; // optimised from: SELECT * FROM <tbl.cadd> WHERE (chromosome,position) IN (:chrPosSet)
+   			"""; // optimised from: SELECT * FROM <tbl.cadd> WHERE (chromosome,position) IN (:chrPosList)
 			// to avoid max num of "in" values reached. Refer to https://stackoverflow.com/questions/1009706/
 
 	private static final String MAPPINGS_IN_CHR_POS = """
    			SELECT * FROM %s 
-   			INNER JOIN (VALUES :chrPosSet) AS t(chr,pos) 
+   			INNER JOIN (VALUES :chrPosList) AS t(chr,pos) 
    			ON t.chr=chromosome AND t.pos=genomic_position 
    			ORDER BY is_canonical DESC
    			""";
@@ -58,7 +58,7 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 				accession, protein_position, protein_seq, 
 				codon, codon_position, reverse_strand
 			FROM %s 
-			INNER JOIN (VALUES :accPosSet) as t(acc,pos) 
+			INNER JOIN (VALUES :accPosList) as t(acc,pos) 
 			ON t.acc=accession AND t.pos=protein_position
 			""";
 
@@ -133,22 +133,22 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	private static final String SCORES = """
     		select 'CONSERV' as type, acc as accession, pos as position, null as mt_aa, score, null as class
     		from conserv_score 
-    		inner join (values :accPosSet) as t(_acc,_pos)
+    		inner join (values :accPosList) as t(_acc,_pos)
     		on t._acc=acc and t._pos=pos
 			union    		
          	select 'EVE' as type, accession, position, mt_aa, score, class 
 			from eve_score 
-			inner join (values :accPosSet) as t(_acc,_pos)
+			inner join (values :accPosList) as t(_acc,_pos)
 			on t._acc=accession and t._pos=position
 			union
 			select 'ESM' as type, accession, position, mt_aa, score, null as class 
 			from esm 
-    		inner join (values :accPosSet) as t(_acc,_pos)
+    		inner join (values :accPosList) as t(_acc,_pos)
 			on t._acc=accession and t._pos=position
 			union
 			select 'AM' as type, accession, position, mt_aa, am_pathogenicity as score, am_class as class 
 			from alphamissense 
-    		inner join (values :accPosSet) as t(_acc,_pos)
+    		inner join (values :accPosList) as t(_acc,_pos)
 			on t._acc=accession and t._pos=position
 			""";
 
@@ -320,10 +320,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 	}
 
 	@Override
-	public List<CADDPrediction> getCADDByChrPos(Set<Object[]> chrPosSet) {
-		if (chrPosSet == null || chrPosSet.isEmpty())
+	public List<CADDPrediction> getCADDByChrPos(List<Object[]> chrPosList) {
+		if (chrPosList == null || chrPosList.isEmpty())
 			return EMPTY_RESULT;
-		SqlParameterSource parameters = new MapSqlParameterSource("chrPosSet", chrPosSet);
+		SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
 		String sql = String.format(CADDS_IN_CHR_POS, caddTable);
 		return jdbcTemplate.query(sql, parameters, (rs, rowNum) -> createPrediction(rs));
 	}
@@ -371,10 +371,10 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return (ens == null ? "" : ens) + "." + (ver == null ? "" : ver);
 	}
 
-	public List<GenomeToProteinMapping> getMappingsByAccPos(Set<Object[]> accPosSet) {
-		if (accPosSet == null || accPosSet.isEmpty())
+	public List<GenomeToProteinMapping> getMappingsByAccPos(List<Object[]> accPosList) {
+		if (accPosList == null || accPosList.isEmpty())
 			return EMPTY_RESULT;
-		SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
+		SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
 
 		return jdbcTemplate.query(String.format(MAPPINGS_IN_ACC_POS, mappingTable), parameters, (rs, rowNum) ->
 						GenomeToProteinMapping.builder()
@@ -521,9 +521,9 @@ public class ProtVarDataRepoImpl implements ProtVarDataRepo {
 		return results;
 	}
 
-	public List<Score> getScores(Set<Object[]> accPosSet) {
-		if (accPosSet.size() > 0) {
-			SqlParameterSource parameters = new MapSqlParameterSource("accPosSet", accPosSet);
+	public List<Score> getScores(List<Object[]> accPosList) {
+		if (accPosList.size() > 0) {
+			SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
 			List results = jdbcTemplate.query(SCORES,
 					parameters,
 					(rs, rowNum) -> {

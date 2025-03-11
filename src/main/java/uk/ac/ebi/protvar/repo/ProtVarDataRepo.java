@@ -4,19 +4,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.data.*;
-import uk.ac.ebi.protvar.model.score.EVEScore;
 import uk.ac.ebi.protvar.model.score.Score;
 
 import java.util.List;
-import java.util.Set;
 
 public interface ProtVarDataRepo {
 
 	//================================================================================
 	// GenomeToProteinMapping
 	//================================================================================
-	List<GenomeToProteinMapping> getMappingsByChrPos(Set<Object[]> chrPosSet);
-	List<GenomeToProteinMapping> getMappingsByAccPos(Set<Object[]> accPosList);
+	List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList);
+	List<GenomeToProteinMapping> getMappingsByAccPos(List<Object[]> accPosList);
 
 
 	List<String> getGenInputsByAccession(String accession, Integer page, Integer pageSize);
@@ -26,8 +24,7 @@ public interface ProtVarDataRepo {
 	//================================================================================
 	// CADDPrediction
 	//================================================================================
-	List<CADDPrediction> getCADDByChrPos(Set<Object[]> chrPosSet);
-
+	List<CADDPrediction> getCADDByChrPos(List<Object[]> chrPosList);
 
 
 	//================================================================================
@@ -43,7 +40,7 @@ public interface ProtVarDataRepo {
 	// This one needs to set the acc and pos (but not wt) to enable the use of groupBy
 	// joinWithDash(name, acc, pos, mt)
 	// in building the MappingResponse.
-	List<Score> getScores(Set<Object[]> accPosSet);
+	List<Score> getScores(List<Object[]> accPosList);
 
 	//================================================================================
 	// Foldxs, pockets, and protein interactions

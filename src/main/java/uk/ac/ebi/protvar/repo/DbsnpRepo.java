@@ -11,7 +11,6 @@ import uk.ac.ebi.protvar.model.data.Dbsnp;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Repository
 @AllArgsConstructor
@@ -20,7 +19,7 @@ public class DbsnpRepo {
     private String dbsnpTable;
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    public List<Dbsnp> getById(Set<Object[]> ids) {
+    public List<Dbsnp> getById(List<Object[]> ids) {
         if (ids == null || ids.isEmpty())
             return new ArrayList<>();
         String sql = String.format("""

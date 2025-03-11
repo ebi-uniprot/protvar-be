@@ -126,23 +126,23 @@ public class MappingFetcher {
 		pro2Gen.convert(groupedInputs, rsAccsMap);
 
 		// get all chrPos combination
-		Set<Object[]> chrPosSet = new HashSet<>();
+		List<Object[]> chrPosList = new ArrayList<>();
 		params.getInputs().stream().forEach(userInput -> {
-			chrPosSet.addAll(userInput.chrPos());
+			chrPosList.addAll(userInput.chrPos());
 		});
 
-		if (!chrPosSet.isEmpty()) {
+		if (!chrPosList.isEmpty()) {
 
 			// retrieve CADD predictions
-			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosSet)
+			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosList)
 					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
 			// retrieve allele freq
-			Map<String, List<AlleleFreq>> alleleFreqMap = alleleFreqRepo.getAlleleFreqs(chrPosSet)
+			Map<String, List<AlleleFreq>> alleleFreqMap = alleleFreqRepo.getAlleleFreqs(chrPosList)
 					.stream().collect(Collectors.groupingBy(AlleleFreq::getGroupBy));
 
 			// retrieve main mappings
-			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosSet);
+			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosList);
 
 			// get all protein accessions and positions from retrieved mappings
 			Set<String> canonicalAccessions = new HashSet<>();
@@ -154,15 +154,15 @@ public class MappingFetcher {
 						protCoords.add(new Coord.Prot(m.getAccession(), m.getIsoformPosition()));
 				}
 			});
-			Set<Object[]> accPosSet = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toSet());
+			List<Object[]> accPosList = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toList());
 
-			final Map<String, List<Variation>> variationMap = params.isPop() ? variationFetcher.prefetchdb(accPosSet) : new HashedMap();
+			final Map<String, List<Variation>> variationMap = params.isPop() ? variationFetcher.prefetchdb(accPosList) : new HashedMap();
 
 			if (params.isFun())
 				proteinsFetcher.prefetch(canonicalAccessions);
 
 			// retrieve AA scores
-			Map<String, List<Score>>  scoreMap = protVarDataRepo.getScores(accPosSet)
+			Map<String, List<Score>>  scoreMap = protVarDataRepo.getScores(chrPosList)
 					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
@@ -268,23 +268,23 @@ public class MappingFetcher {
 		MappingResponse response = new MappingResponse(params.getInputs());
 
 		// get all chrPos combination
-		Set<Object[]> chrPosSet = new HashSet<>();
+		List<Object[]> chrPosList = new ArrayList<>();
 		params.getInputs().stream().forEach(userInput -> {
-			chrPosSet.addAll(userInput.chrPos());
+			chrPosList.addAll(userInput.chrPos());
 		});
 
-		if (!chrPosSet.isEmpty()) {
+		if (!chrPosList.isEmpty()) {
 
 			// retrieve CADD predictions
-			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosSet)
+			Map<String, List<CADDPrediction>> predictionMap = protVarDataRepo.getCADDByChrPos(chrPosList)
 					.stream().collect(Collectors.groupingBy(CADDPrediction::getGroupBy));
 
 			// retrieve allele freq
-			Map<String, List<AlleleFreq>> alleleFreqMap = alleleFreqRepo.getAlleleFreqs(chrPosSet)
+			Map<String, List<AlleleFreq>> alleleFreqMap = alleleFreqRepo.getAlleleFreqs(chrPosList)
 					.stream().collect(Collectors.groupingBy(AlleleFreq::getGroupBy));
 
 			// retrieve main mappings
-			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosSet);
+			List<GenomeToProteinMapping> g2pMappings = protVarDataRepo.getMappingsByChrPos(chrPosList);
 
 			// get all protein accessions and positions from retrieved mappings
 			Set<String> canonicalAccessions = new HashSet<>();
@@ -296,15 +296,15 @@ public class MappingFetcher {
 						protCoords.add(new Coord.Prot(m.getAccession(), m.getIsoformPosition()));
 				}
 			});
-			Set<Object[]> accPosSet = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toSet());
+			List<Object[]> accPosList = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toList());
 
-			final Map<String, List<Variation>> variationMap = params.isPop() ? variationFetcher.prefetchdb(accPosSet) : new HashedMap();
+			final Map<String, List<Variation>> variationMap = params.isPop() ? variationFetcher.prefetchdb(accPosList) : new HashedMap();
 
 			if (params.isFun())
 				proteinsFetcher.prefetch(canonicalAccessions);
 
 			// retrieve AA scores
-			Map<String, List<Score>> scoreMap = protVarDataRepo.getScores(accPosSet)
+			Map<String, List<Score>> scoreMap = protVarDataRepo.getScores(accPosList)
 					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
