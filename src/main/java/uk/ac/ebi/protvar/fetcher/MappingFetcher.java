@@ -163,7 +163,7 @@ public class MappingFetcher {
 				proteinsFetcher.prefetch(canonicalAccessions);
 
 			// retrieve AA scores
-			Map<String, List<Score>>  scoreMap = scoreRepo.getScores(chrPosList)
+			Map<String, List<Score>>  scoreMap = scoreRepo.getScores(accPosList)
 					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()

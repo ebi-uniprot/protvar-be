@@ -18,48 +18,27 @@ import java.util.Objects;
 public class ScoreRepo {
 
     private NamedParameterJdbcTemplate jdbcTemplate;
-    private static final String CONSERV = """
-    		select 'CONSERV' as type, null as mt_aa, score, null as class
-    		from conserv_score 
-    		where acc=:acc and pos=:pos
- 			""";
-    private static final String EVE = """
-			select 'EVE' as type, mt_aa, score, class 
-			from eve_score 
-			where accession=:acc and position=:pos
-			""";
-    private static final String ESM = """
-			select 'ESM' as type, mt_aa, score, null as class 
-			from esm 
-			where accession=:acc and position=:pos
-			""";
-    private static final String AM = """
-			select 'AM' as type, mt_aa, am_pathogenicity as score, am_class as class 
-			from alphamissense 
-			where accession=:acc and position=:pos
-			""";
+
+    private static final String WHERE = " WHERE accession=:acc AND position=:pos";
+
+    private static final String CONSERV = "SELECT 'CONSERV' AS type, null AS mt_aa, score, null AS class FROM conserv_score" + WHERE;
+    private static final String EVE = "SELECT 'EVE' AS type, mt_aa, score, class FROM eve_score" + WHERE;
+    private static final String ESM = "SELECT 'ESM' AS type, mt_aa, score, NULL AS class FROM esm" + WHERE;
+    private static final String AM = "SELECT 'AM' AS type, mt_aa, am_pathogenicity AS score, am_class AS class FROM alphamissense" + WHERE;
 
     private static final String SCORES = """
-    		select 'CONSERV' as type, acc as accession, pos as position, null as mt_aa, score, null as class
-    		from conserv_score 
-    		inner join (values :accPosList) as t(_acc,_pos)
-    		on t._acc=acc and t._pos=pos
-			union    		
-         	select 'EVE' as type, accession, position, mt_aa, score, class 
-			from eve_score 
-			inner join (values :accPosList) as t(_acc,_pos)
-			on t._acc=accession and t._pos=position
-			union
-			select 'ESM' as type, accession, position, mt_aa, score, null as class 
-			from esm 
-    		inner join (values :accPosList) as t(_acc,_pos)
-			on t._acc=accession and t._pos=position
-			union
-			select 'AM' as type, accession, position, mt_aa, am_pathogenicity as score, am_class as class 
-			from alphamissense 
-    		inner join (values :accPosList) as t(_acc,_pos)
-			on t._acc=accession and t._pos=position
-			""";
+        SELECT 'CONSERV' AS type, accession, position, null AS mt_aa, score, null AS class FROM conserv_score 
+        INNER JOIN (VALUES :accPosList) AS t(acc,pos) ON t.acc=accession and t.pos=position
+        UNION     		
+        SELECT 'EVE' AS type, accession, position, mt_aa, score, class FROM eve_score 
+        INNER JOIN (VALUES :accPosList) AS t(acc,pos) ON t.acc=accession and t.pos=position
+        UNION 
+        SELECT 'ESM' AS type, accession, position, mt_aa, score, null AS class FROM esm 
+        INNER JOIN (VALUES :accPosList) AS t(acc,pos) ON t.acc=accession and t.pos=position
+        UNION 
+        SELECT 'AM' AS type, accession, position, mt_aa, am_pathogenicity AS score, am_class AS class FROM alphamissense 
+        INNER JOIN (VALUES :accPosList) AS t(acc,pos) ON t.acc=accession and t.pos=position
+        """;
 
     // Used in PredictionController
     // Does not set the acc, pos and wt values in the Score object (to avoid transmitting
