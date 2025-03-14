@@ -35,7 +35,7 @@ public class IsoFormConverter {
 		initComplimentMap();
 	}
 
-	public List<IsoFormMapping> createIsoforms(List<GenomeToProteinMapping> mappingList, String refAlleleUser,
+	public List<IsoFormMapping> createIsoforms(List<GenomeToProteinMapping> mappingList, /*String refAlleleUser,*/
 											   String variantAllele, Map<String, List<Score>>  scoreMap,
 											   Map<String, List<Variation>> variationMap,
 											   InputParams params) {
@@ -46,12 +46,12 @@ public class IsoFormConverter {
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getAccession));
 
 		return accessionMapping.keySet().stream()
-				.map(accession -> createIsoform(refAlleleUser, variantAllele, canonicalAccession, accession, accessionMapping.get(accession), scoreMap, variationMap, params))
+				.map(accession -> createIsoform(/*refAlleleUser,*/ variantAllele, canonicalAccession, accession, accessionMapping.get(accession), scoreMap, variationMap, params))
 				.sorted().collect(Collectors.toList());
 
 	}
 
-	private IsoFormMapping createIsoform(String refAlleleUser, String variantAllele, String canonicalAccession,
+	private IsoFormMapping createIsoform(/*String refAlleleUser,*/ String variantAllele, String canonicalAccession,
 			String accession, List<GenomeToProteinMapping> g2pAccessionMapping, Map<String, List<Score>>  scoreMap,
 			Map<String, List<Variation>> variationMap, InputParams params) {
 		GenomeToProteinMapping genomeToProteinMapping = g2pAccessionMapping.get(0);

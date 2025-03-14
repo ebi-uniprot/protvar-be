@@ -47,11 +47,11 @@ public class Mappings2GeneConverter {
 			List<GenomeToProteinMapping> mappingList = filteredEnsgMappings.get(ensg);
 
 			GenomeToProteinMapping genomeToProteinMapping = mappingList.get(0);
-			String userAllele = getUserAllele(gInput.getRef(), genomeToProteinMapping.isReverseStrand());
+			//String userAllele = getUserAllele(gInput.getRef(), genomeToProteinMapping.isReverseStrand());
 
 			altBases.forEach(alt -> {
 
-				List<IsoFormMapping> isoforms = isformConverter.createIsoforms(mappingList, userAllele, alt,
+				List<IsoFormMapping> isoforms = isformConverter.createIsoforms(mappingList, /*userAllele,*/ alt,
 						scoreMap, variationMap, params);
 
 				ensgMappingList.add(Gene.builder().ensg(ensg).reverseStrand(genomeToProteinMapping.isReverseStrand())
@@ -162,11 +162,19 @@ public class Mappings2GeneConverter {
 	}
 
 	private String getUserAllele(String refAlleleUser, boolean reverseStrand) {
+		if (refAlleleUser == null) {
+			return null;
+		}
+
 		String newAllele = refAlleleUser;
-		if (reverseStrand)
+		if (reverseStrand) {
 			newAllele = ReverseCompliment.getCompliment(refAlleleUser);
+			if (newAllele == null) {
+				return null; // Or handle the case as needed
+			}
+		}
+
 		newAllele = newAllele.replace(BASE_T, BASE_U);
 		return newAllele;
 	}
-
 }

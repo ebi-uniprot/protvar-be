@@ -13,7 +13,7 @@ import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Message;
-import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.utils.Commons;
@@ -27,7 +27,7 @@ import static uk.ac.ebi.protvar.input.ErrorConstants.*;
 @AllArgsConstructor
 public class Pro2Gen {
 
-    private ProtVarDataRepo protVarDataRepo;
+    private MappingRepo mappingRepo;
 
     @Autowired
     UniprotEntryCache uniprotEntryCache;
@@ -108,7 +108,7 @@ public class Pro2Gen {
         }
 
         // 2. get all the relevant db records by accessions and positions
-        Map<String, List<GenomeToProteinMapping>> gCoords = protVarDataRepo.getMappingsByAccPos(accPosList)
+        Map<String, List<GenomeToProteinMapping>> gCoords = mappingRepo.getMappingsByAccPos(accPosList)
                 .stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupByProteinAccAndPos));
 
         // 3. we expect each protein input to have 3 genomic coordinates (in normal cases),

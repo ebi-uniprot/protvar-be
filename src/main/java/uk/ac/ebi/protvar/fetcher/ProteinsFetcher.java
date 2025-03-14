@@ -9,7 +9,7 @@ import org.springframework.util.StringUtils;
 import uk.ac.ebi.protvar.cache.ProteinCache;
 import uk.ac.ebi.protvar.converter.ProteinsAPI2ProteinConverter;
 import uk.ac.ebi.protvar.model.response.Protein;
-import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.repo.PredictionRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.utils.ProteinHelper;
 import uk.ac.ebi.uniprot.proteins.api.ProteinsAPI;
@@ -36,7 +36,7 @@ public class ProteinsFetcher {
 	private ProteinsAPI2ProteinConverter converter;
 	private ProteinsAPI proteinsAPI;
 
-	private ProtVarDataRepo protVarDataRepo;
+	private PredictionRepo predictionRepo;
 
 	private RedisTemplate dspCache;
 
@@ -97,9 +97,9 @@ public class ProteinsFetcher {
 				protein.setFeatures(features);
 				protein.setPosition(position);
 				// add novel predictions
-				protein.setPockets(protVarDataRepo.getPockets(accession, position));
-				protein.setInteractions(protVarDataRepo.getInteractions(accession, position));
-				protein.setFoldxs(protVarDataRepo.getFoldxs(accession, position, variantAA));
+				protein.setPockets(predictionRepo.getPockets(accession, position));
+				protein.setInteractions(predictionRepo.getInteractions(accession, position));
+				protein.setFoldxs(predictionRepo.getFoldxs(accession, position, variantAA));
 				return protein;
 			}
 		}

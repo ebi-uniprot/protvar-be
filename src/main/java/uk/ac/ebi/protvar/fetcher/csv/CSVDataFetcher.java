@@ -29,7 +29,7 @@ import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.*;
-import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
+import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.service.PagedMappingService;
 import uk.ac.ebi.protvar.utils.*;
 
@@ -68,7 +68,7 @@ public class CSVDataFetcher {
 	private CSVPopulationDataFetcher populationFetcher;
 	private CSVStructureDataFetcher csvStructureDataFetcher;
 
-	private ProtVarDataRepo protVarDataRepo;
+	private MappingRepo mappingRepo;
 
 	private String downloadDir;
 	private InputCache inputCache;
@@ -109,10 +109,10 @@ public class CSVDataFetcher {
 					// assembly irrelevant for protein accession input
 					String proteinAcc = request.getInput();
 					if (request.getPage() == null) {
-						inputs = protVarDataRepo.getGenInputsByAccession(proteinAcc, null, null);
+						inputs = mappingRepo.getGenInputsByAccession(proteinAcc, null, null);
 					} else {
 						Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
-						inputs = protVarDataRepo.getGenInputsByAccession(proteinAcc, request.getPage(), pageSize);
+						inputs = mappingRepo.getGenInputsByAccession(proteinAcc, request.getPage(), pageSize);
 					}
 					break;
 

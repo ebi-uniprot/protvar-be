@@ -1,7 +1,5 @@
 package uk.ac.ebi.protvar.input.processor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
@@ -19,7 +17,6 @@ import uk.ac.ebi.protvar.model.data.Crossmap;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.CrossmapRepo;
-import uk.ac.ebi.protvar.repo.ProtVarDataRepo;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,10 +28,6 @@ import java.util.stream.Collectors;
 public class BuildProcessor {
     public static final int AUTO_DETECT_MIN_SIZE = 10;
     public static final int AUTO_DETECT_SAMPLE_SIZE = 100;
-    private static final Logger LOGGER = LoggerFactory.getLogger(BuildProcessor.class);
-
-    @Autowired
-    private ProtVarDataRepo protVarDataRepo;
     @Autowired
     private CrossmapRepo crossmapRepo;
     @Autowired
