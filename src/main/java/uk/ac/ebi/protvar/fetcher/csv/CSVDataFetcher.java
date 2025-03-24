@@ -128,50 +128,64 @@ public class CSVDataFetcher {
 				return;
 			}
 
-			// write csv
+			// Write CSV
 			Path csvPath = Paths.get(downloadDir, request.getFname() + ".csv");
 			try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(csvPath));
 				 CSVWriter writer = new CSVWriter(outputStreamWriter)) {
 				writer.writeNext(CSV_HEADER.split(","));
 
-				if (inputs.size() <= PARTITION_SIZE) {
-					InputParams params = InputParams.builder()
-							.id(inputId)
-							.inputs(InputProcessor.parse(inputs))
-							.fun(request.isFunction())
-							.pop(request.isPopulation())
-							.str(request.isStructure())
-							.assembly(request.getAssembly())
-							.inputBuild(inputBuild)
-							.build();
-					List<String[]> result = buildCSVResult(params);
-					writer.writeAll(result);
-				} else {
-					final String id = inputId;
-					final InputBuild detectedBuild = inputBuild;
-					Lists.partition(inputs, PARTITION_SIZE).parallelStream()
-							.map(partition -> {
-								InputParams params = InputParams.builder()
-										.id(id)
-										.inputs(InputProcessor.parse(partition))
-										.fun(request.isFunction())
-										.pop(request.isPopulation())
-										.str(request.isStructure())
-										.assembly(request.getAssembly())
-										.inputBuild(detectedBuild)
-										.build();
-								return buildCSVResult(params);
-							})
-							.forEachOrdered(writer::writeAll);
+				try {
+
+					if (inputs.size() <= PARTITION_SIZE) {
+						InputParams params = InputParams.builder()
+								.id(inputId)
+								.inputs(InputProcessor.parse(inputs))
+								.fun(request.isFunction())
+								.pop(request.isPopulation())
+								.str(request.isStructure())
+								.assembly(request.getAssembly())
+								.inputBuild(inputBuild)
+								.build();
+						List<String[]> result = buildCSVResult(params);
+						writer.writeAll(result);
+					} else {
+						final String id = inputId;
+						final InputBuild detectedBuild = inputBuild;
+						Lists.partition(inputs, PARTITION_SIZE).parallelStream()
+								.map(partition -> {
+									InputParams params = InputParams.builder()
+											.id(id)
+											.inputs(InputProcessor.parse(partition))
+											.fun(request.isFunction())
+											.pop(request.isPopulation())
+											.str(request.isStructure())
+											.assembly(request.getAssembly())
+											.inputBuild(detectedBuild)
+											.build();
+									return buildCSVResult(params);
+								})
+								.forEachOrdered(writer::writeAll);
+					}
+				} catch (Exception e) {
+					throw e; // error in CSV writing logic
 				}
+			} catch (IOException e) {
+				throw e; // error if file opening fails
 			}
 
-			// zip csv
+			// Ensure the CSV file was actually created
+			if (!Files.exists(csvPath)) {
+				LOGGER.error("CSV file was not created at " + csvPath);
+				throw new IOException("CSV file not found: " + csvPath);
+			}
+
+			// Zip CSV
 			FileUtils.zipFile(csvPath.toString(), zipPath.toString());
-			// results ready
+
+			// Notify User
 			Email.notifyUser(request);
 
-			// clean up csv (uncompressed) file
+			// Cleanup CSV File
 			Files.deleteIfExists(csvPath);
 
 		} catch (Throwable t) {
