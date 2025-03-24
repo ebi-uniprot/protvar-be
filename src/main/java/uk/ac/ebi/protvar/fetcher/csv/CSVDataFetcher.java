@@ -134,44 +134,53 @@ public class CSVDataFetcher {
 				 CSVWriter writer = new CSVWriter(outputStreamWriter)) {
 				writer.writeNext(CSV_HEADER.split(","));
 
-				if (inputs.size() <= PARTITION_SIZE) {
-					InputParams params = InputParams.builder()
-							.id(inputId)
-							.inputs(InputProcessor.parse(inputs))
-							.fun(request.isFunction())
-							.pop(request.isPopulation())
-							.str(request.isStructure())
-							.assembly(request.getAssembly())
-							.inputBuild(inputBuild)
-							.build();
-					List<String[]> result = buildCSVResult(params);
-					writer.writeAll(result);
-				} else {
-					final String id = inputId;
-					final InputBuild detectedBuild = inputBuild;
-					Lists.partition(inputs, PARTITION_SIZE).parallelStream()
-							.map(partition -> {
-								InputParams params = InputParams.builder()
-										.id(id)
-										.inputs(InputProcessor.parse(partition))
-										.fun(request.isFunction())
-										.pop(request.isPopulation())
-										.str(request.isStructure())
-										.assembly(request.getAssembly())
-										.inputBuild(detectedBuild)
-										.build();
-								return buildCSVResult(params);
-							})
-							.forEachOrdered(writer::writeAll);
+				try {
+
+					if (inputs.size() <= PARTITION_SIZE) {
+						InputParams params = InputParams.builder()
+								.id(inputId)
+								.inputs(InputProcessor.parse(inputs))
+								.fun(request.isFunction())
+								.pop(request.isPopulation())
+								.str(request.isStructure())
+								.assembly(request.getAssembly())
+								.inputBuild(inputBuild)
+								.build();
+						List<String[]> result = buildCSVResult(params);
+						writer.writeAll(result);
+					} else {
+						final String id = inputId;
+						final InputBuild detectedBuild = inputBuild;
+						Lists.partition(inputs, PARTITION_SIZE).parallelStream()
+								.map(partition -> {
+									InputParams params = InputParams.builder()
+											.id(id)
+											.inputs(InputProcessor.parse(partition))
+											.fun(request.isFunction())
+											.pop(request.isPopulation())
+											.str(request.isStructure())
+											.assembly(request.getAssembly())
+											.inputBuild(detectedBuild)
+											.build();
+									return buildCSVResult(params);
+								})
+								.forEachOrdered(writer::writeAll);
+					}
+				} catch (Exception e) {
+					throw e; // error in CSV writing logic
 				}
+			} catch (IOException e) {
+				throw e; // error if file opening fails
+			}
+
+			// Ensure the CSV file was actually created
+			if (!Files.exists(csvPath)) {
+				LOGGER.error("CSV file was not created at " + csvPath);
+				throw new IOException("CSV file not found: " + csvPath);
 			}
 
 			// Zip CSV
-			if (Files.exists(csvPath)) {
-				FileUtils.zipFile(csvPath.toString(), zipPath.toString());
-			} else {
-				throw new IOException("CSV file not found: " + csvPath);
-			}
+			FileUtils.zipFile(csvPath.toString(), zipPath.toString());
 
 			// Notify User
 			Email.notifyUser(request);
