@@ -128,7 +128,7 @@ public class CSVDataFetcher {
 				return;
 			}
 
-			// write csv
+			// Write CSV
 			Path csvPath = Paths.get(downloadDir, request.getFname() + ".csv");
 			try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(csvPath));
 				 CSVWriter writer = new CSVWriter(outputStreamWriter)) {
@@ -166,12 +166,17 @@ public class CSVDataFetcher {
 				}
 			}
 
-			// zip csv
-			FileUtils.zipFile(csvPath.toString(), zipPath.toString());
-			// results ready
+			// Zip CSV
+			if (Files.exists(csvPath)) {
+				FileUtils.zipFile(csvPath.toString(), zipPath.toString());
+			} else {
+				throw new IOException("CSV file not found: " + csvPath);
+			}
+
+			// Notify User
 			Email.notifyUser(request);
 
-			// clean up csv (uncompressed) file
+			// Cleanup CSV File
 			Files.deleteIfExists(csvPath);
 
 		} catch (Throwable t) {
