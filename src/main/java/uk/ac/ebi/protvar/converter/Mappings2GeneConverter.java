@@ -13,9 +13,9 @@ import uk.ac.ebi.protvar.model.data.CADDPrediction;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
-import uk.ac.ebi.protvar.model.response.Variation;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.utils.ReverseCompliment;
+import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 @Service
 @AllArgsConstructor
@@ -31,7 +31,7 @@ public class Mappings2GeneConverter {
 								  List<CADDPrediction> caddScores,
 								  List<AlleleFreq> alleleFreqs,
 								  Map<String, List<Score>>  scoreMap,
-								  Map<String, List<Variation>> variationMap, InputParams params) {
+								  Map<String, List<Variant>> variantMap, InputParams params) {
 
 		List<Gene> ensgMappingList = new ArrayList<>();
 		if (mappings == null)
@@ -52,7 +52,7 @@ public class Mappings2GeneConverter {
 			altBases.forEach(alt -> {
 
 				List<IsoFormMapping> isoforms = isformConverter.createIsoforms(mappingList, /*userAllele,*/ alt,
-						scoreMap, variationMap, params);
+						scoreMap, variantMap, params);
 
 				ensgMappingList.add(Gene.builder().ensg(ensg).reverseStrand(genomeToProteinMapping.isReverseStrand())
 						.geneName(genomeToProteinMapping.getGeneName())

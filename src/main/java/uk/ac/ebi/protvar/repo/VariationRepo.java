@@ -14,7 +14,9 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
-import uk.ac.ebi.uniprot.variation.model.Feature;
+import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.uniprot.domain.features.Feature;
+import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -37,7 +39,30 @@ public class VariationRepo {
         String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosList)",
                 variationTable);
         SqlParameterSource parameters = new MapSqlParameterSource("accPosList", params);
-        return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) -> createFeature(rs));
+
+
+        return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) -> createVariant(rs));
+    }
+
+    private Feature createVariant(ResultSet rs) throws SQLException {
+        String variantsJson = rs.getString("features");
+        try {
+            Variant f = objectMapper.readValue(variantsJson, Variant.class);
+            f.setWildType(toThreeLetterAminoAcid(f.getWildType()));
+            f.setAlternativeSequence(toThreeLetterAminoAcid(f.getAlternativeSequence()));
+            return f;
+        }catch (JsonProcessingException ex) {
+            LOGGER.error("Error mapping UniProt feature into domain model class: " + ex.getMessage());
+            return null;
+        }
+    }
+
+    private String toThreeLetterAminoAcid(String letter) {
+        try {
+            return AminoAcid.fromOneLetter(letter).getThreeLetters();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public Map<String, List<Feature>> getFeatureMap(List<Object[]> accPosList) {
@@ -53,7 +78,7 @@ public class VariationRepo {
                 while(rs.next()){
                     String acc = rs.getString("accession");
                     int pos = rs.getInt("position");
-                    Feature f = createFeature(rs);
+                    Feature f = createVariant(rs);
                     if (f != null) {
                         String mapKey = acc + ":" + pos;
                         if (!featureMap.containsKey(mapKey))

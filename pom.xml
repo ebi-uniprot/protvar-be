@@ -10,6 +10,7 @@
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
 
+  <groupId>uk.ac.ebi.protvar</groupId>
   <artifactId>ProtVar-service</artifactId>
   <version>0.0.11-SNAPSHOT</version>
   <name>ProtVar-service</name>
@@ -18,9 +19,22 @@
   <properties>
     <java.version>17</java.version>
     <springdoc.version>1.8.0</springdoc.version>
+    <artifactory.url>https://wwwdev.ebi.ac.uk/uniprot/artifactory</artifactory.url>
   </properties>
 
+  <repositories>
+    <repository>
+      <id>internal-repo</id>
+      <url>${artifactory.url}/release</url>
+    </repository>
+  </repositories>
+
   <dependencies>
+    <dependency>
+      <groupId>uk.ac.ebi.protvar</groupId>
+      <artifactId>protvar-common</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter</artifactId>

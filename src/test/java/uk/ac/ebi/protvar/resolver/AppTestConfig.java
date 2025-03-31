@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.pdbe.api.PDBeAPI;
 import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.uniprot.coordinates.api.CoordinatesAPI;
@@ -13,7 +14,7 @@ import uk.ac.ebi.uniprot.coordinates.model.DataServiceCoordinate;
 import uk.ac.ebi.uniprot.proteins.api.ProteinsAPI;
 import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
 import uk.ac.ebi.uniprot.variation.api.VariationAPI;
-import uk.ac.ebi.uniprot.variation.model.DataServiceVariation;
+import uk.ac.ebi.uniprot.domain.features.ProteinFeatureInfo;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -57,9 +58,9 @@ public class AppTestConfig {
 	@Bean
 	@Profile({"test"})
 	VariationAPI variationAPI() {
-		return new VariationAPI() {
+		return new VariationAPI(new RestTemplate()) {
 			@Override
-			public DataServiceVariation[] getVariationByParam(String value, String param) {
+			public ProteinFeatureInfo[] getVariationByParam(String value, String param) {
 				if (value.contains("88888888")) {
 					throw new RuntimeException("connection failed, unable to reach uniprot variation api");
 				}
@@ -67,7 +68,7 @@ public class AppTestConfig {
 					String data = Files.readString(Path.of("src/test/resources/jsons/variation.json"));
 					GsonBuilder builder = new GsonBuilder();
 					Gson gson = builder.create();
-					DataServiceVariation[] dsv = gson.fromJson(data, DataServiceVariation[].class);
+					ProteinFeatureInfo[] dsv = gson.fromJson(data, ProteinFeatureInfo[].class);
 					return dsv;
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -78,7 +79,7 @@ public class AppTestConfig {
 			}
 
 			@Override
-			public DataServiceVariation[] getVariation(String accession, int location) {
+			public ProteinFeatureInfo[] getVariation(String accession, int location) {
 				try {
 					String variationJsonFile = "src/test/resources/variation.json";
 					if ("P68431".equalsIgnoreCase(accession)) {
@@ -87,7 +88,7 @@ public class AppTestConfig {
 					String data = Files.readString(Path.of(variationJsonFile));
 					GsonBuilder builder = new GsonBuilder();
 					Gson gson = builder.create();
-					DataServiceVariation[] dsv = gson.fromJson(data, DataServiceVariation[].class);
+					ProteinFeatureInfo[] dsv = gson.fromJson(data, ProteinFeatureInfo[].class);
 					return dsv;
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
@@ -98,13 +99,13 @@ public class AppTestConfig {
 			}
 
 			@Override
-			public DataServiceVariation[] getVariation(String accessions) {
-				return new DataServiceVariation[0];
+			public ProteinFeatureInfo[] getVariation(String accessions) {
+				return new ProteinFeatureInfo[0];
 			}
 
 			@Override
-			public DataServiceVariation[] getVariationAccessionLocations(String accLocs) {
-				return new DataServiceVariation[0];
+			public ProteinFeatureInfo[] getVariationAccessionLocations(String accLocs) {
+				return new ProteinFeatureInfo[0];
 			}
 		};
 	}

@@ -9,7 +9,7 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import uk.ac.ebi.protvar.model.response.Variation;
+import uk.ac.ebi.uniprot.domain.variation.Variant;
 import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
 
 import java.util.List;
@@ -56,8 +56,8 @@ public class RedisConfig {
     }
 
     @Bean
-    public RedisTemplate<String, List<Variation>> variationCache() {
-        RedisTemplate<String, List<Variation>> template = new RedisTemplate<>();
+    public RedisTemplate<String, List<Variant>> variantCache() {
+        RedisTemplate<String, List<Variant>> template = new RedisTemplate<>();
         template.setConnectionFactory(jedisConnectionFactory());
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());

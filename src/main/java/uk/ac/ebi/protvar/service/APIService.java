@@ -14,8 +14,6 @@ import java.util.List;
 @Service
 @AllArgsConstructor
 public class APIService {
-
-	private VariationFetcher variationFetcher;
 	private ProteinsFetcher proteinsFetcher;
 	private PDBeFetcher pdbeFetcher;
 	private AssemblyMappingFetcher assemblyMappingFetcher;
@@ -23,10 +21,6 @@ public class APIService {
 	public Protein getProtein(String accession, int position, String variantAA) {
 		Protein protein = proteinsFetcher.fetch(accession, position, variantAA);
 		return protein;
-	}
-
-	public PopulationObservation getPopulationObservation(String accession, int position) {
-		return variationFetcher.fetchPopulationObservation(accession, position);
 	}
 
 	public List<PDBeStructureResidue> getStructure(String accession, int position) {

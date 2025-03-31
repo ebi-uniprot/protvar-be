@@ -26,6 +26,7 @@ import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.repo.*;
 import uk.ac.ebi.protvar.utils.Commons;
+import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -80,7 +81,7 @@ public class MappingFetcher {
 
 	private ProteinsFetcher proteinsFetcher;
 
-	private VariationFetcher variationFetcher;
+	private VariantFetcher variantFetcher;
 
 	private BuildProcessor buildProcessor;
 
@@ -157,7 +158,7 @@ public class MappingFetcher {
 			});
 			List<Object[]> accPosList = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toList());
 
-			final Map<String, List<Variation>> variationMap = params.isPop() ? variationFetcher.prefetchdb(accPosList) : new HashedMap();
+			final Map<String, List<Variant>> variantMap = params.isPop() ? variantFetcher.getVariantMap(accPosList) : new HashedMap();
 
 			if (params.isFun())
 				proteinsFetcher.prefetch(canonicalAccessions);
@@ -225,7 +226,7 @@ public class MappingFetcher {
 
 								}
 							}
-							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, alleleFreqs, scoreMap, variationMap, params);
+							ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, alleleFreqs, scoreMap, variantMap, params);
 						}
 
 						GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();
@@ -299,7 +300,7 @@ public class MappingFetcher {
 			});
 			List<Object[]> accPosList = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toList());
 
-			final Map<String, List<Variation>> variationMap = params.isPop() ? variationFetcher.prefetchdb(accPosList) : new HashedMap();
+			final Map<String, List<Variant>> variantMap = params.isPop() ? variantFetcher.getVariantMap(accPosList) : new HashedMap();
 
 			if (params.isFun())
 				proteinsFetcher.prefetch(canonicalAccessions);
@@ -324,7 +325,7 @@ public class MappingFetcher {
 						ensgMappingList = new ArrayList<>();
 					} else {
 						Set<String> altBases = GenomicInput.getAlternates(gInput.getRef());
-						ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, alleleFreqs, scoreMap, variationMap, params);
+						ensgMappingList = mappingsConverter.createGenes(mappingList, gInput, altBases, caddScores, alleleFreqs, scoreMap, variantMap, params);
 					}
 
 					GenomeProteinMapping mapping = GenomeProteinMapping.builder().genes(ensgMappingList).build();

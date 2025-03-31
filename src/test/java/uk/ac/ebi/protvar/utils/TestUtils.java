@@ -9,15 +9,15 @@ import com.google.gson.GsonBuilder;
 
 import uk.ac.ebi.uniprot.coordinates.model.DataServiceCoordinate;
 import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
-import uk.ac.ebi.uniprot.variation.model.DataServiceVariation;
+import uk.ac.ebi.uniprot.domain.features.ProteinFeatureInfo;
 
 public class TestUtils {
 
-	public static DataServiceVariation[] getVariation(String filePath) throws IOException {
+	public static ProteinFeatureInfo[] getVariation(String filePath) throws IOException {
 		String data = Files.readString(Path.of(filePath));
 		GsonBuilder builder = new GsonBuilder();
 		Gson gson = builder.create();
-		return gson.fromJson(data, DataServiceVariation[].class);
+		return gson.fromJson(data, ProteinFeatureInfo[].class);
 	}
 
 	public static DataServiceProtein[] getProtein(String filePath) throws IOException {

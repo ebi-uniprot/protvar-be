@@ -16,7 +16,7 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriBuilder;
 import uk.ac.ebi.protvar.resolver.AppTestConfig;
 import uk.ac.ebi.protvar.utils.TestUtils;
-import uk.ac.ebi.uniprot.variation.model.DataServiceVariation;
+import uk.ac.ebi.uniprot.domain.features.ProteinFeatureInfo;
 
 import uk.ac.ebi.uniprot.common.Common;
 import java.io.IOException;
@@ -25,12 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = { AppTestConfig.class })
-public class VariationAPIImplTest {
+public class VariationAPITest {
     @Mock
     RestTemplate variantRestTemplate;
 
     @InjectMocks
-    VariationAPIImpl variationAPI;
+    VariationAPI variationAPI;
 
     @BeforeEach
     public void setUp() {
@@ -39,30 +39,30 @@ public class VariationAPIImplTest {
 
     @Test
     void testGetVariation() throws IOException {
-        ResponseEntity<DataServiceVariation[]> varResp = new ResponseEntity<>(
+        ResponseEntity<ProteinFeatureInfo[]> varResp = new ResponseEntity<>(
                 TestUtils.getVariation("src/test/resources/jsons/variation.json"), HttpStatus.OK);
         DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory("");
         Mockito.when(variantRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
         String hgvs = "NC_000014.9:g.89993420A>G";
         UriBuilder uriBuilder = uriBuilderFactory.builder().path(Common.URL_PATH_HGVS).path(hgvs);
-        Mockito.when(variantRestTemplate.getForEntity(uriBuilder.build(), DataServiceVariation[].class))
+        Mockito.when(variantRestTemplate.getForEntity(uriBuilder.build(), ProteinFeatureInfo[].class))
                 .thenReturn(varResp);
-        DataServiceVariation[] dsv = variationAPI.getVariationByParam(hgvs, Common.URL_PATH_HGVS);
+        ProteinFeatureInfo[] dsv = variationAPI.getVariationByParam(hgvs, Common.URL_PATH_HGVS);
         assertEquals(4, dsv.length);
     }
 
     @Test
     void testGetColocatedVariation() throws IOException {
-        ResponseEntity<DataServiceVariation[]> varResp = new ResponseEntity<>(
+        ResponseEntity<ProteinFeatureInfo[]> varResp = new ResponseEntity<>(
                 TestUtils.getVariation("src/test/resources/jsons/variation.json"), HttpStatus.OK);
         DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory("");
         Mockito.when(variantRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
         UriBuilder uriBuilder = uriBuilderFactory.builder().queryParam(Common.PARAM_TAXID, Common.TAX_ID_HUMAN)
                 .queryParam(Common.PARAM_ACCESSION, "P21802").queryParam(Common.PARAM_LOCATION, 89993420);
 
-        Mockito.when(variantRestTemplate.getForEntity(uriBuilder.build(), DataServiceVariation[].class))
+        Mockito.when(variantRestTemplate.getForEntity(uriBuilder.build(), ProteinFeatureInfo[].class))
                 .thenReturn(varResp);
-        DataServiceVariation[] dsv = variationAPI.getVariation("P21802", 89993420);
+        ProteinFeatureInfo[] dsv = variationAPI.getVariation("P21802", 89993420);
         assertEquals(4, dsv.length);
     }
 }

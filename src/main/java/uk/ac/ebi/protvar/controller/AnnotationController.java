@@ -12,15 +12,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
+import uk.ac.ebi.protvar.fetcher.VariantFetcher;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.service.APIService;
 import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 @Tag(name = "Annotation")
 @RestController
 @CrossOrigin
 @AllArgsConstructor
 public class AnnotationController {
+
+
+  private VariantFetcher variantFetcher;
+
   private APIService apiService;
 
   /**
@@ -49,8 +55,8 @@ public class AnnotationController {
   public ResponseEntity<PopulationObservation> getPopulationObservation(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
-    PopulationObservation variations = apiService.getPopulationObservation(accession, position);
-    return new ResponseEntity<>(variations, HttpStatus.OK);
+    List<Variant> variants = variantFetcher.getVariants(accession, position);
+    return new ResponseEntity<>(new PopulationObservation(variants), HttpStatus.OK);
   }
 
   /**

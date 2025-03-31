@@ -14,7 +14,11 @@ import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.Protein;
 import uk.ac.ebi.protvar.utils.CSVUtils;
-import uk.ac.ebi.uniprot.proteins.model.*;
+import uk.ac.ebi.uniprot.proteins.model.ProteinFeature;
+import uk.ac.ebi.uniprot.proteins.model.DSPComment;
+import uk.ac.ebi.uniprot.proteins.model.Location;
+import uk.ac.ebi.uniprot.proteins.model.Locations;
+import uk.ac.ebi.uniprot.proteins.model.DBReference;
 
 @Service
 public class CSVFunctionDataFetcher {

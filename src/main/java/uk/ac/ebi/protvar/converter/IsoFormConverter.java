@@ -16,6 +16,7 @@ import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.builder.AnnotationsBuilder;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.protvar.utils.RNACodon;
+import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 @Service
 @AllArgsConstructor
@@ -37,7 +38,7 @@ public class IsoFormConverter {
 
 	public List<IsoFormMapping> createIsoforms(List<GenomeToProteinMapping> mappingList, /*String refAlleleUser,*/
 											   String variantAllele, Map<String, List<Score>>  scoreMap,
-											   Map<String, List<Variation>> variationMap,
+											   Map<String, List<Variant>> variantMap,
 											   InputParams params) {
 		String canonicalAccession = mappingList.stream().filter(GenomeToProteinMapping::isCanonical)
 				.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
@@ -46,14 +47,14 @@ public class IsoFormConverter {
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getAccession));
 
 		return accessionMapping.keySet().stream()
-				.map(accession -> createIsoform(/*refAlleleUser,*/ variantAllele, canonicalAccession, accession, accessionMapping.get(accession), scoreMap, variationMap, params))
+				.map(accession -> createIsoform(/*refAlleleUser,*/ variantAllele, canonicalAccession, accession, accessionMapping.get(accession), scoreMap, variantMap, params))
 				.sorted().collect(Collectors.toList());
 
 	}
 
 	private IsoFormMapping createIsoform(/*String refAlleleUser,*/ String variantAllele, String canonicalAccession,
 			String accession, List<GenomeToProteinMapping> g2pAccessionMapping, Map<String, List<Score>>  scoreMap,
-			Map<String, List<Variation>> variationMap, InputParams params) {
+			Map<String, List<Variant>> variantMap, InputParams params) {
 		GenomeToProteinMapping genomeToProteinMapping = g2pAccessionMapping.get(0);
 
 		boolean strand = genomeToProteinMapping.isReverseStrand();
@@ -115,7 +116,7 @@ public class IsoFormConverter {
 				builder.esmScore(esmScore.copy());
 			}
 
-			annotationsBuilder.build(accession, genomicLocation, variantAA.getOneLetter(), genomeToProteinMapping.getIsoformPosition(), variationMap, params, builder);
+			annotationsBuilder.build(accession, genomicLocation, variantAA.getOneLetter(), genomeToProteinMapping.getIsoformPosition(), variantMap, params, builder);
 		}
 		return builder.build();
 	}

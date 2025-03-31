@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.cache;
 
-public class VariationCache {
+public class VariantCache {
 
     private static final String VAR_CACHE_PREFIX = "VAR-";
 

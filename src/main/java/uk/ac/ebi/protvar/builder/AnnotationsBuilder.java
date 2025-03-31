@@ -14,7 +14,7 @@ import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.Protein;
-import uk.ac.ebi.protvar.model.response.Variation;
+import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 @Service
 @AllArgsConstructor
@@ -29,9 +29,9 @@ public class AnnotationsBuilder {
 	private ProteinsFetcher proteinsFetcher;
 	private PDBeFetcher pdbeFetcher;
 
-	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion, Map<String, List<Variation>> variationMap,
+	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion, Map<String, List<Variant>> variantMap,
 			InputParams params, IsoFormMapping.IsoFormMappingBuilder builder) {
-		buildPopulationObservation(accession, isoformPostion, variationMap, params.isPop(), genomicLocation, builder);
+		buildPopulationObservation(accession, isoformPostion, variantMap, params.isPop(), genomicLocation, builder);
 
 		buildFunction(accession, isoformPostion, variantAA, params.isFun(), builder);
 
@@ -63,14 +63,12 @@ public class AnnotationsBuilder {
 		}
 	}
 
-	private void buildPopulationObservation(String accession, int isoformPostion, Map<String, List<Variation>> variationMap, boolean isVariation, long genomicLocation,
+	private void buildPopulationObservation(String accession, int isoformPostion, Map<String, List<Variant>> variantMap, boolean isVariation, long genomicLocation,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
 		if (isVariation) {
 			//List<Variation> variations = variationFetcher.fetch(accession, isoformPostion);
-			List<Variation> variations = variationMap.get(accession+":"+isoformPostion);
-			PopulationObservation populationObservation = new PopulationObservation();
-			populationObservation.setProteinColocatedVariant(variations);
-			builder.populationObservations(populationObservation);
+			List<Variant> variants = variantMap.get(accession+":"+isoformPostion);
+			builder.populationObservations(new PopulationObservation(variants));
 		} else {
 			String uri = buildUri(accession, isoformPostion, genomicLocation);
 			builder.populationObservationsUri(uri);

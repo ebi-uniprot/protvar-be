@@ -61,6 +61,7 @@ public class ApplicationConfig {
     }
 
     @Bean
+    @Qualifier("variantRestTemplate")
     //@RequestScope
     public RestTemplate variantRestTemplate() {
         RestTemplate restTemplate = new RestTemplate();// new RestTemplateCache();

@@ -5,7 +5,7 @@ import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
-import uk.ac.ebi.uniprot.common.model.Evidence;
+import uk.ac.ebi.uniprot.domain.features.Evidence;
 
 @Getter
 @Setter

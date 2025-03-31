@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.List;
 
 import lombok.Getter;
-import uk.ac.ebi.uniprot.common.model.Evidence;
+import uk.ac.ebi.uniprot.domain.features.Evidence;
 
 @Getter
 public class Reaction implements Serializable {
