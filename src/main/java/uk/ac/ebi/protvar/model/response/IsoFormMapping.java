@@ -41,7 +41,7 @@ public class IsoFormMapping implements Comparable<IsoFormMapping> {
 	private String populationObservationsUri;
 
 	@JsonInclude(Include.NON_NULL)
-	private Protein referenceFunction;
+	private FunctionalInfo referenceFunction;
 	@JsonInclude(Include.NON_NULL)
 	private String referenceFunctionUri;
 

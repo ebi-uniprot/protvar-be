@@ -13,7 +13,7 @@ import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.model.response.IsoFormMapping;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
-import uk.ac.ebi.protvar.model.response.Protein;
+import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 @Service
@@ -52,7 +52,7 @@ public class AnnotationsBuilder {
 	private void buildFunction(String accession, int isoformPostion, String variantAA, boolean isFunction,
 			IsoFormMapping.IsoFormMappingBuilder builder) {
 		if (isFunction) {
-			Protein protein = proteinsFetcher.fetch(accession, isoformPostion, variantAA);
+			FunctionalInfo protein = proteinsFetcher.fetch(accession, isoformPostion, variantAA);
 			builder.referenceFunction(protein);
 		} else {
 			String uri = buildUri(FUNCTION_API, accession, isoformPostion);

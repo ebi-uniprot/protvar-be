@@ -1,24 +1,27 @@
 package uk.ac.ebi.protvar.fetcher.csv;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
-
 import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
+import uk.ac.ebi.protvar.model.response.FunctionalInfo;
+import uk.ac.ebi.protvar.model.response.IsoFormMapping;
+import uk.ac.ebi.protvar.utils.CSVUtils;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
-import uk.ac.ebi.protvar.model.response.IsoFormMapping;
-import uk.ac.ebi.protvar.model.response.Protein;
-import uk.ac.ebi.protvar.utils.CSVUtils;
-import uk.ac.ebi.uniprot.proteins.model.ProteinFeature;
-import uk.ac.ebi.uniprot.proteins.model.DSPComment;
-import uk.ac.ebi.uniprot.proteins.model.Location;
-import uk.ac.ebi.uniprot.proteins.model.Locations;
-import uk.ac.ebi.uniprot.proteins.model.DBReference;
+import uk.ac.ebi.uniprot.domain.entry.DbReference;
+import uk.ac.ebi.uniprot.domain.entry.EvidencedString;
+import uk.ac.ebi.uniprot.domain.entry.comment.CatalyticActivityComment;
+import uk.ac.ebi.uniprot.domain.entry.comment.Comment;
+import uk.ac.ebi.uniprot.domain.entry.comment.IntActComment;
+import uk.ac.ebi.uniprot.domain.entry.comment.SubcellLocationComment;
+import uk.ac.ebi.uniprot.domain.features.Feature;
+import uk.ac.ebi.uniprot.domain.features.FeatureCategory;
+
+import java.lang.reflect.Field;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class CSVFunctionDataFetcher {
@@ -35,20 +38,22 @@ public class CSVFunctionDataFetcher {
 	// ESM
 	public List<String> fetch(IsoFormMapping mapping) {
 		List<String> output = new ArrayList<>();
-		Protein proteinFunction = mapping.getReferenceFunction();
-		List<ProteinFeature> residueFeatures = proteinFunction.getFeatures().stream()
-				.filter(feature -> !"VARIANTS".equalsIgnoreCase(feature.getCategory()))
-				.filter(feature -> feature.getBegin() == feature.getEnd()).collect(Collectors.toList());
+		FunctionalInfo functionalInfo = mapping.getReferenceFunction();
+
+		Map<Boolean, List<Feature>> partitionedFeatures = functionalInfo.getFeatures().stream()
+				.filter(feature -> !feature.getCategory().equals(FeatureCategory.VARIANTS))
+				.collect(Collectors.partitioningBy(feature -> feature.getBegin().equals(feature.getEnd())));
+
+		List<Feature> residueFeatures = partitionedFeatures.get(true);
+		List<Feature> regionFeatures = partitionedFeatures.get(false);
+
 		output.add(CSVUtils.getValOrNA(buildProteinFeature(residueFeatures))); //Residue_function_(evidence)
-		List<ProteinFeature> regionFeatures = proteinFunction.getFeatures().stream()
-				.filter(feature -> !"VARIANTS".equalsIgnoreCase(feature.getCategory()))
-				.filter(feature -> feature.getBegin() != feature.getEnd()).collect(Collectors.toList());
 		output.add(CSVUtils.getValOrNA(buildProteinFeature(regionFeatures))); //Region_function_(evidence)
-		output.addAll(buildProteinDetails(proteinFunction)); //Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated
-		output.addAll(buildComments(proteinFunction.getComments())); //Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)
-		output.add(CSVUtils.getValOrNA(buildPredictedPockets(proteinFunction.getPockets())));
-		output.add(CSVUtils.getValOrNA(buildPredictedInteractions(proteinFunction.getInteractions())));
-		output.add(CSVUtils.getValOrNA(buildFoldxPrediction(proteinFunction.getFoldxs())));
+		output.addAll(buildProteinDetails(functionalInfo)); //Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated
+		output.addAll(buildComments(functionalInfo.getComments())); //Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)
+		output.add(CSVUtils.getValOrNA(buildPredictedPockets(functionalInfo.getPockets())));
+		output.add(CSVUtils.getValOrNA(buildPredictedInteractions(functionalInfo.getInteractions())));
+		output.add(CSVUtils.getValOrNA(buildFoldxPrediction(functionalInfo.getFoldxs())));
 		output.add(CSVUtils.getValOrNA(mapping.getConservScore() == null ? null : mapping.getConservScore().getScore()));
 		output.add(getAMScore(mapping));
 		output.add(getEveScore(mapping));
@@ -74,7 +79,7 @@ public class CSVFunctionDataFetcher {
 				.append(")").toString();
 	}
 
-	private List<String> buildComments(List<DSPComment> comments) {
+	private List<String> buildComments(List<Comment> comments) {
 		if (comments == null)
 			return List.of("N/A", "N/A", "N/A", "N/A", "N/A");
 		StringJoiner catalyticActivity = new StringJoiner("|");
@@ -83,33 +88,33 @@ public class CSVFunctionDataFetcher {
 		StringJoiner family = new StringJoiner("|");
 		StringJoiner interactions = new StringJoiner("|");
 		List<String> commentColumns = new ArrayList<>();
-		for (DSPComment comment : comments) {
+		comments.forEach(comment -> {
 			switch (comment.getType()) {
 
-			case "CATALYTIC_ACTIVITY":
-				String activity = buildCatalyticActivity(comment);
-				if (activity != null)
-					catalyticActivity.add(activity);
-				break;
-			case "SUBUNIT":
-				complex.add(buildComplex(comment));
-				break;
-			case "SUBCELLULAR_LOCATION":
-				String location = buildSubCellularLocation(comment);
-				if (location != null)
-					subCellularLocation.add(location);
-				break;
-			case "SIMILARITY":
-				family.add(buildFamily(comment));
-				break;
-			case "INTERACTION":
-				String interaction = buildInteractions(comment);
-				if (interaction != null)
-					interactions.add(interaction);
-				break;
+				case CATALYTIC_ACTIVITY:
+					String activity = buildCatalyticActivity(comment);
+					if (activity != null)
+						catalyticActivity.add(activity);
+					break;
+				case SUBUNIT:
+					complex.add(buildComplex(comment));
+					break;
+				case SUBCELLULAR_LOCATION:
+					String location = buildSubCellularLocation(comment);
+					if (location != null)
+						subCellularLocation.add(location);
+					break;
+				case SIMILARITY:
+					family.add(buildFamily(comment));
+					break;
+				case INTERACTION:
+					String interaction = buildInteractions(comment);
+					if (interaction != null)
+						interactions.add(interaction);
+					break;
 			}
+		});
 
-		}
 		commentColumns.add(CSVUtils.getValOrNA(catalyticActivity.toString()));
 		commentColumns.add(CSVUtils.getValOrNA(complex.toString()));
 		commentColumns.add(CSVUtils.getValOrNA(subCellularLocation.toString()));
@@ -119,71 +124,89 @@ public class CSVFunctionDataFetcher {
 
 	}
 
-	private String buildInteractions(DSPComment comment) {
-		if (comment.getInteractions() != null && !comment.getInteractions().isEmpty()) {
-			return comment.getInteractions().stream().map(interaction ->
-				interaction.getAccession2() + "(" + interaction.getGene() + ")"
-			).collect(Collectors.joining(";"));
-		}
-		return null;
-	}
+	private String buildInteractions(Comment comment) {
+		if (comment instanceof IntActComment) {
+			IntActComment intActComment = (IntActComment) comment;
 
-	private String buildFamily(DSPComment comment) {
-		if (comment.getText() != null && !comment.getText().isEmpty()) {
-			if (comment.getText().get(0) instanceof Map) {
-				Map<?,?> complexMap = ((Map<?,?>) comment.getText().get(0));
-				String text = complexMap.get("value").toString();
-				if (text != null && text.contains("."))
-					return text.split("\\.")[0];
-				return text;
+			if (intActComment.getInteractions() != null && !intActComment.getInteractions().isEmpty()) {
+				return intActComment.getInteractions().stream().map(interaction ->
+						interaction.getAccession2() + "(" + interaction.getGene() + ")"
+				).collect(Collectors.joining(";"));
 			}
 		}
 		return null;
 	}
 
-	private String buildSubCellularLocation(DSPComment comment) {
-		if (comment.getLocations() != null && !comment.getLocations().isEmpty()) {
-			String location = comment.getLocations().stream().map(Locations::getLocation).map(Location::getValue)
-					.collect(Collectors.joining(";"));
-			String topologies = comment.getLocations().stream().map(Locations::getTopology).filter(Objects::nonNull)
-					.map(Location::getValue).collect(Collectors.joining(";"));
-			if (StringUtils.isNotEmpty(topologies))
-				return location + "(" + topologies + ")";
-			return location;
-		}
-		return null;
+	private String buildFamily(Comment comment) {
+		return extractValue(comment);
 	}
 
-	private String buildCatalyticActivity(DSPComment comment) {
-		if (comment.getReaction() != null && comment.getReaction().getDbReferences() != null) {
-			String rheaId = comment.getReaction().getDbReferences().stream()
-					.filter(dbref -> dbref.getId().contains("RHEA:")).findFirst().map(DBReference::getId).orElse("");
-			String evidence = FetcherUtils.evidencesToString(comment.getReaction().getEvidences());
-			return rheaId + evidence;
-		}
-		return null;
-	}
-
-	private String buildComplex(DSPComment comment) {
-		if (comment.getText() != null && !comment.getText().isEmpty()) {
-			if (comment.getText().get(0) instanceof Map) {
-				Map<?,?> complexMap = ((Map<?,?>) comment.getText().get(0));
-				String text = complexMap.get("value").toString();
-				if (text != null && text.contains("."))
-					text = text.split("\\.")[0];
-				return text;
+	private String extractValue(Comment comment) {
+		if (comment != null) {
+			Class<?> commentClass = comment.getClass();
+			try {
+				Field field = commentClass.getField("text");
+				Object text = field.get(comment);
+				if (text != null && text instanceof List) {
+					List<?> textList = (List<?>) text;
+					if (!textList.isEmpty()) {
+						Object complex = textList.get(0);
+						if (complex instanceof Map) {
+							Map<?, ?> complexMap = (Map<?, ?>) complex;
+							String textValue = complexMap.get("value").toString();
+							return (textValue != null && textValue.contains(".")) ? textValue.split("\\.")[0] : textValue;
+						}
+					}
+				}
+			} catch (NoSuchFieldException e) {
+				// ignore
+			} catch (IllegalAccessException e) {
+				// ignore
 			}
 		}
 		return null;
-
 	}
 
-	private String buildProteinFeature(List<ProteinFeature> proteinFeatures) {
-		if (proteinFeatures == null || proteinFeatures.isEmpty())
+	private String buildSubCellularLocation(Comment comment) {
+		if (comment instanceof SubcellLocationComment) {
+			SubcellLocationComment subcellLocationComment = (SubcellLocationComment) comment;
+			if (subcellLocationComment.getLocations() != null && !subcellLocationComment.getLocations().isEmpty()) {
+				String location = subcellLocationComment.getLocations().stream().map(SubcellLocationComment.SubcellularLocation::getLocation).map(EvidencedString::getValue)
+						.collect(Collectors.joining(";"));
+				String topologies = subcellLocationComment.getLocations().stream().map(SubcellLocationComment.SubcellularLocation::getTopology).filter(Objects::nonNull)
+						.map(EvidencedString::getValue).collect(Collectors.joining(";"));
+				if (StringUtils.isNotEmpty(topologies))
+					return location + "(" + topologies + ")";
+				return location;
+			}
+		}
+		return null;
+	}
+
+	private String buildCatalyticActivity(Comment comment) {
+		if (comment instanceof CatalyticActivityComment) {
+			CatalyticActivityComment catActComment = (CatalyticActivityComment) comment;
+			if (catActComment.getReaction() != null && catActComment.getReaction().getDbReferences() != null) {
+				String rheaId = catActComment.getReaction().getDbReferences().stream()
+						.filter(dbref -> dbref.getId().contains("RHEA:"))
+						.findFirst().map(DbReference::getId).orElse("");
+				String evidences = FetcherUtils.evidencesToString(catActComment.getReaction().getEvidences());
+				return rheaId + evidences;
+			}
+		}
+		return null;
+	}
+
+	private String buildComplex(Comment comment) {
+		return extractValue(comment);
+	}
+
+	private String buildProteinFeature(List<Feature> features) {
+		if (features == null || features.isEmpty())
 			return "";
 
 		StringJoiner joiner = new StringJoiner("|");
-		proteinFeatures.forEach(feature -> {
+		features.forEach(feature -> {
 			StringBuilder builder = new StringBuilder();
 			builder.append(feature.getType());
 			if (feature.getDescription() != null) {
@@ -290,7 +313,7 @@ public class CSVFunctionDataFetcher {
 	}
 
 
-	private List<String> buildProteinDetails(Protein proteinFunction) {
+	private List<String> buildProteinDetails(FunctionalInfo proteinFunction) {
 		List<String> proteinDetails = new ArrayList<>();
 		proteinDetails.add(CSVUtils.getValOrNA(proteinFunction.getProteinExistence()));
 		proteinDetails.add(CSVUtils.getValOrNA(String.valueOf(proteinFunction.getSequence().getLength())));
