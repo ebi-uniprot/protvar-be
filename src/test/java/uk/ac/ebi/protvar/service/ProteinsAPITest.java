@@ -1,4 +1,4 @@
-package uk.ac.ebi.uniprot.proteins.api;
+package uk.ac.ebi.protvar.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,9 +15,9 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriBuilder;
 import uk.ac.ebi.protvar.resolver.AppTestConfig;
+import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.TestUtils;
-import uk.ac.ebi.uniprot.proteins.model.DataServiceProtein;
-import uk.ac.ebi.uniprot.common.Common;
+import uk.ac.ebi.uniprot.domain.entry.UPEntry;
 
 import java.io.IOException;
 
@@ -25,14 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = { AppTestConfig.class })
-public class ProteinsAPIImplTest {
+public class ProteinsAPITest {
 
 
     @Mock
-    RestTemplate proteinRestTemplate;
+    RestTemplate proteinsRestTemplate;
 
     @InjectMocks
-    ProteinsAPIImpl proteinsAPI;
+    ProteinsAPI proteinsAPI;
 
     @BeforeEach
     public void setUp() {
@@ -41,18 +41,18 @@ public class ProteinsAPIImplTest {
 
     @Test
     void testGetProtein() throws IOException {
-        ResponseEntity<DataServiceProtein[]> proteinResp = new ResponseEntity<>(
+        ResponseEntity<UPEntry[]> proteinResp = new ResponseEntity<>(
                 TestUtils.getProtein("src/test/resources/jsons/protein.json"), HttpStatus.OK);
 
         DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory("");
-        Mockito.when(proteinRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
-        UriBuilder uriBuilder = uriBuilderFactory.builder().queryParam("accession", "Q9NUW8").queryParam(Common.PARAM_TAXID,
-                Common.TAX_ID_HUMAN);
+        Mockito.when(proteinsRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
+        UriBuilder uriBuilder = uriBuilderFactory.builder().queryParam("accession", "Q9NUW8").queryParam(Constants.PARAM_TAXID,
+                Constants.TAX_ID_HUMAN);
 
-        Mockito.when(proteinRestTemplate.getForEntity(uriBuilder.build(), DataServiceProtein[].class))
+        Mockito.when(proteinsRestTemplate.getForEntity(uriBuilder.build(), UPEntry[].class))
                 .thenReturn(proteinResp);
-        DataServiceProtein[] dsp = proteinsAPI.getProtein("Q9NUW8");
-        assertEquals(4, dsp.length);
+        UPEntry[] entries = proteinsAPI.getProtein("Q9NUW8");
+        assertEquals(4, entries.length);
     }
 
 }
