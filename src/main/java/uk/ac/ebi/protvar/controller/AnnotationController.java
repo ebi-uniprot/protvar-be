@@ -12,9 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
+import uk.ac.ebi.protvar.fetcher.PDBeFetcher;
+import uk.ac.ebi.protvar.fetcher.ProteinsFetcher;
 import uk.ac.ebi.protvar.fetcher.VariantFetcher;
 import uk.ac.ebi.protvar.model.response.*;
-import uk.ac.ebi.protvar.service.APIService;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
@@ -25,24 +26,25 @@ import uk.ac.ebi.uniprot.domain.variation.Variant;
 public class AnnotationController {
 
 
+  private ProteinsFetcher proteinsFetcher;
   private VariantFetcher variantFetcher;
 
-  private APIService apiService;
+  private PDBeFetcher pdbeFetcher;
 
   /**
    * @param accession UniProt accession
    * @param position  Amino acid position
    * @param variantAA Optional, 1- or 3-letter symbol for variant amino acid
-   * @return <code>Protein</code> information on accession
+   * @return <code>FunctionalInfo</code> on accession and position
    */
   @Operation(summary = "Retrieve functional annotations for an amino acid")
   @GetMapping(value = "/function/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<Protein> getFunction(
+  public ResponseEntity<FunctionalInfo> getFunction(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position,
     @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
-    Protein protein = apiService.getProtein(accession, position, AminoAcid.oneLetter(variantAA));
-    return new ResponseEntity<>(protein, HttpStatus.OK);
+    FunctionalInfo functionalInfo = proteinsFetcher.fetch(accession, position, AminoAcid.oneLetter(variantAA));
+    return new ResponseEntity<>(functionalInfo, HttpStatus.OK);
   }
 
   /**
@@ -69,7 +71,7 @@ public class AnnotationController {
   public ResponseEntity<List<PDBeStructureResidue>> getStructure(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
-    List<PDBeStructureResidue> object = apiService.getStructure(accession, position);
+    List<PDBeStructureResidue> object = pdbeFetcher.fetch(accession, position);
     return new ResponseEntity<>(object, HttpStatus.OK);
   }
 }
