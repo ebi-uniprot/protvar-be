@@ -1,5 +1,8 @@
 package uk.ac.ebi.protvar;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -9,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.retry.policy.SimpleRetryPolicy;
@@ -18,15 +22,12 @@ import org.springframework.web.util.DefaultUriBuilderFactory;
 import uk.ac.ebi.pdbe.api.PDBeAPI;
 import uk.ac.ebi.pdbe.api.PDBeAPIImpl;
 import uk.ac.ebi.protvar.cache.RestTemplateCache;
-import uk.ac.ebi.uniprot.coordinates.api.CoordinatesAPI;
-import uk.ac.ebi.uniprot.coordinates.api.CoordinatesAPIImpl;
-import uk.ac.ebi.uniprot.proteins.api.ProteinsAPI;
-import uk.ac.ebi.uniprot.proteins.api.ProteinsAPIImpl;
-import uk.ac.ebi.uniprot.variation.api.VariationAPI;
-import uk.ac.ebi.uniprot.variation.api.VariationAPIImpl;
+import uk.ac.ebi.uniprot.domain.entry.comment.Comment;
+import uk.ac.ebi.uniprot.mapper.CommentDeserializer;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 @Configuration
 public class ApplicationConfig {
@@ -61,9 +62,9 @@ public class ApplicationConfig {
     }
 
     @Bean
-    @Qualifier("variantRestTemplate")
+    @Qualifier("variationRestTemplate")
     //@RequestScope
-    public RestTemplate variantRestTemplate() {
+    public RestTemplate variationRestTemplate() {
         RestTemplate restTemplate = new RestTemplate();// new RestTemplateCache();
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(variationURL));
@@ -71,20 +72,35 @@ public class ApplicationConfig {
     }
 
     @Bean
+    @Qualifier("proteinsRestTemplate")
     //@RequestScope
-    public RestTemplate proteinRestTemplate() {
+    /*
+    public RestTemplate proteinsRestTemplate() {
         RestTemplate restTemplate = new RestTemplate();//new RestTemplateCache();
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinsURL));
         return restTemplate;
-    }
+    }*/
+    public RestTemplate restTemplate() {
+        // Create a custom ObjectMapper
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    @Bean
-    //@RequestScope
-    public RestTemplate coordinateRestTemplate() {
-        RestTemplate restTemplate = new RestTemplateCache();
+        // Register custom deserializer
+        SimpleModule module = new SimpleModule();
+        module.addDeserializer(Comment.class, new CommentDeserializer());
+        objectMapper.registerModule(module);
+
+        // Register the ObjectMapper with a custom message converter
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(objectMapper);
+
+        // Create a RestTemplate with the custom converter
+        RestTemplate restTemplate = new RestTemplate();
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(coordinatesURL));
+        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinsURL));
+        restTemplate.setMessageConverters(Collections.singletonList(converter));
+
         return restTemplate;
     }
 
@@ -101,19 +117,6 @@ public class ApplicationConfig {
     public PDBeAPI pdbeAPI() {
         PDBeAPI pdbeAPI = new PDBeAPIImpl(pdbeRestTemplate());
         return pdbeAPI;
-    }
-
-    @Bean
-    public VariationAPI variationAPI() {
-        return new VariationAPIImpl(variantRestTemplate());
-    }
-    @Bean
-    public ProteinsAPI proteinsAPI() {
-        return new ProteinsAPIImpl(proteinRestTemplate());
-    }
-    @Bean
-    public CoordinatesAPI coordinatesAPI() {
-        return new CoordinatesAPIImpl(coordinateRestTemplate());
     }
 
     @Bean
