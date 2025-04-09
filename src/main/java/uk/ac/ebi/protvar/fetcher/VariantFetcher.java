@@ -5,11 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import uk.ac.ebi.protvar.cache.VariantCache;
+import uk.ac.ebi.protvar.cache.CacheKey;
 import uk.ac.ebi.protvar.repo.VariationRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
-import uk.ac.ebi.uniprot.variation.api.VariationAPI;
+import uk.ac.ebi.protvar.service.VariationAPI;
 import uk.ac.ebi.uniprot.domain.features.ProteinFeatureInfo;
 import uk.ac.ebi.uniprot.domain.features.Feature;
 
@@ -26,7 +26,7 @@ public class VariantFetcher {
 	private VariationAPI variationAPI; // from API
 	private VariationRepo variationRepo; // from Repo i.e. ProtVar DB tbl
 
-	private RedisTemplate variantCache;
+	private RedisTemplate redisTemplate;
 
 	/**
 	 * Prefetch data from Variation API and cache in application for
@@ -35,7 +35,7 @@ public class VariantFetcher {
 	public void prefetch(Set<String> accessionLocations) {
 		Map<Boolean, List<String>> partitioned =
 				accessionLocations.stream().collect(
-						Collectors.partitioningBy(accLoc -> variantCache.hasKey(VariantCache.keyOf(accLoc))));
+						Collectors.partitioningBy(accLoc -> redisTemplate.hasKey(CacheKey.variant(accLoc))));
 
 		Set<String> cached = new HashSet(partitioned.get(true));
 		Set<String> notCached = new HashSet(partitioned.get(false));
@@ -78,7 +78,7 @@ public class VariantFetcher {
 				logger.info("Caching variation: {}", String.join(",", accessionLocations));
 				// update cache
 				for (String key : variantMap.keySet()) {
-					variantCache.opsForValue().set(VariantCache.keyOf(key), variantMap.get(key));
+					redisTemplate.opsForValue().set(CacheKey.variant(key), variantMap.get(key));
 				}
 			}
 		}
@@ -89,16 +89,14 @@ public class VariantFetcher {
 
 	public List<Variant> fetch(String uniprotAccession, int proteinLocation) {
 		String accLoc = uniprotAccession + ":" + proteinLocation;
-		String key = VariantCache.keyOf(accLoc);
-		if (variantCache.hasKey(key))
-			return (List<Variant>) variantCache.opsForValue().get(key);
+		String key = CacheKey.variant(accLoc);
+		List<Variant> variants = getCachedVariants(key);
+		if (variants != null) return variants;
 
-		cacheAPIResponse(new HashSet<>(Arrays.asList(accLoc)));
+		cacheAPIResponse(Set.of(accLoc));
 
-		if (variantCache.hasKey(key))
-			return (List<Variant>) variantCache.opsForValue().get(key);
-
-		return Collections.emptyList();
+		variants = getCachedVariants(key);
+		return (variants != null) ? variants : Collections.emptyList();
 	}
 
 	public List<Variant> getVariants(String accession, int protein) {
@@ -121,6 +119,18 @@ public class VariantFetcher {
 						.map(f -> (Variant) f)
 						.collect(Collectors.toList())));
 		return variantMap;
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<Variant> getCachedVariants(String key) {
+		Object value = redisTemplate.opsForValue().get(key);
+		if (value instanceof List<?>) {
+			List<?> list = (List<?>) value;
+			if (list.isEmpty() || list.get(0) instanceof Variant) {
+				return (List<Variant>) list;
+			}
+		}
+		return null;
 	}
 
 }

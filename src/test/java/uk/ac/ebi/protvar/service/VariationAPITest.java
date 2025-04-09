@@ -1,4 +1,4 @@
-package uk.ac.ebi.uniprot.variation.api;
+package uk.ac.ebi.protvar.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,10 +15,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import org.springframework.web.util.UriBuilder;
 import uk.ac.ebi.protvar.resolver.AppTestConfig;
+import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.TestUtils;
 import uk.ac.ebi.uniprot.domain.features.ProteinFeatureInfo;
 
-import uk.ac.ebi.uniprot.common.Common;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest(classes = { AppTestConfig.class })
 public class VariationAPITest {
     @Mock
-    RestTemplate variantRestTemplate;
+    RestTemplate variationRestTemplate;
 
     @InjectMocks
     VariationAPI variationAPI;
@@ -42,12 +42,12 @@ public class VariationAPITest {
         ResponseEntity<ProteinFeatureInfo[]> varResp = new ResponseEntity<>(
                 TestUtils.getVariation("src/test/resources/jsons/variation.json"), HttpStatus.OK);
         DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory("");
-        Mockito.when(variantRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
+        Mockito.when(variationRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
         String hgvs = "NC_000014.9:g.89993420A>G";
-        UriBuilder uriBuilder = uriBuilderFactory.builder().path(Common.URL_PATH_HGVS).path(hgvs);
-        Mockito.when(variantRestTemplate.getForEntity(uriBuilder.build(), ProteinFeatureInfo[].class))
+        UriBuilder uriBuilder = uriBuilderFactory.builder().path(Constants.URL_PATH_HGVS).path(hgvs);
+        Mockito.when(variationRestTemplate.getForEntity(uriBuilder.build(), ProteinFeatureInfo[].class))
                 .thenReturn(varResp);
-        ProteinFeatureInfo[] dsv = variationAPI.getVariationByParam(hgvs, Common.URL_PATH_HGVS);
+        ProteinFeatureInfo[] dsv = variationAPI.getVariationByParam(hgvs, Constants.URL_PATH_HGVS);
         assertEquals(4, dsv.length);
     }
 
@@ -56,11 +56,11 @@ public class VariationAPITest {
         ResponseEntity<ProteinFeatureInfo[]> varResp = new ResponseEntity<>(
                 TestUtils.getVariation("src/test/resources/jsons/variation.json"), HttpStatus.OK);
         DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory("");
-        Mockito.when(variantRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
-        UriBuilder uriBuilder = uriBuilderFactory.builder().queryParam(Common.PARAM_TAXID, Common.TAX_ID_HUMAN)
-                .queryParam(Common.PARAM_ACCESSION, "P21802").queryParam(Common.PARAM_LOCATION, 89993420);
+        Mockito.when(variationRestTemplate.getUriTemplateHandler()).thenReturn(uriBuilderFactory);
+        UriBuilder uriBuilder = uriBuilderFactory.builder().queryParam(Constants.PARAM_TAXID, Constants.TAX_ID_HUMAN)
+                .queryParam(Constants.PARAM_ACCESSION, "P21802").queryParam(Constants.PARAM_LOCATION, 89993420);
 
-        Mockito.when(variantRestTemplate.getForEntity(uriBuilder.build(), ProteinFeatureInfo[].class))
+        Mockito.when(variationRestTemplate.getForEntity(uriBuilder.build(), ProteinFeatureInfo[].class))
                 .thenReturn(varResp);
         ProteinFeatureInfo[] dsv = variationAPI.getVariation("P21802", 89993420);
         assertEquals(4, dsv.length);
