@@ -7,13 +7,11 @@ import lombok.NoArgsConstructor;
 import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.Message;
 
-import java.io.Serializable;
-
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InputBuild implements Serializable {
+public class InputBuild {
     Assembly assembly; // detected build, based on sample size
     Message message;
 }

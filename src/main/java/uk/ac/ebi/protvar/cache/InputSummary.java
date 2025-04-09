@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 
-import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -15,7 +14,7 @@ import java.util.stream.Collectors;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InputSummary implements Serializable {
+public class InputSummary {
     int totalCount;
     EnumMap<Type, Integer> inputCounts = new EnumMap<>(Type.class);
 

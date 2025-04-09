@@ -22,56 +22,29 @@ import static uk.ac.ebi.protvar.constants.PagedMapping.INPUT_EXPIRES_AFTER_DAYS;
 @Repository
 public class InputCache {
     private static final Logger LOGGER = LoggerFactory.getLogger(InputCache.class);
-
-    public static final String INPUT_CACHE_PREFIX = "INPUT-";
-    public static final String BUILD_CACHE_PREFIX = "BUILD-";
-    public static final String SUMMARY_CACHE_PREFIX = "SUMMARY-";
-
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
-
 
     private RedisTemplate redisTemplate;
 
-    public String keyOf(String id) {
-        return INPUT_CACHE_PREFIX + id;
-    }
-
-    public String buildKeyOf(String id) {
-        return BUILD_CACHE_PREFIX + id;
-    }
-    public String summaryKeyOf(String id) {
-        return SUMMARY_CACHE_PREFIX + id;
-    }
-
     public String getInput(String id) {
-        String key = keyOf(id);
-        if (redisTemplate.hasKey(key))
-            return redisTemplate.opsForValue().get(key).toString();
-        return null;
+        Object value = redisTemplate.opsForValue().get(CacheKey.input(id));
+        return (value != null) ? value.toString() : null;
     }
 
     public InputBuild getInputBuild(String id) {
-        String buildKey = buildKeyOf(id);
-        if (redisTemplate.hasKey(buildKey))
-            return (InputBuild) redisTemplate.opsForValue().get(buildKey);
-        return null;
+        return getFromRedis(CacheKey.inputBuild(id), InputBuild.class);
     }
 
     public InputSummary getInputSummary(String id) {
-        String summaryKey = summaryKeyOf(id);
-        if (redisTemplate.hasKey(summaryKey))
-            return (InputSummary) redisTemplate.opsForValue().get(summaryKey);
-        return null;
+        return getFromRedis(CacheKey.inputSummary(id), InputSummary.class);
     }
 
     public void cacheInputBuild(String id, InputBuild inputBuild) {
-        String buildKey = buildKeyOf(id);
-        redisTemplate.opsForValue().set(buildKey, inputBuild);
-        redisTemplate.expireAt(buildKey, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
+        cacheWithExpiry(CacheKey.inputBuild(id), inputBuild);
     }
 
     public long expires(String id) {
-        return redisTemplate.getExpire(keyOf(id));
+        return redisTemplate.getExpire(CacheKey.input(id));
     }
 
     /**
@@ -105,28 +78,18 @@ public class InputCache {
     }
 
     private void cacheInput(String id, String input) {
-        String key = keyOf(id);
-        //if (!redisTemplate.hasKey(key)) {
-        redisTemplate.opsForValue().set(key, input);
-        redisTemplate.expireAt(key, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
-        //}
+        cacheWithExpiry(CacheKey.input(id), input);
 
-        // Launch job to generate summary
+        // Launch async job to generate and cache summary
         executorService.submit(() -> {
             InputSummary inputSummary = InputProcessor.summary(input);
-            String summaryKey = summaryKeyOf(id);
-            redisTemplate.opsForValue().set(summaryKey, inputSummary);
-            redisTemplate.expireAt(summaryKey, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
+            cacheWithExpiry(CacheKey.inputSummary(id), inputSummary);
         });
     }
 
     public boolean extend(String id) {
-        String key = keyOf(id);
-        if (redisTemplate.hasKey(key)) {
-            redisTemplate.expireAt(key, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
-            return true;
-        }
-        return false;
+        String key = CacheKey.input(id);
+        return extendExpiry(key);
     }
 
     /**
@@ -151,5 +114,25 @@ public class InputCache {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    // Redis cache helper functions
+    @SuppressWarnings("unchecked")
+    private <T> T getFromRedis(String key, Class<T> clazz) {
+        Object value = redisTemplate.opsForValue().get(key);
+        return clazz.isInstance(value) ? (T) value : null;
+    }
+
+    private void cacheWithExpiry(String key, Object value) {
+        redisTemplate.opsForValue().set(key, value);
+        redisTemplate.expireAt(key, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
+    }
+
+    private boolean extendExpiry(String key) {
+        if (redisTemplate.hasKey(key)) {
+            redisTemplate.expireAt(key, Instant.now().plus(INPUT_EXPIRES_AFTER_DAYS, ChronoUnit.DAYS));
+            return true;
+        }
+        return false;
     }
 }
