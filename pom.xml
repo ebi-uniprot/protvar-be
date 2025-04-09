@@ -11,10 +11,10 @@
   </parent>
 
   <groupId>uk.ac.ebi.protvar</groupId>
-  <artifactId>ProtVar-service</artifactId>
-  <version>0.0.11-SNAPSHOT</version>
-  <name>ProtVar-service</name>
-  <description>ProtVar Service</description>
+  <artifactId>protvar-api</artifactId>
+  <version>1.5-SNAPSHOT</version>
+  <name>ProtVar API</name>
+  <description>The API serves the ProtVar UI and enables programmatic access to the ProtVar data.</description>
 
   <properties>
     <java.version>17</java.version>
@@ -33,7 +33,7 @@
     <dependency>
       <groupId>uk.ac.ebi.protvar</groupId>
       <artifactId>protvar-common</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
+      <version>1.0.0</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

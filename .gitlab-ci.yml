@@ -18,6 +18,20 @@ stages:
   before_script:
     - java --version
     - mvn --version
+    - echo "<settings>
+        <servers>
+          <server>
+            <id>ebi-artifactory-releases</id>
+            <username>${UNI_MVN_USER}</username>
+            <password>${UNI_MVN_PASSWORD}</password>
+          </server>
+          <server>
+            <id>ebi-artifactory-snapshots</id>
+            <username>${UNI_MVN_USER}</username>
+            <password>${UNI_MVN_PASSWORD}</password>
+          </server>
+        </servers>
+      </settings>" > ~/.m2/settings.xml
 
 test:
   extends: .mvn
