@@ -21,12 +21,12 @@ stages:
     - echo "<settings>
         <servers>
           <server>
-            <id>ebi-artifactory-releases</id>
+            <id>internal-repo</id>
             <username>${UNI_MVN_USER}</username>
             <password>${UNI_MVN_PASSWORD}</password>
           </server>
           <server>
-            <id>ebi-artifactory-snapshots</id>
+            <id>internal-repo-snapshots</id>
             <username>${UNI_MVN_USER}</username>
             <password>${UNI_MVN_PASSWORD}</password>
           </server>
