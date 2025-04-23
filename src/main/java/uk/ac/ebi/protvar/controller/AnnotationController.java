@@ -16,6 +16,9 @@ import uk.ac.ebi.protvar.fetcher.PDBeFetcher;
 import uk.ac.ebi.protvar.fetcher.ProteinsFetcher;
 import uk.ac.ebi.protvar.fetcher.VariantFetcher;
 import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.repo.FoldxRepo;
+import uk.ac.ebi.protvar.repo.InteractionRepo;
+import uk.ac.ebi.protvar.repo.PocketRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
@@ -31,6 +34,12 @@ public class AnnotationController {
 
   private PDBeFetcher pdbeFetcher;
 
+  private PocketRepo pocketRepo;
+
+  private InteractionRepo interactionRepo;
+
+  private FoldxRepo foldxRepo;
+
   /**
    * @param accession UniProt accession
    * @param position  Amino acid position
@@ -44,6 +53,10 @@ public class AnnotationController {
     @Parameter(example = "493") @PathVariable("position") int position,
     @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
     FunctionalInfo functionalInfo = proteinsFetcher.fetch(accession, position, AminoAcid.oneLetter(variantAA));
+    // Add novel predictions
+    functionalInfo.setPockets(pocketRepo.getPockets(accession, position));
+    functionalInfo.setInteractions(interactionRepo.getInteractions(accession, position));
+    functionalInfo.setFoldxs(foldxRepo.getFoldxs(accession, position, variantAA));
     return new ResponseEntity<>(functionalInfo, HttpStatus.OK);
   }
 

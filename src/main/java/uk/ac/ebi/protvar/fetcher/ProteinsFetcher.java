@@ -5,11 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import uk.ac.ebi.protvar.cache.CacheKey;
 import uk.ac.ebi.protvar.converter.UPEntry2FunctionalInfoConverter;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
-import uk.ac.ebi.protvar.repo.PredictionRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.domain.entry.UPEntry;
 import uk.ac.ebi.uniprot.domain.features.Feature;
@@ -31,8 +29,6 @@ public class ProteinsFetcher {
 
 	private UPEntry2FunctionalInfoConverter converter;
 	private ProteinsAPI proteinsAPI;
-
-	private PredictionRepo predictionRepo;
 
 	private RedisTemplate redisTemplate;
 
@@ -72,8 +68,7 @@ public class ProteinsFetcher {
 	 * @return FunctionalInfo
 	 */
 	public FunctionalInfo fetch(String accession, int position, String variantAA) {
-
-		if (!StringUtils.isEmpty(accession)) {
+		if (accession != null && !accession.isBlank()) {
 			String key = CacheKey.protein(accession);
 			// Try to get from cache
 			UPEntry entry = Optional.ofNullable(redisTemplate.opsForValue().get(key))
@@ -96,10 +91,6 @@ public class ProteinsFetcher {
 				// Filter features based on position
 				List<Feature> features = filterFeatures(functionalInfo.getFeatures(), position);
 				functionalInfo.setFeatures(features);
-				// Add novel predictions
-				functionalInfo.setPockets(predictionRepo.getPockets(accession, position));
-				functionalInfo.setInteractions(predictionRepo.getInteractions(accession, position));
-				functionalInfo.setFoldxs(predictionRepo.getFoldxs(accession, position, variantAA));
 				return functionalInfo;
 			}
 		}

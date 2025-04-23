@@ -10,8 +10,11 @@ import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.fetcher.PDBeFetcher;
 import uk.ac.ebi.protvar.fetcher.ProteinsFetcher;
 import uk.ac.ebi.protvar.input.params.InputParams;
+import uk.ac.ebi.protvar.model.data.Foldx;
+import uk.ac.ebi.protvar.model.data.Interaction;
+import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.utils.Constants;
-import uk.ac.ebi.protvar.model.response.IsoFormMapping;
+import uk.ac.ebi.protvar.model.response.Isoform;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
@@ -29,17 +32,22 @@ public class AnnotationsBuilder {
 	private ProteinsFetcher proteinsFetcher;
 	private PDBeFetcher pdbeFetcher;
 
-	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion, Map<String, List<Variant>> variantMap,
-			InputParams params, IsoFormMapping.IsoFormMappingBuilder builder) {
+	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion,
+					  Map<String, List<Variant>> variantMap,
+					  Map<String, List<Pocket>> pocketsMap,
+					  Map<String, List<Interaction>> interactionsMap,
+					  Map<String, List<Foldx>> foldxMap,
+					  InputParams params,
+					  Isoform.IsoformBuilder builder) {
 		buildPopulationObservation(accession, isoformPostion, variantMap, params.isPop(), genomicLocation, builder);
 
-		buildFunction(accession, isoformPostion, variantAA, params.isFun(), builder);
+		buildFunction(accession, isoformPostion, variantAA, pocketsMap, interactionsMap, foldxMap, params.isFun(), builder);
 
 		buildStructure(accession, isoformPostion, params.isStr(), builder);
 	}
 
 	private void buildStructure(String accession, int isoformPostion, boolean isStructure,
-			IsoFormMapping.IsoFormMappingBuilder builder) {
+			Isoform.IsoformBuilder builder) {
 		if (isStructure) {
 			List<PDBeStructureResidue> proteinStructure = pdbeFetcher.fetch(accession, isoformPostion);
 			builder.proteinStructure(proteinStructure);
@@ -49,10 +57,26 @@ public class AnnotationsBuilder {
 		}
 	}
 
-	private void buildFunction(String accession, int isoformPostion, String variantAA, boolean isFunction,
-			IsoFormMapping.IsoFormMappingBuilder builder) {
+	private void buildFunction(String accession, int isoformPostion, String variantAA,
+							   Map<String, List<Pocket>> pocketsMap,
+							   Map<String, List<Interaction>> interactionsMap,
+							   Map<String, List<Foldx>> foldxMap,
+							   boolean isFunction,
+							   Isoform.IsoformBuilder builder) {
 		if (isFunction) {
 			FunctionalInfo protein = proteinsFetcher.fetch(accession, isoformPostion, variantAA);
+			// Add novel predictions
+			var key = accession + "-" + isoformPostion;
+			if (pocketsMap != null) {
+				protein.setPockets(pocketsMap.get(key));
+			}
+			if (interactionsMap != null) {
+				protein.setInteractions(interactionsMap.get(key));
+			}
+			var foldxKey = accession + "-" + isoformPostion + "-" + variantAA;
+			if (foldxMap != null) {
+				protein.setFoldxs(foldxMap.get(foldxKey));
+			}
 			builder.referenceFunction(protein);
 		} else {
 			String uri = buildUri(FUNCTION_API, accession, isoformPostion);
@@ -64,7 +88,7 @@ public class AnnotationsBuilder {
 	}
 
 	private void buildPopulationObservation(String accession, int isoformPostion, Map<String, List<Variant>> variantMap, boolean isVariation, long genomicLocation,
-			IsoFormMapping.IsoFormMappingBuilder builder) {
+			Isoform.IsoformBuilder builder) {
 		if (isVariation) {
 			//List<Variation> variations = variationFetcher.fetch(accession, isoformPostion);
 			List<Variant> variants = variantMap.get(accession+":"+isoformPostion);
