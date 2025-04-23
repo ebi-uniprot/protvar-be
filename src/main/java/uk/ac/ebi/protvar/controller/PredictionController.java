@@ -12,7 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.data.*;
-import uk.ac.ebi.protvar.repo.PredictionRepo;
+import uk.ac.ebi.protvar.repo.FoldxRepo;
+import uk.ac.ebi.protvar.repo.InteractionRepo;
+import uk.ac.ebi.protvar.repo.PocketRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 
 import javax.servlet.ServletContext;
@@ -26,7 +28,11 @@ public class PredictionController {
     @Autowired
     private ServletContext context;
 
-    private PredictionRepo predictionRepo;
+    private PocketRepo pocketRepo;
+
+    private InteractionRepo interactionRepo;
+
+    private FoldxRepo foldxRepo;
 
     @Operation(summary = "Nucleotide predictions - CADD (WIP)",
             description="Retrieve CADD score for the given genomic positions.")
@@ -56,7 +62,7 @@ public class PredictionController {
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer position,
             @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
-        List<Foldx> foldxs = predictionRepo.getFoldxs(accession, position, AminoAcid.oneLetter(variantAA));
+        List<Foldx> foldxs = foldxRepo.getFoldxs(accession, position, AminoAcid.oneLetter(variantAA));
         return new ResponseEntity<>(foldxs, HttpStatus.OK);
     }
 
@@ -74,7 +80,7 @@ public class PredictionController {
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer resid) {
 
-        List<Pocket> pockets = predictionRepo.getPockets(accession, resid);
+        List<Pocket> pockets = pocketRepo.getPockets(accession, resid);
         return new ResponseEntity<>(pockets, HttpStatus.OK);
     }
 
@@ -92,7 +98,7 @@ public class PredictionController {
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer resid) {
 
-        List<Interaction> interactions = predictionRepo.getInteractions(accession, resid);
+        List<Interaction> interactions = interactionRepo.getInteractions(accession, resid);
         interactions.forEach(i -> i.setPdbModel(context.getContextPath() + i.getPdbModel()));
         return new ResponseEntity<>(interactions, HttpStatus.OK);
     }
@@ -110,7 +116,7 @@ public class PredictionController {
     public @ResponseBody String getInteractionModel(
             @Parameter(example = "Q9NUW8") @PathVariable String a,
             @Parameter(example = "Q9UBZ4") @PathVariable String b) {
-        String model = predictionRepo.getInteractionModel(a, b);
+        String model = interactionRepo.getInteractionModel(a, b);
         return model;
     }
 
