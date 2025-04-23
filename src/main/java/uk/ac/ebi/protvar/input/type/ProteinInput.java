@@ -9,7 +9,6 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.model.response.GenomeProteinMapping;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.utils.RegexUtils;
 
@@ -17,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Supported custom formats:
@@ -180,11 +178,6 @@ public class ProteinInput extends UserInput {
     public String toString() {
         return String.format("ProteinInput [inputStr=%s, acc=%s, pos=%s, ref=%s, alt=%s]",
                 getInputStr(), acc, pos, ref, alt);
-    }
-
-    public List<GenomeProteinMapping> derivedGenomicInputsMappings() {
-        return derivedGenomicInputs.stream().map(GenomicInput::getMappings)
-                .flatMap(List::stream).collect(Collectors.toList());
     }
 
     @Override
