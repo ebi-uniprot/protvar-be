@@ -26,6 +26,7 @@ public class ScoreRepo {
     private static final String ESM = "SELECT 'ESM' AS type, mt_aa, score, NULL AS class FROM esm" + WHERE;
     private static final String AM = "SELECT 'AM' AS type, mt_aa, am_pathogenicity AS score, am_class AS class FROM alphamissense" + WHERE;
 
+    // Scores that appear in functional annotation
     private static final String SCORES = """
         SELECT 'CONSERV' AS type, accession, position, null AS mt_aa, score, null AS class FROM conserv_score 
         INNER JOIN (VALUES :accPosList) AS t(acc,pos) ON t.acc=accession and t.pos=position
@@ -35,7 +36,7 @@ public class ScoreRepo {
         UNION 
         SELECT 'ESM' AS type, accession, position, mt_aa, score, null AS class FROM esm 
         INNER JOIN (VALUES :accPosList) AS t(acc,pos) ON t.acc=accession and t.pos=position
-        UNION 
+        UNION
         SELECT 'AM' AS type, accession, position, mt_aa, am_pathogenicity AS score, am_class AS class FROM alphamissense 
         INNER JOIN (VALUES :accPosList) AS t(acc,pos) ON t.acc=accession and t.pos=position
         """;
@@ -88,27 +89,26 @@ public class ScoreRepo {
     // joinWithDash(name, acc, pos, mt)
     // in building the MappingResponse.
     public List<Score> getScores(List<Object[]> accPosList) {
-        if (accPosList.size() > 0) {
-            SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
-            List results = jdbcTemplate.query(SCORES,
-                    parameters,
-                    (rs, rowNum) -> {
-                        String t = rs.getString("type");
-                        if (t.equalsIgnoreCase(Score.Name.CONSERV.name())) {
-                            return new ConservScore(rs.getString("accession"), rs.getInt("position"), null, rs.getDouble("score"));
-                        } else if (t.equalsIgnoreCase(Score.Name.EVE.name())) {
-                            return new EVEScore(rs.getString("accession"), rs.getInt("position"), rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
-                        } else if (t.equalsIgnoreCase(Score.Name.ESM.name())) {
-                            return new ESMScore(rs.getString("accession"), rs.getInt("position"), rs.getString("mt_aa"), rs.getDouble("score"));
-                        } else if (t.equalsIgnoreCase(Score.Name.AM.name())) {
-                            return new AMScore(rs.getString("accession"), rs.getInt("position"), rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
-                        }
-                        return null;
-                    });
-            results.removeIf(Objects::isNull);
-            return results;
-        }
-        return List.of();
+        if (accPosList == null || accPosList.isEmpty()) return List.of();
+
+        SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
+        List results = jdbcTemplate.query(SCORES,
+                parameters,
+                (rs, rowNum) -> {
+                    String t = rs.getString("type");
+                    if (t.equalsIgnoreCase(Score.Name.CONSERV.name())) {
+                        return new ConservScore(rs.getString("accession"), rs.getInt("position"), null, rs.getDouble("score"));
+                    } else if (t.equalsIgnoreCase(Score.Name.EVE.name())) {
+                        return new EVEScore(rs.getString("accession"), rs.getInt("position"), rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
+                    } else if (t.equalsIgnoreCase(Score.Name.ESM.name())) {
+                        return new ESMScore(rs.getString("accession"), rs.getInt("position"), rs.getString("mt_aa"), rs.getDouble("score"));
+                    } else if (t.equalsIgnoreCase(Score.Name.AM.name())) {
+                        return new AMScore(rs.getString("accession"), rs.getInt("position"), rs.getString("mt_aa"), rs.getDouble("score"), rs.getInt("class"));
+                    }
+                    return null;
+                });
+        results.removeIf(Objects::isNull);
+        return results;
     }
 
     private String appendMt(String sql, String mt) {
