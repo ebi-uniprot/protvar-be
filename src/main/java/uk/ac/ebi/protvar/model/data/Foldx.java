@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar.model.data;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.Objects;
@@ -9,6 +10,7 @@ import java.util.Objects;
 @Getter
 @Setter
 @AllArgsConstructor
+@NoArgsConstructor
 public class Foldx {
 	private String proteinAcc;
 	private Integer position;

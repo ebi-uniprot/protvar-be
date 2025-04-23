@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CADDPrediction {
+public class CaddPrediction {
 	private String chromosome;
 	private Integer position;
 	private String referenceAllele;
