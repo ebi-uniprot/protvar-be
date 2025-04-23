@@ -7,5 +7,6 @@ import lombok.Getter;
 @Builder
 public class Transcript {
 	private String enst;
+	private String ensp;
 	private String ense;
 }

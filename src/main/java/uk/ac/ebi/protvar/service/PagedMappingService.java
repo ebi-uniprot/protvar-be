@@ -8,7 +8,8 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.cache.InputSummary;
-import uk.ac.ebi.protvar.fetcher.MappingFetcher;
+import uk.ac.ebi.protvar.fetcher.CustomInputMapping;
+import uk.ac.ebi.protvar.fetcher.ProteinInputMapping;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
@@ -26,7 +27,8 @@ import java.util.*;
 @AllArgsConstructor
 public class PagedMappingService {
     private MappingRepo mappingRepo;
-    private MappingFetcher mappingFetcher;
+    private CustomInputMapping customInputMapping;
+    private ProteinInputMapping proteinInputMapping;
     private InputCache inputCache;
 
     private BuildProcessor buildProcessor;
@@ -81,7 +83,7 @@ public class PagedMappingService {
                 .summarise(true)
                 .build();
 
-        MappingResponse mappingContent = mappingFetcher.getMapping(params);
+        MappingResponse mappingContent = customInputMapping.getMapping(params);
         if (inputBuild != null && inputBuild.getMessage() != null) {
             mappingContent.getMessages().add(inputBuild.getMessage());
         }
@@ -129,7 +131,7 @@ public class PagedMappingService {
                 .build(); // default values for annotations will be false
         // for function, population and structure
 
-        MappingResponse content = mappingFetcher.getGenMappings(params);
+        MappingResponse content = proteinInputMapping.getMappings(accession, params);
 
         PagedMappingResponse response = newPagedMappingResponse(pageNo, page);
         response.setContent(content);
@@ -158,7 +160,7 @@ public class PagedMappingService {
                 .build(); // default values for annotations will be false
         // for function, population and structure
 
-        MappingResponse content = mappingFetcher.getGenMappings(params);
+        MappingResponse content = proteinInputMapping.getMappings(id, params); // TODO replace with an ensemblInputMapping
 
         PagedMappingResponse response = newPagedMappingResponse(pageNo, page);
         response.setContent(content);

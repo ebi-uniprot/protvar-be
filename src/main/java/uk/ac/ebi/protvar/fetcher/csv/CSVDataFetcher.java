@@ -16,9 +16,11 @@ import org.springframework.stereotype.Service;
 
 import com.opencsv.CSVWriter;
 
+import org.springframework.transaction.annotation.Transactional;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputCache;
-import uk.ac.ebi.protvar.fetcher.MappingFetcher;
+import uk.ac.ebi.protvar.fetcher.CustomInputMapping;
+import uk.ac.ebi.protvar.fetcher.ProteinInputMapping;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.input.params.InputParams;
@@ -28,6 +30,7 @@ import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
+import uk.ac.ebi.protvar.model.InputType;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.service.PagedMappingService;
@@ -62,8 +65,9 @@ public class CSVDataFetcher {
 	static final String CSV_HEADER = CSV_HEADER_INPUT + Constants.COMMA + CSV_HEADER_NOTES + Constants.COMMA + CSV_HEADER_OUTPUT;
 
 	private static final int PARTITION_SIZE = 1000;
+	private CustomInputMapping customInputMapping;
+	private ProteinInputMapping proteinInputMapping;
 
-	private MappingFetcher mappingFetcher;
 	private CSVFunctionDataFetcher functionDataFetcher;
 	private CSVPopulationDataFetcher populationFetcher;
 	private CSVStructureDataFetcher csvStructureDataFetcher;
@@ -75,6 +79,7 @@ public class CSVDataFetcher {
 
 	private BuildProcessor buildProcessor;
 
+	@Transactional(readOnly = true) // Avoid unnecessary locks in the DB.
 	public void writeCSVResult(DownloadRequest request) {
 		List<String> inputs = null;
 		String inputId = null;
@@ -146,7 +151,7 @@ public class CSVDataFetcher {
 								.assembly(request.getAssembly())
 								.inputBuild(inputBuild)
 								.build();
-						List<String[]> result = buildCSVResult(params);
+						List<String[]> result = buildCSVResult(params, request);
 						writer.writeAll(result);
 					} else {
 						final String id = inputId;
@@ -162,7 +167,7 @@ public class CSVDataFetcher {
 											.assembly(request.getAssembly())
 											.inputBuild(detectedBuild)
 											.build();
-									return buildCSVResult(params);
+									return buildCSVResult(params, request);
 								})
 								.forEachOrdered(writer::writeAll);
 					}
@@ -189,13 +194,16 @@ public class CSVDataFetcher {
 			Files.deleteIfExists(csvPath);
 
 		} catch (Throwable t) {
+			LOGGER.error("Error processing CSV download request", t);
 			Email.notifyUserErr(request, inputs);
 			Email.notifyDevErr(request, inputs, t);
 		}
 	}
 
-	private List<String[]> buildCSVResult(InputParams params) {
-		MappingResponse response = mappingFetcher.getMapping(params);
+	private List<String[]> buildCSVResult(InputParams params, DownloadRequest request) {
+		MappingResponse response = request.getType() == InputType.PROTEIN_ACCESSION ?
+				proteinInputMapping.getMappings(request.getInput(), params) :
+				customInputMapping.getMapping(params);
 		List<String[]> csvOutput = new ArrayList<>();
 
 		response.getInputs().forEach(input -> {
@@ -248,13 +256,11 @@ public class CSVDataFetcher {
 				.collect(Collectors.joining(";"));
 		final String notes = messages.isEmpty() ? Constants.NA : messages;
 
-		genInput.getMappings().forEach(mapping -> {
-			var genes = mapping.getGenes();
-			if(genes.isEmpty())
-				csvOutput.add(getCsvDataMappingNotFound(genInput));
-			else
-				genes.forEach(gene -> csvOutput.add(getCSVData(notes, gene, chr, genomicLocation, varAllele, id, input, params)));
-		});
+		var genes = genInput.getGenes();
+		if(genes.isEmpty())
+			csvOutput.add(getCsvDataMappingNotFound(genInput));
+		else
+			genes.forEach(gene -> csvOutput.add(getCSVData(notes, gene, chr, genomicLocation, varAllele, id, input, params)));
 	}
 
 	String[] getCsvDataMappingNotFound(GenomicInput genInput){
@@ -297,18 +303,18 @@ public class CSVDataFetcher {
 		if (gene.getCaddScore() != null)
 			cadd = gene.getCaddScore().toString();
 		String strand = "+";
-		IsoFormMapping mapping = gene.getIsoforms().get(0);
+		Isoform mapping = gene.getIsoforms().get(0);
 
 		if (gene.isReverseStrand()) {
 			strand = "-";
 		}
 
 		var alternateInformDetails = buildAlternateInformDetails(gene.getIsoforms());
-		List<String> ensps = getEnsps(mapping.getTranslatedSequences());
+		List<String> transcripts = addTranscripts(mapping.getTranscripts());
 
 		List<String> output = new ArrayList<>(Arrays.asList(input, chr, genomicLocation.toString(), id, gene.getRefAllele(),
 			varAllele, notes, gene.getGeneName(), mapping.getCodonChange(), strand, cadd,
-			ensps.toString(), Constants.NA,mapping.getAccession(), CSVUtils.getValOrNA(alternateInformDetails), mapping.getProteinName(),
+				transcripts.toString(), Constants.NA,mapping.getAccession(), CSVUtils.getValOrNA(alternateInformDetails), mapping.getProteinName(),
 			String.valueOf(mapping.getIsoformPosition()), mapping.getAminoAcidChange(),
 			mapping.getConsequences()));
 
@@ -335,17 +341,17 @@ public class CSVDataFetcher {
 			output.add(Constants.NA);
 	}
 
-	private String buildAlternateInformDetails(List<IsoFormMapping> value) {
+	private String buildAlternateInformDetails(List<Isoform> value) {
 		List<String> isformDetails = new ArrayList<>();
-		for (IsoFormMapping mapping: value) {
+		for (Isoform mapping: value) {
 			if (mapping.isCanonical())
 				continue;
-			List<String> ensps = getEnsps(mapping.getTranslatedSequences());
+			List<String> transcripts = addTranscripts(mapping.getTranscripts());
 			isformDetails.add(
 				mapping.getAccession() + ";" +
 					mapping.getIsoformPosition() + ";" +
 					mapping.getAminoAcidChange() + ";" +
-					mapping.getConsequences() + ";" + ensps);
+					mapping.getConsequences() + ";" + transcripts);
 		}
 		return String.join("|", isformDetails);
 	}
@@ -355,5 +361,8 @@ public class CSVDataFetcher {
 			String ensts = translatedSeq.getTranscripts().stream().map(Transcript::getEnst).collect(Collectors.joining(":"));
 			return translatedSeq.getEnsp() + "(" + ensts + ")";
 		}).collect(Collectors.toList());
+	}
+	private List<String> addTranscripts(List<Transcript> transcripts) {
+		return transcripts.stream().map(transcript -> transcript.getEnsp() + "(" + transcript.getEnst() + ")").collect(Collectors.toList());
 	}
 }

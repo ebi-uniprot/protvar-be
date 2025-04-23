@@ -6,7 +6,7 @@ import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
-import uk.ac.ebi.protvar.model.response.IsoFormMapping;
+import uk.ac.ebi.protvar.model.response.Isoform;
 import uk.ac.ebi.protvar.utils.CSVUtils;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
@@ -36,7 +36,7 @@ public class CSVFunctionDataFetcher {
 	// AlphaMissense
 	// EVE
 	// ESM
-	public List<String> fetch(IsoFormMapping mapping) {
+	public List<String> fetch(Isoform mapping) {
 		List<String> output = new ArrayList<>();
 		FunctionalInfo functionalInfo = mapping.getReferenceFunction();
 
@@ -61,7 +61,7 @@ public class CSVFunctionDataFetcher {
 		return output;
 	}
 
-	private String getAMScore(IsoFormMapping mapping) {
+	private String getAMScore(Isoform mapping) {
 		if (mapping.getAmScore() == null) return Constants.NA;
 		return new StringBuilder()
 				.append(mapping.getAmScore().getAmPathogenicity())
@@ -70,7 +70,7 @@ public class CSVFunctionDataFetcher {
 				.append(")").toString();
 	}
 
-	private String getEveScore(IsoFormMapping mapping) {
+	private String getEveScore(Isoform mapping) {
 		if (mapping.getEveScore() == null) return Constants.NA;
 		return new StringBuilder()
 				.append(mapping.getEveScore().getScore())

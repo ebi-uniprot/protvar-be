@@ -16,24 +16,20 @@ import static uk.ac.ebi.protvar.utils.Commons.upperFirstRemainingLower;
 @Getter
 @Builder
 @JsonPropertyOrder({ "accession", "canonical" })
-public class IsoFormMapping implements Comparable<IsoFormMapping> {
+public class Isoform implements Comparable<Isoform> {
 
 	private String accession;
 	private boolean canonical;
 	private String canonicalAccession;
 	private int isoformPosition;
 	private String refCodon;
-	//TODO clean up
-	//private String userCodon;
-	private int cdsPosition;
+	private int codonPosition;
 	private String refAA;
-	//TODO clean up
-	//private String userAA;
 	private String variantAA;
 	private String variantCodon;
 	private String consequences;
 	private String proteinName;
-	private List<Ensp> translatedSequences;
+	private List<Transcript> transcripts;
 
 	@JsonInclude(Include.NON_NULL)
 	private PopulationObservation populationObservations;
@@ -44,14 +40,6 @@ public class IsoFormMapping implements Comparable<IsoFormMapping> {
 	private FunctionalInfo referenceFunction;
 	@JsonInclude(Include.NON_NULL)
 	private String referenceFunctionUri;
-
-	//@JsonInclude(Include.NON_NULL)
-	//private List<ProteinFeature> experimentalEvidence;
-
-	//@JsonInclude(Include.NON_NULL)
-	//private EvolutionInference evolutionalInference;
-	//@JsonInclude(Include.NON_NULL)
-	//private String evolutionalInferenceUri;
 
 	@JsonInclude(Include.NON_NULL)
 	private List<PDBeStructureResidue> proteinStructure;
@@ -81,7 +69,7 @@ public class IsoFormMapping implements Comparable<IsoFormMapping> {
 		return upperFirstRemainingLower(variantAA);
 	}
 	@Override
-	public int compareTo(IsoFormMapping o) {
+	public int compareTo(Isoform o) {
 		return Boolean.compare(o.canonical, this.canonical);
 	}
 }

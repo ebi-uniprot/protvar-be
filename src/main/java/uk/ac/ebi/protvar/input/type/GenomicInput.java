@@ -9,7 +9,7 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.model.response.GenomeProteinMapping;
+import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.HGVS;
@@ -18,6 +18,7 @@ import static uk.ac.ebi.protvar.utils.RegexUtils.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -92,8 +93,8 @@ public class GenomicInput extends UserInput {
 
     Boolean converted;
 
-    // output or result of input
-    List<GenomeProteinMapping> mappings = new ArrayList<>();
+    List<Gene> genes = new ArrayList<>();
+    // TODO move caddScore & alleleFreq here!
 
     public GenomicInput(String userInput) {
         setType(Type.GENOMIC);
@@ -299,7 +300,14 @@ public class GenomicInput extends UserInput {
         return List.of(this);
     }
 
+    public static final Map<String, Set<String>> ALTERNATES_MAP = Map.of(
+            "A", Set.of("T", "C", "G"),
+            "T", Set.of("A", "C", "G"),
+            "C", Set.of("A", "T", "G"),
+            "G", Set.of("A", "T", "C")
+    );
+
     public static Set<String> getAlternates(String ref) {
-        return VALID_ALLELES.stream().filter(s -> !s.equals(ref)).collect(Collectors.toSet());
+        return ALTERNATES_MAP.getOrDefault(ref, Set.of());
     }
 }

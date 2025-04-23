@@ -11,7 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.cache.InputBuild;
-import uk.ac.ebi.protvar.fetcher.MappingFetcher;
+import uk.ac.ebi.protvar.fetcher.CustomInputMapping;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
@@ -29,7 +29,7 @@ import java.util.List;
 public class CoordinateMappingController {
     public final static int MAX_INPUT = 1000;
     public final static String ASSEMBLY_DESC = "Specify the human genome assembly version. Accepted values are: GRCh38/h38/38, GRCh37/h37/37 or AUTO (default, auto-detects the version).";
-    private MappingFetcher mappingFetcher;
+    private CustomInputMapping customInputMapping;
     private BuildProcessor buildProcessor;
 
     @Operation(
@@ -79,7 +79,7 @@ public class CoordinateMappingController {
                 .summarise(true) // not needed anymore
                 .build();
 
-        MappingResponse mappingResponse = mappingFetcher.getMapping(params);
+        MappingResponse mappingResponse = customInputMapping.getMapping(params);
         if (inputs.size() > MAX_INPUT && mappingResponse != null && mappingResponse.getMessages() != null) {
             mappingResponse.getMessages().add(new Message(Message.MessageType.WARN, String.format("Processed first %d inputs only.", MAX_INPUT)));
         }
@@ -117,7 +117,7 @@ public class CoordinateMappingController {
         InputParams params = InputParams.builder()
                 .inputs(InputProcessor.parse(List.of(input)))
                 .build();
-        MappingResponse mappingResponse = mappingFetcher.getMapping(params);
+        MappingResponse mappingResponse = customInputMapping.getMapping(params);
         return new ResponseEntity<>(mappingResponse, HttpStatus.OK);
     }
 
