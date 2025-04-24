@@ -111,6 +111,15 @@ public class VariantFetcher {
 
 	public Map<String, List<Variant>> getVariantMap(List<Object[]> accPosList) {
 		Map<String, List<Feature>> featureMap = variationRepo.getFeatureMap(accPosList);
+		return getVariantMap(featureMap);
+	}
+
+	public Map<String, List<Variant>> getVariantMap(String accession) {
+		Map<String, List<Feature>> featureMap = variationRepo.getFeatureMap(accession);
+		return getVariantMap(featureMap);
+	}
+
+	public Map<String, List<Variant>> getVariantMap(Map<String, List<Feature>> featureMap) {
 		Map<String, List<Variant>> variantMap = featureMap.entrySet()
 				.stream()
 				.collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().stream()

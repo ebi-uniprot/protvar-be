@@ -65,17 +65,35 @@ public class VariationRepo {
         }
     }
 
+    // Method for handling a list of accession-position pairs
     public Map<String, List<Feature>> getFeatureMap(List<Object[]> accPosList) {
         if (accPosList == null || accPosList.isEmpty())
             return new HashedMap();
         String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosList)",
                 variationTable);
         SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
+
+        return getFeatureMapFromQuery(sql, parameters);
+    }
+
+    // Method for handling a single accession
+    public Map<String, List<Feature>> getFeatureMap(String accession) {
+        if (accession == null || accession.isEmpty())
+            return new HashedMap();
+
+        String sql = String.format("SELECT * FROM %s WHERE accession = :accession", variationTable);
+        SqlParameterSource parameters = new MapSqlParameterSource("accession", accession);
+
+        return getFeatureMapFromQuery(sql, parameters);
+    }
+
+    // Shared helper method for querying features from the database
+    private Map<String, List<Feature>> getFeatureMapFromQuery(String sql, SqlParameterSource parameters) {
         return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<Map>() {
             @Override
             public Map extractData(ResultSet rs) throws SQLException, DataAccessException {
                 Map<String, List<Feature>> featureMap = new HashMap();
-                while(rs.next()){
+                while (rs.next()) {
                     String acc = rs.getString("accession");
                     int pos = rs.getInt("position");
                     Feature f = createVariant(rs);
