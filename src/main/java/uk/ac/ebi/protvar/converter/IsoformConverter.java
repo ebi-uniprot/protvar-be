@@ -86,7 +86,7 @@ public class IsoformConverter {
 				.proteinName(mapping.getProteinName());
 
 		if (accession.equals(canonicalAccession)) {
-			addScores(builder, accession, mapping.getIsoformPosition(), variantAA, scoreMap);
+			addScores(builder, accession, mapping.getIsoformPosition(), variantAA, scoreMap, params);
 			annotationsBuilder.build(accession, mapping.getGenomeLocation(), variantAA.getOneLetter(),
 					mapping.getIsoformPosition(), variantMap, pocketsMap, interactionsMap, foldxMap, params, builder);
 		}
@@ -94,23 +94,28 @@ public class IsoformConverter {
 	}
 
 	private void addScores(Isoform.IsoformBuilder builder, String accession, int position, AminoAcid variantAA,
-						   Map<String, List<Score>> scoreMap) {
-		String keyConserv = Commons.joinWithDash("CONSERV", accession, position);
+						   Map<String, List<Score>> scoreMap, InputParams params) {
+		// Always add AM scores
 		String keyAm = Commons.joinWithDash("AM", accession, position, variantAA.getOneLetter());
-		String keyEve = Commons.joinWithDash("EVE", accession, position, variantAA.getOneLetter());
-		String keyEsm = Commons.joinWithDash("ESM", accession, position, variantAA.getOneLetter());
-
-		scoreMap.getOrDefault(keyConserv, Collections.emptyList()).stream().findFirst()
-				.map(s -> ((ConservScore) s).copy()).ifPresent(builder::conservScore);
 
 		scoreMap.getOrDefault(keyAm, Collections.emptyList()).stream().findFirst()
 				.map(s -> ((AMScore) s).copy()).ifPresent(builder::amScore);
 
-		scoreMap.getOrDefault(keyEve, Collections.emptyList()).stream().findFirst()
-				.map(s -> ((EVEScore) s).copy()).ifPresent(builder::eveScore);
+		// Other scores only if isFun true
+		if (params.isFun()) {
+			String keyConserv = Commons.joinWithDash("CONSERV", accession, position);
+			String keyEve = Commons.joinWithDash("EVE", accession, position, variantAA.getOneLetter());
+			String keyEsm = Commons.joinWithDash("ESM", accession, position, variantAA.getOneLetter());
 
-		scoreMap.getOrDefault(keyEsm, Collections.emptyList()).stream().findFirst()
-				.map(s -> ((ESMScore) s).copy()).ifPresent(builder::esmScore);
+			scoreMap.getOrDefault(keyConserv, Collections.emptyList()).stream().findFirst()
+					.map(s -> ((ConservScore) s).copy()).ifPresent(builder::conservScore);
+
+			scoreMap.getOrDefault(keyEve, Collections.emptyList()).stream().findFirst()
+					.map(s -> ((EVEScore) s).copy()).ifPresent(builder::eveScore);
+
+			scoreMap.getOrDefault(keyEsm, Collections.emptyList()).stream().findFirst()
+					.map(s -> ((ESMScore) s).copy()).ifPresent(builder::esmScore);
+		}
 	}
 
 	private String replaceChar(String str, char ch, int index) {
