@@ -178,7 +178,7 @@ public class CSVDataFetcher {
 											.inputBuild(detectedBuild)
 											.build();
 
-									LOGGER.info("Building CSV for request {}, partition {}", request.getFname(), partitionNumber);
+									LOGGER.info("Building CSV for request {}, partition {} of {}", request.getFname(), partitionNumber, partitions.size());
 									return buildCSVResult(params, request);
 								})
 								.forEachOrdered(writer::writeAll);					}
@@ -204,10 +204,10 @@ public class CSVDataFetcher {
 			// Cleanup CSV File
 			Files.deleteIfExists(csvPath);
 
-		} catch (Throwable t) {
-			LOGGER.error("Error processing CSV download request", t);
+		} catch (Exception e) {
+			LOGGER.error("Job failed for {}: {}", request.getFname(), e.getMessage(), e);
 			Email.notifyUserErr(request, inputs);
-			Email.notifyDevErr(request, inputs, t);
+			Email.notifyDevErr(request, inputs, e);
 		}
 		LOGGER.info("Finished processing download request: {}", request.getFname());
 	}

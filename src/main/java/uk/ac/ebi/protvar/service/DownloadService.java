@@ -22,7 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Download queues
@@ -39,6 +39,8 @@ public class DownloadService {
     private String downloadDir;
     private CSVDataFetcher csvDataFetcher;
     private final RabbitTemplate rabbitTemplate;
+
+    private ExecutorService downloadTaskExecutor;
 
     public Path tmpPath() {
         return Path.of(downloadDir, "tmp");
@@ -87,34 +89,19 @@ public class DownloadService {
     public void onDownloadRequest(DownloadRequest request,
                                   Channel channel,
                                   @Header(AmqpHeaders.DELIVERY_TAG) long tag) {
-        int attempt = 0;
-        boolean success = false;
+        try {
+            // Immediately ack
+            channel.basicAck(tag, false);
+            LOGGER.info("Acked request {} - starting async processing", request.getFname());
 
-        while (attempt < MAX_RETRIES && !success) {
-            attempt++;
-            try {
-                LOGGER.info("Attempt {} to process request {}", attempt, request.getFname());
+            // Submit the long job to executor
+            downloadTaskExecutor.submit(() -> {
                 csvDataFetcher.writeCSVResult(request);
-                channel.basicAck(tag, false); // Ack only on success
-                success = true;
-            } catch (Exception e) {
-                if (isConnectionIssue(e)) {
-                    LOGGER.warn("DB connection issue on attempt {}: {}", attempt, e.getMessage());
-                    try {
-                        Thread.sleep(ThreadLocalRandom.current().nextInt(2000, 5000)); // 2 to 5 sec delay
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
-                } else {
-                    LOGGER.error("Non-retryable failure. Rejecting request {}", request.getFname(), e);
-                    nackAndExit(channel, tag, false); // don't requeue
-                    return;
-                }
-            }
-        }
-        if (!success) {
-            LOGGER.error("Max retries reached. Rejecting request {}", request.getFname());
-            nackAndExit(channel, tag, false); // No requeue to avoid retry loop
+            });
+
+        } catch (IOException e) {
+            LOGGER.error("Failed to ack message for {}: {}", request.getFname(), e.getMessage(), e);
+            // Optional: consider dead-lettering this message or alerting ops
         }
     }
 
@@ -152,27 +139,4 @@ public class DownloadService {
         });
         return resultMap;
     }
-
-    // Helper: Detect DB Connection Errors
-    private boolean isConnectionIssue(Throwable ex) {
-        Throwable cause = ex;
-        while (cause != null) {
-            if (cause instanceof java.sql.SQLTransientConnectionException
-                    || cause instanceof org.springframework.jdbc.CannotGetJdbcConnectionException) {
-                return true;
-            }
-            cause = cause.getCause();
-        }
-        return false;
-    }
-
-    // Helper: Nack and Exit
-    private void nackAndExit(Channel channel, long tag, boolean requeue) {
-        try {
-            channel.basicNack(tag, false, requeue);
-        } catch (IOException e) {
-            LOGGER.error("Failed to nack message: ", e);
-        }
-    }
-
 }
