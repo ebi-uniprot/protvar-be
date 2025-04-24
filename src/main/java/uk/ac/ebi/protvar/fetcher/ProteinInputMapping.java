@@ -102,9 +102,13 @@ public class ProteinInputMapping {
 			});
 			List<Object[]> accPosList = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toList());
 
-			Map<String, List<Score>> scoreMap = scoreRepo.getScores(accPosList)
-					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
-			final Map<String, List<Variant>> variantMap = params.isPop() ? variantFetcher.getVariantMap(accPosList) : new HashedMap();
+			Map<String, List<Score>> scoreMap = (params.isFun() ?
+					// retrieve all scores
+					scoreRepo.getScores(accession)
+					: // retrieve just AM score
+					scoreRepo.getAMScores(accession)).stream().collect(Collectors.groupingBy(Score::getGroupBy));
+
+			final Map<String, List<Variant>> variantMap = params.isPop() ? variantFetcher.getVariantMap(accession) : new HashedMap();
 			final Map<String, List<Pocket>> pocketsMap = params.isFun() ? pocketRepo.getPockets(accession) : null;
 			final Map<String, List<Interaction>> interactionsMap = params.isFun() ? interactionRepo.getInteractions(accession) : null;
 			final Map<String, List<Foldx>> foldxMap = params.isFun() ? foldxRepo.getFoldxs(accession) : null;
