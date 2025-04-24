@@ -5,11 +5,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import uk.ac.ebi.protvar.utils.Commons;
 
 // Amino acid-level prediction
 @JsonInclude(Include.NON_NULL)
 @Getter
+@NoArgsConstructor
 public abstract class Score {
 
     @AllArgsConstructor

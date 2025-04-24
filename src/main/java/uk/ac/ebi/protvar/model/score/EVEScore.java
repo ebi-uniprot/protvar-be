@@ -1,10 +1,12 @@
 package uk.ac.ebi.protvar.model.score;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class EVEScore extends Score {
 	private Double score; // EVE_score
 	private EVEClass eveClass; // EVE_class

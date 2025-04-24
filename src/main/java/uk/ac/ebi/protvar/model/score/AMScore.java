@@ -1,10 +1,12 @@
 package uk.ac.ebi.protvar.model.score;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class AMScore extends Score {
     private Double amPathogenicity;
     private AMClass amClass;

@@ -2,11 +2,13 @@ package uk.ac.ebi.protvar.model.score;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import uk.ac.ebi.protvar.utils.Commons;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class ConservScore extends Score {
 	private Double score; // AAconservation_normalised
 
