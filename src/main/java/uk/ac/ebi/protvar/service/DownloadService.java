@@ -1,10 +1,13 @@
 package uk.ac.ebi.protvar.service;
 
+import com.rabbitmq.client.Channel;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.AmqpHeaders;
+import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.fetcher.csv.CSVDataFetcher;
 import uk.ac.ebi.protvar.messaging.RabbitMQConfig;
@@ -19,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Download queues
@@ -41,8 +45,13 @@ public class DownloadService {
     }
 
     public DownloadResponse queueRequest(DownloadRequest downloadRequest) {
-        LOGGER.info("Queuing request " + downloadRequest.getFname());
-        rabbitTemplate.convertAndSend("", RabbitMQConfig.DOWNLOAD_QUEUE, downloadRequest);
+        LOGGER.info("Queuing request: {}", downloadRequest.getFname());
+        try {
+            rabbitTemplate.convertAndSend("", RabbitMQConfig.DOWNLOAD_QUEUE, downloadRequest);
+            LOGGER.info("Successfully queued request: {}", downloadRequest.getFname());
+        } catch (Exception e) {
+            LOGGER.error("Error queuing request", e);
+        }
 
         DownloadResponse response = new DownloadResponse();
         //response.setInputType(downloadRequest.getFile() == null ? TEXT_INPUT : FILE_INPUT);
@@ -54,24 +63,59 @@ public class DownloadService {
         return response;
     }
 
-    /**
-     * ackMode="NONE" here means that the listener acknowledges
-     * immediately on receiving a message (auto ack in rabbitmq).
-     * We choose this mode to ensure when jobs fail, unack messages
-     * (which would be the default mode) do not remain in the queue,
-     * and avoid the infinite cycle of trying to process them - likely
-     * to fail - on app restart etc.
-     * If an error or exception happens during job processing, these are
-     * handled e.g. failed job email sent to the user and dev.
-     * TO CHECK!
-     * @param request
-     * @throws InterruptedException
-     */
+    private static final int MAX_RETRIES = 3;
 
-    @RabbitListener(queues = {RabbitMQConfig.DOWNLOAD_QUEUE}, concurrency="16", ackMode = "NONE")
-    public void onDownloadRequest(DownloadRequest request) {
-        LOGGER.info("Processing request " + request.getFname());
-        csvDataFetcher.writeCSVResult(request);
+    /**
+     * Handles DownloadRequest jobs from the queue with manual acknowledgment.
+     *
+     * Previously we used ackMode="NONE" to avoid unacked messages piling up or retrying
+     * indefinitely on app restart. However, this also meant transient failures (e.g. DB
+     * connection issues) led to permanent message loss.
+     *
+     * This version uses ackMode="MANUAL" to:
+     * - Retry transient errors (e.g. JDBC connection pool) up to 3 times with delay.
+     * - Ack only after successful processing.
+     * - Nack without requeue on failure to avoid infinite retry loops.
+     *
+     * This ensures resilience to temporary issues while avoiding job duplication or cycling.
+     */
+    @RabbitListener(
+            queues = {RabbitMQConfig.DOWNLOAD_QUEUE},
+            concurrency = "1-3",
+            ackMode = "MANUAL"
+    )
+    public void onDownloadRequest(DownloadRequest request,
+                                  Channel channel,
+                                  @Header(AmqpHeaders.DELIVERY_TAG) long tag) {
+        int attempt = 0;
+        boolean success = false;
+
+        while (attempt < MAX_RETRIES && !success) {
+            attempt++;
+            try {
+                LOGGER.info("Attempt {} to process request {}", attempt, request.getFname());
+                csvDataFetcher.writeCSVResult(request);
+                channel.basicAck(tag, false); // Ack only on success
+                success = true;
+            } catch (Exception e) {
+                if (isConnectionIssue(e)) {
+                    LOGGER.warn("DB connection issue on attempt {}: {}", attempt, e.getMessage());
+                    try {
+                        Thread.sleep(ThreadLocalRandom.current().nextInt(2000, 5000)); // 2 to 5 sec delay
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                } else {
+                    LOGGER.error("Non-retryable failure. Rejecting request {}", request.getFname(), e);
+                    nackAndExit(channel, tag, false); // don't requeue
+                    return;
+                }
+            }
+        }
+        if (!success) {
+            LOGGER.error("Max retries reached. Rejecting request {}", request.getFname());
+            nackAndExit(channel, tag, false); // No requeue to avoid retry loop
+        }
     }
 
     public FileInputStream getFileResource(String filename) {
@@ -109,5 +153,26 @@ public class DownloadService {
         return resultMap;
     }
 
+    // Helper: Detect DB Connection Errors
+    private boolean isConnectionIssue(Throwable ex) {
+        Throwable cause = ex;
+        while (cause != null) {
+            if (cause instanceof java.sql.SQLTransientConnectionException
+                    || cause instanceof org.springframework.jdbc.CannotGetJdbcConnectionException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
+
+    // Helper: Nack and Exit
+    private void nackAndExit(Channel channel, long tag, boolean requeue) {
+        try {
+            channel.basicNack(tag, false, requeue);
+        } catch (IOException e) {
+            LOGGER.error("Failed to nack message: ", e);
+        }
+    }
 
 }
