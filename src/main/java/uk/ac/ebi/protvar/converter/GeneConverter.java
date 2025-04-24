@@ -21,11 +21,11 @@ public class GeneConverter {
 								  Set<String> altBases,
 								  List<CaddPrediction> caddScores,
 								  List<AlleleFreq> alleleFreqs,
-								  Map<String, List<Score>>  scoreMap,
-								  Map<String, List<Variant>> variantMap,
+								  Map<String, List<Score>>  scoresMap,
+								  Map<String, List<Variant>> variantsMap,
 								  Map<String, List<Pocket>> pocketsMap,
 								  Map<String, List<Interaction>> interactionsMap,
-								  Map<String, List<Foldx>> foldxMap,
+								  Map<String, List<Foldx>> foldxsMap,
 								  InputParams params) {
 		if (mappings == null || mappings.isEmpty()) return Collections.emptyList();
 		return filterEnsgMappings(mappings.stream()
@@ -39,7 +39,7 @@ public class GeneConverter {
 
 					return altBases.stream().map(alt -> {
 						var isoforms = isoformConverter.createIsoforms(mappingList, alt,
-								scoreMap, variantMap, pocketsMap, interactionsMap, foldxMap,
+								scoresMap, variantsMap, pocketsMap, interactionsMap, foldxsMap,
 								params);
 						return Gene.builder()
 								.ensg(ensg)

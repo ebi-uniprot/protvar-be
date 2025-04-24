@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Lists;
@@ -81,6 +82,7 @@ public class CSVDataFetcher {
 
 	@Transactional(readOnly = true) // Avoid unnecessary locks in the DB.
 	public void writeCSVResult(DownloadRequest request) {
+		LOGGER.info("Started processing download request: {}", request);
 		List<String> inputs = null;
 		String inputId = null;
 		InputBuild inputBuild = null;
@@ -114,6 +116,7 @@ public class CSVDataFetcher {
 					// assembly irrelevant for protein accession input
 					String proteinAcc = request.getInput();
 					if (request.getPage() == null) {
+						LOGGER.info("Fetching all genomic inputs for protein accession {}", proteinAcc);
 						inputs = mappingRepo.getGenInputsByAccession(proteinAcc, null, null);
 					} else {
 						Integer pageSize = request.getPageSize() == null ? DEFAULT_PAGE_SIZE : request.getPageSize();
@@ -151,13 +154,20 @@ public class CSVDataFetcher {
 								.assembly(request.getAssembly())
 								.inputBuild(inputBuild)
 								.build();
+						LOGGER.info("Building CSV for request {}, params {}", request.getFname());
 						List<String[]> result = buildCSVResult(params, request);
 						writer.writeAll(result);
 					} else {
 						final String id = inputId;
 						final InputBuild detectedBuild = inputBuild;
-						Lists.partition(inputs, PARTITION_SIZE).parallelStream()
-								.map(partition -> {
+						List<List<String>> partitions = Lists.partition(inputs, PARTITION_SIZE);
+						IntStream.range(0, partitions.size())
+								.mapToObj(i -> new AbstractMap.SimpleEntry<>(i, partitions.get(i)))
+								.parallel() // this makes it a parallel stream
+								.map(entry -> {
+									int partitionNumber = entry.getKey();
+									List<String> partition = entry.getValue();
+
 									InputParams params = InputParams.builder()
 											.id(id)
 											.inputs(InputProcessor.parse(partition))
@@ -167,10 +177,11 @@ public class CSVDataFetcher {
 											.assembly(request.getAssembly())
 											.inputBuild(detectedBuild)
 											.build();
+
+									LOGGER.info("Building CSV for request {}, partition {}", request.getFname(), partitionNumber);
 									return buildCSVResult(params, request);
 								})
-								.forEachOrdered(writer::writeAll);
-					}
+								.forEachOrdered(writer::writeAll);					}
 				} catch (Exception e) {
 					throw e; // error in CSV writing logic
 				}
@@ -198,6 +209,7 @@ public class CSVDataFetcher {
 			Email.notifyUserErr(request, inputs);
 			Email.notifyDevErr(request, inputs, t);
 		}
+		LOGGER.info("Finished processing download request: {}", request.getFname());
 	}
 
 	private List<String[]> buildCSVResult(InputParams params, DownloadRequest request) {

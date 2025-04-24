@@ -69,6 +69,7 @@ public class ProteinInputMapping {
 	 * @return
 	 */
 	public MappingResponse getMappings(String accession, InputParams params) {
+		LOGGER.info("[{}] Input params: fun={}, pop={}, str={}", accession, params.isFun(), params.isPop(), params.isStr());
 		MappingResponse response = new MappingResponse(params.getInputs());
 
 		// get all chrPos combination
@@ -78,47 +79,58 @@ public class ProteinInputMapping {
 		});
 
 		if (!chrPosList.isEmpty()) {
-
-			// retrieve CADD predictions
+			LOGGER.info("[{}] Starting data retrieval for {} chr-pos pairs", accession, chrPosList.size());
 			Map<String, List<CaddPrediction>> caddPredictionMap = caddPredictionRepo.getCADDByChrPos(chrPosList)
 					.stream().collect(Collectors.groupingBy(CaddPrediction::getGroupBy));
+			LOGGER.info("[{}] Retrieved {} CADD predictions", accession, caddPredictionMap.size());
 
-			// retrieve allele freq
 			Map<String, List<AlleleFreq>> alleleFreqMap = alleleFreqRepo.getAlleleFreqs(chrPosList)
 					.stream().collect(Collectors.groupingBy(AlleleFreq::getGroupBy));
+			LOGGER.info("[{}] Retrieved {} allele freqs", accession, alleleFreqMap.size());
 
-			// retrieve main mappings
 			List<GenomeToProteinMapping> g2pMappings = mappingRepo.getMappingsByChrPos(chrPosList);
+			LOGGER.info("[{}] Retrieved {} g2p mappings", accession, g2pMappings.size());
 
 			// get all protein accessions and positions from retrieved mappings
 			Set<String> canonicalAccessions = new HashSet<>();
-			Set<Coord.Prot> protCoords = new HashSet<>();
 			g2pMappings.stream().filter(GenomeToProteinMapping::isCanonical).forEach(m -> {
 				if (!Commons.nullOrEmpty(m.getAccession())) {
 					canonicalAccessions.add(m.getAccession());
-					if (Commons.notNull(m.getIsoformPosition()))
-						protCoords.add(new Coord.Prot(m.getAccession(), m.getIsoformPosition()));
 				}
 			});
-			List<Object[]> accPosList = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toList());
 
-			Map<String, List<Score>> scoreMap = (params.isFun() ?
-					// retrieve all scores
-					scoreRepo.getScores(accession)
-					: // retrieve just AM score
-					scoreRepo.getAMScores(accession)).stream().collect(Collectors.groupingBy(Score::getGroupBy));
+			List<Score> scores = params.isFun() ? /* all scores */ scoreRepo.getScores(accession) : /* just AM scores */ scoreRepo.getAMScores(accession);
+			Map<String, List<Score>> scoresMap = scores.stream().collect(Collectors.groupingBy(Score::getGroupBy));
+			LOGGER.info("[{}] Retrieved {} scores groups", accession, scoresMap.size());
 
-			final Map<String, List<Variant>> variantMap = params.isPop() ? variantFetcher.getVariantMap(accession) : new HashedMap();
-			final Map<String, List<Pocket>> pocketsMap = params.isFun() ? pocketRepo.getPockets(accession) : null;
-			final Map<String, List<Interaction>> interactionsMap = params.isFun() ? interactionRepo.getInteractions(accession) : null;
-			final Map<String, List<Foldx>> foldxMap = params.isFun() ? foldxRepo.getFoldxs(accession) : null;
+			Map<String, List<Pocket>> pocketsMap = new HashMap<>();
+			Map<String, List<Interaction>> interactionsMap = new HashMap<>();
+			Map<String, List<Foldx>> foldxsMap = new HashMap<>();
+			Map<String, List<Variant>> variantsMap = new HashMap<>();
 
-			if (params.isFun())
+			if (params.isFun()) {
+				pocketsMap.putAll(pocketRepo.getPockets(accession));
+				LOGGER.info("[{}] Retrieved {} pockets groups", accession, pocketsMap.size());
+
+				interactionsMap.putAll(interactionRepo.getInteractions(accession));
+				LOGGER.info("[{}] Retrieved {} interactions groups", accession, interactionsMap.size());
+
+				foldxsMap.putAll(foldxRepo.getFoldxs(accession));
+				LOGGER.info("[{}] Retrieved {} foldxs groups", accession, foldxsMap.size());
+
 				proteinsFetcher.prefetch(canonicalAccessions);
+				LOGGER.info("[{}] Prefetched proteins for {} canonical accessions", accession, canonicalAccessions.size());
+			}
+
+			if (params.isPop()) {
+				variantsMap.putAll(variantFetcher.getVariantMap(accession));
+				LOGGER.info("[{}] Retrieved {} variants groups", accession, variantsMap.size());
+			}
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
 					.collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));
 
+			LOGGER.info("[{}] Processing mapping for {} genomic inputs", accession, params.getInputs().size());
 			params.getInputs().stream()
 					.filter(UserInput::isValid)
 					.map(i -> (GenomicInput) i)
@@ -135,7 +147,7 @@ public class ProteinInputMapping {
 						Set<String> altBases = GenomicInput.getAlternates(gInput.getRef());
 						ensgMappingList = geneConverter.createGenes(
 								mappingList, altBases, caddScores, alleleFreqs,
-								scoreMap, variantMap, pocketsMap, interactionsMap, foldxMap,
+								scoresMap, variantsMap, pocketsMap, interactionsMap, foldxsMap,
 								params);
 					}
 

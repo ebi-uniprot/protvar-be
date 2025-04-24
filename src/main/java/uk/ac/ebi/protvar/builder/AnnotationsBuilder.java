@@ -33,15 +33,15 @@ public class AnnotationsBuilder {
 	private PDBeFetcher pdbeFetcher;
 
 	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion,
-					  Map<String, List<Variant>> variantMap,
+					  Map<String, List<Variant>> variantsMap,
 					  Map<String, List<Pocket>> pocketsMap,
 					  Map<String, List<Interaction>> interactionsMap,
-					  Map<String, List<Foldx>> foldxMap,
+					  Map<String, List<Foldx>> foldxsMap,
 					  InputParams params,
 					  Isoform.IsoformBuilder builder) {
-		buildPopulationObservation(accession, isoformPostion, variantMap, params.isPop(), genomicLocation, builder);
+		buildPopulationObservation(accession, isoformPostion, variantsMap, params.isPop(), genomicLocation, builder);
 
-		buildFunction(accession, isoformPostion, variantAA, pocketsMap, interactionsMap, foldxMap, params.isFun(), builder);
+		buildFunction(accession, isoformPostion, variantAA, pocketsMap, interactionsMap, foldxsMap, params.isFun(), builder);
 
 		buildStructure(accession, isoformPostion, params.isStr(), builder);
 	}
@@ -60,7 +60,7 @@ public class AnnotationsBuilder {
 	private void buildFunction(String accession, int isoformPostion, String variantAA,
 							   Map<String, List<Pocket>> pocketsMap,
 							   Map<String, List<Interaction>> interactionsMap,
-							   Map<String, List<Foldx>> foldxMap,
+							   Map<String, List<Foldx>> foldxsMap,
 							   boolean isFunction,
 							   Isoform.IsoformBuilder builder) {
 		if (isFunction) {
@@ -74,8 +74,8 @@ public class AnnotationsBuilder {
 				protein.setInteractions(interactionsMap.get(key));
 			}
 			var foldxKey = accession + "-" + isoformPostion + "-" + variantAA;
-			if (foldxMap != null) {
-				protein.setFoldxs(foldxMap.get(foldxKey));
+			if (foldxsMap != null) {
+				protein.setFoldxs(foldxsMap.get(foldxKey));
 			}
 			builder.referenceFunction(protein);
 		} else {
@@ -87,11 +87,11 @@ public class AnnotationsBuilder {
 		}
 	}
 
-	private void buildPopulationObservation(String accession, int isoformPostion, Map<String, List<Variant>> variantMap, boolean isVariation, long genomicLocation,
+	private void buildPopulationObservation(String accession, int isoformPostion, Map<String, List<Variant>> variantsMap, boolean isVariation, long genomicLocation,
 			Isoform.IsoformBuilder builder) {
 		if (isVariation) {
 			//List<Variation> variations = variationFetcher.fetch(accession, isoformPostion);
-			List<Variant> variants = variantMap.get(accession+":"+isoformPostion);
+			List<Variant> variants = variantsMap.get(accession+":"+isoformPostion);
 			builder.populationObservations(new PopulationObservation(variants));
 		} else {
 			String uri = buildUri(accession, isoformPostion, genomicLocation);
