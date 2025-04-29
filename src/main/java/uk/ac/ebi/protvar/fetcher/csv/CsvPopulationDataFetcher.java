@@ -11,10 +11,10 @@ import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
-import static uk.ac.ebi.protvar.utils.CSVUtils.getValOrNA;
+import static uk.ac.ebi.protvar.utils.CsvUtils.getValOrNA;
 
 @Service
-public class CSVPopulationDataFetcher {
+public class CsvPopulationDataFetcher {
 
 	public List<String> fetch(PopulationObservation populationObservations, String refAA, String variantAA,
 			Integer genomicLocation) {

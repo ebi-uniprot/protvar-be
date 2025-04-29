@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.fetcher.csv;
+package uk.ac.ebi.protvar.processor;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -6,6 +6,9 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.fetcher.CustomInputMapping;
 import uk.ac.ebi.protvar.fetcher.ProteinInputMapping;
+import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataFetcher;
+import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataFetcher;
+import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataFetcher;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.utils.Constants;
@@ -13,16 +16,16 @@ import uk.ac.ebi.protvar.utils.Constants;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-class CSVProcessorTest {
+class CsvProcessorTest {
 
   private static final int TOTAL_CSV_COLUMNS = 43;
-  CSVProcessor mockDeps = new CSVProcessor(
+  CsvProcessor mockDeps = new CsvProcessor(
           mock(ThreadPoolTaskExecutor.class),
           mock(CustomInputMapping.class),
           mock(ProteinInputMapping.class),
-          mock(CSVFunctionDataFetcher.class),
-          mock(CSVPopulationDataFetcher.class),
-          mock(CSVStructureDataFetcher.class),
+          mock(CsvFunctionDataFetcher.class),
+          mock(CsvPopulationDataFetcher.class),
+          mock(CsvStructureDataFetcher.class),
           mock(MappingRepo.class),
           mock(InputCache.class),
           mock(BuildProcessor.class));
@@ -42,12 +45,12 @@ class CSVProcessorTest {
         "Genomic_location,Cytogenetic_band," +
         "Other_identifiers_for_the_variant,Diseases_associated_with_variant,Variants_colocated_at_residue_position," +
         "Position_in_structures";
-      assertEquals(header, CSVProcessor.CSV_HEADER);
+      assertEquals(header, CsvHeaders.CSV_HEADER);
     }
 
     @Test
     void size() {
-      assertEquals(TOTAL_CSV_COLUMNS, CSVProcessor.CSV_HEADER.split(Constants.COMMA).length);
+      assertEquals(TOTAL_CSV_COLUMNS, CsvHeaders.CSV_HEADER.split(Constants.COMMA).length);
     }
   }
 /*

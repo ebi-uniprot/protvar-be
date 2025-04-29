@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.fetcher.csv;
+package uk.ac.ebi.protvar.processor;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -26,6 +26,9 @@ import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.fetcher.CustomInputMapping;
 import uk.ac.ebi.protvar.fetcher.ProteinInputMapping;
+import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataFetcher;
+import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataFetcher;
+import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataFetcher;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.input.params.InputParams;
@@ -45,37 +48,16 @@ import static uk.ac.ebi.protvar.constants.PagedMapping.DEFAULT_PAGE_SIZE;
 
 @Service
 @RequiredArgsConstructor
-public class CSVProcessor {
-	private static final Logger LOGGER = LoggerFactory.getLogger(CSVProcessor.class);
-
+public class CsvProcessor {
+	private static final Logger LOGGER = LoggerFactory.getLogger(CsvProcessor.class);
 	private static final String NO_MAPPING = "No mapping found";
-
-	private static final String CSV_HEADER_INPUT = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele";
-	private static final String CSV_HEADER_NOTES = "Notes";
-	private static final String CSV_HEADER_OUTPUT_MAPPING = "Gene,Codon_change,Strand,CADD_phred_like_score,"
-		+ "Canonical_isoform_transcripts,MANE_transcript,Uniprot_canonical_isoform_(non_canonical),"
-		+ "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences"; //len=12
-	private static final String CSV_HEADER_OUTPUT_FUNCTION = "Residue_function_(evidence),Region_function_(evidence),"
-		+ "Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,"
-		+ "Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene),"
-		+ "Predicted_pockets(energy;per_vol;score;resids),Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ),"
-		+ "Foldx_prediction(foldxDdg;plddt),Conservation_score,AlphaMissense_pathogenicity(class),EVE_score(class),ESM1b_score"; // len=18
-	private static final String CSV_HEADER_OUTPUT_POPULATION = "Genomic_location,Cytogenetic_band,Other_identifiers_for_the_variant,"
-		+ "Diseases_associated_with_variant,Variants_colocated_at_residue_position"; // len=5
-	private static final String CSV_HEADER_OUTPUT_STRUCTURE = "Position_in_structures"; // len=1
-	// total len=36
-	private static final String CSV_HEADER_OUTPUT = CSV_HEADER_OUTPUT_MAPPING + Constants.COMMA + CSV_HEADER_OUTPUT_FUNCTION + Constants.COMMA
-		+ CSV_HEADER_OUTPUT_POPULATION + Constants.COMMA + CSV_HEADER_OUTPUT_STRUCTURE;
-
-	static final String CSV_HEADER = CSV_HEADER_INPUT + Constants.COMMA + CSV_HEADER_NOTES + Constants.COMMA + CSV_HEADER_OUTPUT;
-
 	private final AsyncTaskExecutor partitionTaskExecutor;
 	private final CustomInputMapping customInputMapping;
 	private final ProteinInputMapping proteinInputMapping;
 
-	private final CSVFunctionDataFetcher functionDataFetcher;
-	private final CSVPopulationDataFetcher populationFetcher;
-	private final CSVStructureDataFetcher csvStructureDataFetcher;
+	private final CsvFunctionDataFetcher functionDataFetcher;
+	private final CsvPopulationDataFetcher populationFetcher;
+	private final CsvStructureDataFetcher csvStructureDataFetcher;
 
 	private final MappingRepo mappingRepo;
 	private final InputCache inputCache;
@@ -225,14 +207,14 @@ public class CSVProcessor {
 				.inputBuild(build) // Optional
 				.build();
 		// Use a stream to build CSV results directly instead of collecting all in memory
-		return buildCSVResult(params, request);
+		return streamInputsToCsv(params, request);
 	}
 
 	private void writeCsv(Path file, Stream<String[]> rowsStream, boolean writeHeader) throws IOException {
 		try (CSVWriter writer = new CSVWriter(Files.newBufferedWriter(file))) {
 			// Write the header first if necessary
 			if (writeHeader) {
-				writer.writeNext(CSV_HEADER.split(","));
+				writer.writeNext(CsvHeaders.CSV_HEADER.split(","));
 			}
 			// Write the data rows using stream
 			rowsStream.forEach(writer::writeNext);
@@ -242,7 +224,7 @@ public class CSVProcessor {
 	private void mergeCsvFiles(List<Path> csvFiles, Path mergedFile) throws IOException {
 		try (CSVWriter writer = new CSVWriter(Files.newBufferedWriter(mergedFile))) {
 			// Write the header first
-			writer.writeNext(CSV_HEADER.split(","));
+			writer.writeNext(CsvHeaders.CSV_HEADER.split(","));
 
 			for (Path csvFile : csvFiles) {
 				try (CSVReader reader = new CSVReader(Files.newBufferedReader(csvFile))) {
@@ -259,7 +241,7 @@ public class CSVProcessor {
 	}
 
 	// Stream the inputs and expand them based on input types
-	private Stream<String[]> buildCSVResult(InputParams params, DownloadRequest request) {
+	private Stream<String[]> streamInputsToCsv(InputParams params, DownloadRequest request) {
 		MappingResponse response = request.getType() == InputType.PROTEIN_ACCESSION ?
 				proteinInputMapping.getMappings(request.getInput(), params) :
 				customInputMapping.getMapping(params);
@@ -316,7 +298,7 @@ public class CSVProcessor {
 			builder.add(getCsvDataMappingNotFound(genInput));
 		else
 			genes.stream()
-					.forEach(gene -> builder.add(getCSVData(notes, gene, chr, genomicLocation, varAllele, id, input, params)));
+					.forEach(gene -> builder.add(getCsvData(notes, gene, chr, genomicLocation, varAllele, id, input, params)));
 	}
 
 	// Method to generate the CSV data for invalid mapping
@@ -329,7 +311,7 @@ public class CSVProcessor {
 		valList.add(strValOrNA(genInput.getRef()));
 		valList.add(strValOrNA(genInput.getAlt()));
 		valList.add(NO_MAPPING); // Notes
-		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));
+		valList.addAll(Collections.nCopies(CsvHeaders.OUTPUT_LENGTH, Constants.NA));
 		return valList.toArray(String[]::new); // Return a String[] array
 	}
 
@@ -339,7 +321,7 @@ public class CSVProcessor {
 		valList.add(input.getInputStr()); // User_input
 		valList.addAll(Collections.nCopies(5, Constants.NA)); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
 		valList.add(input.getMessages().stream().map(Message::toString).collect(Collectors.joining(";"))); // Notes
-		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));
+		valList.addAll(Collections.nCopies(CsvHeaders.OUTPUT_LENGTH, Constants.NA));
 		return valList.toArray(String[]::new);
 	}
 
@@ -355,7 +337,7 @@ public class CSVProcessor {
 		return val.toString();
 	}
 
-	private String[] getCSVData(String notes, Gene gene, String chr, Integer genomicLocation, String varAllele, String id, String input,
+	private String[] getCsvData(String notes, Gene gene, String chr, Integer genomicLocation, String varAllele, String id, String input,
 								InputParams params) {
 		String cadd = null;
 		if (gene.getCaddScore() != null)
@@ -372,24 +354,24 @@ public class CSVProcessor {
 
 		List<String> output = new ArrayList<>(Arrays.asList(input, chr, genomicLocation.toString(), id, gene.getRefAllele(),
 			varAllele, notes, gene.getGeneName(), mapping.getCodonChange(), strand, cadd,
-				transcripts.toString(), Constants.NA,mapping.getAccession(), CSVUtils.getValOrNA(alternateInformDetails), mapping.getProteinName(),
+				transcripts.toString(), Constants.NA,mapping.getAccession(), CsvUtils.getValOrNA(alternateInformDetails), mapping.getProteinName(),
 			String.valueOf(mapping.getIsoformPosition()), mapping.getAminoAcidChange(),
 			mapping.getConsequences()));
 
 		if (params.isFun() && mapping.getReferenceFunction() != null)
 			output.addAll(functionDataFetcher.fetch(mapping));
 		else
-			addNaForNonRequestedData(output, CSV_HEADER_OUTPUT_FUNCTION);
+			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_FUNCTION);
 
 		if (params.isPop() && mapping.getPopulationObservations() != null)
 				output.addAll(populationFetcher.fetch(mapping.getPopulationObservations(), mapping.getRefAA(), mapping.getVariantAA(), genomicLocation));
 		else
-			addNaForNonRequestedData(output, CSV_HEADER_OUTPUT_POPULATION);
+			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_POPULATION);
 
 		if (params.isStr() && mapping.getProteinStructure() != null)
 			output.add(csvStructureDataFetcher.fetch(mapping.getProteinStructure()));
 		else
-			addNaForNonRequestedData(output, CSV_HEADER_OUTPUT_STRUCTURE);
+			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_STRUCTURE);
 
 		return output.toArray(String[]::new);
 	}

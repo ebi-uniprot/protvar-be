@@ -49,8 +49,8 @@ import java.util.stream.Collectors;
  *  ProtVarDataRepo      \                                                  |                                    |
  *  -getGenInputsByAcc <--\-------------------------------------------------|----------> -getGenMappings         |
  *                         \                                                                                     |
- *                          \  Download                          DownloadSrv              CSVProcessor         |
- *                           \ -file (ID)           \                                     -writeCSVResult -------
+ *                          \  Download                          DownloadSrv              CsvProcessor           |
+ *                           \ -file (ID)           \                                     -process --------------
  *                             -text (ID)        --------------> -queueRequest             ID inputs=inputCache.get(inputId)
  *                             -input(ID|PROT|SING) /                                      PROT inputs=protVarDataRepo.getGenInputsByAcc
  *                                                                                         SING inputs=input

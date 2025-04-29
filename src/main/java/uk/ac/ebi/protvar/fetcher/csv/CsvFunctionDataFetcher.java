@@ -7,7 +7,7 @@ import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.model.response.Isoform;
-import uk.ac.ebi.protvar.utils.CSVUtils;
+import uk.ac.ebi.protvar.utils.CsvUtils;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.domain.entry.DbReference;
@@ -24,7 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class CSVFunctionDataFetcher {
+public class CsvFunctionDataFetcher {
 	//private static final String CSV_HEADER_OUTPUT_FUNCTION = "Residue_function_(evidence),Region_function_(evidence),"
 	//	+ "Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,"
 	//	+ "Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)";
@@ -47,17 +47,17 @@ public class CSVFunctionDataFetcher {
 		List<Feature> residueFeatures = partitionedFeatures.get(true);
 		List<Feature> regionFeatures = partitionedFeatures.get(false);
 
-		output.add(CSVUtils.getValOrNA(buildProteinFeature(residueFeatures))); //Residue_function_(evidence)
-		output.add(CSVUtils.getValOrNA(buildProteinFeature(regionFeatures))); //Region_function_(evidence)
+		output.add(CsvUtils.getValOrNA(buildProteinFeature(residueFeatures))); //Residue_function_(evidence)
+		output.add(CsvUtils.getValOrNA(buildProteinFeature(regionFeatures))); //Region_function_(evidence)
 		output.addAll(buildProteinDetails(functionalInfo)); //Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated
 		output.addAll(buildComments(functionalInfo.getComments())); //Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)
-		output.add(CSVUtils.getValOrNA(buildPredictedPockets(functionalInfo.getPockets())));
-		output.add(CSVUtils.getValOrNA(buildPredictedInteractions(functionalInfo.getInteractions())));
-		output.add(CSVUtils.getValOrNA(buildFoldxPrediction(functionalInfo.getFoldxs())));
-		output.add(CSVUtils.getValOrNA(mapping.getConservScore() == null ? null : mapping.getConservScore().getScore()));
+		output.add(CsvUtils.getValOrNA(buildPredictedPockets(functionalInfo.getPockets())));
+		output.add(CsvUtils.getValOrNA(buildPredictedInteractions(functionalInfo.getInteractions())));
+		output.add(CsvUtils.getValOrNA(buildFoldxPrediction(functionalInfo.getFoldxs())));
+		output.add(CsvUtils.getValOrNA(mapping.getConservScore() == null ? null : mapping.getConservScore().getScore()));
 		output.add(getAMScore(mapping));
 		output.add(getEveScore(mapping));
-		output.add(CSVUtils.getValOrNA(mapping.getEsmScore() == null ? null : mapping.getEsmScore().getScore()));
+		output.add(CsvUtils.getValOrNA(mapping.getEsmScore() == null ? null : mapping.getEsmScore().getScore()));
 		return output;
 	}
 
@@ -115,11 +115,11 @@ public class CSVFunctionDataFetcher {
 			}
 		});
 
-		commentColumns.add(CSVUtils.getValOrNA(catalyticActivity.toString()));
-		commentColumns.add(CSVUtils.getValOrNA(complex.toString()));
-		commentColumns.add(CSVUtils.getValOrNA(subCellularLocation.toString()));
-		commentColumns.add(CSVUtils.getValOrNA(family.toString()));
-		commentColumns.add(CSVUtils.getValOrNA(interactions.toString()));
+		commentColumns.add(CsvUtils.getValOrNA(catalyticActivity.toString()));
+		commentColumns.add(CsvUtils.getValOrNA(complex.toString()));
+		commentColumns.add(CsvUtils.getValOrNA(subCellularLocation.toString()));
+		commentColumns.add(CsvUtils.getValOrNA(family.toString()));
+		commentColumns.add(CsvUtils.getValOrNA(interactions.toString()));
 		return commentColumns;
 
 	}
@@ -315,10 +315,10 @@ public class CSVFunctionDataFetcher {
 
 	private List<String> buildProteinDetails(FunctionalInfo proteinFunction) {
 		List<String> proteinDetails = new ArrayList<>();
-		proteinDetails.add(CSVUtils.getValOrNA(proteinFunction.getProteinExistence()));
-		proteinDetails.add(CSVUtils.getValOrNA(String.valueOf(proteinFunction.getSequence().getLength())));
-		proteinDetails.add(CSVUtils.getValOrNA(proteinFunction.getLastUpdated()));
-		proteinDetails.add(CSVUtils.getValOrNA(proteinFunction.getSequence().getModified()));
+		proteinDetails.add(CsvUtils.getValOrNA(proteinFunction.getProteinExistence()));
+		proteinDetails.add(CsvUtils.getValOrNA(String.valueOf(proteinFunction.getSequence().getLength())));
+		proteinDetails.add(CsvUtils.getValOrNA(proteinFunction.getLastUpdated()));
+		proteinDetails.add(CsvUtils.getValOrNA(proteinFunction.getSequence().getModified()));
 		return proteinDetails;
 	}
 }

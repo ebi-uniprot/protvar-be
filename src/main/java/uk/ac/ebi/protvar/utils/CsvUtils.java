@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
 
-public class CSVUtils {
+public class CsvUtils {
 
 	public static String getValOrNA(String value) {
 		if (StringUtils.isEmpty(value))

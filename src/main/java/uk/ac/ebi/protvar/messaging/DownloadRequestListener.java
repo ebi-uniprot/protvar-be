@@ -9,7 +9,7 @@ import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
-import uk.ac.ebi.protvar.fetcher.csv.CSVProcessor;
+import uk.ac.ebi.protvar.processor.CsvProcessor;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 
 import java.io.IOException;
@@ -26,7 +26,7 @@ import java.io.IOException;
 public class DownloadRequestListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadRequestListener.class);
     private final TaskExecutor downloadTaskExecutor;
-    private final CSVProcessor csvProcessor;
+    private final CsvProcessor csvProcessor;
 
     /**
      * Handles DownloadRequest jobs from the queue with manual acknowledgment.

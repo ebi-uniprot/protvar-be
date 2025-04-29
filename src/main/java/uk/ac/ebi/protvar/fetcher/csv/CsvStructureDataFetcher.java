@@ -8,10 +8,10 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
-import uk.ac.ebi.protvar.utils.CSVUtils;
+import uk.ac.ebi.protvar.utils.CsvUtils;
 
 @Service
-public class CSVStructureDataFetcher {
+public class CsvStructureDataFetcher {
 
 	public String fetch(List<PDBeStructureResidue> proteinStructure) {
 		StringJoiner structure = new StringJoiner("|");
@@ -31,7 +31,7 @@ public class CSVStructureDataFetcher {
 			}
 			structure.add(builder.toString());
 		});
-		return CSVUtils.getValOrNA(structure.toString());
+		return CsvUtils.getValOrNA(structure.toString());
 	}
 
 	private String buildChain(List<PDBeStructureResidue> structures) {
