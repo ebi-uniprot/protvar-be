@@ -1,8 +1,7 @@
 package uk.ac.ebi.protvar.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,11 +13,10 @@ import java.util.List;
 @Tag(name = "Stats")
 @RestController
 @CrossOrigin
-@AllArgsConstructor
 @RequestMapping("/stats")
+@RequiredArgsConstructor
 public class StatsController {
-    @Autowired
-    private StatsService statsService;
+    private final StatsService statsService;
 
     @Value("${uniprot.release}")
     private String defaultRelease;

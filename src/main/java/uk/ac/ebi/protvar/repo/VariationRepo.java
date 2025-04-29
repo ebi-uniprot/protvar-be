@@ -3,7 +3,7 @@ package uk.ac.ebi.protvar.repo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,15 +23,15 @@ import java.sql.SQLException;
 import java.util.*;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class VariationRepo {
     private static final Logger LOGGER = LoggerFactory.getLogger(VariationRepo.class);
+    private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Value("${tbl.variation}")
     private String variationTable;
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
-
-    private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public List<Feature> getFeatures(String accession, int proteinLocation) {
         List<Object[]> params = new ArrayList<>();

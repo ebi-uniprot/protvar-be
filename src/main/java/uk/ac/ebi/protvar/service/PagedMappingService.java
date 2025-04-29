@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.service;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,12 +24,13 @@ import uk.ac.ebi.protvar.utils.FetcherUtils;
 import java.util.*;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class PagedMappingService {
-    private MappingRepo mappingRepo;
-    private CustomInputMapping customInputMapping;
-    private ProteinInputMapping proteinInputMapping;
-    private InputCache inputCache;
+    private final MappingRepo mappingRepo;
+    private final CustomInputMapping customInputMapping;
+    private final ProteinInputMapping proteinInputMapping;
+    private final InputCache inputCache;
+    private final BuildProcessor buildProcessor;
 
     private BuildProcessor buildProcessor;
 

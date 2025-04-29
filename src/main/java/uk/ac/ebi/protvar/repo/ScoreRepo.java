@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -16,10 +16,8 @@ import java.util.List;
  * Conservation, EVE, ESM1b and AM scores
  */
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ScoreRepo {
-
-    private NamedParameterJdbcTemplate jdbcTemplate;
 
     private static final String SELECT_CONSERV = "SELECT 'CONSERV' AS type, accession, position, null AS mt_aa, score, null AS class FROM conserv_score";
     private static final String SELECT_EVE = "SELECT 'EVE' AS type, accession, position, mt_aa, score, class FROM eve_score";
@@ -50,6 +48,8 @@ public class ScoreRepo {
             SELECT_ESM + WHERE_ACC,
             SELECT_AM + WHERE_ACC
     );
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     /**
      * Used in PredictionController

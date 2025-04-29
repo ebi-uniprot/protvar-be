@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -13,13 +13,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class FoldxRepo {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Value("${tbl.foldx}")
     private String foldxTable;
-
-    private NamedParameterJdbcTemplate jdbcTemplate;
 
 
     // Single accession + single position + optional variant

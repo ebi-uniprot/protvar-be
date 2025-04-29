@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -12,12 +12,13 @@ import uk.ac.ebi.protvar.model.data.CaddPrediction;
 import java.util.List;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class CaddPredictionRepo {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
     @Value("${tbl.cadd}")
     private String caddTable;
-
-    private NamedParameterJdbcTemplate jdbcTemplate;
 
     private static final String CADDS_IN_CHR_POS = """
    			SELECT * FROM %s 

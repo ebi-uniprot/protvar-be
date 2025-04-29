@@ -3,7 +3,7 @@ package uk.ac.ebi.protvar.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -29,15 +29,15 @@ import java.util.Map;
 @Tag(name = "Download")
 @RestController
 @CrossOrigin
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class DownloadController implements WebMvcConfigurer {
   // Download request using
   // -file                  : return all
   // -text (string inputs)  : return all
   // -inputId               : return specific page/pageSize
 
-  private InputCache inputCache;
-  private DownloadService downloadService;
+  private final InputCache inputCache;
+  private final DownloadService downloadService;
 
   /**
    * Submit a download request using file input. The download process is launched in the background.

@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -19,14 +19,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class MappingRepo {
 
-	@Value("${tbl.mapping}")
-	private String mappingTable;
-
 	private static final String MAPPINGS_IN_CHR_POS = """
-   			SELECT * FROM %s 
+   			SELECT * FROM %s
    			INNER JOIN (VALUES :chrPosList) AS t(chr,pos) 
    			ON t.chr=chromosome AND t.pos=genomic_position 
    			ORDER BY is_canonical DESC
@@ -40,7 +37,11 @@ public class MappingRepo {
 			INNER JOIN (VALUES :accPosList) as t(acc,pos) 
 			ON t.acc=accession AND t.pos=protein_position
 			""";
-	private NamedParameterJdbcTemplate jdbcTemplate;
+
+	private final NamedParameterJdbcTemplate jdbcTemplate; // injected via constructor
+
+	@Value("${tbl.mapping}")
+	private String mappingTable; // injected via Spring after constructor
 
 	// TODO: all SQL FROM SHOULD USE TABLE NAME FROM APP PROPERTIES
 	//   NO TABLE NAME SHOULD BE HARDCODED

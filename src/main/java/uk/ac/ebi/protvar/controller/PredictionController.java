@@ -5,8 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,16 +22,12 @@ import java.util.List;
 @Tag(name = "Prediction")
 @RestController
 @CrossOrigin
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class PredictionController {
-    @Autowired
-    private ServletContext context;
-
-    private PocketRepo pocketRepo;
-
-    private InteractionRepo interactionRepo;
-
-    private FoldxRepo foldxRepo;
+    private final ServletContext context;
+    private final PocketRepo pocketRepo;
+    private final InteractionRepo interactionRepo;
+    private final FoldxRepo foldxRepo;
 
     @Operation(summary = "Nucleotide predictions - CADD (WIP)",
             description="Retrieve CADD score for the given genomic positions.")
@@ -44,7 +39,6 @@ public class PredictionController {
         // used more generally for e.g. genomic/protein position, UniProt or PDB position, etc.
         return new ResponseEntity<>(null, HttpStatus.OK);
     }
-
 
 
     /**

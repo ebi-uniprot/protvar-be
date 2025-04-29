@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -15,13 +15,13 @@ import java.sql.SQLException;
 import java.util.*;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class PocketRepo {
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Value("${tbl.pocket.v2}")
     private String pocketTable;
-
-    private NamedParameterJdbcTemplate jdbcTemplate;
 
     // SQL syntax for array
     // search for only one value

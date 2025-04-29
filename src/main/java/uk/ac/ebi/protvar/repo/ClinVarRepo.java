@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -15,15 +15,16 @@ import java.sql.Types;
 import java.util.*;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ClinVarRepo {
+
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
     @Value("${tbl.clinvar}")
     private String clinvarTable;
 
     @Value("${tbl.clinvar.extended}")
     private String clinvarExtendedTable;
-
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public List<ClinVar> getByRCV(List<Object[]> rcvs) {
         if (rcvs == null || rcvs.isEmpty())

@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -11,11 +11,12 @@ import uk.ac.ebi.protvar.model.data.AlleleFreq;
 import java.util.List;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class AlleleFreqRepo {
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
     @Value("${tbl.allelefreq}")
     private String allelefreqTable;
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     private static final String ALLELE_FREQ_IN_CHR_POS = """
    			SELECT * FROM %s AS af

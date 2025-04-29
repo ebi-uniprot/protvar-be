@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -25,12 +25,12 @@ import java.util.List;
 @Tag(name = "Coordinate Mapping")
 @RestController
 @CrossOrigin
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class CoordinateMappingController {
     public final static int MAX_INPUT = 1000;
     public final static String ASSEMBLY_DESC = "Specify the human genome assembly version. Accepted values are: GRCh38/h38/38, GRCh37/h37/37 or AUTO (default, auto-detects the version).";
-    private CustomInputMapping customInputMapping;
-    private BuildProcessor buildProcessor;
+    private final CustomInputMapping customInputMapping;
+    private final BuildProcessor buildProcessor;
 
     @Operation(
             summary = "Legacy genomic-to-protein mapping endpoint.",

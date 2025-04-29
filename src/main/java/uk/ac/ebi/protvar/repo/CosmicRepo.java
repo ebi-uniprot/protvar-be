@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -12,14 +12,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class CosmicRepo {
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
     @Value("${tbl.cosmic}")
     private String cosmicTable;
-    private NamedParameterJdbcTemplate jdbcTemplate;
 
     public List<Cosmic> getById(List<Object[]> ids) {
         if (ids == null || ids.isEmpty())

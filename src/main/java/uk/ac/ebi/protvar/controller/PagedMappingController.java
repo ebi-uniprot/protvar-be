@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +21,7 @@ import static uk.ac.ebi.protvar.constants.PagedMapping.*;
 @Tag(name = "Coordinate Mapping")
 @RestController
 @CrossOrigin
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class PagedMappingController {
     public final static String PAGE_DESC = "The page number to retrieve.";
     public final static String PAGE_SIZE_DESC = "The number of results per page. Minimum 10, maximum 1000. Uses default value if not within this range.";
@@ -38,8 +38,8 @@ public class PagedMappingController {
     // e.g. getPage(uuid, page) <- avoids re-splitting input
     // etc.
 
-    private InputCache inputCache;
-    private PagedMappingService pagedMappingService;
+    private final InputCache inputCache;
+    private final PagedMappingService pagedMappingService;
 
     @Operation(
             summary = "Submit either a text input or a file for processing",

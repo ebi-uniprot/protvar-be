@@ -2,7 +2,7 @@ package uk.ac.ebi.pdbe.cache;
 
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.compress.archivers.ArchiveException;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -28,7 +28,9 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
+// TODO review logic, update pdbe.tar.bz2!!!!!
+// TODO use redis? or db tbl?
 public class PDBeCache {
 
     private static final Logger logger = LoggerFactory.getLogger(PDBeCache.class);

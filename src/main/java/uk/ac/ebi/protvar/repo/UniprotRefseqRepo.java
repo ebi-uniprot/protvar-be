@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.ResultSetExtractor;
@@ -14,8 +14,11 @@ import java.sql.SQLException;
 import java.util.*;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class UniprotRefseqRepo {
+
+    private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+
     @Value("${tbl.uprefseq}")
     private String uniprotRefseqTable;
 
@@ -26,7 +29,6 @@ public class UniprotRefseqRepo {
      * group by no_ver
      * having count(*) > 1
      */
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public Map<String, List<String>> getRefSeqUniprotMap(Set<String> rsAccs) {
         if (rsAccs == null || rsAccs.isEmpty())

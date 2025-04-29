@@ -3,7 +3,7 @@ package uk.ac.ebi.protvar.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +16,9 @@ import java.util.List;
 @Tag(name = "Score")
 @RestController
 @CrossOrigin
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ScoreController {
-    private ScoreRepo scoreRepo;
+    private final ScoreRepo scoreRepo;
 
     /**
      * Retrieve Conservation, EVE, ESM1b and AlphaMissense scores.

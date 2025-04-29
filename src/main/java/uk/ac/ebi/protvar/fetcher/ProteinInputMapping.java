@@ -69,7 +69,6 @@ public class ProteinInputMapping {
 	 * @return
 	 */
 	public MappingResponse getMappings(String accession, InputParams params) {
-		LOGGER.info("[{}] Input params: fun={}, pop={}, str={}", accession, params.isFun(), params.isPop(), params.isStr());
 		MappingResponse response = new MappingResponse(params.getInputs());
 
 		// get all chrPos combination

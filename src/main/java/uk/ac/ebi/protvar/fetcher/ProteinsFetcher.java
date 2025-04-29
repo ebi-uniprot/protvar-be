@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.fetcher;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ProteinsFetcher {
 	private static final Logger logger = LoggerFactory.getLogger(ProteinsFetcher.class);
 
@@ -27,10 +27,9 @@ public class ProteinsFetcher {
 	//private final Cache<String, DataServiceProtein> cache = CacheBuilder.newBuilder().build();
 	// third option, disk-based cache (injected as bean)
 
-	private UPEntry2FunctionalInfoConverter converter;
-	private ProteinsAPI proteinsAPI;
-
-	private RedisTemplate redisTemplate;
+	private final UPEntry2FunctionalInfoConverter converter;
+	private final ProteinsAPI proteinsAPI;
+	private final RedisTemplate redisTemplate;
 
 
 	/**
@@ -112,7 +111,7 @@ public class ProteinsFetcher {
 			return position >= startPosition && position <= endPosition;
 		} catch (NumberFormatException e) {
 			// Log the issue and return false in case of parsing errors
-			logger.error("Invalid feature range: " + feature.getBegin() + " - " + feature.getEnd());
+			//logger.error("Invalid feature range: " + feature.getBegin() + " - " + feature.getEnd());
 			return false;
 		}
 	}
