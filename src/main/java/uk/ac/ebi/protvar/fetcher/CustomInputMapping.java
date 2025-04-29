@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.fetcher;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,9 +10,6 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
-import uk.ac.ebi.protvar.input.format.genomic.Gnomad;
-import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
-import uk.ac.ebi.protvar.input.format.genomic.VCF;
 import uk.ac.ebi.protvar.input.format.protein.HGVSp;
 import uk.ac.ebi.protvar.input.mapper.Coding2Pro;
 import uk.ac.ebi.protvar.input.mapper.ID2Gen;
@@ -52,7 +49,7 @@ import java.util.stream.Collectors;
  *  ProtVarDataRepo      \                                                  |                                    |
  *  -getGenInputsByAcc <--\-------------------------------------------------|----------> -getGenMappings         |
  *                         \                                                                                     |
- *                          \  Download                          DownloadSrv              CSVDataFetcher         |
+ *                          \  Download                          DownloadSrv              CSVProcessor         |
  *                           \ -file (ID)           \                                     -writeCSVResult -------
  *                             -text (ID)        --------------> -queueRequest             ID inputs=inputCache.get(inputId)
  *                             -input(ID|PROT|SING) /                                      PROT inputs=protVarDataRepo.getGenInputsByAcc
@@ -65,30 +62,30 @@ import java.util.stream.Collectors;
  * jn: jobName
  */
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class CustomInputMapping {
 	private static final Logger LOGGER = LoggerFactory.getLogger(CustomInputMapping.class);
-	private MappingRepo mappingRepo;
+	private final MappingRepo mappingRepo;
 
-	private CaddPredictionRepo caddPredictionRepo;
+	private final CaddPredictionRepo caddPredictionRepo;
 
-	private ScoreRepo scoreRepo;
+	private final ScoreRepo scoreRepo;
 
-	private AlleleFreqRepo alleleFreqRepo;
+	private final AlleleFreqRepo alleleFreqRepo;
 
-	private UniprotRefseqRepo uniprotRefseqRepo;
+	private final UniprotRefseqRepo uniprotRefseqRepo;
 
-	private ID2Gen id2Gen;
-	private Pro2Gen pro2Gen;
-	private GeneConverter geneConverter;
+	private final ID2Gen id2Gen;
+	private final Pro2Gen pro2Gen;
+	private final GeneConverter geneConverter;
 
-	private ProteinsFetcher proteinsFetcher;
+	private final ProteinsFetcher proteinsFetcher;
 
-	private VariantFetcher variantFetcher;
+	private final VariantFetcher variantFetcher;
 
-	private BuildProcessor buildProcessor;
+	private final BuildProcessor buildProcessor;
 
-	private Coding2Pro coding2Pro;
+	private final Coding2Pro coding2Pro;
 
 	/**
 	 * UI result display | API response (to align)
