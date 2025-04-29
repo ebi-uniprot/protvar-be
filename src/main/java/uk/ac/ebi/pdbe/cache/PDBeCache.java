@@ -34,8 +34,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PDBeCache {
 
     private static final Logger logger = LoggerFactory.getLogger(PDBeCache.class);
-    private String downloadDir;
-
     private final Map<String, PDBeStructure[]> cache = new ConcurrentHashMap<>();
 
     @PostConstruct

@@ -17,6 +17,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 import uk.ac.ebi.pdbe.cache.PDBeCache;
 
+import javax.annotation.PostConstruct;
+import java.io.File;
 import java.util.concurrent.Executor;
 
 @SpringBootApplication
@@ -34,24 +36,30 @@ import java.util.concurrent.Executor;
 )
 public class ApplicationMainClass {
 
-	@Value(("${protvar.data}"))
-	private String protVarData;
+	@Value("${app.data.folder}")
+	private String dataFolder; // app's permanent generated files (main data)
+
+	@Value("${app.tmp.folder}")
+	private String tmpFolder; // temp files
+
+	@Value("${logging.file.path}")
+	private String logFolder; // logs folder
+
+	@PostConstruct
+	public void initFolders() {
+		new File(dataFolder).mkdirs(); // this is /data
+		new File(tmpFolder).mkdirs();  // this is /data/tmp
+		new File(logFolder).mkdirs(); // for /data/logs
+	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(ApplicationMainClass.class, args);
 	}
 
-	@Bean
-	public String downloadDir() {
-		return protVarData;
-	}
-
-	// TODO: use redis?
+	// Explicitly defining bean because it's in uk.ac.ebi.pdbe...
 	@Bean
 	public PDBeCache pdbeCache() {
-		PDBeCache pdbeCache = new PDBeCache(downloadDir());
-		//pdBeCache.initialize();
-		return pdbeCache;
+		return new PDBeCache();
 	}
 
 	@Bean
