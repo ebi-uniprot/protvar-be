@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar.fetcher.csv;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.fetcher.CustomInputMapping;
 import uk.ac.ebi.protvar.fetcher.ProteinInputMapping;
@@ -12,12 +13,19 @@ import uk.ac.ebi.protvar.utils.Constants;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-class CSVDataFetcherTest {
+class CSVProcessorTest {
 
   private static final int TOTAL_CSV_COLUMNS = 43;
-  CSVDataFetcher mockDeps = new CSVDataFetcher(mock(CustomInputMapping.class), mock(ProteinInputMapping.class), mock(CSVFunctionDataFetcher.class),
-    mock(CSVPopulationDataFetcher.class), mock(CSVStructureDataFetcher.class), mock(MappingRepo.class),
-          "", mock(InputCache.class), mock(BuildProcessor.class));
+  CSVProcessor mockDeps = new CSVProcessor(
+          mock(ThreadPoolTaskExecutor.class),
+          mock(CustomInputMapping.class),
+          mock(ProteinInputMapping.class),
+          mock(CSVFunctionDataFetcher.class),
+          mock(CSVPopulationDataFetcher.class),
+          mock(CSVStructureDataFetcher.class),
+          mock(MappingRepo.class),
+          mock(InputCache.class),
+          mock(BuildProcessor.class));
 
   @Nested
   class Header {
@@ -34,12 +42,12 @@ class CSVDataFetcherTest {
         "Genomic_location,Cytogenetic_band," +
         "Other_identifiers_for_the_variant,Diseases_associated_with_variant,Variants_colocated_at_residue_position," +
         "Position_in_structures";
-      assertEquals(header, CSVDataFetcher.CSV_HEADER);
+      assertEquals(header, CSVProcessor.CSV_HEADER);
     }
 
     @Test
     void size() {
-      assertEquals(TOTAL_CSV_COLUMNS, CSVDataFetcher.CSV_HEADER.split(Constants.COMMA).length);
+      assertEquals(TOTAL_CSV_COLUMNS, CSVProcessor.CSV_HEADER.split(Constants.COMMA).length);
     }
   }
 /*

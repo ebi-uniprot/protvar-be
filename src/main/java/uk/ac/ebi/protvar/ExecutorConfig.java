@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
@@ -19,4 +20,14 @@ public class ExecutorConfig {
         return executor;
     }
 
+    @Bean
+    public AsyncTaskExecutor partitionTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10); // Parallelism for partition processing
+        executor.setMaxPoolSize(20);
+        executor.setQueueCapacity(100); // Limit on queued tasks
+        executor.setThreadNamePrefix("partition-task-");
+        executor.initialize();
+        return executor;
+    }
 }

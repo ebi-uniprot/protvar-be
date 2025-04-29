@@ -3,16 +3,20 @@ package uk.ac.ebi.protvar.fetcher.csv;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import com.google.common.collect.Lists;
-import lombok.AllArgsConstructor;
+import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvValidationException;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.stereotype.Service;
 
 import com.opencsv.CSVWriter;
@@ -40,9 +44,9 @@ import uk.ac.ebi.protvar.utils.*;
 import static uk.ac.ebi.protvar.constants.PagedMapping.DEFAULT_PAGE_SIZE;
 
 @Service
-@AllArgsConstructor
-public class CSVDataFetcher {
-	private static final Logger LOGGER = LoggerFactory.getLogger(CSVDataFetcher.class);
+@RequiredArgsConstructor
+public class CSVProcessor {
+	private static final Logger LOGGER = LoggerFactory.getLogger(CSVProcessor.class);
 
 	private static final String NO_MAPPING = "No mapping found";
 
@@ -65,31 +69,38 @@ public class CSVDataFetcher {
 
 	static final String CSV_HEADER = CSV_HEADER_INPUT + Constants.COMMA + CSV_HEADER_NOTES + Constants.COMMA + CSV_HEADER_OUTPUT;
 
-	private static final int PARTITION_SIZE = 1000;
-	private CustomInputMapping customInputMapping;
-	private ProteinInputMapping proteinInputMapping;
+	private final AsyncTaskExecutor partitionTaskExecutor;
+	private final CustomInputMapping customInputMapping;
+	private final ProteinInputMapping proteinInputMapping;
 
-	private CSVFunctionDataFetcher functionDataFetcher;
-	private CSVPopulationDataFetcher populationFetcher;
-	private CSVStructureDataFetcher csvStructureDataFetcher;
+	private final CSVFunctionDataFetcher functionDataFetcher;
+	private final CSVPopulationDataFetcher populationFetcher;
+	private final CSVStructureDataFetcher csvStructureDataFetcher;
 
-	private MappingRepo mappingRepo;
+	private final MappingRepo mappingRepo;
+	private final InputCache inputCache;
 
-	private String downloadDir;
-	private InputCache inputCache;
+	private final BuildProcessor buildProcessor;
 
-	private BuildProcessor buildProcessor;
+	@Value("${app.data.folder}")
+	private String dataFolder;
+
+	@Value("${app.tmp.folder}")
+	private String tmpFolder;
+
+	@Value("${csv.partition.size:1000}")
+	private int partitionSize;
 
 	@Transactional(readOnly = true) // Avoid unnecessary locks in the DB.
-	public void writeCSVResult(DownloadRequest request) {
+	public void process(DownloadRequest request) {
 		LOGGER.info("Started processing download request: {}", request);
 		List<String> inputs = null;
 		String inputId = null;
-		InputBuild inputBuild = null;
+		InputBuild build = null;
 		try {
-			Path zipPath = Paths.get(downloadDir, request.getFname() + ".csv.zip");
-			if (Files.exists(zipPath)) {
-				LOGGER.warn("{} exists", zipPath.getFileName());
+			Path zipFilePath = Path.of(dataFolder, request.getFname() + ".csv.zip");
+			if (Files.exists(zipFilePath)) {
+				LOGGER.warn("{} exists", zipFilePath);
 				return;
 			}
 
@@ -102,7 +113,7 @@ public class CSVDataFetcher {
 						return;
 					} else {
 						List<String> originalInputList = Arrays.asList(originalInput.split("\\R|,"));
-						inputBuild = buildProcessor.determinedBuild(inputId, originalInputList, request.getAssembly());
+						build = buildProcessor.determinedBuild(inputId, originalInputList, request.getAssembly());
 						if (request.getPage() == null) {
 							inputs = originalInputList;
 						} else {
@@ -131,130 +142,162 @@ public class CSVDataFetcher {
 
 			}
 
-			if (inputs == null || inputs.size() == 0) {
+			if (inputs == null || inputs.isEmpty()) {
 				LOGGER.warn("no inputs to generate download file");
 				return;
 			}
 
-			// Write CSV
-			Path csvPath = Paths.get(downloadDir, request.getFname() + ".csv");
-			try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(Files.newOutputStream(csvPath));
-				 CSVWriter writer = new CSVWriter(outputStreamWriter)) {
-				writer.writeNext(CSV_HEADER.split(","));
+			// Process CSV
+			if (inputs.size() <= partitionSize) {
+				// Small job: process in main thread
+				LOGGER.info("Processing input: {} (fname: {}, size: {})", request.getInput(), request.getFname(), inputs.size());
 
-				try {
-
-					if (inputs.size() <= PARTITION_SIZE) {
-						InputParams params = InputParams.builder()
-								.id(inputId)
-								.inputs(InputProcessor.parse(inputs))
-								.fun(request.isFunction())
-								.pop(request.isPopulation())
-								.str(request.isStructure())
-								.assembly(request.getAssembly())
-								.inputBuild(inputBuild)
-								.build();
-						LOGGER.info("Building CSV for request {}, params {}", request.getFname());
-						List<String[]> result = buildCSVResult(params, request);
-						writer.writeAll(result);
-					} else {
-						final String id = inputId;
-						final InputBuild detectedBuild = inputBuild;
-						List<List<String>> partitions = Lists.partition(inputs, PARTITION_SIZE);
-						IntStream.range(0, partitions.size())
-								.mapToObj(i -> new AbstractMap.SimpleEntry<>(i, partitions.get(i)))
-								.parallel() // this makes it a parallel stream
-								.map(entry -> {
-									int partitionNumber = entry.getKey();
-									List<String> partition = entry.getValue();
-
-									InputParams params = InputParams.builder()
-											.id(id)
-											.inputs(InputProcessor.parse(partition))
-											.fun(request.isFunction())
-											.pop(request.isPopulation())
-											.str(request.isStructure())
-											.assembly(request.getAssembly())
-											.inputBuild(detectedBuild)
-											.build();
-
-									LOGGER.info("Building CSV for request {}, partition {} of {}", request.getFname(), partitionNumber, partitions.size());
-									return buildCSVResult(params, request);
-								})
-								.forEachOrdered(writer::writeAll);					}
-				} catch (Exception e) {
-					throw e; // error in CSV writing logic
+				Path csvFilePath = Path.of(tmpFolder, request.getFname() + ".csv");
+				// Stream the input processing and writing to CSV directly
+				try (Stream<String[]> rowsStream = processInputs(build, inputs, request)) {
+					writeCsv(csvFilePath, rowsStream, true);  // true -> write header
 				}
-			} catch (IOException e) {
-				throw e; // error if file opening fails
-			}
 
-			// Ensure the CSV file was actually created
-			if (!Files.exists(csvPath)) {
-				LOGGER.error("CSV file was not created at " + csvPath);
-				throw new IOException("CSV file not found: " + csvPath);
-			}
+				FileUtils.zipFile(csvFilePath, zipFilePath);
+				Files.deleteIfExists(csvFilePath);
+			} else {
+				// Large job: partition and process in parallel
+				List<List<String>> partitions = Lists.partition(inputs, partitionSize);
+				List<Future<Path>> futures = new ArrayList<>();
+				final InputBuild inputBuild = build;
 
-			// Zip CSV
-			FileUtils.zipFile(csvPath.toString(), zipPath.toString());
+				// Submitting tasks to shared TaskExecutor for partitioned data
+				for (int i = 0; i < partitions.size(); i++) {
+					final int partitionNumber = i+1;
+					List<String> partition = partitions.get(i);
+					futures.add(partitionTaskExecutor.submit(() -> {
+						LOGGER.info("Processing input partition #{}: {} (fname: {}, size: {})", partitionNumber, request.getInput(), request.getFname(), partition.size());
+						// Stream the input processing and writing to CSV without header
+						try (Stream<String[]> rowsStream = processInputs(inputBuild, partition, request)) {
+							Path csvFile = Path.of(tmpFolder, request.getFname() + "_" + partitionNumber + ".csv");
+							writeCsv(csvFile, rowsStream, false);  // false -> do not write header in partitions
+							return csvFile;
+						}
+					}));
+				}
+				// Wait for all CSVs to be written
+				List<Path> csvFiles = new ArrayList<>();
+				for (Future<Path> future : futures) {
+					csvFiles.add(future.get()); // blocking wait
+				}
+				// Merge all CSVs
+				Path mergedCsv = Path.of(tmpFolder, request.getFname() + ".csv");
+				mergeCsvFiles(csvFiles, mergedCsv);
+
+				// Zip merged CSV
+				FileUtils.zipFile(mergedCsv, zipFilePath);
+
+				// Cleanup
+				for (Path file : csvFiles) {
+					Files.deleteIfExists(file);
+				}
+				Files.deleteIfExists(mergedCsv);
+			}
 
 			// Notify User
 			Email.notifyUser(request);
-
-			// Cleanup CSV File
-			Files.deleteIfExists(csvPath);
-
 		} catch (Exception e) {
-			LOGGER.error("Job failed for {}: {}", request.getFname(), e.getMessage(), e);
+			if (e instanceof CannotGetJdbcConnectionException) { // skip printing stack trace
+				LOGGER.error("Job failed for {}: CannotGetJdbcConnectionException", request.getFname());
+			} else { // other exceptions
+				LOGGER.error("Job failed for {}: {}", request.getFname(), e.getMessage(), e);
+			}
 			Email.notifyUserErr(request, inputs);
 			Email.notifyDevErr(request, inputs, e);
 		}
 		LOGGER.info("Finished processing download request: {}", request.getFname());
 	}
 
-	private List<String[]> buildCSVResult(InputParams params, DownloadRequest request) {
+	private Stream<String[]> processInputs(InputBuild build,
+										 List<String> inputs, DownloadRequest request) {
+		InputParams params = InputParams.builder()
+				.id(request.getInput()) // ID, PROTEIN_ACCESSION or SINGLE_VARIANT
+				.inputs(InputProcessor.parse(inputs))
+				.fun(request.isFunction())
+				.pop(request.isPopulation())
+				.str(request.isStructure())
+				.assembly(request.getAssembly())
+				.inputBuild(build) // Optional
+				.build();
+		// Use a stream to build CSV results directly instead of collecting all in memory
+		return buildCSVResult(params, request);
+	}
+
+	private void writeCsv(Path file, Stream<String[]> rowsStream, boolean writeHeader) throws IOException {
+		try (CSVWriter writer = new CSVWriter(Files.newBufferedWriter(file))) {
+			// Write the header first if necessary
+			if (writeHeader) {
+				writer.writeNext(CSV_HEADER.split(","));
+			}
+			// Write the data rows using stream
+			rowsStream.forEach(writer::writeNext);
+		}
+	}
+
+	private void mergeCsvFiles(List<Path> csvFiles, Path mergedFile) throws IOException {
+		try (CSVWriter writer = new CSVWriter(Files.newBufferedWriter(mergedFile))) {
+			// Write the header first
+			writer.writeNext(CSV_HEADER.split(","));
+
+			for (Path csvFile : csvFiles) {
+				try (CSVReader reader = new CSVReader(Files.newBufferedReader(csvFile))) {
+					String[] values;
+					// Read and write each line from the current CSV file
+					while ((values = reader.readNext()) != null) {
+						writer.writeNext(values);
+					}
+				} catch (CsvValidationException e) {
+					throw new IOException("Error reading CSV file: " + csvFile, e);
+				}
+			}
+		}
+	}
+
+	// Stream the inputs and expand them based on input types
+	private Stream<String[]> buildCSVResult(InputParams params, DownloadRequest request) {
 		MappingResponse response = request.getType() == InputType.PROTEIN_ACCESSION ?
 				proteinInputMapping.getMappings(request.getInput(), params) :
 				customInputMapping.getMapping(params);
-		List<String[]> csvOutput = new ArrayList<>();
 
-		response.getInputs().forEach(input -> {
+		// Stream the inputs instead of collecting them into a list
+		Stream.Builder<String[]> builder = Stream.builder();
+		response.getInputs().stream().forEach(input -> {
 			if (!input.isValid()) {
-				csvOutput.add(getCsvDataInvalidInput(input));
+				// Invalid input, add one row
+				builder.add(getCsvDataInvalidInput(input));
 				return;
 			}
+
 			if (input.getType() == Type.GENOMIC) {
 				GenomicInput userInput = (GenomicInput) input;
-				addGenInputMappingsToOutput(userInput, userInput, csvOutput, params);
-			}
-			else if (input.getType() == Type.CODING) {
+				generateGenomicCsvRows(builder, userInput, userInput, params);
+			} else if (input.getType() == Type.CODING) {
 				HGVSc userInput = (HGVSc) input;
-				userInput.getDerivedGenomicInputs().forEach(genInput -> {
-					addGenInputMappingsToOutput(userInput, genInput, csvOutput, params);
-				});
-			}
-			else if (input.getType() == Type.PROTEIN) {
+				userInput.getDerivedGenomicInputs()
+						.forEach(genInput -> generateGenomicCsvRows(builder, userInput, genInput, params));
+			} else if (input.getType() == Type.PROTEIN) {
 				ProteinInput userInput = (ProteinInput) input;
-				userInput.getDerivedGenomicInputs().forEach(genInput -> {
-					addGenInputMappingsToOutput(userInput, genInput, csvOutput, params);
-				});
-			}
-			else if (input.getType() == Type.ID) {
+				userInput.getDerivedGenomicInputs()
+						.forEach(genInput -> generateGenomicCsvRows(builder, userInput, genInput, params));
+			} else if (input.getType() == Type.ID) {
 				IDInput userInput = (IDInput) input;
-				userInput.getDerivedGenomicInputs().forEach(genInput -> {
-					addGenInputMappingsToOutput(userInput, genInput, csvOutput, params);
-				});
+				userInput.getDerivedGenomicInputs()
+						.forEach(genInput -> generateGenomicCsvRows(builder, userInput, genInput, params));
 			}
 		});
-		//TODO review
-		// commenting invalidInputs in CSV for now
-		// invalidInputs has been replaced by messages of type INFO, WARN, ERROR
-		//response.getInvalidInputs().forEach(input -> csvOutput.add(getCsvDataInvalidInput(input)));
-		return csvOutput;
+
+		return builder.build();
 	}
 
-	private void addGenInputMappingsToOutput(UserInput userInput, GenomicInput genInput, List<String[]> csvOutput,
-											 InputParams params) {
+	private void generateGenomicCsvRows(Stream.Builder<String[]> builder,
+													UserInput userInput,
+													GenomicInput genInput,
+													InputParams params) {
 		String chr = genInput.getChr();
 		Integer genomicLocation = genInput.getPos();
 		String varAllele = genInput.getAlt();
@@ -269,12 +312,14 @@ public class CSVDataFetcher {
 		final String notes = messages.isEmpty() ? Constants.NA : messages;
 
 		var genes = genInput.getGenes();
-		if(genes.isEmpty())
-			csvOutput.add(getCsvDataMappingNotFound(genInput));
+		if (genes.isEmpty())
+			builder.add(getCsvDataMappingNotFound(genInput));
 		else
-			genes.forEach(gene -> csvOutput.add(getCSVData(notes, gene, chr, genomicLocation, varAllele, id, input, params)));
+			genes.stream()
+					.forEach(gene -> builder.add(getCSVData(notes, gene, chr, genomicLocation, varAllele, id, input, params)));
 	}
 
+	// Method to generate the CSV data for invalid mapping
 	String[] getCsvDataMappingNotFound(GenomicInput genInput){
 		List<String> valList = new ArrayList<>();
 		valList.add(genInput.getInputStr()); // User_input
@@ -285,9 +330,10 @@ public class CSVDataFetcher {
 		valList.add(strValOrNA(genInput.getAlt()));
 		valList.add(NO_MAPPING); // Notes
 		valList.addAll(Collections.nCopies(CSV_HEADER_OUTPUT.split(Constants.COMMA).length, Constants.NA));
-		return valList.toArray(String[]::new);
+		return valList.toArray(String[]::new); // Return a String[] array
 	}
 
+	// Method to generate CSV data for invalid input
 	String[] getCsvDataInvalidInput(UserInput input){
 		List<String> valList = new ArrayList<>();
 		valList.add(input.getInputStr()); // User_input
@@ -368,12 +414,6 @@ public class CSVDataFetcher {
 		return String.join("|", isformDetails);
 	}
 
-	private List<String> getEnsps(List<Ensp> translatedSequences) {
-		return translatedSequences.stream().map(translatedSeq -> {
-			String ensts = translatedSeq.getTranscripts().stream().map(Transcript::getEnst).collect(Collectors.joining(":"));
-			return translatedSeq.getEnsp() + "(" + ensts + ")";
-		}).collect(Collectors.toList());
-	}
 	private List<String> addTranscripts(List<Transcript> transcripts) {
 		return transcripts.stream().map(transcript -> transcript.getEnsp() + "(" + transcript.getEnst() + ")").collect(Collectors.toList());
 	}
