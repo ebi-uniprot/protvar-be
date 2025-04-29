@@ -28,8 +28,6 @@ import uk.ac.ebi.uniprot.mapper.CommentDeserializer;
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Configuration
 public class ApplicationConfig {
@@ -136,11 +134,6 @@ public class ApplicationConfig {
                 throw new RuntimeException(throwable);
             }
         });
-    }
-
-    @Bean
-    public ExecutorService downloadTaskExecutor() {
-        return Executors.newFixedThreadPool(3);
     }
 
 }
