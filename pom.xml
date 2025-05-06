@@ -173,6 +173,9 @@
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <version>${project.parent.version}</version>
+        <configuration>
+          <mainClass>uk.ac.ebi.protvar.ApplicationMainClass</mainClass>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>io.gatling</groupId>
