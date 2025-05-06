@@ -12,8 +12,6 @@ import org.springframework.stereotype.Component;
 import uk.ac.ebi.protvar.processor.CsvProcessor;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 
-import java.io.IOException;
-
 /**
  * Download queues, possible organisation:
  * - q.download.request.new         <- onNewRequest - generate file
@@ -25,23 +23,30 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class DownloadRequestListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadRequestListener.class);
-    private final TaskExecutor downloadTaskExecutor;
+    private final TaskExecutor downloadJobExecutor;
     private final CsvProcessor csvProcessor;
 
     /**
-     * Handles DownloadRequest jobs from the queue with manual acknowledgment.
+     * RabbitMQ listener for download requests.
      *
-     * Previously we used ackMode="NONE" to avoid unacked messages piling up or retrying
-     * indefinitely on app restart. However, this also meant transient failures (e.g. DB
-     * connection issues) led to permanent message loss.
+     * - Submits the request to `downloadJobExecutor` for async processing.
+     * - Ensures that at most 5 download jobs run concurrently (as controlled by executor and RabbitMQ).
+     * - Actual request processing (CSV generation, partitioning, DB access) is delegated to csvProcessor.
      *
-     * This version uses ackMode="MANUAL" to:
-     * - Retry transient errors (e.g. JDBC connection pool) up to 3 times with delay.
-     * - Ack only after successful processing.
-     * - Nack without requeue on failure to avoid infinite retry loops.
-     *
-     * This ensures resilience to temporary issues while avoiding job duplication or cycling.
+     * This listener is optimised for throughput control: it's more important that jobs finish reliably
+     * than that they start immediately.
      */
+    @RabbitListener(queues = {RabbitMQConfig.DOWNLOAD_QUEUE}, ackMode = "AUTO")
+    //acknowledged right after the method returns — not after the async job finishes
+    public void onDownloadRequest(DownloadRequest request, Channel channel,
+                                  @Header(AmqpHeaders.DELIVERY_TAG) long tag) {
+        // Submit the long job of handling the download request (CSV generation, zipping, etc.)
+        downloadJobExecutor.execute(() -> {
+            // Processing the request in multiple partitions if necessary
+            csvProcessor.process(request);
+        });
+    }
+    /*
     @RabbitListener(queues = {RabbitMQConfig.DOWNLOAD_QUEUE})
     public void onDownloadRequest(DownloadRequest request, Channel channel,
                                   @Header(AmqpHeaders.DELIVERY_TAG) long tag) {
@@ -60,5 +65,5 @@ public class DownloadRequestListener {
             LOGGER.error("Failed to ack message for {}: {}", request.getFname(), e.getMessage(), e);
             // Optional: consider dead-lettering this message or alerting ops
         }
-    }
+    }*/
 }
