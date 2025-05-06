@@ -1,8 +1,10 @@
 package uk.ac.ebi.protvar.utils;
 
 import org.junit.jupiter.api.Test;
+import uk.ac.ebi.protvar.types.AminoAcid;
+import uk.ac.ebi.protvar.types.Codon;
 
-public class RNACodonTest {
+public class CodonTest {
 
     @Test
     void testChangeCount() {
@@ -16,10 +18,10 @@ public class RNACodonTest {
         int tripleCount = 0, tripleSyno = 0, tripleStop = 0, tripleMiss = 0;
         int noChangeCount = 0;
 
-        for (CodonTable from : CodonTable.values()) {
-            for (CodonTable to : CodonTable.values()) {
-                CodonTable.Change change = CodonTable.fromTo(from, to);
-                if (change == CodonTable.Change.SNV) {
+        for (Codon from : Codon.values()) {
+            for (Codon to : Codon.values()) {
+                Codon.Change change = Codon.type(from, to);
+                if (change == Codon.Change.SNV) {
                     snvCount += 1;
                     switch (AminoAcid.getConsequence(from.getAa(), to.getAa())) {
                         case "synonymous":
@@ -33,7 +35,7 @@ public class RNACodonTest {
                             break;
                     }
                 }
-                else if (change == CodonTable.Change.DOUBLE) {
+                else if (change == Codon.Change.DOUBLE) {
                     doubleCount += 1;
                     switch (AminoAcid.getConsequence(from.getAa(), to.getAa())) {
                         case "synonymous":
@@ -47,7 +49,7 @@ public class RNACodonTest {
                             break;
                     }
                 }
-                else if (change == CodonTable.Change.TRIPLE) {
+                else if (change == Codon.Change.TRIPLE) {
                     tripleCount += 1;
                     switch (AminoAcid.getConsequence(from.getAa(), to.getAa())) {
                         case "synonymous":

@@ -10,7 +10,7 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.utils.HGVS;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
-import uk.ac.ebi.protvar.utils.RefSeqNC;
+import uk.ac.ebi.protvar.types.RefseqChr;
 import uk.ac.ebi.protvar.utils.RegexUtils;
 
 import java.util.regex.Matcher;
@@ -66,9 +66,9 @@ public class HGVSg extends GenomicInput {
             if (generalMatcher.matches()) {
                 String refSeq = generalMatcher.group("refSeq");
                 if (REF_SEQ_PATTERN.matcher(refSeq).matches()) {
-                    String chr = RefSeqNC.grch38RSAcctoChr(refSeq);
+                    String chr = RefseqChr.getChrForGRCh38Acc(refSeq);
                     if (chr == null) {
-                        chr = RefSeqNC.rsAcc37toChr(refSeq);
+                        chr = RefseqChr.getChrForGRCh37Acc(refSeq);
                         if (chr != null) {
                             parsedInput.setRsAcc37(true);
                         } else {

@@ -9,7 +9,7 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.protvar.utils.RegexUtils;
 
 import java.util.ArrayList;

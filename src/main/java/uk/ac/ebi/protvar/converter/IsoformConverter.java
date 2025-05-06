@@ -13,10 +13,10 @@ import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.score.*;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.*;
-import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.protvar.builder.AnnotationsBuilder;
 import uk.ac.ebi.protvar.utils.Commons;
-import uk.ac.ebi.protvar.utils.CodonTable;
+import uk.ac.ebi.protvar.types.Codon;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 @Service
@@ -67,7 +67,7 @@ public class IsoformConverter {
 		String variantCodon = replaceChar(codon, variantAllele.charAt(0), mapping.getCodonPosition());
 
 		AminoAcid refAA = AminoAcid.fromOneLetter(mapping.getAa());
-		AminoAcid variantAA = CodonTable.valueOf(variantCodon.toUpperCase()).getAa();
+		AminoAcid variantAA = Codon.valueOf(variantCodon.toUpperCase()).getAa();
 		String consequences = AminoAcid.getConsequence(refAA, variantAA);
 		List<Transcript> transcripts = extractTranscripts(g2pAccessionMapping);
 

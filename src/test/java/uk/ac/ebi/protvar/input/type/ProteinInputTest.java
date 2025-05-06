@@ -2,7 +2,7 @@ package uk.ac.ebi.protvar.input.type;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.types.AminoAcid;
 
 import java.util.regex.Pattern;
 

@@ -19,7 +19,7 @@ import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.FoldxRepo;
 import uk.ac.ebi.protvar.repo.InteractionRepo;
 import uk.ac.ebi.protvar.repo.PocketRepo;
-import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 @Tag(name = "Annotation")

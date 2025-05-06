@@ -15,9 +15,9 @@ import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
-import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.protvar.utils.Commons;
-import uk.ac.ebi.protvar.utils.CodonTable;
+import uk.ac.ebi.protvar.types.Codon;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -239,7 +239,7 @@ public class Pro2Gen {
                                         altAlleleIfReverse(altAllele, gCoordIsReverse) +
                                         codonUC.substring(gCoordCodonPos);
 
-                                CodonTable altRnaCodon = CodonTable.valueOf(altCodon);
+                                Codon altRnaCodon = Codon.valueOf(altCodon);
                                 AminoAcid altAA = altRnaCodon.getAa();
 
                                 GenomicInput gInput = new GenomicInput(input.getInputStr());

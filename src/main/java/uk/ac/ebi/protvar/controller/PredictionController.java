@@ -14,7 +14,7 @@ import uk.ac.ebi.protvar.model.data.*;
 import uk.ac.ebi.protvar.repo.FoldxRepo;
 import uk.ac.ebi.protvar.repo.InteractionRepo;
 import uk.ac.ebi.protvar.repo.PocketRepo;
-import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.types.AminoAcid;
 
 import javax.servlet.ServletContext;
 import java.util.List;

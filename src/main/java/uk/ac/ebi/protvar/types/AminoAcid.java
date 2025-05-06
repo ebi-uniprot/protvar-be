@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.utils;
+package uk.ac.ebi.protvar.types;
 
 import lombok.Getter;
 
@@ -53,7 +53,7 @@ public enum AminoAcid {
     private String fullName;
     private boolean extended;
 
-    private Set<CodonTable> rnaCodons = new HashSet<>();
+    private Set<Codon> rnaCodons = new HashSet<>();
     private Map<AminoAcid, Set<Integer>> altAACodonPositions = new HashMap<>();
 
     public final static Set<String> VALID_AA1 = new HashSet<>();
@@ -63,7 +63,7 @@ public enum AminoAcid {
         // amino acid is encoded by the rna codons
         Arrays.stream(AminoAcid.standardValues())
                 .forEach(aminoAcid -> {
-                    Arrays.stream(CodonTable.values()).forEach(rnaCodon -> {
+                    Arrays.stream(Codon.values()).forEach(rnaCodon -> {
                         if (rnaCodon.getAa() != null && rnaCodon.getAa().equals(aminoAcid))
                             aminoAcid.rnaCodons.add(rnaCodon);
                     });
@@ -72,10 +72,10 @@ public enum AminoAcid {
         Arrays.stream(AminoAcid.standardValues())
                 .forEach(aminoAcid -> {
                     aminoAcid.rnaCodons.stream().forEach(rnaCodon -> {
-                        for (Map.Entry<Integer, Set<CodonTable>> entry : rnaCodon.getPossibleVariants().entrySet()) {
+                        for (Map.Entry<Integer, Set<Codon>> entry : rnaCodon.getPossibleVariants().entrySet()) {
                             Integer pos = entry.getKey();
-                            Set<CodonTable> variantCodons = entry.getValue();
-                            for (CodonTable variantCodon : variantCodons) {
+                            Set<Codon> variantCodons = entry.getValue();
+                            for (Codon variantCodon : variantCodons) {
                                 AminoAcid aa = variantCodon.getAa();
                                 if (aminoAcid.altAACodonPositions.containsKey(aa)) {
                                     aminoAcid.altAACodonPositions.get(aa).add(pos);
@@ -156,10 +156,10 @@ public enum AminoAcid {
         // For each RNA codon that encodes the ref (this) amino acid,
         // get AA at each possible position
         Set<Integer> codonChangePositions = new HashSet<>();
-        for (CodonTable codon : this.getRnaCodons()) {
-            Map<Integer, Set<CodonTable>> variantMap = codon.getPossibleVariants();
+        for (Codon codon : this.getRnaCodons()) {
+            Map<Integer, Set<Codon>> variantMap = codon.getPossibleVariants();
             for (Integer pos : variantMap.keySet()) {
-                Set<CodonTable> variantCodons = variantMap.get(pos);
+                Set<Codon> variantCodons = variantMap.get(pos);
                 if (variantCodons.stream().filter(variantCodon -> variantCodon.getAa().equals(alt)).count() > 0)
                     codonChangePositions.add(pos);
             }
@@ -187,8 +187,8 @@ public enum AminoAcid {
     public static boolean isSNV(AminoAcid ref, AminoAcid alt) {
         Set<AminoAcid> allPossibleAltAAs = new HashSet();
         // ref is encoded by a set of codons
-        Set<CodonTable> codons = ref.getRnaCodons();
-        for (CodonTable codon : codons) {
+        Set<Codon> codons = ref.getRnaCodons();
+        for (Codon codon : codons) {
             Set<AminoAcid> possibleAltAAs = codon.getAltAAs();
             allPossibleAltAAs.addAll(possibleAltAAs);
         }
