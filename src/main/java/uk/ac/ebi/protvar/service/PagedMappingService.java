@@ -18,6 +18,8 @@ import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.repo.MappingRepo;
+import uk.ac.ebi.protvar.types.AmClass;
+import uk.ac.ebi.protvar.types.CaddCategory;
 import uk.ac.ebi.protvar.utils.EnsemblIDValidator;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 
@@ -31,8 +33,6 @@ public class PagedMappingService {
     private final ProteinInputMapping proteinInputMapping;
     private final InputCache inputCache;
     private final BuildProcessor buildProcessor;
-
-    private BuildProcessor buildProcessor;
 
     public PagedMappingResponse getInputResult(String id, int pageNo, int pageSize, String assembly) {
         String originalInput = inputCache.getInput(id);
@@ -120,11 +120,19 @@ public class PagedMappingService {
     }
 
 
-    public PagedMappingResponse getMappingByAccession(String accession, int pageNo, int pageSize) {
+    public PagedMappingResponse getMappingByAccession(String accession, int pageNo, int pageSize,
+                                                      CaddCategory caddCategory,
+                                                      AmClass amClass,
+                                                      String sortField,
+                                                      String sortDirection) {
         // Create a Pageable instance
         Pageable pageable = PageRequest.of(pageNo-1, pageSize);
         // Retrieve a page of chr-pos for accession
-        Page<UserInput> page = mappingRepo.getGenInputsByAccession(accession, pageable);
+        Page<UserInput> page = (caddCategory != null || amClass != null ||
+                (sortField != null && !sortField.isBlank())) ?
+                /* TODO review these two sep methods and merge if needed */
+                mappingRepo.getGenInputsByAccession(accession, caddCategory, amClass, sortField, sortDirection, pageable)
+                : mappingRepo.getGenInputsByAccession(accession, pageable);
         // Get content for page object
         List<UserInput> inputs = page.getContent();
         InputParams params = InputParams.builder()

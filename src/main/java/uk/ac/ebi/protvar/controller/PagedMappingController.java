@@ -16,6 +16,9 @@ import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.model.response.IDResponse;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.service.PagedMappingService;
+import uk.ac.ebi.protvar.types.AmClass;
+import uk.ac.ebi.protvar.types.CaddCategory;
+
 import static uk.ac.ebi.protvar.constants.PagedMapping.*;
 
 @Tag(name = "Coordinate Mapping")
@@ -141,7 +144,15 @@ public class PagedMappingController {
             @Parameter(description = PAGE_DESC, example = PAGE)
             @RequestParam(value = "page", defaultValue = PAGE, required = false) int page,
             @Parameter(description = PAGE_SIZE_DESC, example = PAGE_SIZE)
-            @RequestParam(value = "pageSize", defaultValue = PAGE_SIZE, required = false) int pageSize) {
+            @RequestParam(value = "pageSize", defaultValue = PAGE_SIZE, required = false) int pageSize,
+            @Parameter(description = "CADD score filter")
+            @RequestParam(required = false) CaddCategory caddCategory,
+            @Parameter(description = "AlphaMissense pathogenicity class filter")
+            @RequestParam(required = false) AmClass amClass,
+            @Parameter(description = "Sort field: 'CADD' or 'AM'")
+            @RequestParam(required = false) String sortField,
+            @Parameter(description = "Sort direction: 'ASC' or 'DESC'")
+            @RequestParam(required = false) String sortDirection) {
 
         if (page < 1)
             page = DEFAULT_PAGE;
@@ -153,7 +164,9 @@ public class PagedMappingController {
 
         accession = accession.trim().toUpperCase();
 
-        PagedMappingResponse response = pagedMappingService.getMappingByAccession(accession, page, pageSize);
+        PagedMappingResponse response = pagedMappingService.getMappingByAccession(accession, page, pageSize,
+                caddCategory, amClass,
+                sortField, sortDirection);
         if (response != null)
             response.setId(accession);
         return new ResponseEntity<>(response, HttpStatus.OK);

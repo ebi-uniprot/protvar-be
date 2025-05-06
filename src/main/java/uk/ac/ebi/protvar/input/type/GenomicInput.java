@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -110,6 +109,10 @@ public class GenomicInput extends UserInput {
         setChr(chr);
         setPos(pos);
         setRef(ref);
+    }
+    public GenomicInput(String inputStr, String chr, Integer pos, String ref, String alt) {
+        this(inputStr, chr, pos, ref);
+        setAlt(alt);
     }
 
     public static boolean matchesPattern(String inputStr) {
