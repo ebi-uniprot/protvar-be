@@ -7,25 +7,25 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-public class ESMScore extends Score {
+public class EsmScore extends Score {
 	private Double score; // ESM1b_score
 
-	public ESMScore(Double score) {
+	public EsmScore(Double score) {
 		super(Name.ESM);
 		this.score = score;
 	}
 
-	public ESMScore(String mt, Double score) {
+	public EsmScore(String mt, Double score) {
 		super(Name.ESM, mt);
 		this.score = score;
 	}
 
-	public ESMScore(String acc, Integer pos, String mt, Double score) {
+	public EsmScore(String acc, Integer pos, String mt, Double score) {
 		super(Name.ESM, acc, pos, mt);
 		this.score = score;
 	}
 
-	public ESMScore copy() {
-		return new ESMScore(score);
+	public EsmScore copy() {
+		return new EsmScore(score);
 	}
 }

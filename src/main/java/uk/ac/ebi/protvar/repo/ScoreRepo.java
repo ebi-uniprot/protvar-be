@@ -151,9 +151,9 @@ public class ScoreRepo {
 
         return switch (name) {
             case CONSERV -> new ConservScore(acc, pos, null, score);
-            case EVE     -> new EVEScore(acc, pos, mt, score, clazz);
-            case ESM     -> new ESMScore(acc, pos, mt, score);
-            case AM      -> new AMScore(acc, pos, mt, score, clazz);
+            case EVE     -> new EveScore(acc, pos, mt, score, clazz);
+            case ESM     -> new EsmScore(acc, pos, mt, score);
+            case AM      -> new AmScore(acc, pos, mt, score, clazz);
         };
     };
 
@@ -165,9 +165,9 @@ public class ScoreRepo {
 
         return switch (name) {
             case CONSERV -> new ConservScore(null, score);
-            case EVE     -> new EVEScore(mt, score, clazz);
-            case ESM     -> new ESMScore(mt, score);
-            case AM      -> new AMScore(mt, score, clazz);
+            case EVE     -> new EveScore(mt, score, clazz);
+            case ESM     -> new EsmScore(mt, score);
+            case AM      -> new AmScore(mt, score, clazz);
         };
     };
 }

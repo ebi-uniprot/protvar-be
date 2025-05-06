@@ -49,11 +49,11 @@ public class Isoform implements Comparable<Isoform> {
 	@JsonInclude(Include.NON_NULL)
 	private ConservScore conservScore;
 	@JsonInclude(Include.NON_NULL)
-	private AMScore amScore;
+	private AmScore amScore;
 	@JsonInclude(Include.NON_NULL)
-	private EVEScore eveScore;
+	private EveScore eveScore;
 	@JsonInclude(Include.NON_NULL)
-	private ESMScore esmScore;
+	private EsmScore esmScore;
 
 	public String getCodonChange(){
 		return refCodon + "/" + variantCodon;

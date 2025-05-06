@@ -16,4 +16,13 @@ public enum AmClass { // TODO use existing AMClass enum
     PATHOGENIC(1);
 
     private final int value;
+
+    public static AmClass fromValue(int value) {
+        for (AmClass amClass : values()) {
+            if (amClass.getValue() == value) {
+                return amClass;
+            }
+        }
+        return null;
+    }
 }

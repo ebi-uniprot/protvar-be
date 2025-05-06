@@ -99,7 +99,7 @@ public class IsoformConverter {
 		String keyAm = Commons.joinWithDash("AM", accession, position, variantAA.getOneLetter());
 
 		scoresMap.getOrDefault(keyAm, Collections.emptyList()).stream().findFirst()
-				.map(s -> ((AMScore) s).copy()).ifPresent(builder::amScore);
+				.map(s -> ((AmScore) s).copy()).ifPresent(builder::amScore);
 
 		// Other scores only if isFun true
 		if (params.isFun()) {
@@ -111,10 +111,10 @@ public class IsoformConverter {
 					.map(s -> ((ConservScore) s).copy()).ifPresent(builder::conservScore);
 
 			scoresMap.getOrDefault(keyEve, Collections.emptyList()).stream().findFirst()
-					.map(s -> ((EVEScore) s).copy()).ifPresent(builder::eveScore);
+					.map(s -> ((EveScore) s).copy()).ifPresent(builder::eveScore);
 
 			scoresMap.getOrDefault(keyEsm, Collections.emptyList()).stream().findFirst()
-					.map(s -> ((ESMScore) s).copy()).ifPresent(builder::esmScore);
+					.map(s -> ((EsmScore) s).copy()).ifPresent(builder::esmScore);
 		}
 	}
 
