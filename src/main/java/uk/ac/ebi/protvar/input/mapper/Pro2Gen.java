@@ -17,7 +17,7 @@ import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.utils.Commons;
-import uk.ac.ebi.protvar.utils.RNACodon;
+import uk.ac.ebi.protvar.utils.CodonTable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -180,7 +180,7 @@ public class Pro2Gen {
                             if (!errors.contains(ERR_CODE_REF_EMPTY)) {
                                 errors.add(ERR_CODE_REF_EMPTY);
                                 input.getMessages().add(new Message(Message.MessageType.WARN,
-                                        String.format(ERR_CODE_REF_EMPTY.getErrorMessage(), input.getPos(), gCoordRefAA.getThreeLetters())));
+                                        String.format(ERR_CODE_REF_EMPTY.getErrorMessage(), input.getPos(), gCoordRefAA.getThreeLetter())));
                             }
 
                             if (!errors.contains(ERR_CODE_VAR_EMPTY)) {
@@ -207,7 +207,7 @@ public class Pro2Gen {
                                 errors.add(ERR_CODE_REF_MISMATCH);
                                 input.getMessages().add(new Message(Message.MessageType.WARN,
                                         String.format(ERR_CODE_REF_MISMATCH.getErrorMessage(),
-                                                refAA.getThreeLetters(), gCoordRefAA.getThreeLetters(), input.getPos(), gCoordRefAA.getThreeLetters())));
+                                                refAA.getThreeLetter(), gCoordRefAA.getThreeLetter(), input.getPos(), gCoordRefAA.getThreeLetter())));
                                 input.setRef(gCoordAa);
                             }
 
@@ -227,7 +227,7 @@ public class Pro2Gen {
                                     errors.add(ERR_CODE_VARIANT_NON_SNV);
                                     input.getMessages().add(new Message(Message.MessageType.WARN,
                                             String.format(ERR_CODE_VARIANT_NON_SNV.getErrorMessage(),
-                                                    userAltAA.getThreeLetters(), gCoordRefAA.getThreeLetters())));
+                                                    userAltAA.getThreeLetter(), gCoordRefAA.getThreeLetter())));
                                 }
                             }
 
@@ -239,7 +239,7 @@ public class Pro2Gen {
                                         altAlleleIfReverse(altAllele, gCoordIsReverse) +
                                         codonUC.substring(gCoordCodonPos);
 
-                                RNACodon altRnaCodon = RNACodon.valueOf(altCodon);
+                                CodonTable altRnaCodon = CodonTable.valueOf(altCodon);
                                 AminoAcid altAA = altRnaCodon.getAa();
 
                                 GenomicInput gInput = new GenomicInput(input.getInputStr());

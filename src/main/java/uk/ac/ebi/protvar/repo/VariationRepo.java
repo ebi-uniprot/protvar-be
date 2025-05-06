@@ -59,7 +59,7 @@ public class VariationRepo {
 
     private String toThreeLetterAminoAcid(String letter) {
         try {
-            return AminoAcid.fromOneLetter(letter).getThreeLetters();
+            return AminoAcid.fromOneLetter(letter).getThreeLetter();
         } catch (Exception e) {
             return null;
         }

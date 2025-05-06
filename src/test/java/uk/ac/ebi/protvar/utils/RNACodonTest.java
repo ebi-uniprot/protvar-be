@@ -2,11 +2,6 @@ package uk.ac.ebi.protvar.utils;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public class RNACodonTest {
 
     @Test
@@ -21,10 +16,10 @@ public class RNACodonTest {
         int tripleCount = 0, tripleSyno = 0, tripleStop = 0, tripleMiss = 0;
         int noChangeCount = 0;
 
-        for (RNACodon from : RNACodon.values()) {
-            for (RNACodon to : RNACodon.values()) {
-                RNACodon.Change change = RNACodon.fromTo(from, to);
-                if (change == RNACodon.Change.SNV) {
+        for (CodonTable from : CodonTable.values()) {
+            for (CodonTable to : CodonTable.values()) {
+                CodonTable.Change change = CodonTable.fromTo(from, to);
+                if (change == CodonTable.Change.SNV) {
                     snvCount += 1;
                     switch (AminoAcid.getConsequence(from.getAa(), to.getAa())) {
                         case "synonymous":
@@ -38,7 +33,7 @@ public class RNACodonTest {
                             break;
                     }
                 }
-                else if (change == RNACodon.Change.DOUBLE) {
+                else if (change == CodonTable.Change.DOUBLE) {
                     doubleCount += 1;
                     switch (AminoAcid.getConsequence(from.getAa(), to.getAa())) {
                         case "synonymous":
@@ -52,7 +47,7 @@ public class RNACodonTest {
                             break;
                     }
                 }
-                else if (change == RNACodon.Change.TRIPLE) {
+                else if (change == CodonTable.Change.TRIPLE) {
                     tripleCount += 1;
                     switch (AminoAcid.getConsequence(from.getAa(), to.getAa())) {
                         case "synonymous":

@@ -5,30 +5,36 @@ import lombok.Getter;
 import java.util.*;
 
 @Getter
+/**
+ * AminoAcid enum representing the 20 standard amino acids, their one-letter and three-letter codes,
+ * and their names. It also includes extended amino acids and provides methods for various operations
+ * related to amino acids.
+ */
 public enum AminoAcid {
+    // standard AAs (20) + stop codon, matching amino_acid table
     ALA("A", "Ala", "Alanine"),
-    ARG("R", "Arg", "Arginine"),
-    ASN("N", "Asn", "Asparagine"),
-    ASP("D", "Asp", "Aspartic acid"),
     CYS("C", "Cys", "Cysteine"),
-    GLN("Q", "Gln", "Glutamine"),
+    ASP("D", "Asp", "Aspartic acid"),
     GLU("E", "Glu", "Glutamic acid"),
+    PHE("F", "Phe", "Phenylalanine"),
     GLY("G", "Gly", "Glycine"),
     HIS("H", "His", "Histidine"),
     ILE("I", "Ile", "Isoleucine"),
-    LEU("L", "Leu", "Leucine"),
     LYS("K", "Lys", "Lysine"),
+    LEU("L", "Leu", "Leucine"),
     MET("M", "Met", "Methionine"),
-    PHE("F", "Phe", "Phenylalanine"),
+    ASN("N", "Asn", "Asparagine"),
     PRO("P", "Pro", "Proline"),
+    GLN("Q", "Gln", "Glutamine"),
+    ARG("R", "Arg", "Arginine"),
     SER("S", "Ser", "Serine"),
     THR("T", "Thr", "Threonine"),
+    VAL("V", "Val", "Valine"),
     TRP("W", "Trp", "Tryptophan"),
     TYR("Y", "Tyr", "Tyrosine"),
-    VAL("V", "Val", "Valine"),
-    TER("*", "Ter", "Termination (stop codon)"),
+    TER("*", "Ter", "Stop codon"),
 
-    /* extended/non-standard AAs - from old AminoAcidsThreeLetter enum */
+    /* Extended/non-standard AAs - from old AminoAcidsThreeLetter enum */
     ASX("B", "Asx", "Asparagine or aspartate", true),
     GLX("Z", "Glx", "Glutamine or glutamate", true),
     SEC("U", "Sec", "Selenocysteine", true),
@@ -40,14 +46,14 @@ public enum AminoAcid {
     ;
 
     public String formatted() {
-        return threeLetters + " (" + oneLetter +")";
+        return threeLetter + " (" + oneLetter +")";
     }
     private String oneLetter;
-    private String threeLetters;
-    private String name;
+    private String threeLetter;
+    private String fullName;
     private boolean extended;
 
-    private Set<RNACodon> rnaCodons = new HashSet<>();
+    private Set<CodonTable> rnaCodons = new HashSet<>();
     private Map<AminoAcid, Set<Integer>> altAACodonPositions = new HashMap<>();
 
     public final static Set<String> VALID_AA1 = new HashSet<>();
@@ -57,7 +63,7 @@ public enum AminoAcid {
         // amino acid is encoded by the rna codons
         Arrays.stream(AminoAcid.standardValues())
                 .forEach(aminoAcid -> {
-                    Arrays.stream(RNACodon.values()).forEach(rnaCodon -> {
+                    Arrays.stream(CodonTable.values()).forEach(rnaCodon -> {
                         if (rnaCodon.getAa() != null && rnaCodon.getAa().equals(aminoAcid))
                             aminoAcid.rnaCodons.add(rnaCodon);
                     });
@@ -66,10 +72,10 @@ public enum AminoAcid {
         Arrays.stream(AminoAcid.standardValues())
                 .forEach(aminoAcid -> {
                     aminoAcid.rnaCodons.stream().forEach(rnaCodon -> {
-                        for (Map.Entry<Integer, Set<RNACodon>> entry : rnaCodon.getPossibleVariants().entrySet()) {
+                        for (Map.Entry<Integer, Set<CodonTable>> entry : rnaCodon.getPossibleVariants().entrySet()) {
                             Integer pos = entry.getKey();
-                            Set<RNACodon> variantCodons = entry.getValue();
-                            for (RNACodon variantCodon : variantCodons) {
+                            Set<CodonTable> variantCodons = entry.getValue();
+                            for (CodonTable variantCodon : variantCodons) {
                                 AminoAcid aa = variantCodon.getAa();
                                 if (aminoAcid.altAACodonPositions.containsKey(aa)) {
                                     aminoAcid.altAACodonPositions.get(aa).add(pos);
@@ -90,14 +96,14 @@ public enum AminoAcid {
                 });
     }
 
-    AminoAcid(String oneLetter, String threeLetters, String name) {
+    AminoAcid(String oneLetter, String threeLetter, String fullName) {
         this.oneLetter = oneLetter;
-        this.threeLetters = threeLetters;
-        this.name = name;
+        this.threeLetter = threeLetter;
+        this.fullName = fullName;
     }
 
-    AminoAcid(String oneLetter, String threeLetters, String name, Boolean extended) {
-        this(oneLetter, threeLetters, name);
+    AminoAcid(String oneLetter, String threeLetter, String fullName, Boolean extended) {
+        this(oneLetter, threeLetter, fullName);
         this.extended = extended;
     }
 
@@ -119,7 +125,7 @@ public enum AminoAcid {
     }
     public static AminoAcid fromThreeLetter(String threeLetter) {
         for (AminoAcid aa : AminoAcid.values()) {
-            if (aa.getThreeLetters().equalsIgnoreCase(threeLetter))
+            if (aa.getThreeLetter().equalsIgnoreCase(threeLetter))
                 return aa;
         }
         //throw new UnexpectedUseCaseException(oneLetter + " is invalid one letter amino acid");
@@ -128,7 +134,7 @@ public enum AminoAcid {
 
     public static AminoAcid fromOneOrThreeLetter(String str) {
         for (AminoAcid aa : AminoAcid.values()) {
-            if (aa.getOneLetter().equalsIgnoreCase(str) || aa.getThreeLetters().equalsIgnoreCase(str))
+            if (aa.getOneLetter().equalsIgnoreCase(str) || aa.getThreeLetter().equalsIgnoreCase(str))
                 return aa;
         }
         //throw new UnexpectedUseCaseException(oneLetter + " is invalid one letter amino acid");
@@ -150,10 +156,10 @@ public enum AminoAcid {
         // For each RNA codon that encodes the ref (this) amino acid,
         // get AA at each possible position
         Set<Integer> codonChangePositions = new HashSet<>();
-        for (RNACodon codon : this.getRnaCodons()) {
-            Map<Integer, Set<RNACodon>> variantMap = codon.getPossibleVariants();
+        for (CodonTable codon : this.getRnaCodons()) {
+            Map<Integer, Set<CodonTable>> variantMap = codon.getPossibleVariants();
             for (Integer pos : variantMap.keySet()) {
-                Set<RNACodon> variantCodons = variantMap.get(pos);
+                Set<CodonTable> variantCodons = variantMap.get(pos);
                 if (variantCodons.stream().filter(variantCodon -> variantCodon.getAa().equals(alt)).count() > 0)
                     codonChangePositions.add(pos);
             }
@@ -181,8 +187,8 @@ public enum AminoAcid {
     public static boolean isSNV(AminoAcid ref, AminoAcid alt) {
         Set<AminoAcid> allPossibleAltAAs = new HashSet();
         // ref is encoded by a set of codons
-        Set<RNACodon> codons = ref.getRnaCodons();
-        for (RNACodon codon : codons) {
+        Set<CodonTable> codons = ref.getRnaCodons();
+        for (CodonTable codon : codons) {
             Set<AminoAcid> possibleAltAAs = codon.getAltAAs();
             allPossibleAltAAs.addAll(possibleAltAAs);
         }

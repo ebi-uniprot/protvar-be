@@ -16,7 +16,7 @@ import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.AminoAcid;
 import uk.ac.ebi.protvar.builder.AnnotationsBuilder;
 import uk.ac.ebi.protvar.utils.Commons;
-import uk.ac.ebi.protvar.utils.RNACodon;
+import uk.ac.ebi.protvar.utils.CodonTable;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 @Service
@@ -67,7 +67,7 @@ public class IsoformConverter {
 		String variantCodon = replaceChar(codon, variantAllele.charAt(0), mapping.getCodonPosition());
 
 		AminoAcid refAA = AminoAcid.fromOneLetter(mapping.getAa());
-		AminoAcid variantAA = RNACodon.valueOf(variantCodon.toUpperCase()).getAa();
+		AminoAcid variantAA = CodonTable.valueOf(variantCodon.toUpperCase()).getAa();
 		String consequences = AminoAcid.getConsequence(refAA, variantAA);
 		List<Transcript> transcripts = extractTranscripts(g2pAccessionMapping);
 
@@ -75,8 +75,8 @@ public class IsoformConverter {
 				.accession(accession)
 				.refCodon(codon)
 				.codonPosition(mapping.getCodonPosition())
-				.refAA(refAA.getThreeLetters())
-				.variantAA(variantAA.getThreeLetters())
+				.refAA(refAA.getThreeLetter())
+				.variantAA(variantAA.getThreeLetter())
 				.variantCodon(variantCodon)
 				.canonicalAccession(canonicalAccession)
 				.canonical(accession.equals(canonicalAccession))
