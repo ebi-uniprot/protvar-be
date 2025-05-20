@@ -26,6 +26,7 @@ public class StructureRepo {
     public List<Structure> getStr(String accession) {
         String sql = String.format("""
  			SELECT * FROM %s WHERE accession=:accession
+ 			ORDER BY coverage DESC, resolution DESC
  			""", structureTable);
 
         MapSqlParameterSource params = new MapSqlParameterSource("accession", accession);
@@ -36,11 +37,20 @@ public class StructureRepo {
     public List<Structure> getStr(List<String> accessions) {
         String sql = String.format("""
             SELECT * FROM %s WHERE accession IN (:accessions)
+            ORDER BY accession, coverage DESC, resolution DESC
         """, structureTable);
         MapSqlParameterSource params = new MapSqlParameterSource("accessions", accessions);
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> createStructure(rs));
     }
 
+    /*
+    SELECT
+        array_length(observed_regions, 1) AS num_regions,
+        COUNT(*) AS num_rows
+    FROM rel_2025_01_structure
+    GROUP BY num_regions
+    ORDER BY num_regions; --<null> 397 (SELECT * FROM rel_2025_01_structure WHERE observed_regions = '{}';)
+     */
     public List<Structure> getStr(String accession, Integer position) {
         String sql = String.format("""
  			SELECT * FROM %s 
@@ -50,8 +60,8 @@ public class StructureRepo {
  				FROM unnest(observed_regions) AS range(start_end)
  				WHERE :position BETWEEN start_end[1] AND start_end[2]
  			)
+ 			ORDER BY coverage DESC, resolution DESC
  			""", structureTable);
-
         MapSqlParameterSource params = new MapSqlParameterSource("accession", accession);
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> createStructure(rs));
     }

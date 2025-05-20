@@ -23,7 +23,11 @@ public class AlleleFreq extends Base {
                 Objects.toString(pos, "null"));
     }
 
+    @Getter
+    @Setter
     @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
     public static class GnomadFreq { // with only required fields in API response
         Integer ac;
         Integer an;
