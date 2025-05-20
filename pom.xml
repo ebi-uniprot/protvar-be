@@ -33,7 +33,7 @@
     <dependency>
       <groupId>uk.ac.ebi.protvar</groupId>
       <artifactId>protvar-common</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.0</version> <!-- 1.0.1-SNAPSHOT after dev deploy -->
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -154,11 +154,6 @@
       <artifactId>gatling-charts-highcharts</artifactId>
       <version>3.9.2</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-compress</artifactId>
-      <version>1.24.0</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>

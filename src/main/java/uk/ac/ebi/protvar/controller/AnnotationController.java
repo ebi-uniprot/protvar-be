@@ -11,14 +11,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
-import uk.ac.ebi.protvar.fetcher.PDBeFetcher;
 import uk.ac.ebi.protvar.fetcher.ProteinsFetcher;
 import uk.ac.ebi.protvar.fetcher.VariantFetcher;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.FoldxRepo;
 import uk.ac.ebi.protvar.repo.InteractionRepo;
 import uk.ac.ebi.protvar.repo.PocketRepo;
+import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
@@ -32,7 +31,7 @@ public class AnnotationController {
   private final ProteinsFetcher proteinsFetcher;
   private final VariantFetcher variantFetcher;
 
-  private final PDBeFetcher pdbeFetcher;
+  private final StructureService structureService;
 
   private final PocketRepo pocketRepo;
 
@@ -77,14 +76,14 @@ public class AnnotationController {
   /**
    * @param accession Uniprot accession
    * @param position  Amino acid position
-   * @return List of <code>PDBeStructureResidue</code> Mappings from UniProt position to position in all relevant PDB structures
+   * @return List of <code>StructureResidue</code> Mappings from UniProt position to position in all relevant PDB structures
    */
   @Operation(summary = "Returns the position in PDB structures for the input variant")
   @GetMapping(value = "/structure/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-  public ResponseEntity<List<PDBeStructureResidue>> getStructure(
+  public ResponseEntity<List<StructureResidue>> getStructure(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
-    List<PDBeStructureResidue> object = pdbeFetcher.fetch(accession, position);
+    List<StructureResidue> object = structureService.getStrFromCache(accession, position);
     return new ResponseEntity<>(object, HttpStatus.OK);
   }
 }

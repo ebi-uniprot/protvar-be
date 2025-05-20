@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.fetcher;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,6 +15,7 @@ import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.repo.*;
+import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
@@ -22,19 +23,20 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class ProteinInputMapping {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ProteinInputMapping.class);
-	private MappingRepo mappingRepo;
-	private CaddPredictionRepo caddPredictionRepo;
-	private AlleleFreqRepo alleleFreqRepo;
-	private ScoreRepo scoreRepo;
-	private PocketRepo pocketRepo;
-	private InteractionRepo interactionRepo;
-	private FoldxRepo foldxRepo;
-	private ProteinsFetcher proteinsFetcher;
-	private VariantFetcher variantFetcher;
-	private GeneConverter geneConverter;
+	private final MappingRepo mappingRepo;
+	private final CaddPredictionRepo caddPredictionRepo;
+	private final AlleleFreqRepo alleleFreqRepo;
+	private final ScoreRepo scoreRepo;
+	private final PocketRepo pocketRepo;
+	private final InteractionRepo interactionRepo;
+	private final FoldxRepo foldxRepo;
+	private final ProteinsFetcher proteinsFetcher;
+	private final VariantFetcher variantFetcher;
+	private final StructureService structureService;
+	private final GeneConverter geneConverter;
 
 	/**
 	 * Specialised and greatly simplified getMappings for genomic inputs only, by-passing many checks;
@@ -154,6 +156,11 @@ public class ProteinInputMapping {
 		if (params.isPop()) {
 			variantsMap.putAll(variantFetcher.getVariantMap(accession));
 			LOGGER.info("[{}] Retrieved {} variants groups", accession, variantsMap.size());
+		}
+
+		if (params.isStr()) {
+			structureService.preloadStructureCache(List.of(accession));
+			LOGGER.info("[{}] Structure cache pre-loaded", accession);
 		}
 
 		Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()

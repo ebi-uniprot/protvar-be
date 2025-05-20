@@ -7,16 +7,16 @@ import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
+import uk.ac.ebi.protvar.model.response.StructureResidue;
 import uk.ac.ebi.protvar.utils.CsvUtils;
 
 @Service
 public class CsvStructureDataFetcher {
 
-	public String fetch(List<PDBeStructureResidue> proteinStructure) {
+	public String fetch(List<StructureResidue> proteinStructure) {
 		StringJoiner structure = new StringJoiner("|");
-		Map<String, List<PDBeStructureResidue>> pdbAccessionMap = proteinStructure.stream()
-				.collect(Collectors.groupingBy(PDBeStructureResidue::getPdb_id));
+		Map<String, List<StructureResidue>> pdbAccessionMap = proteinStructure.stream()
+				.collect(Collectors.groupingBy(StructureResidue::getPdbId));
 
 		pdbAccessionMap.forEach((key, v) -> {
 			StringBuilder builder = new StringBuilder();
@@ -27,17 +27,17 @@ public class CsvStructureDataFetcher {
 			if (v != null && !v.isEmpty()) {
 				builder.append(v.get(0).getResolution());
 				builder.append(";");
-				builder.append(v.get(0).getExperimental_method());
+				builder.append(v.get(0).getExperimentalMethod());
 			}
 			structure.add(builder.toString());
 		});
 		return CsvUtils.getValOrNA(structure.toString());
 	}
 
-	private String buildChain(List<PDBeStructureResidue> structures) {
+	private String buildChain(List<StructureResidue> structures) {
 		StringJoiner structure = new StringJoiner(",");
 		if (structures != null && !structures.isEmpty())
-			structures.forEach(str -> structure.add(str.getChain_id() + str.getStart()));
+			structures.forEach(str -> structure.add(str.getChainId() + str.getStart()));
 		return structure.toString();
 	}
 

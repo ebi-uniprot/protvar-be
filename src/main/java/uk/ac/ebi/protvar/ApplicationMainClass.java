@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
-import uk.ac.ebi.pdbe.cache.PDBeCache;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
@@ -54,12 +53,6 @@ public class ApplicationMainClass {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ApplicationMainClass.class, args);
-	}
-
-	// Explicitly defining bean because it's in uk.ac.ebi.pdbe...
-	@Bean
-	public PDBeCache pdbeCache() {
-		return new PDBeCache();
 	}
 
 	@Bean

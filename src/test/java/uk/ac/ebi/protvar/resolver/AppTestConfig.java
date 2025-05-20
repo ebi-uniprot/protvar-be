@@ -6,11 +6,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import uk.ac.ebi.pdbe.api.PDBeAPI;
-import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
+import uk.ac.ebi.protvar.api.PDBeAPI;
+import uk.ac.ebi.protvar.model.response.StructureResidue;
 import uk.ac.ebi.uniprot.domain.entry.UPEntry;
-import uk.ac.ebi.protvar.service.ProteinsAPI;
-import uk.ac.ebi.protvar.service.VariationAPI;
+import uk.ac.ebi.protvar.api.ProteinsAPI;
+import uk.ac.ebi.protvar.api.VariationAPI;
 import uk.ac.ebi.uniprot.domain.features.ProteinFeatureInfo;
 
 import java.io.FileInputStream;
@@ -104,10 +104,10 @@ public class AppTestConfig {
 
 	@Bean
 	@Profile({"test"})
-	PDBeAPI pdBeAPI() {
+	PDBeAPI pdbeAPI() {
 		return new PDBeAPI() {
 			@Override
-			public List<PDBeStructureResidue> get(String accession, int position) {
+			public List<StructureResidue> get(String accession, int position) {
 				return null;
 			}
 			/*

@@ -25,6 +25,7 @@ import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.repo.*;
+import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
@@ -82,6 +83,7 @@ public class CustomInputMapping {
 	private final ProteinsFetcher proteinsFetcher;
 
 	private final VariantFetcher variantFetcher;
+	private final StructureService structureService;
 
 	private final BuildProcessor buildProcessor;
 
@@ -178,6 +180,9 @@ public class CustomInputMapping {
 
 			if (params.isFun())
 				proteinsFetcher.prefetch(canonicalAccessions);
+
+			if (params.isStr())
+				structureService.preloadStructureCache(new ArrayList<>(canonicalAccessions));
 
 			Map<String, List<GenomeToProteinMapping>> map = g2pMappings.stream()
 					.collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupBy));

@@ -19,8 +19,6 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
-import uk.ac.ebi.pdbe.api.PDBeAPI;
-import uk.ac.ebi.pdbe.api.PDBeAPIImpl;
 import uk.ac.ebi.protvar.cache.RestTemplateCache;
 import uk.ac.ebi.uniprot.domain.entry.comment.Comment;
 import uk.ac.ebi.uniprot.mapper.CommentDeserializer;
@@ -105,18 +103,13 @@ public class ApplicationConfig {
     }
 
     @Bean
+    @Qualifier("pdbeRestTemplate")
     //@RequestScope
     public RestTemplate pdbeRestTemplate() {
         RestTemplate restTemplate = new RestTemplateCache();
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeURL));
         return restTemplate;
-    }
-
-    @Bean
-    public PDBeAPI pdbeAPI() {
-        PDBeAPI pdbeAPI = new PDBeAPIImpl(pdbeRestTemplate());
-        return pdbeAPI;
     }
 
     @Bean

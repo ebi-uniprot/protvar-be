@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import lombok.Builder;
 import lombok.Getter;
-import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
 import uk.ac.ebi.protvar.model.score.*;
 
 import static uk.ac.ebi.protvar.utils.Commons.upperFirstRemainingLower;
@@ -42,7 +41,7 @@ public class Isoform implements Comparable<Isoform> {
 	private String referenceFunctionUri;
 
 	@JsonInclude(Include.NON_NULL)
-	private List<PDBeStructureResidue> proteinStructure;
+	private List<StructureResidue> proteinStructure;
 	@JsonInclude(Include.NON_NULL)
 	private String proteinStructureUri;
 

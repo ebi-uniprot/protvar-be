@@ -6,17 +6,14 @@ import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.pdbe.model.PDBeStructureResidue;
-import uk.ac.ebi.protvar.fetcher.PDBeFetcher;
 import uk.ac.ebi.protvar.fetcher.ProteinsFetcher;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
+import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.utils.Constants;
-import uk.ac.ebi.protvar.model.response.Isoform;
-import uk.ac.ebi.protvar.model.response.PopulationObservation;
-import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 @Service
@@ -30,7 +27,7 @@ public class AnnotationsBuilder {
 
 	//private VariationFetcher variationFetcher;
 	private ProteinsFetcher proteinsFetcher;
-	private PDBeFetcher pdbeFetcher;
+	private StructureService structureService;
 
 	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion,
 					  Map<String, List<Variant>> variantsMap,
@@ -49,8 +46,8 @@ public class AnnotationsBuilder {
 	private void buildStructure(String accession, int isoformPostion, boolean isStructure,
 			Isoform.IsoformBuilder builder) {
 		if (isStructure) {
-			List<PDBeStructureResidue> proteinStructure = pdbeFetcher.fetch(accession, isoformPostion);
-			builder.proteinStructure(proteinStructure);
+			List<StructureResidue> structures = structureService.getStrFromCache(accession, isoformPostion);
+			builder.proteinStructure(structures);
 		} else {
 			String uri = buildUri(STRUCTURE_API, accession, isoformPostion);
 			builder.proteinStructureUri(uri);
