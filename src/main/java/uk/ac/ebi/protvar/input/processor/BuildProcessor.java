@@ -14,7 +14,7 @@ import uk.ac.ebi.protvar.input.format.genomic.VCF;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.Crossmap;
-import uk.ac.ebi.protvar.model.grc.Assembly;
+import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.CrossmapRepo;
 

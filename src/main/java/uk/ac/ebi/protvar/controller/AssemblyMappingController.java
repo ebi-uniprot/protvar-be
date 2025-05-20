@@ -11,7 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.fetcher.AssemblyMappingFetcher;
-import uk.ac.ebi.protvar.model.grc.Assembly;
+import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.model.response.AssemblyMappingResponse;
 import java.util.List;
 

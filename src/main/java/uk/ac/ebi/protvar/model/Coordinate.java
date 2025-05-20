@@ -1,6 +1,5 @@
-package uk.ac.ebi.protvar.model.grc;
+package uk.ac.ebi.protvar.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 

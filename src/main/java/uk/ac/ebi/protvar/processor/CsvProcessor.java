@@ -39,7 +39,7 @@ import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
-import uk.ac.ebi.protvar.model.InputType;
+import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.service.PagedMappingService;

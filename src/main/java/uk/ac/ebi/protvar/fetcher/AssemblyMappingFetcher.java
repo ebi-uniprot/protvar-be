@@ -2,8 +2,8 @@ package uk.ac.ebi.protvar.fetcher;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import uk.ac.ebi.protvar.model.grc.Assembly;
-import uk.ac.ebi.protvar.model.grc.Coordinate;
+import uk.ac.ebi.protvar.types.Assembly;
+import uk.ac.ebi.protvar.model.Coordinate;
 import uk.ac.ebi.protvar.model.data.Crossmap;
 import uk.ac.ebi.protvar.model.response.AssemblyMapping;
 import uk.ac.ebi.protvar.model.response.AssemblyMappingResponse;

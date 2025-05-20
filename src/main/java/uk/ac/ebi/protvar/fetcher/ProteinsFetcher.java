@@ -11,7 +11,7 @@ import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.domain.entry.UPEntry;
 import uk.ac.ebi.uniprot.domain.features.Feature;
-import uk.ac.ebi.protvar.service.ProteinsAPI;
+import uk.ac.ebi.protvar.api.ProteinsAPI;
 
 import java.util.*;
 import java.util.stream.Collectors;

@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.model.grc;
+package uk.ac.ebi.protvar.types;
 
 import java.util.HashMap;
 import java.util.Map;

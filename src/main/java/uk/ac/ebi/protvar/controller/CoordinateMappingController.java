@@ -16,7 +16,7 @@ import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.input.processor.InputProcessor;
-import uk.ac.ebi.protvar.model.grc.Assembly;
+import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 

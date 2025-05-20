@@ -15,7 +15,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.constants.PagedMapping;
 import uk.ac.ebi.protvar.model.DownloadRequest;
-import uk.ac.ebi.protvar.model.InputType;
+import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;

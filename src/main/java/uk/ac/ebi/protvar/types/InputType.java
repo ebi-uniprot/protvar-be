@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.model;
+package uk.ac.ebi.protvar.types;
 
 public enum InputType {
     ID,

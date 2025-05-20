@@ -9,7 +9,7 @@ import uk.ac.ebi.protvar.cache.CacheKey;
 import uk.ac.ebi.protvar.repo.VariationRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
-import uk.ac.ebi.protvar.service.VariationAPI;
+import uk.ac.ebi.protvar.api.VariationAPI;
 import uk.ac.ebi.uniprot.domain.features.ProteinFeatureInfo;
 import uk.ac.ebi.uniprot.domain.features.Feature;
 

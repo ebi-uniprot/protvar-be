@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.model;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import uk.ac.ebi.protvar.types.InputType;
 
 import java.time.LocalDateTime;
 

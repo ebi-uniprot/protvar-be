@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.service;
+package uk.ac.ebi.protvar.api;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
