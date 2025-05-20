@@ -49,7 +49,7 @@ public class GeneConverter {
 								.altAllele(alt)
 								.isoforms(isoforms)
 								.caddScore(findScore(caddScores, alt))
-								.alleleFreq(findFreq(alleleFreqs, alt))
+								.gnomadFreq(findFreq(alleleFreqs, alt))
 								.build();
 					});
 				})
@@ -65,11 +65,11 @@ public class GeneConverter {
 						.orElse(null);
 	}
 
-	private Double findFreq(List<AlleleFreq> freqs, String alt) {
+	private AlleleFreq.GnomadFreq findFreq(List<AlleleFreq> freqs, String alt) {
 		return freqs == null ? null :
 				freqs.stream()
 						.filter(f -> alt.equalsIgnoreCase(f.getAlt()))
-						.map(AlleleFreq::getAf)
+						.map(AlleleFreq::toGnomadFreq)
 						.findFirst()
 						.orElse(null);
 	}
