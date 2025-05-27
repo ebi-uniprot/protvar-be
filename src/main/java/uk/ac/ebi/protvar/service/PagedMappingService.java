@@ -121,18 +121,18 @@ public class PagedMappingService {
 
 
     public PagedMappingResponse getMappingByAccession(String accession, int pageNo, int pageSize,
-                                                      CaddCategory caddCategory,
-                                                      AmClass amClass,
-                                                      String sortField,
-                                                      String sortDirection) {
+                                                      List<CaddCategory> caddCategories,
+                                                      List<AmClass> amClasses,
+                                                      String sort,
+                                                      String order) {
+        boolean advancedSearch = (caddCategories != null && !caddCategories.isEmpty()) ||
+                (amClasses != null && !amClasses.isEmpty()) || (sort != null && !sort.isBlank());
+
         // Create a Pageable instance
         Pageable pageable = PageRequest.of(pageNo-1, pageSize);
         // Retrieve a page of chr-pos for accession
-        Page<UserInput> page = (caddCategory != null || amClass != null ||
-                (sortField != null && !sortField.isBlank())) ?
-                /* TODO review these two sep methods and merge if needed */
-                mappingRepo.getGenInputsByAccession(accession, caddCategory, amClass, sortField, sortDirection, pageable)
-                : mappingRepo.getGenInputsByAccession(accession, pageable);
+        Page<UserInput> page = mappingRepo.getGenInputsByAccession(accession, caddCategories, amClasses, sort, order, pageable);
+                            //mappingRepo.getGenInputsByAccession(accession, pageable);
         // Get content for page object
         List<UserInput> inputs = page.getContent();
         InputParams params = InputParams.builder()
@@ -140,7 +140,8 @@ public class PagedMappingService {
                 .build(); // default values for annotations will be false
         // for function, population and structure
 
-        MappingResponse content = proteinInputMapping.getMappings(accession, params);
+        MappingResponse content = customInputMapping.getMapping(params);
+        // proteinInputMapping.getMappings(accession, params);
 
         PagedMappingResponse response = newPagedMappingResponse(pageNo, page);
         response.setContent(content);

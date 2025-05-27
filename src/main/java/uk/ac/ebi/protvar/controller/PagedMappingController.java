@@ -14,10 +14,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.model.response.IDResponse;
+import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.service.PagedMappingService;
 import uk.ac.ebi.protvar.types.AmClass;
 import uk.ac.ebi.protvar.types.CaddCategory;
+
+import java.util.*;
 
 import static uk.ac.ebi.protvar.constants.PagedMapping.*;
 
@@ -146,13 +149,13 @@ public class PagedMappingController {
             @Parameter(description = PAGE_SIZE_DESC, example = PAGE_SIZE)
             @RequestParam(value = "pageSize", defaultValue = PAGE_SIZE, required = false) int pageSize,
             @Parameter(description = "CADD score filter")
-            @RequestParam(required = false) CaddCategory caddCategory,
+            @RequestParam(required = false) List<String> cadd,
             @Parameter(description = "AlphaMissense pathogenicity class filter")
-            @RequestParam(required = false) AmClass amClass,
+            @RequestParam(required = false) List<String> am,
             @Parameter(description = "Sort field: 'CADD' or 'AM'")
-            @RequestParam(required = false) String sortField,
+            @RequestParam(required = false) String sort,
             @Parameter(description = "Sort direction: 'ASC' or 'DESC'")
-            @RequestParam(required = false) String sortDirection) {
+            @RequestParam(required = false) String order) {
 
         if (page < 1)
             page = DEFAULT_PAGE;
@@ -163,13 +166,40 @@ public class PagedMappingController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         accession = accession.trim().toUpperCase();
+        List<Message> warnings = new ArrayList<>();
+        List<CaddCategory> caddCategories = parseEnumList(cadd, CaddCategory.class, warnings, true);
+        List<AmClass> amClasses = parseEnumList(am, AmClass.class, warnings, true);
 
         PagedMappingResponse response = pagedMappingService.getMappingByAccession(accession, page, pageSize,
-                caddCategory, amClass,
-                sortField, sortDirection);
-        if (response != null)
+                caddCategories, amClasses,
+                sort, order);
+        if (response != null) {
             response.setId(accession);
+            if (!warnings.isEmpty() && response.getContent() != null && response.getContent().getMessages() != null) {
+                response.getContent().getMessages().addAll(warnings);
+            }
+        }
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    public <T extends Enum<T>> List<T> parseEnumList(List<String> values, Class<T> enumClass, List<Message> warnings, boolean removeIfAllSelected) {
+        if (values == null) return Collections.emptyList();
+
+        List<T> parsed = values.stream()
+                .map(v -> {
+                    try {
+                        return Enum.valueOf(enumClass, v.trim().toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        warnings.add(new Message(Message.MessageType.WARN, "Invalid value '" + v + "' for " + enumClass.getSimpleName()));
+                        return null; // or log and continue
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
+        if (removeIfAllSelected && EnumSet.copyOf(parsed).equals(EnumSet.allOf(enumClass))) {
+            return Collections.emptyList(); // No need to filter or join
+        }
+        return parsed;
     }
 
 

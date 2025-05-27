@@ -131,6 +131,56 @@ public class MappingRepo {
 		return new PageImpl<>(genomicInputs, pageable, total);
 	}
 
+	/**
+	 * The mapping table does **not** contain an `alt_allele` column, so alternate alleles
+	 * must be generated programmatically from the `allele` (reference base).
+	 * Although this logic can also be implemented on the database side, it tends to be more complex—
+	 * especially when filters are involved. See the corresponding method where database-side
+	 * generation is used along with filtering for an example.
+	 */
+	public Page<UserInput> getGenInputsByAccession_x3(String accession, Pageable pageable) {
+
+		String fields = "chromosome, genomic_position, allele, protein_position, codon_position";
+		String rowCountSql = String.format("""
+    		SELECT COUNT(DISTINCT (%s))
+			FROM %s 
+			WHERE accession = :acc
+			""", fields, mappingTable);
+
+		SqlParameterSource parameters = new MapSqlParameterSource("acc", accession);
+		long baseRowCount = jdbcTemplate.queryForObject(rowCountSql, parameters, Long.class);
+
+		String querySql = String.format("""
+    		SELECT DISTINCT %s 
+    		FROM %s 
+    		WHERE accession = :acc 
+    		ORDER BY protein_position, codon_position
+    		LIMIT %d OFFSET %d
+    		""", fields, mappingTable, pageable.getPageSize(), pageable.getOffset());
+
+		SqlParameterSource queryParameters = new MapSqlParameterSource("acc", accession);
+
+		List<UserInput> genomicInputs = new ArrayList<>();
+		jdbcTemplate.query(querySql, queryParameters, (rs) -> {
+			String chr = rs.getString("chromosome");
+			int pos = rs.getInt("genomic_position");
+			String ref = rs.getString("allele");
+
+			for (String alt : List.of("A", "T", "G", "C")) {
+				if (!alt.equalsIgnoreCase(ref)) {
+					genomicInputs.add(new GenomicInput(
+							String.format("%s %d %s %s", chr, pos, ref, alt),
+							chr, pos, ref, alt
+					));
+				}
+			}
+		});
+		// Total now reflects all expanded alt alleles
+		long total = baseRowCount * 3;
+
+		return new PageImpl<>(genomicInputs, pageable, total);
+	}
+
 	public Page<UserInput> getGenInputsByEnsemblID(String id, Pageable pageable) {
 		// Pre-condition: ensemblID will have been validated (using EnsemblIDValidator)
 
@@ -185,6 +235,7 @@ public class MappingRepo {
 	}
 
 	/**
+	 * TODO rename to getGenCoordsForAccession
 	 * Unpaged - used for protein download
 	 * @param accession
 	 * @return
@@ -263,21 +314,51 @@ public class MappingRepo {
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
-	public Page<UserInput> getGenInputsByAccession(String accession, CaddCategory caddCategory,
-							 AmClass amClass,
-							 String sortField,
-							 String sortDirection,
-							 Pageable pageable) {
-		// TODO If not already in place, create indexes on:
-		//rel_2025_01_genomic_protein_mapping(accession, protein_position)
-		//cadd_table(chromosome, position, ref, alt)
-		//alphamissense_table(accession, position, ref, alt)
+	String CTE_BASED_QUERY = """
+			WITH base_alleles AS (
+			    SELECT ARRAY['A', 'T', 'G', 'C'] AS alleles
+			),
+			mapping_with_variants AS (
+			    SELECT
+			        m.chromosome, m.genomic_position, m.allele AS ref, alt.alt_allele
+			    FROM rel_2025_01_genomic_protein_mapping m,
+			        base_alleles b,
+			        LATERAL unnest(ARRAY_REMOVE(b.alleles, m.allele::text)) AS alt(alt_allele)
+			    WHERE m.accession = 'P22304'
+			)
+			SELECT count(*)
+			FROM mapping_with_variants m;
+			""";
 
-		String normalizedSortDir = "ASC".equalsIgnoreCase(sortDirection) ? "ASC" : "DESC";
-		// Flags
-		boolean joinCadd = caddCategory != null || "CADD".equalsIgnoreCase(sortField);
-		boolean joinAm = amClass != null || "AM".equalsIgnoreCase(sortField);
+	String CROSS_JOIN_QUERY = """
+			SELECT chromosome, genomic_position, allele AS ref, alt
+			FROM rel_2025_01_genomic_protein_mapping,
+				 (VALUES ('A'), ('T'), ('G'), ('C')) AS alts(alt)
+			WHERE accession = 'P22304'
+			  AND alt <> allele
+			""";
 
+	// The above two queries are functionally equivalent, but the CTE-based query is more readable and maintainable.
+	// Recommendation:
+	// If performance is critical and this query runs often or on large datasets, go with the simpler VALUES + CROSS JOIN version.
+
+	public Page<UserInput> getGenInputsByAccession_CTE(String accession,
+													   List<CaddCategory> caddCategories, List<AmClass> amClasses,
+													   String sort, String order, Pageable pageable) {
+		boolean filterByCadd = caddCategories != null
+				&& !caddCategories.isEmpty();
+		// handled (normalized) in controller
+		//&& !EnumSet.copyOf(caddCategories).equals(EnumSet.allOf(CaddCategory.class));
+		boolean filterByAm = amClasses != null
+				&& !amClasses.isEmpty();
+		//&& !EnumSet.copyOf(amClasses).equals(EnumSet.allOf(AmClass.class));
+		boolean sortByCadd = "CADD".equalsIgnoreCase(sort);
+		boolean sortByAm = "AM".equalsIgnoreCase(sort);
+
+		boolean joinCadd = filterByCadd || sortByCadd;
+		boolean joinAm = filterByAm || sortByAm;
+
+		String sortOrder = "ASC".equalsIgnoreCase(order) ? "ASC" : "DESC";
 		String fields = "m.chromosome, m.genomic_position, m.allele, m.alt_allele, m.protein_position, m.codon_position";
 		String baseQuery = """
 			WITH base_alleles AS (
@@ -304,7 +385,7 @@ public class MappingRepo {
 		""";
 		StringBuilder sql = new StringBuilder(baseQuery.replaceFirst("%s", mappingTable));
 
-		// Conditionally join cadd
+		// Conditional joins
 		if (joinCadd) {
 			sql.append(String.format("""
 				LEFT JOIN %s cadd ON
@@ -314,7 +395,7 @@ public class MappingRepo {
 					cadd.alt_allele = m.alt_allele
 			""", caddTable));
 		}
-		// Conditionally join am
+
 		if (joinAm) {
 			sql.append(String.format("""
 				LEFT JOIN %s am ON
@@ -330,17 +411,24 @@ public class MappingRepo {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("accession", accession);
 
-		// Optional WHERE filters
-		if (caddCategory != null) {
-			sql.append(" AND cadd.score >= :minScore AND cadd.score < :maxScore");
-			parameters.addValue("minScore", caddCategory.getMin());
-			parameters.addValue("maxScore", caddCategory.getMax());
+		// Conditional filters
+		if (filterByCadd) {
+			List<String> caddClauses = new ArrayList<>();
+			for (int i = 0; i < caddCategories.size(); i++) {
+				CaddCategory category = caddCategories.get(i);
+				String minParam = "caddMin" + i;
+				String maxParam = "caddMax" + i;
+				caddClauses.add("(cadd.score >= :" + minParam + " AND cadd.score < :" + maxParam + ")");
+				parameters.addValue(minParam, category.getMin());
+				parameters.addValue(maxParam, category.getMax());
+			}
+			sql.append(" AND (").append(String.join(" OR ", caddClauses)).append(")");
 		}
 
-		// AlphaMissense filters
-		if (amClass != null) {
-			sql.append(" AND am.am_class = :amClass");
-			parameters.addValue("amClass", amClass.getValue());
+		if (filterByAm) {
+			List<Integer> amValues = amClasses.stream().map(AmClass::getValue).toList();
+			sql.append(" AND (am.am_class IN (:amClasses)  OR am.am_class IS NULL)");
+			parameters.addValue("amClasses", amValues);
 		}
 
 		// Count query
@@ -349,12 +437,12 @@ public class MappingRepo {
 
 		// Sorting
 		sql.append(" ORDER BY ");
-		if ("CADD".equalsIgnoreCase(sortField)) {
+		if ("CADD".equalsIgnoreCase(sort)) {
 			fields += ", cadd.score ";
-			sql.append("cadd.score ").append(normalizedSortDir).append(", ");
-		} else if ("AM".equalsIgnoreCase(sortField)) {
+			sql.append("cadd.score ").append(sortOrder).append(", ");
+		} else if ("AM".equalsIgnoreCase(sort)) {
 			fields += ", am.am_pathogenicity ";
-			sql.append("am.am_pathogenicity ").append(normalizedSortDir).append(", ");
+			sql.append("am.am_pathogenicity ").append(sortOrder).append(", ");
 		}
 		sql.append("m.protein_position, m.codon_position");
 
@@ -366,15 +454,141 @@ public class MappingRepo {
 		List<UserInput> genomicInputs = jdbcTemplate.query(
 				String.format(sql.toString(), "DISTINCT " + fields),
 				parameters,
-				(rs, rowNum) -> new GenomicInput(
-						accession,
-						rs.getString("chromosome"),
-						rs.getInt("genomic_position"),
-						rs.getString("allele"),
-						rs.getString("alt_allele")
-				)
+				(rs, rowNum) -> {
+					String chr = rs.getString("chromosome");
+					int pos = rs.getInt("genomic_position");
+					String ref = rs.getString("allele");
+					String alt = rs.getString("alt_allele");
+					return new GenomicInput(String.format("%s %d %s %s", chr, pos, ref, alt), chr, pos, ref, alt);
+				}
 		);
-
 		return new PageImpl<>(genomicInputs, pageable, total);
 	}
+
+	// TODO If not already in place, create indexes on:
+	//	rel_2025_01_genomic_protein_mapping(accession, protein_position)
+	//	cadd_table(chromosome, position, ref, alt)
+	//	alphamissense_table(accession, position, ref, alt)
+	public Page<UserInput> getGenInputsByAccession(String accession,
+												   List<CaddCategory> caddCategories, List<AmClass> amClasses,
+												   String sort, String order, Pageable pageable) {
+		boolean filterByCadd = caddCategories != null
+				&& !caddCategories.isEmpty();
+				// handled (normalized) in controller
+				//&& !EnumSet.copyOf(caddCategories).equals(EnumSet.allOf(CaddCategory.class));
+		boolean filterByAm = amClasses != null
+				&& !amClasses.isEmpty();
+				//&& !EnumSet.copyOf(amClasses).equals(EnumSet.allOf(AmClass.class));
+		boolean sortByCadd = "CADD".equalsIgnoreCase(sort);
+		boolean sortByAm = "AM".equalsIgnoreCase(sort);
+
+		boolean joinCadd = filterByCadd || sortByCadd;
+		boolean joinAm = filterByAm || sortByAm;
+
+		String sortOrder = "ASC".equalsIgnoreCase(order) ? "ASC" : "DESC";
+		String fields = "m.chromosome, m.genomic_position, m.allele, m.alt_allele, m.protein_position, m.codon_position";
+
+		String baseQuery = """
+			WITH mapping_with_variants AS (
+				SELECT
+					m.chromosome, m.genomic_position, m.allele, m.accession,
+					m.protein_position, m.codon_position, m.protein_seq,
+					m.codon, m.reverse_strand,
+					alt.alt_allele
+				FROM %s m,
+					(VALUES ('A'), ('T'), ('G'), ('C')) AS alt(alt_allele)
+				WHERE m.accession = :accession
+					AND alt.alt_allele <> m.allele
+			)
+			SELECT %s
+			FROM mapping_with_variants m
+		""";
+		StringBuilder sql = new StringBuilder(baseQuery.replaceFirst("%s", mappingTable));
+
+		// Conditional joins
+		if (joinCadd) {
+			sql.append(String.format("""
+				LEFT JOIN %s cadd ON
+					cadd.chromosome = m.chromosome AND
+					cadd.position = m.genomic_position AND
+					cadd.reference_allele = m.allele AND
+					cadd.alt_allele = m.alt_allele
+			""", caddTable));
+		}
+
+		if (joinAm) {
+			sql.append(String.format("""
+    			LEFT JOIN codon_table c ON c.codon = upper(CASE
+					WHEN m.codon_position = 1 THEN rna_base_for_strand(m.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
+					WHEN m.codon_position = 2 THEN substring(m.codon, 1, 1) || rna_base_for_strand(m.alt_allele, m.reverse_strand) || substring(m.codon, 3, 1)
+					WHEN m.codon_position = 3 THEN substring(m.codon, 1, 2) || rna_base_for_strand(m.alt_allele, m.reverse_strand)
+					ELSE m.codon
+				END)
+				LEFT JOIN %s am ON
+					am.accession = m.accession AND
+					am.position = m.protein_position AND
+					am.wt_aa = m.protein_seq AND
+					am.mt_aa = c.amino_acid
+			""", amTable));
+		}
+
+		sql.append(" WHERE 1=1");
+
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue("accession", accession);
+
+		// Conditional filters
+		if (filterByCadd) {
+			List<String> caddClauses = new ArrayList<>();
+			for (int i = 0; i < caddCategories.size(); i++) {
+				CaddCategory category = caddCategories.get(i);
+				String minParam = "caddMin" + i;
+				String maxParam = "caddMax" + i;
+				caddClauses.add("(cadd.score >= :" + minParam + " AND cadd.score < :" + maxParam + ")");
+				parameters.addValue(minParam, category.getMin());
+				parameters.addValue(maxParam, category.getMax());
+			}
+			sql.append(" AND (").append(String.join(" OR ", caddClauses)).append(")");
+		}
+
+		if (filterByAm) {
+			List<Integer> amValues = amClasses.stream().map(AmClass::getValue).toList();
+			sql.append(" AND am.am_class IN (:amClasses)");
+			parameters.addValue("amClasses", amValues);
+		}
+
+		// Count query
+		String countSql = String.format(sql.toString(), "COUNT(DISTINCT (" + fields + "))");
+		long total = jdbcTemplate.queryForObject(countSql, parameters, Long.class);
+
+		// Sorting
+		sql.append(" ORDER BY ");
+		if ("CADD".equalsIgnoreCase(sort)) {
+			fields += ", cadd.score ";
+			sql.append("cadd.score ").append(sortOrder).append(", ");
+		} else if ("AM".equalsIgnoreCase(sort)) {
+			fields += ", am.am_pathogenicity ";
+			sql.append("am.am_pathogenicity ").append(sortOrder).append(", ");
+		}
+		sql.append("m.protein_position, m.codon_position");
+
+		// Pagination
+		sql.append(" LIMIT :pageSize OFFSET :offset");
+		parameters.addValue("pageSize", pageable.getPageSize());
+		parameters.addValue("offset", pageable.getOffset());
+
+		List<UserInput> genomicInputs = jdbcTemplate.query(
+				String.format(sql.toString(), "DISTINCT " + fields),
+				parameters,
+				(rs, rowNum) -> {
+					String chr = rs.getString("chromosome");
+					int pos = rs.getInt("genomic_position");
+					String ref = rs.getString("allele");
+					String alt = rs.getString("alt_allele");
+					return new GenomicInput(String.format("%s %d %s %s", chr, pos, ref, alt), chr, pos, ref, alt);
+				}
+		);
+		return new PageImpl<>(genomicInputs, pageable, total);
+	}
+
 }
