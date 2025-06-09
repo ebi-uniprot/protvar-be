@@ -1,8 +1,7 @@
 package uk.ac.ebi.protvar;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -20,14 +19,13 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.DefaultUriBuilderFactory;
 import uk.ac.ebi.protvar.cache.RestTemplateCache;
-import uk.ac.ebi.uniprot.domain.entry.comment.Comment;
-import uk.ac.ebi.uniprot.mapper.CommentDeserializer;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 @Configuration
+@RequiredArgsConstructor
 public class ApplicationConfig {
 
     @Value(("${uniprot.proteins.api.url}"))
@@ -41,6 +39,8 @@ public class ApplicationConfig {
 
     @Value(("${pdbe.best-structures.api.url}"))
     private String pdbeURL;
+
+    private final ObjectMapper objectMapper;
 
     @Bean
     @Primary
@@ -71,27 +71,10 @@ public class ApplicationConfig {
 
     @Bean
     @Qualifier("proteinsRestTemplate")
-    //@RequestScope
-    /*
-    public RestTemplate proteinsRestTemplate() {
-        RestTemplate restTemplate = new RestTemplate();//new RestTemplateCache();
-        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinsURL));
-        return restTemplate;
-    }*/
     public RestTemplate restTemplate() {
-        // Create a custom ObjectMapper
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-        // Register custom deserializer
-        SimpleModule module = new SimpleModule();
-        module.addDeserializer(Comment.class, new CommentDeserializer());
-        objectMapper.registerModule(module);
-
         // Register the ObjectMapper with a custom message converter
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-        converter.setObjectMapper(objectMapper);
+        converter.setObjectMapper(objectMapper); // use shared one
 
         // Create a RestTemplate with the custom converter
         RestTemplate restTemplate = new RestTemplate();

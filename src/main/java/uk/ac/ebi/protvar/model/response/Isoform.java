@@ -46,13 +46,7 @@ public class Isoform implements Comparable<Isoform> {
 	private String proteinStructureUri;
 
 	@JsonInclude(Include.NON_NULL)
-	private ConservScore conservScore;
-	@JsonInclude(Include.NON_NULL)
 	private AmScore amScore;
-	@JsonInclude(Include.NON_NULL)
-	private EveScore eveScore;
-	@JsonInclude(Include.NON_NULL)
-	private EsmScore esmScore;
 
 	public String getCodonChange(){
 		return refCodon + "/" + variantCodon;

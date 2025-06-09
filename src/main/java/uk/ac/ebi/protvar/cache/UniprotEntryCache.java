@@ -26,7 +26,7 @@ public class UniprotEntryCache {
      */
     @EventListener(classes = ApplicationStartedEvent.class )
     public void loadEntries() {
-        LOGGER.info("Loading UniProt entries");
+        LOGGER.info("Loading UniProt accessions into cache");
         uniprotEntries.addAll(uniprotEntryRepo.findAll().stream().map(entry -> entry.getAccession()).collect(Collectors.toList()));
 
         LOGGER.info("{} entries loaded in cache", uniprotEntries.size());

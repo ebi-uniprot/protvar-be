@@ -6,12 +6,12 @@ import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import uk.ac.ebi.protvar.fetcher.ProteinsFetcher;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.service.FunctionalAnnService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
@@ -26,7 +26,7 @@ public class AnnotationsBuilder {
 	private static final String POPULATION_API = "population";
 
 	//private VariationFetcher variationFetcher;
-	private ProteinsFetcher proteinsFetcher;
+	private FunctionalAnnService functionalAnnService;
 	private StructureService structureService;
 
 	public void build(String accession, long genomicLocation, String variantAA, int isoformPostion,
@@ -46,7 +46,7 @@ public class AnnotationsBuilder {
 	private void buildStructure(String accession, int isoformPostion, boolean isStructure,
 			Isoform.IsoformBuilder builder) {
 		if (isStructure) {
-			List<StructureResidue> structures = structureService.getStrFromCache(accession, isoformPostion);
+			List<StructureResidue> structures = structureService.getStr(accession, isoformPostion);
 			builder.proteinStructure(structures);
 		} else {
 			String uri = buildUri(STRUCTURE_API, accession, isoformPostion);
@@ -61,20 +61,20 @@ public class AnnotationsBuilder {
 							   boolean isFunction,
 							   Isoform.IsoformBuilder builder) {
 		if (isFunction) {
-			FunctionalInfo protein = proteinsFetcher.fetch(accession, isoformPostion, variantAA);
+			FunctionalInfo functionalInfo = functionalAnnService.get(accession, isoformPostion);
 			// Add novel predictions
 			var key = accession + "-" + isoformPostion;
 			if (pocketsMap != null) {
-				protein.setPockets(pocketsMap.get(key));
+				functionalInfo.setPockets(pocketsMap.get(key));
 			}
 			if (interactionsMap != null) {
-				protein.setInteractions(interactionsMap.get(key));
+				functionalInfo.setInteractions(interactionsMap.get(key));
 			}
 			var foldxKey = accession + "-" + isoformPostion + "-" + variantAA;
 			if (foldxsMap != null) {
-				protein.setFoldxs(foldxsMap.get(foldxKey));
+				functionalInfo.setFoldxs(foldxsMap.get(foldxKey));
 			}
-			builder.referenceFunction(protein);
+			builder.referenceFunction(functionalInfo);
 		} else {
 			String uri = buildUri(FUNCTION_API, accession, isoformPostion);
 			if (variantAA != null && !variantAA.isEmpty()) {

@@ -12,21 +12,26 @@ import org.springframework.web.util.UriBuilder;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.uniprot.domain.entry.UPEntry;
 
+import java.util.Collection;
+
 @Service
 public class ProteinsAPI {
-    private static final Logger logger = LoggerFactory.getLogger(ProteinsAPI.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProteinsAPI.class);
+    public static final int PARTITION_SIZE = 100;
 
     @Autowired
     @Qualifier("proteinsRestTemplate")
     private RestTemplate proteinsRestTemplate;
 
-    public UPEntry[] getProtein(String accessions) {
+    public UPEntry[] getProtein(Collection<String> accessions) {
         DefaultUriBuilderFactory handler = (DefaultUriBuilderFactory) this.proteinsRestTemplate.getUriTemplateHandler();
-        UriBuilder uriBuilder = handler.builder().queryParam(Constants.PARAM_ACCESSION, accessions).queryParam(Constants.PARAM_TAXID,
-                Constants.TAX_ID_HUMAN);
-        logger.info("Proteins API call: {}", uriBuilder.build());
-        ResponseEntity<UPEntry[]> response = this.proteinsRestTemplate.getForEntity(uriBuilder.build(),
-                UPEntry[].class);
+        UriBuilder uriBuilder = handler.builder()
+                .queryParam(Constants.PARAM_ACCESSION, String.join(",", accessions))
+                .queryParam(Constants.PARAM_TAXID, Constants.TAX_ID_HUMAN);
+
+        LOGGER.info("Proteins API call: {}", uriBuilder.build());
+
+        ResponseEntity<UPEntry[]> response = this.proteinsRestTemplate.getForEntity(uriBuilder.build(), UPEntry[].class);
         return response.getBody();
     }
 

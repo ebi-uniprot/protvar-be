@@ -18,9 +18,9 @@ import uk.ac.ebi.uniprot.domain.entry.UPEntry;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 
 @Service
-public class UPEntry2FunctionalInfoConverterTest {
+public class FunctionalInfoConverterTest {
 
-	UPEntry2FunctionalInfoConverter converter = new UPEntry2FunctionalInfoConverter();
+	FunctionalInfoConverter converter = new FunctionalInfoConverter();
 
 	@Test
 	public void testApply() throws Exception {
@@ -67,7 +67,7 @@ public class UPEntry2FunctionalInfoConverterTest {
 	@org.junit.jupiter.api.Test
 	public void testSwissProtCanonical() throws IOException {
 		UPEntry[] entries = TestUtils.getProtein("src/test/resources/protein_E7EPD8.json");
-		UPEntry2FunctionalInfoConverter converter = new UPEntry2FunctionalInfoConverter();
+		FunctionalInfoConverter converter = new FunctionalInfoConverter();
 
 		FunctionalInfo protein = converter.convert(entries[0]);
 		protein.setType("Swiss-Prot");
@@ -79,7 +79,7 @@ public class UPEntry2FunctionalInfoConverterTest {
 	@org.junit.jupiter.api.Test
 	public void testCanonicalFalse() throws IOException {
 		UPEntry[] entries = TestUtils.getProtein("src/test/resources/protein_E7EPD8.json");
-		UPEntry2FunctionalInfoConverter converter = new UPEntry2FunctionalInfoConverter();
+		FunctionalInfoConverter converter = new FunctionalInfoConverter();
 		FunctionalInfo protein = converter.convert(entries[0]);
 		System.out.println("Protein: " + protein);
 //		assertNull(protein.getCanonicalAccession());
@@ -89,7 +89,7 @@ public class UPEntry2FunctionalInfoConverterTest {
 	@org.junit.jupiter.api.Test
 	public void testNonSwissProtCanonical() throws IOException {
 		UPEntry[] entries = TestUtils.getProtein("src/test/resources/jsons/protein.json");
-		UPEntry2FunctionalInfoConverter converter = new UPEntry2FunctionalInfoConverter();
+		FunctionalInfoConverter converter = new FunctionalInfoConverter();
 		FunctionalInfo protein = converter.convert(entries[1]);
 //		protein.getDbReferences().get(0).setIsoform("G3V2F4-1");
 //		protein.setCanonicalIsoforms(Arrays.asList("G3V2F4-1"));

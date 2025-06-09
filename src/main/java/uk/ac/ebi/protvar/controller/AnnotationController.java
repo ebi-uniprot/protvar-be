@@ -11,12 +11,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import uk.ac.ebi.protvar.fetcher.ProteinsFetcher;
 import uk.ac.ebi.protvar.fetcher.VariantFetcher;
 import uk.ac.ebi.protvar.model.response.*;
-import uk.ac.ebi.protvar.repo.FoldxRepo;
-import uk.ac.ebi.protvar.repo.InteractionRepo;
-import uk.ac.ebi.protvar.repo.PocketRepo;
+import uk.ac.ebi.protvar.service.FunctionalAnnService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
@@ -28,16 +25,10 @@ import uk.ac.ebi.uniprot.domain.variation.Variant;
 public class AnnotationController {
 
 
-  private final ProteinsFetcher proteinsFetcher;
+  private final FunctionalAnnService functionalAnnService;
   private final VariantFetcher variantFetcher;
 
   private final StructureService structureService;
-
-  private final PocketRepo pocketRepo;
-
-  private final InteractionRepo interactionRepo;
-
-  private final FoldxRepo foldxRepo;
 
   /**
    * @param accession UniProt accession
@@ -51,11 +42,11 @@ public class AnnotationController {
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position,
     @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
-    FunctionalInfo functionalInfo = proteinsFetcher.fetch(accession, position, AminoAcid.oneLetter(variantAA));
-    // Add novel predictions
-    functionalInfo.setPockets(pocketRepo.getPockets(accession, position));
-    functionalInfo.setInteractions(interactionRepo.getInteractions(accession, position));
-    functionalInfo.setFoldxs(foldxRepo.getFoldxs(accession, position, variantAA));
+    FunctionalInfo functionalInfo = functionalAnnService.get(accession, position, AminoAcid.oneLetter(variantAA));
+    if (functionalInfo == null) {
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
     return new ResponseEntity<>(functionalInfo, HttpStatus.OK);
   }
 
@@ -83,7 +74,7 @@ public class AnnotationController {
   public ResponseEntity<List<StructureResidue>> getStructure(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
-    List<StructureResidue> object = structureService.getStrFromCache(accession, position);
+    List<StructureResidue> object = structureService.getStr(accession, position);
     return new ResponseEntity<>(object, HttpStatus.OK);
   }
 }

@@ -10,7 +10,7 @@ import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.uniprot.domain.entry.*;
 
 @Service
-public class UPEntry2FunctionalInfoConverter {
+public class FunctionalInfoConverter {
 
 	public FunctionalInfo convert(UPEntry entry) {
 		FunctionalInfo functionalInfo = new FunctionalInfo();

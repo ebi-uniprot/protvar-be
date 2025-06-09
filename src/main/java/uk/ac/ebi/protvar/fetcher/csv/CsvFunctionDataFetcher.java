@@ -7,6 +7,7 @@ import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.model.response.Isoform;
+import uk.ac.ebi.protvar.model.score.EveScore;
 import uk.ac.ebi.protvar.utils.CsvUtils;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
@@ -54,10 +55,10 @@ public class CsvFunctionDataFetcher {
 		output.add(CsvUtils.getValOrNA(buildPredictedPockets(functionalInfo.getPockets())));
 		output.add(CsvUtils.getValOrNA(buildPredictedInteractions(functionalInfo.getInteractions())));
 		output.add(CsvUtils.getValOrNA(buildFoldxPrediction(functionalInfo.getFoldxs())));
-		output.add(CsvUtils.getValOrNA(mapping.getConservScore() == null ? null : mapping.getConservScore().getScore()));
+		output.add(CsvUtils.getValOrNA(functionalInfo.getConservScore() == null ? null : functionalInfo.getConservScore().getScore()));
 		output.add(getAMScore(mapping));
-		output.add(getEveScore(mapping));
-		output.add(CsvUtils.getValOrNA(mapping.getEsmScore() == null ? null : mapping.getEsmScore().getScore()));
+		output.add(getEveScore(functionalInfo.getEveScore()));
+		output.add(CsvUtils.getValOrNA(functionalInfo.getEsmScore() == null ? null : functionalInfo.getEsmScore().getScore()));
 		return output;
 	}
 
@@ -70,12 +71,12 @@ public class CsvFunctionDataFetcher {
 				.append(")").toString();
 	}
 
-	private String getEveScore(Isoform mapping) {
-		if (mapping.getEveScore() == null) return Constants.NA;
+	private String getEveScore(EveScore eveScore) {
+		if (eveScore == null) return Constants.NA;
 		return new StringBuilder()
-				.append(mapping.getEveScore().getScore())
+				.append(eveScore.getScore())
 				.append("(")
-				.append(mapping.getEveScore().getEveClass())
+				.append(eveScore.getEveClass())
 				.append(")").toString();
 	}
 

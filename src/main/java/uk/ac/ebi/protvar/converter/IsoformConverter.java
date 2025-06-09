@@ -86,36 +86,19 @@ public class IsoformConverter {
 				.proteinName(mapping.getProteinName());
 
 		if (accession.equals(canonicalAccession)) {
-			addScores(builder, accession, mapping.getIsoformPosition(), variantAA, scoresMap, params);
+			addAMScore(builder, accession, mapping.getIsoformPosition(), variantAA, scoresMap, params);
 			annotationsBuilder.build(accession, mapping.getGenomeLocation(), variantAA.getOneLetter(),
 					mapping.getIsoformPosition(), variantsMap, pocketsMap, interactionsMap, foldxsMap, params, builder);
 		}
 		return builder.build();
 	}
 
-	private void addScores(Isoform.IsoformBuilder builder, String accession, int position, AminoAcid variantAA,
+	private void addAMScore(Isoform.IsoformBuilder builder, String accession, int position, AminoAcid variantAA,
 						   Map<String, List<Score>> scoresMap, InputParams params) {
-		// Always add AM scores
+		// Add AM score - displayed in main table
 		String keyAm = Commons.joinWithDash("AM", accession, position, variantAA.getOneLetter());
-
 		scoresMap.getOrDefault(keyAm, Collections.emptyList()).stream().findFirst()
 				.map(s -> ((AmScore) s).copy()).ifPresent(builder::amScore);
-
-		// Other scores only if isFun true
-		if (params.isFun()) {
-			String keyConserv = Commons.joinWithDash("CONSERV", accession, position);
-			String keyEve = Commons.joinWithDash("EVE", accession, position, variantAA.getOneLetter());
-			String keyEsm = Commons.joinWithDash("ESM", accession, position, variantAA.getOneLetter());
-
-			scoresMap.getOrDefault(keyConserv, Collections.emptyList()).stream().findFirst()
-					.map(s -> ((ConservScore) s).copy()).ifPresent(builder::conservScore);
-
-			scoresMap.getOrDefault(keyEve, Collections.emptyList()).stream().findFirst()
-					.map(s -> ((EveScore) s).copy()).ifPresent(builder::eveScore);
-
-			scoresMap.getOrDefault(keyEsm, Collections.emptyList()).stream().findFirst()
-					.map(s -> ((EsmScore) s).copy()).ifPresent(builder::esmScore);
-		}
 	}
 
 	private String replaceChar(String str, char ch, int index) {

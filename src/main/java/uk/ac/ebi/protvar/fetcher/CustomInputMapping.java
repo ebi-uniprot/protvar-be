@@ -25,6 +25,7 @@ import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.repo.*;
+import uk.ac.ebi.protvar.service.FunctionalAnnService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
@@ -80,7 +81,7 @@ public class CustomInputMapping {
 	private final Pro2Gen pro2Gen;
 	private final GeneConverter geneConverter;
 
-	private final ProteinsFetcher proteinsFetcher;
+	private final FunctionalAnnService functionalAnnService;
 
 	private final VariantFetcher variantFetcher;
 	private final StructureService structureService;
@@ -96,7 +97,7 @@ public class CustomInputMapping {
 	 * |Mapping|Cadd|Score|      Fun      |   Pop    |  Str  -> PdbeStructureFetcher
 	 * --------------------       |            \
 	 *                            v             v
-	 *                     ProteinsFetcher     VariantFetcher
+	 *                     FunctionalInfo     VariantFetcher
 	 *                     Pocket              AlleleFreq
 	 *                     Interaction
 	 *                     Foldx
@@ -179,7 +180,7 @@ public class CustomInputMapping {
 			final Map<String, List<Variant>> variantMap = params.isPop() ? variantFetcher.getVariantMap(accPosList) : new HashedMap();
 
 			if (params.isFun())
-				proteinsFetcher.prefetch(canonicalAccessions);
+				functionalAnnService.preloadFunctionCache(canonicalAccessions);
 
 			if (params.isStr())
 				structureService.preloadStructureCache(new ArrayList<>(canonicalAccessions));

@@ -43,14 +43,14 @@ public class VariantFetcher {
 		logger.info("Cached variation: {}", String.join(",", cached.toString()));
 		logger.info("Not cached: {}", String.join(",", notCached.toString()));
 
-		List<Set<String>> notCachedPartitions = FetcherUtils.partitionSet(notCached, FetcherUtils.PARTITION_SIZE);
+		List<Collection<String>> notCachedPartitions = FetcherUtils.partition(notCached, VariationAPI.PARTITION_SIZE);
 
 		notCachedPartitions.stream().parallel().forEach(accessionsSet -> {
 			cacheAPIResponse(accessionsSet);
 		});
 	}
 
-	private void cacheAPIResponse(Set<String> accessionLocations) {
+	private void cacheAPIResponse(Collection<String> accessionLocations) {
 		Map<String, List<Variant>> variantMap = new ConcurrentHashMap<>();
 		for (String k: accessionLocations) {
 			variantMap.put(k, new ArrayList<>());

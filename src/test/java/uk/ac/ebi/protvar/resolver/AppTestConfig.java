@@ -6,8 +6,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import uk.ac.ebi.protvar.api.PDBeAPI;
-import uk.ac.ebi.protvar.model.response.StructureResidue;
 import uk.ac.ebi.uniprot.domain.entry.UPEntry;
 import uk.ac.ebi.protvar.api.ProteinsAPI;
 import uk.ac.ebi.protvar.api.VariationAPI;
@@ -17,7 +15,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 @Configuration
 @Profile({ "test" })
@@ -99,31 +96,6 @@ public class AppTestConfig {
 			public ProteinFeatureInfo[] getVariationAccessionLocations(String accLocs) {
 				return new ProteinFeatureInfo[0];
 			}
-		};
-	}
-
-	@Bean
-	@Profile({"test"})
-	PDBeAPI pdbeAPI() {
-		return new PDBeAPI() {
-			@Override
-			public List<StructureResidue> get(String accession, int position) {
-				return null;
-			}
-			/*
-			@Override
-			public Object[] get(List<PDBeRequest> requests) {
-				try {
-					String data = Files.readString(Path.of("src/test/resources/jsons/pdbe.json"));
-					GsonBuilder builder = new GsonBuilder();
-					Gson gson = builder.create();
-					Object[] dsc = gson.fromJson(data, Object[].class);
-					return dsc;
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-				return null;
-			} */
 		};
 	}
 

@@ -43,7 +43,5 @@ public class PDBeAPI {
             logger.error("Exception calling PDBe API for accession {}, position {}", accession, position);
             return null;
         }
-
     }
-
 }

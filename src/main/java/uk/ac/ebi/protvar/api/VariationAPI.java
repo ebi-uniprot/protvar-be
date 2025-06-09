@@ -17,6 +17,7 @@ import uk.ac.ebi.uniprot.domain.features.ProteinFeatureInfo;
 @Service
 public class VariationAPI {
     private static final Logger logger = LoggerFactory.getLogger(VariationAPI.class);
+    public static final int PARTITION_SIZE = 100;
 
     @Autowired
     @Qualifier("variationRestTemplate")

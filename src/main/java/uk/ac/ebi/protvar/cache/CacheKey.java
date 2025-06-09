@@ -11,7 +11,6 @@ public class CacheKey {
     public static final String BUILD_CACHE_PREFIX = "BUILD-";
     public static final String SUMMARY_CACHE_PREFIX = "SUMMARY-";
     // add other prefixes as needed
-    public static final String PROT_CACHE_PREFIX = "PROT-";
     public static final String VARIANT_CACHE_PREFIX = "VAR-";
 
 
@@ -30,9 +29,6 @@ public class CacheKey {
         return of(SUMMARY_CACHE_PREFIX, id);
     }
 
-    public static String protein(String accession) {
-        return of(PROT_CACHE_PREFIX, accession);
-    }
 
     public static String variant(String accLoc) {
         return of(VARIANT_CACHE_PREFIX, accLoc);

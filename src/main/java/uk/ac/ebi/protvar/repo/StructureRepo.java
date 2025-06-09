@@ -24,17 +24,12 @@ public class StructureRepo {
 
     @Cacheable(value = "STR", key = "#accession")
     public List<Structure> getStr(String accession) {
-        String sql = String.format("""
- 			SELECT * FROM %s WHERE accession=:accession
- 			ORDER BY coverage DESC, resolution DESC
- 			""", structureTable);
-
-        MapSqlParameterSource params = new MapSqlParameterSource("accession", accession);
-        return jdbcTemplate.query(sql, params, (rs, rowNum) -> createStructure(rs));
+        return getStr(List.of(accession));
     }
 
     // fetches structures for a list of accessions with a single query (not @Cacheable)
     public List<Structure> getStr(List<String> accessions) {
+        if (accessions == null || accessions.isEmpty()) return Collections.emptyList();
         String sql = String.format("""
             SELECT * FROM %s WHERE accession IN (:accessions)
             ORDER BY accession, coverage DESC, resolution DESC

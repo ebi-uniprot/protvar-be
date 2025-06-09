@@ -55,7 +55,7 @@ public class StructureService {
         }
     }
 
-    public List<StructureResidue> getStrFromCache(String accession, Integer position) {
+    public List<StructureResidue> getStr(String accession, Integer position) {
         return filterByPosition(structureRepo.getStr(accession), position);
     }
 

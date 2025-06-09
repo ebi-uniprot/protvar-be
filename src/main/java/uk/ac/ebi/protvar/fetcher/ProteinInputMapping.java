@@ -9,12 +9,12 @@ import uk.ac.ebi.protvar.converter.GeneConverter;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
-import uk.ac.ebi.protvar.model.Coord;
 import uk.ac.ebi.protvar.model.data.*;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.repo.*;
+import uk.ac.ebi.protvar.service.FunctionalAnnService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
@@ -33,7 +33,7 @@ public class ProteinInputMapping {
 	private final PocketRepo pocketRepo;
 	private final InteractionRepo interactionRepo;
 	private final FoldxRepo foldxRepo;
-	private final ProteinsFetcher proteinsFetcher;
+	private final FunctionalAnnService functionalAnnService;
 	private final VariantFetcher variantFetcher;
 	private final StructureService structureService;
 	private final GeneConverter geneConverter;
@@ -149,7 +149,7 @@ public class ProteinInputMapping {
 			foldxsMap.putAll(foldxRepo.getFoldxs(accession));
 			LOGGER.info("[{}] Retrieved {} foldxs groups", accession, foldxsMap.size());
 
-			proteinsFetcher.prefetch(canonicalAccessions);
+			functionalAnnService.preloadFunctionCache(canonicalAccessions);
 			LOGGER.info("[{}] Prefetched proteins for {} canonical accessions", accession, canonicalAccessions.size());
 		}
 

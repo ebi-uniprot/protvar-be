@@ -5,6 +5,9 @@ import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import uk.ac.ebi.protvar.model.score.ConservScore;
+import uk.ac.ebi.protvar.model.score.EsmScore;
+import uk.ac.ebi.protvar.model.score.EveScore;
 import uk.ac.ebi.uniprot.domain.entry.DbReference;
 import uk.ac.ebi.uniprot.domain.entry.Gene;
 import uk.ac.ebi.uniprot.domain.entry.Sequence;
@@ -39,4 +42,10 @@ public class FunctionalInfo {
 	private List<Pocket> pockets;
 	private List<Foldx> foldxs;
 	private List<Interaction> interactions;
+
+	// ProtVar scores
+	private ConservScore conservScore;
+	private EveScore eveScore;
+	private EsmScore esmScore;
+
 }
