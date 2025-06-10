@@ -19,20 +19,34 @@ public class CaddPredictionRepo {
 
     @Value("${tbl.cadd}")
     private String caddTable;
+    /*
+    optimised from:
+        SELECT * FROM %s
+        WHERE (chromosome,position) IN (:chrPosList);
+    to avoid max num of "IN" values reached.
+    Refer to https://stackoverflow.com/questions/1009706/ for details.
 
-    private static final String CADDS_IN_CHR_POS = """
-   			SELECT * FROM %s 
-   			INNER JOIN (VALUES :chrPosList) AS t(chr,pos) 
-   			ON t.chr=chromosome AND t.pos=position
-   			"""; // optimised from: SELECT * FROM <tbl.cadd> WHERE (chromosome,position) IN (:chrPosList)
-    // to avoid max num of "in" values reached. Refer to https://stackoverflow.com/questions/1009706/
+    changed from:
+        SELECT * FROM %s
+   		INNER JOIN (VALUES :chrPosList) AS t(chr,pos)
+   		ON t.chr=chromosome AND t.pos=position
+   	to using WITH.
+     */
 
+    private static final String CADDS_WITH_COORD_LIST = """
+        WITH coord_list (chr, pos) AS (
+          VALUES :chrPosList
+        )
+        SELECT * FROM %s
+        JOIN coord_list ON chromosome = coord_list.chr
+          AND position = coord_list.pos
+        """;
 
     public List<CaddPrediction> getCADDByChrPos(List<Object[]> chrPosList) {
         if (chrPosList == null || chrPosList.isEmpty())
             return List.of();
         SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
-        String sql = String.format(CADDS_IN_CHR_POS, caddTable);
+        String sql = String.format(CADDS_WITH_COORD_LIST, caddTable);
         return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(CaddPrediction.class));
     }
 
