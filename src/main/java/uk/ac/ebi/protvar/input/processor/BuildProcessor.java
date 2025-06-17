@@ -3,7 +3,6 @@ package uk.ac.ebi.protvar.input.processor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
-import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
@@ -28,26 +27,10 @@ import java.util.stream.Collectors;
 public class BuildProcessor {
     public static final int AUTO_DETECT_MIN_SIZE = 10;
     public static final int AUTO_DETECT_SAMPLE_SIZE = 100;
+
     @Autowired
     private CrossmapRepo crossmapRepo;
-    @Autowired
-    private InputCache inputCache;
 
-
-    public InputBuild determinedBuild(String id, List<String> originalInputList, String assembly) {
-        InputBuild inputBuild = null;
-        if (Assembly.autodetect(assembly)) {
-            inputBuild = inputCache.getInputBuild(id); // if already detected
-            if (inputBuild == null) { // if not
-                List<UserInput> genomicInputs = filterGenomicInputs(originalInputList);
-                if (!genomicInputs.isEmpty()) {
-                    inputBuild = detect(genomicInputs);
-                    inputCache.cacheInputBuild(id, inputBuild);
-                }
-            }
-        }
-        return inputBuild;
-    }
 
     /**
      * Filter out non-genomic inputs (incl. hgvs inputs as the build for these are implicit).

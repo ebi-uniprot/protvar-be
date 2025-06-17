@@ -1,10 +1,5 @@
 package uk.ac.ebi.protvar.input.processor;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import uk.ac.ebi.protvar.cache.InputSummary;
-import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.input.format.genomic.Gnomad;
@@ -19,15 +14,10 @@ import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.utils.HGVS;
 import uk.ac.ebi.protvar.utils.RegexUtils;
 
-import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Service
-public class InputProcessor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(InputProcessor.class);
-
+public class UserInputParser {
     /**
      * Takes a list of input strings and return corresponding list of userInput objects
      * @param inputs
@@ -39,18 +29,18 @@ public class InputProcessor {
                 .map(String::trim)                            // Trim the strings
                 .filter(s -> !s.isEmpty())                    // Remove empty strings (after trimming)
                 .filter(s -> !s.startsWith("#"))              // Remove strings starting with '#' (comments)
-                .map(InputProcessor::parse)
+                .map(UserInputParser::parse)
                 .collect(Collectors.toList());
     }
 
     /**
      * Parse input string into a UserInput object.
-     * @param inputStr	Null and empty inputs will have been filtered before calling this function.
+     * @param inputLine	Null and empty inputs will have been filtered before calling this function.
      *             Input string will have been trimmed as well.
      * @return
      */
-    public static UserInput parse(String inputStr) {
-        if (inputStr == null || inputStr.isEmpty()) // prior checks will not make this be true
+    public static UserInput parse(String inputLine) {
+        if (inputLine == null || inputLine.isEmpty()) // prior checks will not make this be true
             return null;
 
         /** General Pattern
@@ -99,18 +89,18 @@ public class InputProcessor {
         // - single/multi-word check
         // - prefix check
         // - special character check e.g. :g.
-        boolean singleWord = RegexUtils.WORD.matcher(inputStr).matches();
+        boolean singleWord = RegexUtils.WORD.matcher(inputLine).matches();
 
         if (singleWord) {
             // IDs should be single word input
-            if (DbsnpID.startsWithPrefix(inputStr))
-                return DbsnpID.parse(inputStr);
+            if (DbsnpID.startsWithPrefix(inputLine))
+                return DbsnpID.parse(inputLine);
 
-            if (ClinVarID.startsWithPrefix(inputStr))
-                return ClinVarID.parse(inputStr);
+            if (ClinVarID.startsWithPrefix(inputLine))
+                return ClinVarID.parse(inputLine);
 
-            if (CosmicID.startsWithPrefix(inputStr))
-                return CosmicID.parse(inputStr);
+            if (CosmicID.startsWithPrefix(inputLine))
+                return CosmicID.parse(inputLine);
         }
 
         /**
@@ -118,68 +108,34 @@ public class InputProcessor {
          *                     /            \
          *                 REF_SEQ        VAR_DESC
          */
-        if (HGVS.matchesPattern(inputStr)) {
-            if (HGVSg.matchesPattern(inputStr))
-                return HGVSg.parse(inputStr);
+        if (HGVS.matchesPattern(inputLine)) {
+            if (HGVSg.matchesPattern(inputLine))
+                return HGVSg.parse(inputLine);
 
-            if (HGVSc.matchesPattern(inputStr))
-                return HGVSc.parse(inputStr);
+            if (HGVSc.matchesPattern(inputLine))
+                return HGVSc.parse(inputLine);
 
-            if (HGVSp.matchesPattern(inputStr))
-                return HGVSp.parse(inputStr);
+            if (HGVSp.matchesPattern(inputLine))
+                return HGVSp.parse(inputLine);
 
-            return HGVS.invalid(inputStr);
+            return HGVS.invalid(inputLine);
         }
 
-        if (ProteinInput.startsWithAccession(inputStr))
-            return ProteinInput.parse(inputStr);
+        if (ProteinInput.startsWithAccession(inputLine))
+            return ProteinInput.parse(inputLine);
 
-        if (GenomicInput.startsWithChromo(inputStr)) {
-            if (Gnomad.matchesPattern(inputStr)) // ^chr-pos-ref-alt$
-                return Gnomad.parse(inputStr);
+        if (GenomicInput.startsWithChromo(inputLine)) {
+            if (Gnomad.matchesPattern(inputLine)) // ^chr-pos-ref-alt$
+                return Gnomad.parse(inputLine);
 
-            if (VCF.matchesPattern(inputStr)) // ^chr pos id ref alt...
-                return VCF.parse(inputStr);
+            if (VCF.matchesPattern(inputLine)) // ^chr pos id ref alt...
+                return VCF.parse(inputLine);
 
-            if (GenomicInput.matchesPattern(inputStr)) // ^chr pos( ref( alt)?)?$
-                return GenomicInput.parse(inputStr);
+            if (GenomicInput.matchesPattern(inputLine)) // ^chr pos( ref( alt)?)?$
+                return GenomicInput.parse(inputLine);
         }
-        return GenomicInput.invalid(inputStr); // default (or most common) input is expected to be genomic, so
+        return GenomicInput.invalid(inputLine); // default (or most common) input is expected to be genomic, so
         // let's assume any invalid input is of GenomicInput type.
     }
 
-    /**
-     * Summary of original input, that needs to be parsed.
-     * @param originalInput
-     * @return
-     */
-    public static InputSummary summary(String originalInput) {
-        List<String> inputs = Arrays.asList(originalInput.split("\\R|,"));
-        List<UserInput> userInputs = parse(inputs);
-        return summary(userInputs);
-    }
-
-    /**
-     * Summary of a list of parsed user inputs.
-     * @param userInputs may be for an input partition or whole input
-     * @return
-     */
-    public static InputSummary summary(List<UserInput> userInputs) {
-        EnumMap<Type, Integer> inputCounts = new EnumMap<>(Type.class);
-        for (Type type : Type.values()) {
-            inputCounts.put(type, 0);
-        }
-
-        userInputs.stream().forEach(input -> {
-            if (input.isValid() && input.getType() != null) {
-                inputCounts.put(input.getType(), inputCounts.get(input.getType()) + 1);
-            } else {
-                inputCounts.put(Type.INVALID, inputCounts.get(Type.INVALID) + 1);
-            }
-        });
-        return InputSummary.builder()
-                .totalCount(userInputs.size())
-                .inputCounts(inputCounts)
-                .build();
-    }
 }

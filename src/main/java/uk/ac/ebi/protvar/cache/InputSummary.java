@@ -21,28 +21,22 @@ public class InputSummary {
 
     @Override
     public String toString() {
-        String s = FetcherUtils.pluralise(totalCount);
+        String pluralSuffix = FetcherUtils.pluralise(totalCount);
+        List<Map.Entry<Type, Integer>> nonZeroInputs = inputCounts.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0)
+                .toList();
 
-        // Check if only one input type has a non-zero count
-        boolean singleInputType = inputCounts.values().stream()
-                .filter(count -> count > 0)
-                .count() == 1;
-
-        if (singleInputType) {
-            Type singleInputTypeKey = inputCounts.entrySet().stream()
-                    .filter(entry -> entry.getValue() > 0)
-                    .findFirst()
-                    .map(Map.Entry::getKey)
-                    .orElse(Type.INVALID);
-            return String.format("%d %s input%s", totalCount, singleInputTypeKey.getName(), s);
+        if (nonZeroInputs.size() == 1) {
+            // Only one type of input
+            Type onlyInputType = nonZeroInputs.get(0).getKey();
+            return String.format("%d %s input%s", totalCount, onlyInputType.getName(), pluralSuffix);
         } else {
-            // Filter out types with zero counts
-            String summary = inputCounts.entrySet().stream()
-                    .filter(entry -> entry.getValue() > 0)
+            // Multiple input types
+            String breakdown = nonZeroInputs.stream()
                     .map(entry -> String.format("%d %s", entry.getValue(), entry.getKey().getName()))
                     .collect(Collectors.joining(", "));
 
-            return String.format("%d user input%s (%s)", totalCount, s, summary);
+            return String.format("%d user input%s (%s)", totalCount, pluralSuffix, breakdown);
         }
     }
 }

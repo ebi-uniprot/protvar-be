@@ -3,7 +3,7 @@ package uk.ac.ebi.protvar.model;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import uk.ac.ebi.protvar.types.InputType;
+import uk.ac.ebi.protvar.types.IdentifierType;
 
 import java.time.LocalDateTime;
 
@@ -12,14 +12,8 @@ import java.time.LocalDateTime;
 @ToString
 public class DownloadRequest {
     LocalDateTime timestamp;
-    InputType type = InputType.ID; // default
+    IdentifierType type; // null value means single variant input
     String input;
-    /*  type                 input
-     *  ----                 -----
-     *  ID                   input id - checksum of original input
-     *  PROTEIN_ACCESSION    protein accession
-     *  SINGLE_VARIANT       single variant
-     */
     boolean function;
     boolean population;
     boolean structure;

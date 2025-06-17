@@ -24,25 +24,25 @@ import org.springframework.stereotype.Service;
 import com.opencsv.CSVWriter;
 
 import uk.ac.ebi.protvar.cache.InputBuild;
-import uk.ac.ebi.protvar.cache.InputCache;
-import uk.ac.ebi.protvar.fetcher.CustomInputMapping;
-import uk.ac.ebi.protvar.fetcher.ProteinInputMapping;
+import uk.ac.ebi.protvar.constants.PagedMapping;
+import uk.ac.ebi.protvar.fetcher.*;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataFetcher;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataFetcher;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataFetcher;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.input.params.InputParams;
-import uk.ac.ebi.protvar.input.processor.BuildProcessor;
-import uk.ac.ebi.protvar.input.processor.InputProcessor;
+import uk.ac.ebi.protvar.input.processor.UserInputParser;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
-import uk.ac.ebi.protvar.types.InputType;
+import uk.ac.ebi.protvar.model.UserInputRequest;
+import uk.ac.ebi.protvar.service.UserInputCacheService;
+import uk.ac.ebi.protvar.service.UserInputService;
+import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.MappingRepo;
-import uk.ac.ebi.protvar.service.PagedMappingService;
 import uk.ac.ebi.protvar.utils.*;
 
 import static uk.ac.ebi.protvar.constants.PagedMapping.DEFAULT_PAGE_SIZE;
@@ -85,8 +85,8 @@ public class CsvProcessor {
 	private final CsvPopulationDataFetcher populationFetcher;
 	private final CsvStructureDataFetcher csvStructureDataFetcher;
 	private final MappingRepo mappingRepo;
-	private final InputCache inputCache;
-	private final BuildProcessor buildProcessor;
+	private final UserInputService userInputService;
+	private final UserInputCacheService userInputCacheService;
 
 	@Value("${app.data.folder}")
 	private String dataFolder;
@@ -115,22 +115,19 @@ public class CsvProcessor {
 				return;
 			}
 
-			// Retrieve inputs and build object if needed
-			Pair<InputBuild, List<String>> buildAndInputs = getInputsForRequest(request);
-			if (buildAndInputs == null || buildAndInputs.getRight().isEmpty()) {
+			inputs = getInputsForRequest(request);
+			if (inputs == null || inputs.isEmpty()) {
 				LOGGER.warn("No inputs found for request: {}", request.getFname());
 				return;
 			}
-			InputBuild build = buildAndInputs.getLeft();
-			inputs = buildAndInputs.getRight();
 
 			// Process request
 			// Small job: process in main thread
 			// Large job: partition and process in parallel
 			if (inputs.size() <= partitionSize) {
-				handleSmallJob(build, inputs, request, zipPath);
+				handleSmallJob(inputs, request, zipPath);
 			} else {
-				handleLargeJob(build, inputs, request, zipPath);
+				handleLargeJob(inputs, request, zipPath);
 			}
 
 			// Notify User
@@ -141,43 +138,47 @@ public class CsvProcessor {
 		LOGGER.info("Finished processing download request: {}", request.getFname());
 	}
 
-	private Pair<InputBuild, List<String>> getInputsForRequest(DownloadRequest request) {
+	private List<String> getInputsForRequest(DownloadRequest request) {
+
+		if (request.getType() == null) {
+			return List.of(request.getInput()); // single input
+		}
 		switch (request.getType()) {
-			case ID -> {
+			case CUSTOM_INPUT -> {
 				String inputId = request.getInput();
-				String originalInput = inputCache.getInput(inputId);
-				if (originalInput == null) {
-					LOGGER.warn("Input ID not found: {}", inputId);
+				List<String> inputList = userInputCacheService.getInputs(inputId);
+				if (inputList == null || inputList.isEmpty()) {
 					return null;
 				}
-				List<String> inputList = Arrays.asList(originalInput.split("\\R|,"));
-				InputBuild build = buildProcessor.determinedBuild(inputId, inputList, request.getAssembly());
+				// ensure that the build is detected and cached
+				userInputService.detectBuild(UserInputRequest.builder()
+						.inputId(inputId)
+						.assembly(request.getAssembly())
+						.build());
+
 				List<String> pagedInputs = request.getPage() == null
 						? inputList
-						: PagedMappingService.getPage(inputList, request.getPage(),
+						: PagedMapping.getPage(inputList, request.getPage(),
 						Objects.requireNonNullElse(request.getPageSize(), DEFAULT_PAGE_SIZE));
-				return Pair.of(build, pagedInputs);
+				return pagedInputs;
 			}
-			case PROTEIN_ACCESSION -> {
+			case UNIPROT /*, ENSEMBL, PDB, REFSEQ, GENE*/ -> {
 				String acc = request.getInput();;
 				List<String> accInputs = request.getPage() == null
 						? mappingRepo.getGenInputsByAccession(acc, null, null)
 						: mappingRepo.getGenInputsByAccession(acc, request.getPage(),
 						Objects.requireNonNullElse(request.getPageSize(), DEFAULT_PAGE_SIZE));
-				return Pair.of(null, accInputs);
+				return accInputs;
 			}
-			case SINGLE_VARIANT -> {
-				return Pair.of(null, List.of(request.getInput()));
-			}
-			default -> throw new IllegalArgumentException("Unsupported input type: " + request.getType());
+			default -> throw new IllegalArgumentException("Unsupported identifier type: " + request.getType());
 		}
 	}
 
-	private void handleSmallJob(InputBuild build, List<String> inputs, DownloadRequest request, Path zipPath) throws IOException {
+	private void handleSmallJob(List<String> inputs, DownloadRequest request, Path zipPath) throws IOException {
 		LOGGER.info("Handling small job for request: {} ({} inputs)", request.getFname(), inputs.size());
 		Path csvPath = Path.of(tmpFolder, request.getFname() + ".csv");
 		// Stream the input processing and writing to CSV directly
-		try (Stream<String[]> rowsStream = processInputs(build, inputs, request)) {
+		try (Stream<String[]> rowsStream = processInputs(inputs, request)) {
 			writeCsv(csvPath, rowsStream, true);  // write header
 		}
 
@@ -187,7 +188,7 @@ public class CsvProcessor {
 
 	// Define a semaphore limiting DB-heavy task concurrency
 	private final Semaphore dbTaskSemaphore = new Semaphore(10); // limit to 10 concurrent DB-hitting tasks
-	private void handleLargeJob(InputBuild build, List<String> inputs, DownloadRequest request, Path zipPath) throws Exception {
+	private void handleLargeJob(List<String> inputs, DownloadRequest request, Path zipPath) throws Exception {
 		LOGGER.info("Handling large job for request: {} ({} inputs)", request.getFname(), inputs.size());
 		List<List<String>> partitions = Lists.partition(inputs, partitionSize);
 		List<Future<Path>> futures = new ArrayList<>();
@@ -202,7 +203,7 @@ public class CsvProcessor {
 					LOGGER.info("Processing partition #{} for {} ({} inputs)", partitionNumber, request.getFname(), partition.size());
 					Path partPath = Path.of(tmpFolder, request.getFname() + "_" + partitionNumber + ".csv");
 					// Stream the input processing and writing to CSV without header
-					try (Stream<String[]> rows = processInputs(build, partition, request)) {
+					try (Stream<String[]> rows = processInputs(partition, request)) {
 						writeCsv(partPath, rows, false); // false -> do not write header in partitions
 					}
 					return partPath;
@@ -237,11 +238,14 @@ public class CsvProcessor {
 		Email.notifyDevErr(request, inputs, e);
 	}
 
-	private Stream<String[]> processInputs(InputBuild build,
-										 List<String> inputs, DownloadRequest request) {
+	private Stream<String[]> processInputs(List<String> inputs, DownloadRequest request) {
+
+		InputBuild build = request.getType() != null && request.getType() == IdentifierType.CUSTOM_INPUT ?
+				userInputCacheService.getBuild(request.getInput()) : null; // Custom input, use cached build
+
 		InputParams params = InputParams.builder()
 				.id(request.getInput()) // ID, PROTEIN_ACCESSION or SINGLE_VARIANT
-				.inputs(InputProcessor.parse(inputs))
+				.inputs(UserInputParser.parse(inputs))
 				.fun(request.isFunction())
 				.pop(request.isPopulation())
 				.str(request.isStructure())
@@ -284,7 +288,7 @@ public class CsvProcessor {
 
 	// Stream the inputs and expand them based on input types
 	private Stream<String[]> streamInputsToCsv(InputParams params, DownloadRequest request) {
-		MappingResponse response = request.getType() == InputType.PROTEIN_ACCESSION ?
+		MappingResponse response = (request.getType() != null && request.getType() == IdentifierType.UNIPROT) ?
 				/* requires min 4 max 8 DB calls per call or acc (-3 for cached scores, pockets and interactions) */
 				proteinInputMapping.getMappings(request.getInput(), params) :
 				/* TODO count min/max DB calls */

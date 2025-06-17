@@ -41,7 +41,6 @@ public class DownloadService {
         }
 
         DownloadResponse response = new DownloadResponse();
-        //response.setInputType(downloadRequest.getFile() == null ? TEXT_INPUT : FILE_INPUT);
         response.setRequested(downloadRequest.getTimestamp());
         response.setDownloadId(downloadRequest.getFname());
         response.setStatus(-1);
