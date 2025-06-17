@@ -3,10 +3,13 @@ package uk.ac.ebi.protvar.types;
 // rename to SearchType(?)
 // ?query=BRCA1&type=GENE
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 // linking directly to a single variant
 // /api/variant?[format=GENOMIC]&variant=chr1-123456-A-T
 // /api/variant?format=PROTEIN&variant=P12345-123-A-V
 // /api/variant?format=VARIANT_ID&variant=rs123456
+@Schema(description = "The identifier input type.")
 public enum IdentifierType {
     ENSEMBL, UNIPROT, PDB, REFSEQ, CUSTOM_INPUT, GENE
     /*
