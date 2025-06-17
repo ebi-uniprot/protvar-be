@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -12,16 +14,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.constants.PagedMapping;
 import uk.ac.ebi.protvar.model.DownloadRequest;
-import uk.ac.ebi.protvar.types.InputType;
+import uk.ac.ebi.protvar.model.UserInputRequest;
+import uk.ac.ebi.protvar.service.UserInputService;
+import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
+import uk.ac.ebi.protvar.utils.ChecksumUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -31,12 +36,14 @@ import java.util.Map;
 @CrossOrigin
 @RequiredArgsConstructor
 public class DownloadController implements WebMvcConfigurer {
+  private static final Logger LOGGER = LoggerFactory.getLogger(DownloadController.class);
+
   // Download request using
   // -file                  : return all
   // -text (string inputs)  : return all
   // -inputId               : return specific page/pageSize
 
-  private final InputCache inputCache;
+  private final UserInputService userInputService;
   private final DownloadService downloadService;
 
   /**
@@ -53,6 +60,7 @@ public class DownloadController implements WebMvcConfigurer {
    * @return response contains an ID to check status
    * @throws Exception
    */
+  // API only
   @Operation(summary = "Submit download request for the file input and provided parameters")
   @PostMapping(value = "/download/fileInput", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> download(HttpServletRequest request,
@@ -63,18 +71,26 @@ public class DownloadController implements WebMvcConfigurer {
                                     @RequestParam(required = false, defaultValue = "AUTO") String assembly,
                                     @RequestParam(required = false) String email,
                                     @RequestParam(required = false) String jobName) throws Exception {
-    String id = inputCache.cache(file);
-    DownloadRequest downloadRequest = newDownloadRequest(InputType.ID, id, function, population, structure,
-            assembly, email, jobName);
+    try {
+      String id = userInputService.processInput(UserInputRequest.builder()
+              .rawInput(new String(file.getBytes()))
+              .assembly(assembly)
+              .build());
+      // Create a download request
+      DownloadRequest downloadRequest = newDownloadRequest(IdentifierType.CUSTOM_INPUT, id, function, population, structure,
+              assembly, email, jobName);
 
-    // <id>[-fun][-pop][-str][-ASSEMBLY]
-    String filename = getFilename(id, function, population, structure, null, null, assembly);
-    downloadRequest.setFname(filename);
-    String url = request.getRequestURL().toString().replace("fileInput", filename);
-    downloadRequest.setUrl(url);
+      // <id>[-fun][-pop][-str][-ASSEMBLY]
+      String filename = getFilename(id, function, population, structure, null, null, assembly);
+      downloadRequest.setFname(filename);
+      String url = request.getRequestURL().toString().replace("fileInput", filename);
+      downloadRequest.setUrl(url);
 
-    DownloadResponse response = downloadService.queueRequest(downloadRequest);
-    return new ResponseEntity<>(response, HttpStatus.OK);
+      DownloadResponse response = downloadService.queueRequest(downloadRequest);
+      return new ResponseEntity<>(response, HttpStatus.OK);
+    } catch (IOException ex) {
+      return ResponseEntity.badRequest().body("Submitted file error");
+    }
   }
 
   /**
@@ -88,6 +104,7 @@ public class DownloadController implements WebMvcConfigurer {
    * @param structure
    * @return response contains an ID to check status
    */
+  // API only
   @Operation(summary = "Submit download request for the list of inputs and provided parameters")
   @PostMapping(value = "/download/textInput", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<?> download(HttpServletRequest request,
@@ -98,8 +115,11 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false, defaultValue = "AUTO") String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
-    String id = inputCache.cache(String.join(System.lineSeparator(), inputs));
-    DownloadRequest downloadRequest = newDownloadRequest(InputType.ID, id, function, population, structure,
+    String id = userInputService.processInput(UserInputRequest.builder()
+            .rawInput(String.join(System.lineSeparator(), inputs))
+            .assembly(assembly)
+            .build());
+    DownloadRequest downloadRequest = newDownloadRequest(IdentifierType.CUSTOM_INPUT, id, function, population, structure,
             assembly, email, jobName);
 
     // <id>[-fun][-pop][-str][-ASSEMBLY]
@@ -112,17 +132,19 @@ public class DownloadController implements WebMvcConfigurer {
     return new ResponseEntity<>(response, HttpStatus.OK);
   }
 
-  @Operation(summary = "Submit download request for the input, which can be an ID, protein accession, or" +
-          "single variant (used for direct link). Optional parameters include page and pageSize. " +
-          "If no page is specified, the full input (in the case of ID and protein accession) is processed.")
+  @Operation(summary = "Submit a download request for the input, which may be an identifier of a specified type " +
+          "(e.g., UNIPROT, GENE, etc), or a single variant. If the type is not specified (defaults to null), " +
+          "the input is interpreted as a single variant. Optional parameters include page and pageSize. " +
+          "If no page is specified, the entire input is processed.")
   @PostMapping(value = "/download", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
   @ResponseBody
+  // UI
   public ResponseEntity<?> download(HttpServletRequest request,
           @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                  description = "The input ID, protein accession, or single variant input to generate download for."
+                  description = "The identifier or single variant input to generate download for."
           )
           @RequestBody String input,
-          @RequestParam(required = false, defaultValue = "ID") InputType inputType,
+          @RequestParam(required = false) IdentifierType type,
           @Parameter(description = "The page number to retrieve. If not specified, download file is generated for all inputs.")
           @RequestParam(required = false) Integer page,
           @Parameter(description = "The number of results per page.")
@@ -133,17 +155,16 @@ public class DownloadController implements WebMvcConfigurer {
           @RequestParam(required = false, defaultValue = "AUTO") String assembly,
           @RequestParam(required = false) String email,
           @RequestParam(required = false) String jobName) {
-    DownloadRequest downloadRequest = newDownloadRequest(inputType, input, function, population, structure,
+    if (input == null || input.trim().isEmpty()) {
+      return ResponseEntity.badRequest().body("Input must not be null or empty");
+    }
+
+    DownloadRequest downloadRequest = newDownloadRequest(type, input, function, population, structure,
             assembly, email, jobName);
 
     downloadRequest.setPage(page);
     downloadRequest.setPageSize(pageSize);
-    String pref;
-    if (inputType == InputType.SINGLE_VARIANT) {
-      pref = InputCache.checksum(input);
-    } else {
-      pref = input; // i.e. input ID or protein accession
-    }
+    String pref = type == null ? ChecksumUtils.checksum(input.getBytes()) : sanitizeForFilename(input);
 
     // <pref>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
     String filename = getFilename(pref, function, population, structure, page, pageSize, assembly);
@@ -152,6 +173,15 @@ public class DownloadController implements WebMvcConfigurer {
     downloadRequest.setUrl(url);
     DownloadResponse response = downloadService.queueRequest(downloadRequest);
     return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  public static String sanitizeForFilename(String input) {
+    if (input == null || input.isEmpty()) {
+      return "unknown";
+    }
+
+    // Replace characters that are problematic in filenames
+    return input.replaceAll("[\\\\/:*?\"<>|]", "_");
   }
 
   private String getFilename(String pref,
@@ -188,12 +218,11 @@ public class DownloadController implements WebMvcConfigurer {
     return filename;
   }
 
-  private DownloadRequest newDownloadRequest(InputType inputType, String input, boolean function, boolean population, boolean structure,
+  private DownloadRequest newDownloadRequest(IdentifierType type, String input, boolean function, boolean population, boolean structure,
                                              String assembly, String email, String jobName) {
     DownloadRequest downloadRequest = new DownloadRequest();
     downloadRequest.setTimestamp(LocalDateTime.now());
-    if (inputType != null)  // default ID
-      downloadRequest.setType(inputType);
+    downloadRequest.setType(type);
     downloadRequest.setInput(input);
     downloadRequest.setFunction(function);
     downloadRequest.setPopulation(population);
