@@ -18,9 +18,7 @@ import java.util.List;
 @SuperBuilder
 @Schema(description = "Base request used for mapping")
 // TODO decapitalise all params like CADD, ASC, DESC and other enums
-
-// todo rename to/align with MappingRequest
-public class Request {
+public class MappingRequest {
     @Schema(description = "The input. This can be inputId, single variant or one of the other input types (UniProt accession, gene symbol, Ensembl, PDB, or RefSeq ID).")
     @NotBlank(message = "Input must not be null or empty") // todo: actually we should allow empty so only filters will apply
     protected String input; // rename to searchTerm? (search=?&type=?)
