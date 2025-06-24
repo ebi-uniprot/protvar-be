@@ -82,12 +82,12 @@ public class Pro2Gen {
                     hgvsProt.addWarning(ErrorConstants.HGVS_REFSEQ_NO_PROTEIN);
                 }
 
-            } else if(input instanceof ProteinInput) { // custom Protein
-                ProteinInput customProt = (ProteinInput) input;
-                accPosList.add(new Object[]{customProt.getAcc(), customProt.getPos()});
+            } else if(input instanceof ProteinInput) { // internal Protein
+                ProteinInput internalProt = (ProteinInput) input;
+                accPosList.add(new Object[]{internalProt.getAcc(), internalProt.getPos()});
 
-                if (!uniprotEntryCache.isValidEntry(customProt.getAcc())) {
-                    customProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), customProt.getAcc()));
+                if (!uniprotEntryCache.isValidEntry(internalProt.getAcc())) {
+                    internalProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), internalProt.getAcc()));
                 }
 
             } else if (input instanceof HGVSc) {

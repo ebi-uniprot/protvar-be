@@ -58,11 +58,11 @@ public class UserInputParser {
          * Genomic
          *  gnomAD      ^chr-pos-ref-alt$
          *  VCF         ^chr pos id ref alt...
-         *  custom      ^chr pos( ref( alt)?)?$
+         *  internal    ^chr pos( ref( alt)?)?$
          *                  note: ref(\s+|/|>)alt
          *                      ref & alt can be 1 letter base (ATCG)
          * Protein
-         *  custom      ^acc (p.)?refPosAlt$    e.g. P22304 A205P, P07949 asn783thr
+         *  internal    ^acc (p.)?refPosAlt$    e.g. P22304 A205P, P07949 asn783thr
          *              ^acc pos( ref( alt)?)?$ e.g. P22309 71 (Gly (Arg)?)?
          *              ^acc pos ref/alt$       e.g. P22304 205 A/P
          *                  note: ref & alt can be 1- or 3-letter amino acid, and

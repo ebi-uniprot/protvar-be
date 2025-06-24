@@ -18,7 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Supported custom formats:
+ * Supported internal formats:
  * 1. ACC                --> NOT SUPPORTED AS A VARIANT INPUT
  * 2. ACC POS            --> without AA substitution
  * 3. ACC POS X[ |/]Y    --> 3. & 4. effectively - ACC POS( AA[ |/]AA)
@@ -64,25 +64,25 @@ public class ProteinInput extends UserInput {
     // incl. stop codon (*) and unchanged (=)
     public final static String AMINO_ACID_ALT3 = String.format("(%s|%s|=)", String.join("|", AminoAcid.VALID_AA3), STOP_CODON);
 
-    public final static String CUSTOM_PROTEIN_ACC_POS =
+    public final static String INTERNAL_PROTEIN_ACC_POS =
             "(?<acc>" + UNIPROT_ACC + ")" +
             RegexUtils.SPACES +
             "(?<pos>"+ POS+")";
 
     // covers 2-4.
     // ACC POS( REF( ALT)?)?
-    public final static String CUSTOM_PROTEIN_ACC_POS_X_Y =
-            CUSTOM_PROTEIN_ACC_POS +
+    public final static String INTERNAL_PROTEIN_ACC_POS_X_Y =
+            INTERNAL_PROTEIN_ACC_POS +
             "(" + RegexUtils.SPACES + "(?<ref>"+ AMINO_ACID_REF1 +")" +
             "(" + RegexUtils.SPACES_OR_SLASH + "(?<alt>"+ AMINO_ACID_ALT1 +"))?)?";
 
-    public final static String CUSTOM_PROTEIN_ACC_POS_XXX_YYY =
-            CUSTOM_PROTEIN_ACC_POS +
+    public final static String INTERNAL_PROTEIN_ACC_POS_XXX_YYY =
+            INTERNAL_PROTEIN_ACC_POS +
             "(" + RegexUtils.SPACES + "(?<ref>"+ AMINO_ACID_REF3 +")" +
             "(" + RegexUtils.SPACES_OR_SLASH + "(?<alt>"+ AMINO_ACID_ALT3 +"))?)?";
 
     // covers 5.
-    public final static String CUSTOM_PROTEIN_ACC_X_POS_Y =
+    public final static String INTERNAL_PROTEIN_ACC_X_POS_Y =
             "(?<acc>" + UNIPROT_ACC + ")" +
             RegexUtils.SPACES + "(p.)?" +
             "(?<ref>"+ AMINO_ACID_REF1 +")" +
@@ -90,7 +90,7 @@ public class ProteinInput extends UserInput {
             "(?<alt>"+ AMINO_ACID_ALT1 +")";
 
     // covers 6.
-    public final static String CUSTOM_PROTEIN_ACC_XXX_POS_YYY =
+    public final static String INTERNAL_PROTEIN_ACC_XXX_POS_YYY =
             "(?<acc>" + UNIPROT_ACC + ")" +
             RegexUtils.SPACES + "(p.)?" +
             "(?<ref>"+ AMINO_ACID_REF3 +")" +
@@ -98,11 +98,11 @@ public class ProteinInput extends UserInput {
             "(?<alt>"+ AMINO_ACID_ALT3 +")";
 
     final static Pattern PATTERN_ACC = Pattern.compile(UNIPROT_ACC, Pattern.CASE_INSENSITIVE);
-    final static Pattern PATTERN_ACC_POS = Pattern.compile(CUSTOM_PROTEIN_ACC_POS, Pattern.CASE_INSENSITIVE);
-    final static Pattern PATTERN_ACC_POS_X_Y = Pattern.compile(CUSTOM_PROTEIN_ACC_POS_X_Y, Pattern.CASE_INSENSITIVE);
-    final static Pattern PATTERN_ACC_POS_XXX_YYY = Pattern.compile(CUSTOM_PROTEIN_ACC_POS_XXX_YYY, Pattern.CASE_INSENSITIVE);
-    final static Pattern PATTERN_ACC_X_POS_Y = Pattern.compile(CUSTOM_PROTEIN_ACC_X_POS_Y, Pattern.CASE_INSENSITIVE);
-    final static Pattern PATTERN_ACC_XXX_POS_YYY = Pattern.compile(CUSTOM_PROTEIN_ACC_XXX_POS_YYY, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_POS = Pattern.compile(INTERNAL_PROTEIN_ACC_POS, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_POS_X_Y = Pattern.compile(INTERNAL_PROTEIN_ACC_POS_X_Y, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_POS_XXX_YYY = Pattern.compile(INTERNAL_PROTEIN_ACC_POS_XXX_YYY, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_X_POS_Y = Pattern.compile(INTERNAL_PROTEIN_ACC_X_POS_Y, Pattern.CASE_INSENSITIVE);
+    final static Pattern PATTERN_ACC_XXX_POS_YYY = Pattern.compile(INTERNAL_PROTEIN_ACC_XXX_POS_YYY, Pattern.CASE_INSENSITIVE);
 
 
     protected String acc; // UniProt accession
@@ -114,7 +114,7 @@ public class ProteinInput extends UserInput {
 
     public ProteinInput(String inputStr) {
         setType(Type.PROTEIN);
-        setFormat(Format.CUSTOM_PROT);
+        setFormat(Format.INTERNAL_PROTEIN);
         setInputStr(inputStr);
     }
 

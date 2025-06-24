@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
  *  (props)    chr,pos,(id),             acc,pos       id
  *             ref,alt,mappings          ref,alt_aa
  *                  |           |            |           |
- *  Format        Custom      HGVSc       Custom       DBSNP, ClinVar
+ *  Format        Internal    HGVSc       Internal   DBSNP, ClinVar
  *                VCF            \        HGVSc        COSMIC
  *                HGVSg           \         |         /
  *                GnomAD           \        |        /

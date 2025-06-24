@@ -9,7 +9,7 @@ import uk.ac.ebi.protvar.input.UserInput;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-// class includes test for custom genomic input
+// class includes test for internal genomic input
 
 class GenomicInputTest {
 
@@ -206,14 +206,14 @@ class GenomicInputTest {
             "Y 2424234235345 A", "21    2345   T", "0001  23423525   G", "22 23545643  C", // one base
             "17 7456845 A  t", "10    1012145   T  c", "0001  23423525   G t", "22 23545643  C a"// both bases - ref and alt
     })
-    void test_validCustomInput_valid(String input) {
+    void test_validInternalInput_valid(String input) {
         assertTrue(GenomicInput.matchesPattern(input));
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "17 7456845 A  t", "10    1012145   T>c", "0001  23423525   G/t", "22 23545643  C/a"// spaces or slash or greater than sign
     })
-    void test_validCustomInput_valid_sub_sign(String input) {
+    void test_validInternalInput_valid_sub_sign(String input) {
         assertTrue(GenomicInput.matchesPattern(input));
     }
 

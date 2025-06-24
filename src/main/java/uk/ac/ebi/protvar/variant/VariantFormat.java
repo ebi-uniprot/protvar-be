@@ -6,9 +6,9 @@ public enum VariantFormat {
     HGVS_CODING,      // c. notation
     HGVS_PROTEIN,     // p. notation
 
-    // Custom internal formats
-    CUSTOM_GENOMIC,   // e.g., chr-pos[-ref[-alt]]
-    CUSTOM_PROTEIN,   // e.g., acc-pos-refAA-altAA
+    // Internal formats
+    INTERNAL_GENOMIC,   // e.g., chr-pos[-ref[-alt]]
+    INTERNAL_PROTEIN,   // e.g., acc-pos-refAA-altAA
 
     // External formats
     VCF,              //  e.g., chr pos ref alt ... (tab-separated VCF format)
@@ -25,9 +25,9 @@ public enum VariantFormat {
 
     public VariantType getType() {
         return switch (this) {
-            case HGVS_GENOMIC, CUSTOM_GENOMIC, VCF, GNOMAD -> VariantType.GENOMIC;
+            case HGVS_GENOMIC, INTERNAL_GENOMIC, VCF, GNOMAD -> VariantType.GENOMIC;
             case HGVS_CODING -> VariantType.CODING_DNA;
-            case HGVS_PROTEIN, CUSTOM_PROTEIN -> VariantType.PROTEIN;
+            case HGVS_PROTEIN, INTERNAL_PROTEIN -> VariantType.PROTEIN;
             case DBSNP, CLINVAR, COSMIC -> VariantType.VARIANT_ID;
             case INVALID -> VariantType.INVALID;
         };
@@ -49,7 +49,7 @@ public enum VariantFormat {
     public static VariantFormat detectFormat(String input) {
         if (input.matches("rs\\d+")) return VariantFormat.DBSNP;
         if (input.startsWith("NM_") && input.contains(":c.")) return VariantFormat.HGVS_CODING;
-        if (input.matches("chr\\d+-\\d+(-[ACGT]+)?(-[ACGT]+)?")) return VariantFormat.CUSTOM_GENOMIC;
+        if (input.matches("chr\\d+-\\d+(-[ACGT]+)?(-[ACGT]+)?")) return VariantFormat.INTERNAL_GENOMIC;
         //...
         return VariantFormat.INVALID; // fallback
     }

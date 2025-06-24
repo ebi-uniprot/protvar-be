@@ -74,7 +74,7 @@ public class GenomicInput extends UserInput {
     public static final String BASE_SUB = BASE +  HGVS.SUB_SIGN + BASE;
 
 
-    // Custom genomic formats
+    // Internal genomic formats
     // For (strict) VCF and Gnomad, see corresponding classes
     // regex = "chr pos( ref( alt)?)?";
     // format 1 - chr pos only
@@ -97,14 +97,14 @@ public class GenomicInput extends UserInput {
 
     public GenomicInput(String userInput) {
         setType(Type.GENOMIC);
-        setFormat(Format.CUSTOM_GEN); // is custom unless specialised by extending class.
+        setFormat(Format.INTERNAL_GENOMIC); // is internal format unless specialised by extending class.
         // Note GenomicInput not abstract so it may be instantiated for e.g. in the case
-        // of custom genomic input.
+        // of internal genomic input.
         setInputStr(userInput);
     }
     public GenomicInput(String inputStr, String chr, Integer pos, String ref) {
         setType(Type.GENOMIC);
-        setFormat(Format.CUSTOM_GEN);
+        setFormat(Format.INTERNAL_GENOMIC);
         setInputStr(inputStr);
         setChr(chr);
         setPos(pos);
@@ -157,7 +157,7 @@ public class GenomicInput extends UserInput {
 
     public static boolean startsWithChromo(String input) {
         if (input != null && !input.isEmpty()) {
-            String[] params = input.split("\\s+|-"); // space (for VCF and custom genomic format)
+            String[] params = input.split("\\s+|-"); // space (for VCF and internal genomic format)
             // or dash (for Gnomad)
             if (params.length > 0) {
                 return validChr(params[0]);

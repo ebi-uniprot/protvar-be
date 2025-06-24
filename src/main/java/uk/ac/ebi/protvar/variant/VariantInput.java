@@ -50,9 +50,9 @@ public class VariantInput {
 
         try {
             switch (format) {
-                case VCF, CUSTOM_GENOMIC -> parseCustomGenomic(trimmed, builder);
+                case VCF, INTERNAL_GENOMIC -> parseInternalGenomic(trimmed, builder);
                 case HGVS_GENOMIC, HGVS_CODING, HGVS_PROTEIN -> parseHGVS(trimmed, builder);
-                case CUSTOM_PROTEIN -> parseCustomProtein(trimmed, builder);
+                case INTERNAL_PROTEIN -> parseInternalProtein(trimmed, builder);
                 case GNOMAD -> parseGnomad(trimmed, builder);
                 case DBSNP, CLINVAR, COSMIC -> {
                     // raw contains the ID, no extra parsing
@@ -96,18 +96,18 @@ public class VariantInput {
         return builder.build();
     }
 
-    private static void parseCustomGenomic(String input, VariantInputBuilder builder) {
+    private static void parseInternalGenomic(String input, VariantInputBuilder builder) {
         String[] parts = input.split("[-:]");
-        if (parts.length < 2) throw new IllegalArgumentException("Invalid custom genomic format");
+        if (parts.length < 2) throw new IllegalArgumentException("Invalid internal genomic format");
         builder.chromosome(parts[0]);
         builder.position(Integer.parseInt(parts[1]));
         if (parts.length > 2) builder.ref(parts[2]);
         if (parts.length > 3) builder.alt(parts[3]);
     }
 
-    private static void parseCustomProtein(String input, VariantInputBuilder builder) {
+    private static void parseInternalProtein(String input, VariantInputBuilder builder) {
         String[] parts = input.split("-");
-        if (parts.length < 2) throw new IllegalArgumentException("Invalid custom protein format");
+        if (parts.length < 2) throw new IllegalArgumentException("Invalid internal protein format");
         builder.accession(parts[0]);
         builder.position(Integer.parseInt(parts[1]));
         if (parts.length > 2) builder.ref(parts[2]);
@@ -119,7 +119,7 @@ public class VariantInput {
     }
 
     private static void parseGnomad(String input, VariantInputBuilder builder) {
-        parseCustomGenomic(input, builder);
+        parseInternalGenomic(input, builder);
     }
 
     private static VariantInput invalid(String input, String message) {
