@@ -41,7 +41,7 @@ public class MappingService {
     }
 
     public PagedMappingResponse get(MappingRequest request) {
-        Page<UserInput> page = userInputHandler.getPage(request);
+        Page<UserInput> page = userInputHandler.pagedInput(request);
         //mappingRepo.getGenInputsByAccession(accession, pageable);
 
         List<UserInput> inputs = page.getContent();
