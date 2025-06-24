@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.fetcher;
+package uk.ac.ebi.protvar.mapper;
 
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import uk.ac.ebi.protvar.converter.GeneConverter;
+import uk.ac.ebi.protvar.fetcher.VariantFetcher;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
@@ -24,8 +25,8 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class ProteinInputMapping {
-	private static final Logger LOGGER = LoggerFactory.getLogger(ProteinInputMapping.class);
+public class ProteinInputMapper {
+	private static final Logger LOGGER = LoggerFactory.getLogger(ProteinInputMapper.class);
 	private final MappingRepo mappingRepo;
 	private final CaddPredictionRepo caddPredictionRepo;
 	private final AlleleFreqRepo alleleFreqRepo;

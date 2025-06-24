@@ -1,4 +1,4 @@
-package uk.ac.ebi.protvar.fetcher;
+package uk.ac.ebi.protvar.mapper;
 
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections.map.HashedMap;
@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.converter.GeneConverter;
+import uk.ac.ebi.protvar.fetcher.VariantFetcher;
 import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
@@ -51,7 +52,7 @@ import java.util.stream.Collectors;
  *  ProtVarDataRepo      \                                                  |                                    |
  *  -getGenInputsByAcc <--\-------------------------------------------------|----------> -getGenMappings         |
  *                         \                                                                                     |
- *                          \  Download                          DownloadSrv              CsvProcessor           |
+ *                          \  Download                          DownloadSrv              DownloadProcessor      |
  *                           \ -file (ID)           \                                     -process --------------
  *                             -text (ID)        --------------> -queueRequest             ID inputs=inputCache.get(inputId)
  *                             -input(ID|PROT|SING) /                                      PROT inputs=protVarDataRepo.getGenInputsByAcc
@@ -65,8 +66,9 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class CustomInputMapping {
-	private static final Logger LOGGER = LoggerFactory.getLogger(CustomInputMapping.class);
+// Original mixed user input mapper -- annotation removed
+public class UserInputMapper {
+	private static final Logger LOGGER = LoggerFactory.getLogger(UserInputMapper.class);
 	private final MappingRepo mappingRepo;
 
 	private final CaddPredictionRepo caddPredictionRepo;
@@ -104,6 +106,24 @@ public class CustomInputMapping {
 	 *
 	 */
 
+	//public Mapping get(List<GenCoord> genCoords)
+	//public Mapping get(List<ProtCoord> protCoords)
+	//public Mapping get(List<UserInput> userInputs) // mixture of diff types/formats
+	//public Mapping get(List<String> userInputs)
+
+	// internal  protein acc-pos1..n
+	//   |   /
+	//   v  v
+	// UserInput (list)
+	//   | filter?
+	//  v yes
+	// filter input by CADD and/or AM
+
+	// multi format inputs
+	// todo: List<UserInput> instead of string
+	// id: input
+	//     build
+	//     summary
 	public MappingResponse getMapping(InputParams params) {
 		if (params.getInputs() == null || params.getInputs().isEmpty())
 			return new MappingResponse(List.of());
@@ -175,7 +195,10 @@ public class CustomInputMapping {
 			});
 			List<Object[]> accPosList = protCoords.stream().map(s -> s.toObjectArray()).collect(Collectors.toList());
 
-			Map<String, List<Score>>  scoreMap = scoreRepo.getScores(accPosList)
+			// scoresForMapping (alphaMissense)
+			// scoresForFunctionalAnn (all, may or may not include alphamissense depending
+			// how easy/difficult it is to include/exclude)
+			Map<String, List<Score>>  scoreMap = scoreRepo.getScores(accPosList, params.isFun())
 					.stream().collect(Collectors.groupingBy(Score::getGroupBy));
 			final Map<String, List<Variant>> variantMap = params.isPop() ? variantFetcher.getVariantMap(accPosList) : new HashedMap();
 
