@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Data
 @SuperBuilder
 @Schema(description = "Request payload for initiating a download")
-public class DownloadRequest extends Request {
+public class DownloadRequest extends MappingRequest {
 
     @Schema(description = "Include functional annotations", defaultValue = "false")
     protected Boolean function;
