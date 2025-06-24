@@ -1,0 +1,64 @@
+package uk.ac.ebi.protvar.fetcher;
+
+import com.google.common.collect.Iterables;
+import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.processor.UserInputParser;
+import uk.ac.ebi.protvar.model.MappingRequest;
+import uk.ac.ebi.protvar.service.UserInputCacheService;
+
+import java.util.List;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+@Service
+@AllArgsConstructor
+public class UserInputHandler implements InputHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserInputHandler.class);
+    private static final int USER_INPUT_CHUNK_SIZE = 2000;
+    private UserInputCacheService userInputCacheService;
+
+    // TODO advanced filter not taken into account
+
+    // For UI/API
+    public Page<UserInput> pagedInput(MappingRequest request) {
+        List<String> fullInput = userInputCacheService.getInputs(request.getInput());
+        if (fullInput == null || fullInput.isEmpty()) {
+            return Page.empty();
+        }
+        int fromIndex = (request.getPage() - 1) * request.getPageSize();
+        if (fromIndex >= fullInput.size()) {
+            return Page.empty();
+        }
+
+        List<String> subList = fullInput.subList(fromIndex, Math.min(fromIndex + request.getPageSize(), fullInput.size()));
+        List<UserInput> parsed = UserInputParser.parse(subList);
+        Pageable pageable = PageRequest.of(request.getPage() - 1, request.getPageSize()); // page (0-based), size
+        long totalElements = fullInput.size();
+        return new PageImpl<>(parsed, pageable, totalElements);
+    }
+
+    // For download
+    public Stream<List<UserInput>> streamChunkedInput(MappingRequest request) {
+        List<String> fullInput = userInputCacheService.getInputs(request.getInput());
+
+        if (fullInput == null || fullInput.isEmpty()) {
+            return Stream.empty();
+        }
+        if (fullInput.size() > 1_000_000) {
+            LOGGER.warn("Cached input size is very large: {}", fullInput.size());
+        }
+
+        // Use Guava's Iterables.partition or implement own partition logic
+        return StreamSupport.stream(
+                Iterables.partition(fullInput, USER_INPUT_CHUNK_SIZE).spliterator(), false
+        ).map(UserInputParser::parse);
+    }
+}
