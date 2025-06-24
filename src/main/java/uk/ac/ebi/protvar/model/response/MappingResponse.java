@@ -59,7 +59,11 @@ import uk.ac.ebi.protvar.input.UserInput;
 @Setter
 @Getter
 public class MappingResponse {
-	List<UserInput> inputs;
+
+	// todo: add request field
+	List<UserInput> inputs;  // todo: rename to mappings? Mapping object with each input line, and corresponding
+	// mapped list of genes Mapping(input, [genes])
+	// perhaps a Map of input(variant) to List<Gene>?
 	List<Message> messages;
 
 	public MappingResponse(List<UserInput> inputs) {

@@ -6,7 +6,9 @@ import lombok.*;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class PagedMappingResponse {
+public class PagedMappingResponse { // todo: consider using Page<MappingResponse> and moving
+	// non-page fields (e.g. id, assembly) to MappingResponse, or better have the response contain
+	// the original mapping request object
 	private MappingResponse content;
 
 	private String id; // is the input e.g. inputId, proteinAcc, etc.

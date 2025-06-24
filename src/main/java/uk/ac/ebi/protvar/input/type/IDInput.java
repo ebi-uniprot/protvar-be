@@ -11,7 +11,9 @@ import java.util.List;
 @Setter
 public class IDInput extends UserInput {
 
-    String id;
+    // TODO id is not needed for IDInput, we can use the raw inputStr
+
+    String id; // this is not needed as in the case of InputType is ID, the inputStr is the id
     List<GenomicInput> derivedGenomicInputs = new ArrayList<>();
 
     public IDInput(String inputStr) {
