@@ -1,13 +1,12 @@
 package uk.ac.ebi.protvar.converter;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import org.junit.Test;
 import org.springframework.stereotype.Service;
 
 import com.google.gson.Gson;

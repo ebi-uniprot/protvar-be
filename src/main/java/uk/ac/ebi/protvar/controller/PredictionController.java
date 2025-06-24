@@ -16,7 +16,7 @@ import uk.ac.ebi.protvar.repo.InteractionRepo;
 import uk.ac.ebi.protvar.repo.PocketRepo;
 import uk.ac.ebi.protvar.types.AminoAcid;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 import java.util.List;
 
 @Tag(name = "Prediction")

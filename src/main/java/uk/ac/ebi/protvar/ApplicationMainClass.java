@@ -16,12 +16,12 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.util.concurrent.Executor;
 
 @SpringBootApplication
-@CrossOrigin
+//@CrossOrigin
 @EnableCaching
 @EnableAsync
 @OpenAPIDefinition(info =
