@@ -9,7 +9,7 @@ import org.springframework.amqp.support.AmqpHeaders;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.stereotype.Component;
-import uk.ac.ebi.protvar.processor.CsvProcessor;
+import uk.ac.ebi.protvar.processor.DownloadProcessor;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 
 /**
@@ -24,14 +24,14 @@ import uk.ac.ebi.protvar.model.DownloadRequest;
 public class DownloadRequestListener {
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadRequestListener.class);
     private final TaskExecutor downloadJobExecutor;
-    private final CsvProcessor csvProcessor;
+    private final DownloadProcessor downloadProcessor;
 
     /**
      * RabbitMQ listener for download requests.
      *
      * - Submits the request to `downloadJobExecutor` for async processing.
      * - Ensures that at most 5 download jobs run concurrently (as controlled by executor and RabbitMQ).
-     * - Actual request processing (CSV generation, partitioning, DB access) is delegated to csvProcessor.
+     * - Actual request processing (CSV generation, partitioning, DB access) is delegated to downloadProcessor.
      *
      * This listener is optimised for throughput control: it's more important that jobs finish reliably
      * than that they start immediately.
@@ -43,7 +43,7 @@ public class DownloadRequestListener {
         // Submit the long job of handling the download request (CSV generation, zipping, etc.)
         downloadJobExecutor.execute(() -> {
             // Processing the request in multiple partitions if necessary
-            csvProcessor.process(request);
+            downloadProcessor.process(request);
         });
     }
     /*
@@ -58,7 +58,7 @@ public class DownloadRequestListener {
             // Submit the long job of handling the download request (CSV generation, zipping, etc.)
             downloadTaskExecutor.execute(() -> {
                 // Processing the request in multiple partitions if necessary
-                csvProcessor.process(request);
+                downloadProcessor.process(request);
             });
 
         } catch (IOException e) {

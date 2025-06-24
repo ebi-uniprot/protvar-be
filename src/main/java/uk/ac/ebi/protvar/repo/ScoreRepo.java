@@ -102,7 +102,7 @@ public class ScoreRepo {
      * Returns all scores for a list of (accession, position) pairs.
      * Need to set the acc and pos (but not wt) to enable the use of groupBy in building the MappingResponse.
      */
-    public List<Score> getScores(List<Object[]> accPosList) {
+    public List<Score> getScores(List<Object[]> accPosList, boolean isFun) {
         if (accPosList == null || accPosList.isEmpty()) return List.of();
 
         //SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
@@ -118,7 +118,15 @@ public class ScoreRepo {
                 .addValue("accessions", accessions.toArray(new String[0]))  // Convert to array
                 .addValue("positions", positions.toArray(new Integer[0]));  // Convert to array
 
-        return jdbcTemplate.query(SELECT_SCORES_FOR_ACC_POS, parameters, scoreRowMapper);
+        String amQuery = """
+            WITH input(acc, pos) AS (
+                SELECT unnest(:accessions::VARCHAR[]), unnest(:positions::INT[])
+            )
+        """ + SELECT_AM + JOIN_ON_ACC_POS;
+        String sql = isFun
+                ? SELECT_SCORES_FOR_ACC_POS  // All scores: Conservation, EVE, ESM, AM
+                : amQuery;                   // Only AlphaMissense score
+        return jdbcTemplate.query(sql, parameters, scoreRowMapper);
     }
 
     /**

@@ -3,32 +3,36 @@ package uk.ac.ebi.protvar.processor;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import uk.ac.ebi.protvar.cache.InputCache;
-import uk.ac.ebi.protvar.fetcher.CustomInputMapping;
-import uk.ac.ebi.protvar.fetcher.ProteinInputMapping;
+import uk.ac.ebi.protvar.fetcher.UserInputHandler;
+import uk.ac.ebi.protvar.mapper.UserInputMapper;
+import uk.ac.ebi.protvar.mapper.ProteinInputMapper;
+import uk.ac.ebi.protvar.fetcher.SearchInputHandler;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataFetcher;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataFetcher;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataFetcher;
-import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.repo.MappingRepo;
+import uk.ac.ebi.protvar.service.UserInputCacheService;
+import uk.ac.ebi.protvar.service.UserInputService;
 import uk.ac.ebi.protvar.utils.Constants;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
-class CsvProcessorTest {
+class DownloadProcessorTest {
 
   private static final int TOTAL_CSV_COLUMNS = 43;
-  CsvProcessor mockDeps = new CsvProcessor(
+  DownloadProcessor mockDeps = new DownloadProcessor(
           mock(ThreadPoolTaskExecutor.class),
-          mock(CustomInputMapping.class),
-          mock(ProteinInputMapping.class),
+          mock(UserInputMapper.class),
+          mock(ProteinInputMapper.class),
           mock(CsvFunctionDataFetcher.class),
           mock(CsvPopulationDataFetcher.class),
           mock(CsvStructureDataFetcher.class),
           mock(MappingRepo.class),
-          mock(InputCache.class),
-          mock(BuildProcessor.class));
+          mock(UserInputService.class),
+          mock(UserInputCacheService.class),
+          mock(UserInputHandler.class),
+          mock(SearchInputHandler.class));
 
   @Nested
   class Header {

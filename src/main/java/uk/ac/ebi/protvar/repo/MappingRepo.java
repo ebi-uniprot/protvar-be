@@ -1,29 +1,42 @@
 package uk.ac.ebi.protvar.repo;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
+import uk.ac.ebi.protvar.constants.PageUtils;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
-import uk.ac.ebi.protvar.model.data.*;
+import uk.ac.ebi.protvar.model.DownloadRequest;
+import uk.ac.ebi.protvar.model.MappingRequest;
+import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.types.AmClass;
 import uk.ac.ebi.protvar.types.CaddCategory;
+import uk.ac.ebi.protvar.types.InputType;
+import uk.ac.ebi.protvar.utils.InputTypeResolver;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 @Repository
 @RequiredArgsConstructor
 public class MappingRepo {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(MappingRepo.class);
 	private static final String MAPPINGS_IN_CHR_POS = """
    			SELECT * FROM %s
    			INNER JOIN (VALUES :chrPosList) AS t(chr,pos) 
@@ -48,6 +61,13 @@ public class MappingRepo {
 	private String caddTable;
 	@Value("${tbl.am}")
 	private String amTable;
+	@Value("${tbl.ann.str}")
+	private String structureTable;
+	@Value("${tbl.uprefseq}")
+	private String uniprotRefseqTable;
+
+	@Value("${tbl.dbsnp}")
+	private String dbsnpTable;
 
 	// TODO: all SQL FROM SHOULD USE TABLE NAME FROM APP PROPERTIES
 	//   NO TABLE NAME SHOULD BE HARDCODED
@@ -177,59 +197,6 @@ public class MappingRepo {
 		});
 		// Total now reflects all expanded alt alleles
 		long total = baseRowCount * 3;
-
-		return new PageImpl<>(genomicInputs, pageable, total);
-	}
-
-	public Page<UserInput> getGenInputsByEnsemblID(String id, Pageable pageable) {
-		// Pre-condition: ensemblID will have been validated (using EnsemblIDValidator)
-
-		String ensemblID = id;
-
-		// Determine if there is a version suffix
-		String version = null;
-		if (ensemblID.contains(".")) {
-			// Extracts the version number without the "."
-			version = ensemblID.substring(ensemblID.lastIndexOf(".") + 1);
-			ensemblID = ensemblID.substring(0, ensemblID.lastIndexOf("."));
-		}
-
-		// Get the column name based on Ensembl ID prefix
-		String column = ensemblID.substring(0, 4).toLowerCase(); // "ensg", "enst", "ensp", "ense"
-		String condition = column + " = :id";
-
-		if (version != null) {
-			// If version suffix is present, add the version column condition
-			condition += " AND " + column + "v = :ver";
-		}
-
-		String rowCountSql = String.format("""
-			SELECT COUNT(DISTINCT (chromosome, genomic_position, allele, protein_position)) 
-			AS row_count 
-			FROM %s 
-			WHERE %s
-        """, mappingTable, condition);
-
-		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		parameters.addValue("id", ensemblID);
-		if (version != null) {
-			parameters.addValue("ver", version);
-		}
-
-		int total = jdbcTemplate.queryForObject(rowCountSql, parameters, Integer.class);
-
-		String querySql = String.format("""
-    		SELECT DISTINCT chromosome, genomic_position, allele, protein_position 
-    		FROM %s 
-    		WHERE %s
-    		ORDER BY protein_position 
-    		LIMIT %d OFFSET %d
-    		""", mappingTable, condition, pageable.getPageSize(), pageable.getOffset());
-
-		List<UserInput> genomicInputs =
-				jdbcTemplate.query(querySql, parameters,
-						(rs, rowNum) -> new GenomicInput(id, rs.getString("chromosome"), rs.getInt("genomic_position"), rs.getString("allele"))
-				);
 
 		return new PageImpl<>(genomicInputs, pageable, total);
 	}
@@ -469,16 +436,45 @@ public class MappingRepo {
 	//	rel_2025_01_genomic_protein_mapping(accession, protein_position)
 	//	cadd_table(chromosome, position, ref, alt)
 	//	alphamissense_table(accession, position, ref, alt)
-	public Page<UserInput> getGenInputsByAccession(String accession,
-												   List<CaddCategory> caddCategories, List<AmClass> amClasses,
-												   String sort, String order, Pageable pageable) {
+
+	public Page<UserInput> getGenomicVariantsForInput(MappingRequest request, Pageable pageable
+	) {
+		boolean isDownload = request instanceof DownloadRequest;
+		return getGenomicVariantsForInput(
+				request.getInput(),
+				request.getType(),
+				request.getCadd(),
+				request.getAm(),
+				request.getKnown(),
+				request.getSort(),
+				request.getOrder(),
+				pageable,
+				isDownload // no need to run countQuery for download
+		);
+
+	}
+	public Page<UserInput> getGenomicVariantsForInput(
+			String identifier,
+			InputType identifierType,
+			List<CaddCategory> caddCategories,
+			List<AmClass> amClasses,
+		Boolean known,
+		String sort,
+		String order,
+		Pageable pageable,
+			boolean isDownload
+	) {
+		if (pageable == null) {
+			LOGGER.warn("Defaulting to page {}, size {}.", PageUtils.DEFAULT_PAGE, PageUtils.DEFAULT_PAGE_SIZE);
+			pageable = PageRequest.of(PageUtils.DEFAULT_PAGE, PageUtils.DEFAULT_PAGE_SIZE);
+		}
+
 		boolean filterByCadd = caddCategories != null
-				&& !caddCategories.isEmpty();
-				// handled (normalized) in controller
-				//&& !EnumSet.copyOf(caddCategories).equals(EnumSet.allOf(CaddCategory.class));
+				&& !caddCategories.isEmpty()
+				&& !EnumSet.copyOf(caddCategories).equals(EnumSet.allOf(CaddCategory.class));
 		boolean filterByAm = amClasses != null
-				&& !amClasses.isEmpty();
-				//&& !EnumSet.copyOf(amClasses).equals(EnumSet.allOf(AmClass.class));
+				&& !amClasses.isEmpty()
+				&& !EnumSet.copyOf(amClasses).equals(EnumSet.allOf(AmClass.class));
 		boolean sortByCadd = "CADD".equalsIgnoreCase(sort);
 		boolean sortByAm = "AM".equalsIgnoreCase(sort);
 
@@ -487,23 +483,142 @@ public class MappingRepo {
 
 		String sortOrder = "ASC".equalsIgnoreCase(order) ? "ASC" : "DESC";
 		String fields = "m.chromosome, m.genomic_position, m.allele, m.alt_allele, m.protein_position, m.codon_position";
+		String dbsnpJoin = "";
+		if (known != null && known) {
+			// TODO consider normalising alt for full index on join incl. alt col
+			dbsnpJoin = String.format("""
+				JOIN %s d ON d.chr = m.chromosome
+					AND d.pos = m.genomic_position
+					AND d.ref = m.allele
+					AND alt.alt_allele = ANY(string_to_array(d.alt, ','))
+			""", dbsnpTable);
+		}
 
 		String baseQuery = """
-			WITH mapping_with_variants AS (
-				SELECT
-					m.chromosome, m.genomic_position, m.allele, m.accession,
-					m.protein_position, m.codon_position, m.protein_seq,
-					m.codon, m.reverse_strand,
-					alt.alt_allele
-				FROM %s m,
-					(VALUES ('A'), ('T'), ('G'), ('C')) AS alt(alt_allele)
-				WHERE m.accession = :accession
-					AND alt.alt_allele <> m.allele
-			)
-			SELECT %s
-			FROM mapping_with_variants m
-		""";
-		StringBuilder sql = new StringBuilder(baseQuery.replaceFirst("%s", mappingTable));
+					WITH mapping_with_variants AS (
+						SELECT
+							m.chromosome, m.genomic_position, m.allele, m.accession,
+							m.protein_position, m.codon_position, m.protein_seq,
+							m.codon, m.reverse_strand,
+							alt.alt_allele
+						FROM %s m
+						JOIN (VALUES ('A'), ('T'), ('G'), ('C')) AS alt(alt_allele) ON TRUE
+						%s -- conditional join (e.g. dbsnp)
+						%s -- identifier-related join/where condition
+					)
+					SELECT %s
+					FROM mapping_with_variants m
+				""";
+
+		// dbsnp index:
+		//CREATE INDEX dbsnp_b156_chr_pos_ref_idx ON dbsnp_b156 (chr, pos, ref);
+		// --- Identifier logic ---
+		String identifierCondition;
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+
+		if (identifier == null || identifier.isBlank() || identifierType == null) {
+			// skip identifier filtering
+			identifierCondition = "WHERE alt.alt_allele <> m.allele";
+		} else {
+			switch (identifierType) {
+				case ENSEMBL -> {
+					Matcher matcher = InputTypeResolver.ENSEMBL_REGEX.matcher(identifier);
+					if (!matcher.matches()) {
+						// Invalid ENSEMBL format
+						// skipping the identifier might indicate results for the unsupported format,
+						// so return empty page instead
+						return Page.empty(pageable);
+					}
+					String prefix = matcher.group(1).toUpperCase();   // ENSG / ENST / ENSP
+					String baseId = prefix + matcher.group(2);        // e.g., ENST00000380152
+					String version = matcher.group(3);                // e.g., "7" or null
+
+					String idColumn;
+					String versionColumn;
+					switch (prefix) {
+						case "ENSG" -> {
+							idColumn = "ensg";
+							versionColumn = "ensgv";
+						}
+						case "ENST" -> {
+							idColumn = "enst";
+							versionColumn = "enstv";
+						}
+						case "ENSP" -> {
+							idColumn = "ensp";
+							versionColumn = "enspv";
+						}
+						default -> {
+							// Unsupported type
+							return Page.empty(pageable);
+						}
+					}
+
+					StringBuilder condition = new StringBuilder("WHERE m." + idColumn + " = :identifier");
+					parameters.addValue("identifier", baseId);
+
+					if (version != null) {
+						condition.append(" AND m.").append(versionColumn).append(" = :version");
+						parameters.addValue("version", version); // Keep it as String (VARCHAR)
+					}
+
+					condition.append(" AND alt.alt_allele <> m.allele");
+					identifierCondition = condition.toString();
+				}
+				case UNIPROT -> {
+					identifierCondition = "WHERE m.accession = :identifier AND alt.alt_allele <> m.allele";
+					parameters.addValue("identifier", identifier);
+				}
+				case PDB -> {
+					// PDB is only identifier stored in lowercase in the db table
+					// Using LOWER on the right side only to ensure index on pdb_id is used
+					identifierCondition = String.format("""
+							 				JOIN (
+								SELECT DISTINCT accession, unp_start, unp_end
+								FROM %s
+								WHERE pdb_id = LOWER(:identifier)
+							) s ON m.accession = s.accession
+							WHERE m.protein_position BETWEEN s.unp_start AND s.unp_end
+							 AND alt.alt_allele <> m.allele
+							 """, structureTable);
+					parameters.addValue("identifier", identifier);
+				}
+				case REFSEQ -> {
+					Matcher matcher = InputTypeResolver.REFSEQ_REGEX.matcher(identifier);
+					boolean hasVersion = matcher.matches() && matcher.group(2) != null;
+
+					String whereClause = hasVersion
+							? "refseq_acc = :identifier"
+							: "refseq_acc ILIKE :identifier || '.%%'";  // escape % for String.format
+
+					identifierCondition = String.format("""
+							JOIN (
+								SELECT DISTINCT uniprot_acc
+								FROM %s
+								WHERE %s
+							) r ON m.accession = r.uniprot_acc
+							WHERE alt.alt_allele <> m.allele
+							""", uniprotRefseqTable, whereClause);
+
+					parameters.addValue("identifier", identifier);
+				}
+				case GENE -> {
+					identifierCondition = "WHERE m.gene_name = :identifier AND alt.alt_allele <> m.allele";
+					parameters.addValue("identifier", identifier);
+				}
+				default -> {
+					//throw new IllegalArgumentException("Unsupported identifier type: " + identifierType);
+					//return Page.empty(pageable);
+					identifierCondition = "WHERE alt.alt_allele <> m.allele";
+				}
+			}
+		}
+
+		StringBuilder sql = new StringBuilder(baseQuery
+				.replaceFirst("%s", mappingTable)
+				.replaceFirst("%s", dbsnpJoin)
+				.replaceFirst("%s", identifierCondition));
+
 
 		// Conditional joins
 		if (joinCadd) {
@@ -534,9 +649,6 @@ public class MappingRepo {
 
 		sql.append(" WHERE 1=1");
 
-		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		parameters.addValue("accession", accession);
-
 		// Conditional filters
 		if (filterByCadd) {
 			List<String> caddClauses = new ArrayList<>();
@@ -557,9 +669,11 @@ public class MappingRepo {
 			parameters.addValue("amClasses", amValues);
 		}
 
-		// Count query
-		String countSql = String.format(sql.toString(), "COUNT(DISTINCT (" + fields + "))");
-		long total = jdbcTemplate.queryForObject(countSql, parameters, Long.class);
+		long total = -1;
+		if (!isDownload) {
+			String countSql = String.format(sql.toString(), "COUNT(DISTINCT (" + fields + "))");
+			total = jdbcTemplate.queryForObject(countSql, parameters, Long.class);
+		}
 
 		// Sorting
 		sql.append(" ORDER BY ");
@@ -570,7 +684,7 @@ public class MappingRepo {
 			fields += ", am.am_pathogenicity ";
 			sql.append("am.am_pathogenicity ").append(sortOrder).append(", ");
 		}
-		sql.append("m.protein_position, m.codon_position");
+		sql.append("m.protein_position, m.codon_position, m.alt_allele"); // consider removing alt_allele?
 
 		// Pagination
 		sql.append(" LIMIT :pageSize OFFSET :offset");
@@ -586,9 +700,10 @@ public class MappingRepo {
 					String ref = rs.getString("allele");
 					String alt = rs.getString("alt_allele");
 					return new GenomicInput(String.format("%s %d %s %s", chr, pos, ref, alt), chr, pos, ref, alt);
-				}
+			}
 		);
-		return new PageImpl<>(genomicInputs, pageable, total);
+		return isDownload ?
+				new PageImpl<>(genomicInputs) : // unpaged, total count not needed
+		        new PageImpl<>(genomicInputs, pageable, total);
 	}
-
 }

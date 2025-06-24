@@ -3,9 +3,11 @@ package uk.ac.ebi.protvar.processor;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -13,7 +15,6 @@ import com.google.common.collect.Lists;
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,7 +25,7 @@ import org.springframework.stereotype.Service;
 import com.opencsv.CSVWriter;
 
 import uk.ac.ebi.protvar.cache.InputBuild;
-import uk.ac.ebi.protvar.constants.PagedMapping;
+import uk.ac.ebi.protvar.constants.PageUtils;
 import uk.ac.ebi.protvar.fetcher.*;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataFetcher;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataFetcher;
@@ -36,16 +37,18 @@ import uk.ac.ebi.protvar.input.processor.UserInputParser;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.input.type.IDInput;
 import uk.ac.ebi.protvar.input.type.ProteinInput;
+import uk.ac.ebi.protvar.mapper.ProteinInputMapper;
+import uk.ac.ebi.protvar.mapper.UserInputMapper;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.UserInputRequest;
 import uk.ac.ebi.protvar.service.UserInputCacheService;
 import uk.ac.ebi.protvar.service.UserInputService;
-import uk.ac.ebi.protvar.types.IdentifierType;
+import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.utils.*;
 
-import static uk.ac.ebi.protvar.constants.PagedMapping.DEFAULT_PAGE_SIZE;
+import static uk.ac.ebi.protvar.constants.PageUtils.DEFAULT_PAGE_SIZE;
 
 /**
  * Handles CSV download requests received from RabbitMQ.
@@ -75,18 +78,21 @@ import static uk.ac.ebi.protvar.constants.PagedMapping.DEFAULT_PAGE_SIZE;
  */
 @Service
 @RequiredArgsConstructor
-public class CsvProcessor {
-	private static final Logger LOGGER = LoggerFactory.getLogger(CsvProcessor.class);
+public class DownloadProcessor {
+	private static final Logger LOGGER = LoggerFactory.getLogger(DownloadProcessor.class);
 	private static final String NO_MAPPING = "No mapping found";
 	private final AsyncTaskExecutor partitionProcessingExecutor;
-	private final CustomInputMapping customInputMapping;
-	private final ProteinInputMapping proteinInputMapping;
+	private final UserInputMapper userInputMapping;
+	private final ProteinInputMapper proteinInputMapping;
 	private final CsvFunctionDataFetcher functionDataFetcher;
 	private final CsvPopulationDataFetcher populationFetcher;
 	private final CsvStructureDataFetcher csvStructureDataFetcher;
 	private final MappingRepo mappingRepo;
 	private final UserInputService userInputService;
 	private final UserInputCacheService userInputCacheService;
+
+	private final UserInputHandler userInputHandler;
+	private final SearchInputHandler searchInputHandler;
 
 	@Value("${app.data.folder}")
 	private String dataFolder;
@@ -97,6 +103,149 @@ public class CsvProcessor {
 	@Value("${csv.partition.size:1000}")
 	private int partitionSize;
 
+	public void process(DownloadRequest request) {
+		LOGGER.info("[{}] Download request started", request.getFname());
+		long start = System.currentTimeMillis();
+		try {
+			Path zipPath = Path.of(dataFolder, request.getFname() + ".csv.zip");
+			if (Files.exists(zipPath)) {
+				LOGGER.warn("Download file already exists: {}", zipPath);
+				return; // Skip processing if file already exists
+			}
+
+			InputHandler handler = null;
+			if (request.getType() == null) {
+				// assumes single variant
+			} else {
+				switch (request.getType()) {
+					case INPUT_ID -> {
+						handler = userInputHandler;
+						// ensure that the build is detected and cached
+						userInputService.detectBuild(UserInputRequest.builder()
+								.inputId(request.getInput())
+								.assembly(request.getAssembly())
+								.build());
+					}
+					case UNIPROT /*, ENSEMBL, PDB, REFSEQ, GENE*/ -> {
+						handler = searchInputHandler;
+					}
+					default -> throw new IllegalArgumentException("Unsupported type: " + request.getType());
+
+				}
+			}
+
+			handleDownload(handler, request, zipPath);
+			// Notify User
+			Email.notifyUser(request);
+		} catch (Exception e) {
+			handleException(e, request, List.of()/*inputs*/); // pass input first N lines
+		}
+		long end = System.currentTimeMillis();
+		long durationMs = end - start;
+
+		LOGGER.info("[{}] Download request completed in {}", request.getFname(), formatDuration(durationMs));
+	}
+
+	public static String formatDuration(long millis) {
+		Duration d = Duration.ofMillis(millis);
+		return String.format("%02d:%02d:%02d",
+				d.toHours(),
+				d.toMinutes() % 60,
+				d.getSeconds() % 60);
+	}
+
+	private void handleDownload(InputHandler inputHandler, DownloadRequest request, Path zipPath) throws Exception {
+		Path csvPath = Path.of(tmpFolder, request.getFname() + ".csv");
+		if (inputHandler == null) {
+			LOGGER.info("Single variant download request: {}", request.getFname());
+			List<UserInput> userInput = List.of(UserInputParser.parse(request.getInput()));
+
+			try (Stream<String[]> rows = streamInputsToCsv(InputParams.builder()
+					.id(request.getInput())
+					.inputs(userInput)
+					.fun(request.getFunction())
+					.pop(request.getPopulation())
+					.str(request.getStructure())
+					.assembly(null)
+					.inputBuild(null) // Optional
+					.build(), request)) {
+				writeCsv(csvPath, rows, true);
+			}
+			return;
+		}
+		InputBuild build = request.getType() != null && request.getType() == InputType.INPUT_ID ?
+				userInputCacheService.getBuild(request.getInput()) : null; // use cached build
+
+		if (!Boolean.TRUE.equals(request.getFull())) { // paged download (should be small)
+			LOGGER.info("Page download request: {}", request.getFname());
+			List<UserInput> pageData = inputHandler.pagedInput(request).getContent();
+			try (Stream<String[]> rows = streamInputsToCsv(InputParams.builder()
+					.id(request.getInput())
+					.inputs(pageData)
+					.fun(request.getFunction())
+					.pop(request.getPopulation())
+					.str(request.getStructure())
+					.assembly(request.getAssembly())
+					.inputBuild(build) // Optional
+					.build(), request)) {
+				writeCsv(csvPath, rows, true);
+			}
+		} else { // full download (can be large!)
+			LOGGER.info("Full download request: {}", request.getFname());
+			AtomicInteger chunkIndex = new AtomicInteger(0);
+			List<Future<Path>> futures = new ArrayList<>();
+
+			try (Stream<List<UserInput>> chunkStream = inputHandler.streamChunkedInput(request)) {
+				Iterator<List<UserInput>> chunkIterator = chunkStream.iterator();
+
+				while (chunkIterator.hasNext()) {
+					List<UserInput> chunk = chunkIterator.next();
+					int index = chunkIndex.getAndIncrement();
+
+					// Limit concurrent DB/file-processing
+					dbTaskSemaphore.acquire(); // blocks if limit reached
+
+					Future<Path> future = partitionProcessingExecutor.submit(() -> {
+						try {
+							LOGGER.info("[{}] Processing chunk #{}", request.getFname(), index);
+							Path partPath = Path.of(tmpFolder, request.getFname() + "_" + index + ".csv");
+							try (Stream<String[]> rows = streamInputsToCsv(InputParams.builder()
+									.id(request.getInput())
+									.inputs(chunk)
+									.fun(request.getFunction())
+									.pop(request.getPopulation())
+									.str(request.getStructure())
+									.assembly(request.getAssembly())
+									.inputBuild(build)
+									.build(), request)) {
+
+								writeCsv(partPath, rows, false);
+							}
+							return partPath;
+						} finally {
+							dbTaskSemaphore.release();
+						}
+					});
+					futures.add(future);
+				}
+			}
+
+			// Wait for all CSV parts to be written
+			List<Path> csvParts = new ArrayList<>();
+			for (Future<Path> future : futures) {
+				csvParts.add(future.get()); // blocking wait
+			}
+
+			// Merge all parts
+			mergeCsvFiles(csvParts, csvPath);
+			//for (Path part : csvParts) Files.deleteIfExists(part);
+		}
+
+		// Zip final CSV
+		FileUtils.zipFile(csvPath, zipPath);
+		Files.deleteIfExists(csvPath);
+	}
+
 	/**
 	 *
 	 * @param request
@@ -105,8 +254,10 @@ public class CsvProcessor {
 	// moved @Transactional from process() to a deeper method that actually hits the DB.
 	// Each task (partition) still gets its own DB connection (via Hikari).
 	// So 20 parallel partitions == 20 connections.
-	public void process(DownloadRequest request) {
-		LOGGER.info("Started processing download request: {}", request);
+	public void process_(DownloadRequest request) {
+		LOGGER.info("[{}] Download request started", request.getFname());
+		long start = System.currentTimeMillis();
+
 		List<String> inputs = null;
 		try {
 			Path zipPath = Path.of(dataFolder, request.getFname() + ".csv.zip");
@@ -135,6 +286,12 @@ public class CsvProcessor {
 		} catch (Exception e) {
 			handleException(e, request, inputs);
 		}
+
+		long end = System.currentTimeMillis();
+		long durationMs = end - start;
+
+		LOGGER.info("[{}] Download request completed in {}", request.getFname(), formatDuration(durationMs));
+
 		LOGGER.info("Finished processing download request: {}", request.getFname());
 	}
 
@@ -144,7 +301,7 @@ public class CsvProcessor {
 			return List.of(request.getInput()); // single input
 		}
 		switch (request.getType()) {
-			case CUSTOM_INPUT -> {
+			case INPUT_ID -> {
 				String inputId = request.getInput();
 				List<String> inputList = userInputCacheService.getInputs(inputId);
 				if (inputList == null || inputList.isEmpty()) {
@@ -156,15 +313,15 @@ public class CsvProcessor {
 						.assembly(request.getAssembly())
 						.build());
 
-				List<String> pagedInputs = request.getPage() == null
+				List<String> pagedInputs = Boolean.TRUE.equals(request.getFull())
 						? inputList
-						: PagedMapping.getPage(inputList, request.getPage(),
+						: PageUtils.getPage(inputList, request.getPage(),
 						Objects.requireNonNullElse(request.getPageSize(), DEFAULT_PAGE_SIZE));
 				return pagedInputs;
 			}
 			case UNIPROT /*, ENSEMBL, PDB, REFSEQ, GENE*/ -> {
 				String acc = request.getInput();;
-				List<String> accInputs = request.getPage() == null
+				List<String> accInputs = Boolean.TRUE.equals(request.getFull())
 						? mappingRepo.getGenInputsByAccession(acc, null, null)
 						: mappingRepo.getGenInputsByAccession(acc, request.getPage(),
 						Objects.requireNonNullElse(request.getPageSize(), DEFAULT_PAGE_SIZE));
@@ -240,15 +397,15 @@ public class CsvProcessor {
 
 	private Stream<String[]> processInputs(List<String> inputs, DownloadRequest request) {
 
-		InputBuild build = request.getType() != null && request.getType() == IdentifierType.CUSTOM_INPUT ?
-				userInputCacheService.getBuild(request.getInput()) : null; // Custom input, use cached build
+		InputBuild build = request.getType() != null && request.getType() == InputType.INPUT_ID ?
+				userInputCacheService.getBuild(request.getInput()) : null; // use cached build
 
 		InputParams params = InputParams.builder()
 				.id(request.getInput()) // ID, PROTEIN_ACCESSION or SINGLE_VARIANT
 				.inputs(UserInputParser.parse(inputs))
-				.fun(request.isFunction())
-				.pop(request.isPopulation())
-				.str(request.isStructure())
+				.fun(request.getFunction())
+				.pop(request.getPopulation())
+				.str(request.getStructure())
 				.assembly(request.getAssembly())
 				.inputBuild(build) // Optional
 				.build();
@@ -288,11 +445,7 @@ public class CsvProcessor {
 
 	// Stream the inputs and expand them based on input types
 	private Stream<String[]> streamInputsToCsv(InputParams params, DownloadRequest request) {
-		MappingResponse response = (request.getType() != null && request.getType() == IdentifierType.UNIPROT) ?
-				/* requires min 4 max 8 DB calls per call or acc (-3 for cached scores, pockets and interactions) */
-				proteinInputMapping.getMappings(request.getInput(), params) :
-				/* TODO count min/max DB calls */
-				customInputMapping.getMapping(params);
+		MappingResponse response = userInputMapping.getMapping(params);
 
 		// Stream the inputs instead of collecting them into a list
 		Stream.Builder<String[]> builder = Stream.builder();

@@ -15,11 +15,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Schema(description = "The input type.")
 public enum InputType {
     INPUT_ID, // 32-char long user input ID
+    //SINGLE_VARIANT, // single variant input in any of the supported format
     ENSEMBL, // Ensembl identifier (ENSG, ENST, ENSP, ENSE)
     UNIPROT, // UniProt accessio
     PDB,     // PDB structure ID
     REFSEQ,  // RefSeq identifier
     GENE     // Gene symbol
     // FREE_TEXT, // used for semantic search(?)
-    // SINGLE_VARIANT, // single variant input, e.g. 19-1010539-G-C
 }
