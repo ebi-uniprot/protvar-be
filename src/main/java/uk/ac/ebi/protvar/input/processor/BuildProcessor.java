@@ -10,12 +10,12 @@ import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.genomic.Gnomad;
 import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
 import uk.ac.ebi.protvar.input.format.genomic.VCF;
-import uk.ac.ebi.protvar.input.params.InputParams;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.Crossmap;
-import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.CrossmapRepo;
+import uk.ac.ebi.protvar.types.Assembly;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -106,18 +106,17 @@ public class BuildProcessor {
     }
 
 
-    public void process(Map<Type, List<UserInput>> groupedInputs, InputParams params) {
+    public void process(Map<Type, List<UserInput>> groupedInputs, String requestAssembly, InputBuild detectedBuild) {
         List<UserInput> genomicInputs = groupedInputs.get(Type.GENOMIC);
         if (genomicInputs == null || genomicInputs.isEmpty()) {
             return;
         }
         boolean is37 = false;
-        if (Assembly.autodetect(params.getAssembly())) {
-            InputBuild detectedBuild = params.getInputBuild();
+        if (Assembly.autodetect(requestAssembly)) {
             is37 = detectedBuild != null && detectedBuild.getAssembly() != null
                     && detectedBuild.getAssembly() == Assembly.GRCH37;
         } else {
-            is37 = Assembly.is37(params.getAssembly());
+            is37 = Assembly.is37(requestAssembly);
         }
 
         // Separate inputs that need to be converted irrespective of user-specified assembly e.g. HGVSg37
@@ -164,10 +163,7 @@ public class BuildProcessor {
                 .stream().collect(Collectors.groupingBy(Crossmap::getGroupByChrAnd37Pos));
 
         genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
-
-            String chr = input.getChr();
-            Integer pos = input.getPos();
-            List<Crossmap> crossmaps = groupedCrossmaps.get(chr+"-"+pos);
+            List<Crossmap> crossmaps = groupedCrossmaps.get(VariantKey.genomic(input.getChr(), input.getPos()));
 
             if (crossmaps != null && crossmaps.size() > 0) {
                 // We should expect 1 result, multiple mapping not possible based on

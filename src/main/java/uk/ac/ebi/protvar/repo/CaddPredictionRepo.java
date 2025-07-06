@@ -31,6 +31,8 @@ public class CaddPredictionRepo {
    		INNER JOIN (VALUES :chrPosList) AS t(chr,pos)
    		ON t.chr=chromosome AND t.pos=position
    	to using WITH.
+
+   	and to using unnest
      */
 
     private static final String CADDS_WITH_COORD_LIST = """
@@ -50,4 +52,25 @@ public class CaddPredictionRepo {
         return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(CaddPrediction.class));
     }
 
+    // Needs positional accuracy
+    private static final String CADDS_WITH_UNNEST = """
+    WITH coord_list (chr, pos) AS (
+      SELECT UNNEST(:chromosomes) as chr, UNNEST(:positions) as pos
+    )
+    SELECT * FROM %s
+    JOIN coord_list ON chromosome = coord_list.chr
+      AND position = coord_list.pos
+    """;
+
+    public List<CaddPrediction> getCADDByChrPos(String[] chromosomes, Integer[] positions) {
+        if (chromosomes == null || chromosomes.length == 0)
+            return List.of();
+
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("chromosomes", chromosomes)
+                .addValue("positions", positions);
+
+        String sql = String.format(CADDS_WITH_UNNEST, caddTable);
+        return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(CaddPrediction.class));
+    }
 }

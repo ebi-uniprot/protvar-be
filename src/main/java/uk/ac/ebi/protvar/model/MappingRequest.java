@@ -19,8 +19,27 @@ import java.util.List;
 @Schema(description = "Base request used for mapping")
 // TODO decapitalise all params like CADD, ASC, DESC and other enums
 public class MappingRequest {
+
+    public final static String PAGE_DESC = """
+            Page number (1-based) indicating which page of inputs to include in the response or download.
+            Defaults to first page (1) if not specified.
+            Must be greater than 0.
+            """;
+
+    public final static String PAGE_SIZE_DESC = """
+            Number of results per page.
+            Must be between 10 and 1000.
+            Defaults to the system's default page size if not specified.
+            """;
+
+    public final static String ASSEMBLY_DESC = """
+            Genome assembly to use for mapping: 'AUTO', 'GRCh37', or 'GRCh38'.
+            If set to 'AUTO', the system will attempt to detect the appropriate assembly for genomic inputs.
+            Defaults to 'AUTO' if not specified.
+            """;
     @Schema(description = "The input. This can be inputId, single variant or one of the other input types (UniProt accession, gene symbol, Ensembl, PDB, or RefSeq ID).")
-    @NotBlank(message = "Input must not be null or empty") // todo: actually we should allow empty so only filters will apply
+    @NotBlank(message = "Input must not be null or empty")
+    // todo: actually we should allow empty so only filters will apply
     protected String input; // rename to searchTerm? (search=?&type=?)
 
     @Schema(
@@ -31,25 +50,15 @@ public class MappingRequest {
     protected InputType type; // searchTermType? expand to FREE_TEXT (to allow similarity?)
 
     @Schema(
-            description = """
-                Page number (1-based) indicating which page of inputs to include in the response or download.
-
-                Defaults to first page (1) if not specified.
-                Must be greater than 0.
-                """,
-            example = "1"
+            description = PAGE_DESC,
+            example = PageUtils.PAGE
     )
     @Min(value = 1, message = "Page number must be greater than 0")
     protected Integer page;
 
     @Schema(
-            description = """
-                    Number of results per page.
-
-                    Must be between 10 and 1000.
-                    Defaults to the system's default page size if not specified.
-                    """,
-            example = "25"
+            description = PAGE_SIZE_DESC,
+            example = PageUtils.PAGE_SIZE
     )
     @Min(value = PageUtils.PAGE_SIZE_MIN, message = "Page size must be at least 10")
     @Max(value = PageUtils.PAGE_SIZE_MAX, message = "Page size must not exceed 1000")
@@ -79,6 +88,7 @@ public class MappingRequest {
     private String order;
 
     // override Lombok getter for page
+
     /**
      * Returns the effective page number, defaulting to 1 if null.
      */
@@ -87,6 +97,7 @@ public class MappingRequest {
     }
 
     // override Lombok getter for pageSize
+
     /**
      * Returns the effective page size, defaulting to configured default if null.
      */

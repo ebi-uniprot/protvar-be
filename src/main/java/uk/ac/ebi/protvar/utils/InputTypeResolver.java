@@ -1,5 +1,7 @@
 package uk.ac.ebi.protvar.utils;
 
+import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.processor.UserInputParser;
 import uk.ac.ebi.protvar.types.InputType;
 import java.util.regex.Pattern;
 
@@ -53,6 +55,18 @@ public class InputTypeResolver {
             return InputType.GENE;
         }
 
+        // Try parsing as a variant
+        if (isSingleLine(trimmed)) {
+            UserInput parsed = UserInputParser.parse(trimmed);
+            if (parsed != null && parsed.isValid()) {
+                return InputType.SINGLE_VARIANT;
+            }
+        }
+
         return null;
+    }
+
+    public static boolean isSingleLine(String input) {
+        return input != null && !input.contains("\n") && !input.contains("\r");
     }
 }

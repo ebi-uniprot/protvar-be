@@ -4,8 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.Objects;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 @Getter
 @Setter
@@ -22,10 +21,7 @@ public class Foldx {
 	private Double plddt; // AlphaFold_pLDDT
 	private int numFragments = 1; // default
 
-	public String getGroupBy() {
-		return String.format("%s-%s-%s",
-				Objects.toString(proteinAcc, "null"),
-				Objects.toString(position, "null"),
-				Objects.toString(mutatedType, "null"));
+	public String getVariantKey() {
+		return VariantKey.protein(proteinAcc, position, mutatedType);
 	}
 }

@@ -10,10 +10,8 @@ import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.model.response.Gene;
-import uk.ac.ebi.protvar.utils.Commons;
-import uk.ac.ebi.protvar.utils.Constants;
-import uk.ac.ebi.protvar.utils.HGVS;
-import uk.ac.ebi.protvar.utils.RegexUtils;
+import uk.ac.ebi.protvar.utils.*;
+
 import static uk.ac.ebi.protvar.utils.RegexUtils.*;
 
 import java.util.ArrayList;
@@ -25,7 +23,7 @@ import java.util.regex.Pattern;
 
 @Getter
 @Setter
-public class GenomicInput extends UserInput {
+public class GenomicInput extends UserInput implements DerivedGenomicInputProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(GenomicInput.class);
 
     // TODO - in protvar-import
@@ -260,8 +258,8 @@ public class GenomicInput extends UserInput {
                 getInputStr(), chr, pos, ref, alt);
     }
 
-    public String groupByChrAndPos() {
-        return Commons.joinWithDash(this.chr, this.pos);
+    public String getVariantKey() {
+        return VariantKey.genomic(this.chr, this.pos);
     }
 
     // Overriding equals() to compare two Genomic objects
@@ -290,27 +288,23 @@ public class GenomicInput extends UserInput {
                 && this.getInputStr().equals(g.getInputStr());
     }
 
-    @Override
-    public List<Object[]> chrPos() {
-        List<Object[]> chrPosList = new ArrayList<>();
-        if (this.chr != null && this.pos != null)
-            chrPosList.add(new Object[]{this.chr, this.pos});
-        return chrPosList;
-    }
-
-    @Override
-    public List<GenomicInput> genInputs() {
+    public List<GenomicInput> getDerivedGenomicInputs() {
         return List.of(this);
     }
 
-    public static final Map<String, Set<String>> ALTERNATES_MAP = Map.of(
+    public static final Map<String, Set<String>> ALTERNATE_ALLELES_MAP = Map.of(
             "A", Set.of("T", "C", "G"),
             "T", Set.of("A", "C", "G"),
             "C", Set.of("A", "T", "G"),
             "G", Set.of("A", "T", "C")
     );
 
-    public static Set<String> getAlternates(String ref) {
-        return ALTERNATES_MAP.getOrDefault(ref, Set.of());
+    public static Set<String> getAlternateBases(String refBase) {
+        return ALTERNATE_ALLELES_MAP.getOrDefault(refBase.toUpperCase(), Set.of());
+    }
+
+    @Override
+    public List<Object[]> getChrPosList() {
+        return DerivedGenomicInputProvider.super.getChrPosList();
     }
 }

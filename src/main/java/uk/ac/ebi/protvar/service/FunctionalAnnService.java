@@ -9,12 +9,7 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.api.ProteinsAPI;
 import uk.ac.ebi.protvar.converter.FunctionalInfoConverter;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
-import uk.ac.ebi.protvar.model.score.ConservScore;
-import uk.ac.ebi.protvar.model.score.EsmScore;
-import uk.ac.ebi.protvar.model.score.EveScore;
-import uk.ac.ebi.protvar.model.score.Score;
-import uk.ac.ebi.protvar.repo.*;
-import uk.ac.ebi.protvar.utils.Commons;
+import uk.ac.ebi.protvar.repo.FunctionalAnnRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.domain.entry.UPEntry;
 import uk.ac.ebi.uniprot.domain.features.Feature;
@@ -36,14 +31,6 @@ public class FunctionalAnnService {
     private static final Logger LOGGER = LoggerFactory.getLogger(FunctionalAnnService.class);
     private static final String CACHE_NAME = "FUN";
     private final FunctionalAnnRepo functionalAnnRepo;
-
-    private final PocketRepo pocketRepo;
-
-    private final InteractionRepo interactionRepo;
-
-    private final FoldxRepo foldxRepo;
-
-    private final ScoreRepo scoreRepo;
     private final ProteinsAPI proteinsAPI;
     private final CacheManager cacheManager;
     private final FunctionalInfoConverter converter;
@@ -71,16 +58,16 @@ public class FunctionalAnnService {
         Cache cache = cacheManager.getCache(CACHE_NAME);
         if (cache == null) return;
 
-        // Step 1: Filter accessions not in cache
+        // Step 1: Check cache
         List<String> toFetch = accessions.stream()
-                .filter(acc -> cache.get(acc) == null)
+                .filter(acc -> cache.get(acc) == null) // valueWrapper == null
                 .toList();
 
         if (toFetch.isEmpty()) return;
 
         LOGGER.info("Preloading {} accessions: checking DB first", toFetch.size());
 
-        // Step 2: Try fetching from DB
+        // Step 2: Fetch from DB
         Map<String, UPEntry> dbEntries = functionalAnnRepo.getEntries(toFetch);
         List<String> stillMissing = new ArrayList<>();
         int dbHits = 0;
@@ -90,7 +77,7 @@ public class FunctionalAnnService {
             if (entry == null) {
                 // Cache as "not found" to avoid future lookup
                 stillMissing.add(acc);
-                cache.put(acc, null);
+                //cache.put(acc, null); // done in API fetch step
             } else {
                 cache.put(acc, converter.convert(entry));
                 dbHits++;
@@ -100,7 +87,7 @@ public class FunctionalAnnService {
         int apiHits = 0;
         int notFound = 0;
 
-        // Step 3: Fetch remaining from API
+        // Step 3: Fetch from API, 100 accessions at a time
         if (!stillMissing.isEmpty()) {
             List<Collection<String>> partitions = FetcherUtils.partition(stillMissing, ProteinsAPI.PARTITION_SIZE);
 
@@ -132,97 +119,78 @@ public class FunctionalAnnService {
      * Falls back to DB and API if not present in cache. Null indicates not found.
      */
     public FunctionalInfo get(String accession) {
+        if (accession == null || accession.isEmpty()) return null;
+
         Cache cache = cacheManager.getCache(CACHE_NAME);
         if (cache == null) return null;
 
-        FunctionalInfo info = null;
-        String source = "cache";
-
+        // Check cache first
         Cache.ValueWrapper wrapper = cache.get(accession);
         if (wrapper != null) {
-            Object value = wrapper.get(); // null means previously looked up, not found
-            info = (FunctionalInfo) value;
-        } else { // Key doesn't exist in cache, needs to be fetched
+            return (FunctionalInfo) wrapper.get(); // may be null (cached not found) // <-- Redis: deserialized object
+        }
 
-            // Try DB first
-            UPEntry entry = functionalAnnRepo.getEntry(accession);
+        // Not in cache → try DB
+        UPEntry entry = functionalAnnRepo.getEntry(accession);
 
-            if (entry != null) {
-                info = converter.convert(entry);
-                source = "database";
-            } else {
-                // Fall back to API
-                UPEntry[] apiResults = proteinsAPI.getProtein(List.of(accession));
-                if (apiResults != null && apiResults.length > 0) {
-                    info = converter.convert(apiResults[0]);
-                    source = "api";
-                } else {
-                    source = "not found";
-                }
-            }
-            // Cache including null to indicate not found
+        if (entry != null) {
+            FunctionalInfo info = converter.convert(entry); // <-- new Java object
             cache.put(accession, info);
+            LOGGER.info("{} Functional info loaded from database", accession);
+            return info;
         }
-        String message = "not found".equals(source)
-                ? String.format("%s Functional info not found", accession)
-                : String.format("%s Functional info loaded from %s", accession, source);
 
-        LOGGER.info(message);
-        return info;
+        // Not in DB → try API
+        UPEntry[] apiResults = proteinsAPI.getProtein(List.of(accession));
+        if (apiResults != null && apiResults.length > 0) {
+            FunctionalInfo info = converter.convert(apiResults[0]); // <-- new Java object
+            cache.put(accession, info);
+            LOGGER.info("{} Functional info loaded from api", accession);
+            return info;
+        }
+
+        // Not found → cache null
+        cache.put(accession, null);
+        LOGGER.info("{} Functional info not found", accession);
+        return null;
     }
 
+   /*
+    Every time you do cache.get(key), the cached value is deserialized from Redis.
+    FunctionalInfo fi1 = get("P12345", 25);  // deserialized from Redis
+    FunctionalInfo fi2 = get("P12345", 100); // separate deserialization from Redis
+    These should be independent objects.
+
+    You don’t need to copy it before modifying things like .setPosition(...)
+    You’re safe to filter the features list or modify other fields
+     */
     public FunctionalInfo get(String accession, int position) {
-        FunctionalInfo functionalInfo = get(accession);
+        FunctionalInfo fromCache  = get(accession);
 
-        if (functionalInfo != null) {
-            functionalInfo.setPosition(position);
-            functionalInfo.setFeatures(filterByPosition(functionalInfo.getFeatures(), position));
+        if (fromCache != null) {
+            fromCache.setPosition(position);
+
+            List<Feature> features = fromCache.getFeatures();
+            if (features == null || features.isEmpty()) {
+                fromCache.setFeatures(Collections.emptyList());
+                return fromCache;
+            }
+
+            List<Feature> filteredFeatures = features.stream()
+                    .filter(f -> {
+                        try {
+                            int start = Integer.parseInt(f.getBegin());
+                            int end = Integer.parseInt(f.getEnd());
+                            return position >= start && position <= end;
+                        } catch (NumberFormatException | NullPointerException e) {
+                            // Skip features with invalid or missing start/end
+                            return false;
+                        }
+                    })
+                    .collect(Collectors.toList());
+
+            fromCache.setFeatures(filteredFeatures);
         }
-
-        return functionalInfo;
-    }
-
-    public FunctionalInfo get(String accession, int position, String variantAA) {
-        FunctionalInfo functionalInfo = get(accession, position);
-        if (functionalInfo != null) {
-            // Add novel predictions
-            functionalInfo.setPockets(pocketRepo.getPockets(accession, position));
-            functionalInfo.setInteractions(interactionRepo.getInteractions(accession, position));
-            functionalInfo.setFoldxs(foldxRepo.getFoldxs(accession, position, variantAA));
-
-            List<Object[]> list = new ArrayList<>();
-            list.add(new Object[] { accession, position });
-            // Add other scores
-            Map<String, List<Score>>  scoresMap = scoreRepo.getScores(list, true)
-                    .stream().collect(Collectors.groupingBy(Score::getGroupBy));
-
-            String keyConserv = Commons.joinWithDash("CONSERV", accession, position);
-            String keyEve = Commons.joinWithDash("EVE", accession, position, variantAA);
-            String keyEsm = Commons.joinWithDash("ESM", accession, position, variantAA);
-
-            scoresMap.getOrDefault(keyConserv, Collections.emptyList()).stream().findFirst()
-                    .map(s -> ((ConservScore) s).copy()).ifPresent(functionalInfo::setConservScore);
-
-            scoresMap.getOrDefault(keyEve, Collections.emptyList()).stream().findFirst()
-                    .map(s -> ((EveScore) s).copy()).ifPresent(functionalInfo::setEveScore);
-
-            scoresMap.getOrDefault(keyEsm, Collections.emptyList()).stream().findFirst()
-                    .map(s -> ((EsmScore) s).copy()).ifPresent(functionalInfo::setEsmScore);
-        }
-        return functionalInfo;
-    }
-
-    private List<Feature> filterByPosition(List<Feature> features, int position) {
-        if (features == null) return Collections.emptyList();
-        return features.stream()
-                .filter(f -> {
-                    try {
-                        int start = Integer.parseInt(f.getBegin());
-                        int end = Integer.parseInt(f.getEnd());
-                        return position >= start && position <= end;
-                    } catch (NumberFormatException e) {
-                        return false;
-                    }
-                }).collect(Collectors.toList());
+        return fromCache;
     }
 }

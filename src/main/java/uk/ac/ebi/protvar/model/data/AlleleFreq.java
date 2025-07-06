@@ -3,8 +3,7 @@ package uk.ac.ebi.protvar.model.data;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-
-import java.util.Objects;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 @Getter
 @Setter
@@ -15,27 +14,14 @@ public class AlleleFreq extends Base {
     Integer ac;
     Integer an;
     Double af;
+    @JsonIgnore
+    public String getVariantKey() {
+        return VariantKey.genomic(chr, pos);
+    }
 
     @JsonIgnore
-    public String getGroupBy() {
-        return String.format("%s-%s",
-                Objects.toString(chr, "null"),
-                Objects.toString(pos, "null"));
-    }
-
-    @Getter
-    @Setter
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class GnomadFreq { // with only required fields in API response
-        Integer ac;
-        Integer an;
-        Double af;
-    }
-
-    public GnomadFreq toGnomadFreq() {
-        return GnomadFreq.builder()
+    public AlleleFreq copySubclassFields() {
+        return AlleleFreq.builder()
                 .ac(ac)
                 .an(an)
                 .af(af)

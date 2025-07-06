@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.CacheKey;
 import uk.ac.ebi.protvar.repo.VariationRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
+import uk.ac.ebi.protvar.utils.VariantKey;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 import uk.ac.ebi.protvar.api.VariationAPI;
 import uk.ac.ebi.uniprot.domain.features.ProteinFeatureInfo;
@@ -50,14 +51,14 @@ public class VariantFetcher {
 		});
 	}
 
-	private void cacheAPIResponse(Collection<String> accessionLocations) {
+	private void cacheAPIResponse(Collection<String> accessionPositions) {
 		Map<String, List<Variant>> variantMap = new ConcurrentHashMap<>();
-		for (String k: accessionLocations) {
+		for (String k: accessionPositions) {
 			variantMap.put(k, new ArrayList<>());
 		}
 
 		try {
-			ProteinFeatureInfo[] proteinFeatureInfos = variationAPI.getVariationAccessionLocations(String.join("|", accessionLocations));
+			ProteinFeatureInfo[] proteinFeatureInfos = variationAPI.getVariationAccessionLocations(String.join("|", accessionPositions));
 			if (proteinFeatureInfos != null && proteinFeatureInfos.length > 0) {
 
 				for (ProteinFeatureInfo proteinFeatureInfo : proteinFeatureInfos) {
@@ -69,13 +70,13 @@ public class VariantFetcher {
 							.filter(v -> notNullNotEmpty(v.getAlternativeSequence()))
 							.filter(v -> notNullNotEmpty(v.getWildType()))
 							.forEach(v -> {
-								String key = proteinFeatureInfo.getAccession() + ":" + v.getBegin();
-								if (variantMap.containsKey(key)) {
-									variantMap.get(key).add(v);
+								String variantKey = VariantKey.protein(proteinFeatureInfo.getAccession(), v.getBegin());
+								if (variantMap.containsKey(variantKey)) {
+									variantMap.get(variantKey).add(v);
 								}
 							});
 				}
-				logger.info("Caching variation: {}", String.join(",", accessionLocations));
+				logger.info("Caching variation: {}", String.join(",", accessionPositions));
 				// update cache
 				for (String key : variantMap.keySet()) {
 					redisTemplate.opsForValue().set(CacheKey.variant(key), variantMap.get(key));
@@ -88,29 +89,31 @@ public class VariantFetcher {
 	}
 
 	public List<Variant> fetch(String uniprotAccession, int proteinLocation) {
-		String accLoc = uniprotAccession + ":" + proteinLocation;
-		String key = CacheKey.variant(accLoc);
-		List<Variant> variants = getCachedVariants(key);
+		String variantKey = VariantKey.protein(uniprotAccession, proteinLocation);
+		String cacheKey = CacheKey.variant(variantKey);
+		List<Variant> variants = getCachedVariants(cacheKey);
 		if (variants != null) return variants;
 
-		cacheAPIResponse(Set.of(accLoc));
+		cacheAPIResponse(Set.of(variantKey));
 
-		variants = getCachedVariants(key);
+		variants = getCachedVariants(cacheKey);
 		return (variants != null) ? variants : Collections.emptyList();
 	}
 
-	public List<Variant> getVariants(String accession, int protein) {
-		List<Feature> features = variationRepo.getFeatures(accession, protein);
+	public Map<String, List<Variant>> getVariants(String accession, int position) {
+		List<Feature> features = variationRepo.getFeatures(accession, position);
 		List<Variant> variants = features.stream()
 				.filter(Objects::nonNull)
 				.filter(f -> f instanceof Variant)
 				.map(f -> (Variant) f)
 				.collect(Collectors.toList());
-		return variants;
+		if (variants == null || variants.isEmpty())
+			return Map.of();
+		return Map.of(VariantKey.protein(accession, position), variants);
 	}
 
-	public Map<String, List<Variant>> getVariantMap(List<Object[]> accPosList) {
-		Map<String, List<Feature>> featureMap = variationRepo.getFeatureMap(accPosList);
+	public Map<String, List<Variant>> getVariantMap(String[] accessions, Integer[] positions) {
+		Map<String, List<Feature>> featureMap = variationRepo.getFeatureMap(accessions, positions);
 		return getVariantMap(featureMap);
 	}
 

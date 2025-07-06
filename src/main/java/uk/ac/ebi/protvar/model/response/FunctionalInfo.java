@@ -43,7 +43,7 @@ public class FunctionalInfo {
 	private List<Foldx> foldxs;
 	private List<Interaction> interactions;
 
-	// ProtVar scores
+	// ProtVar scores (CADD and AM scores in core mapping)
 	private ConservScore conservScore;
 	private EveScore eveScore;
 	private EsmScore esmScore;

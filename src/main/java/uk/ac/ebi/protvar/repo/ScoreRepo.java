@@ -8,9 +8,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.model.score.*;
+import uk.ac.ebi.protvar.types.AmClass;
+import uk.ac.ebi.protvar.types.EveClass;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * Conservation, EVE, ESM1b and AM scores
@@ -18,37 +19,17 @@ import java.util.List;
 @Repository
 @RequiredArgsConstructor
 public class ScoreRepo {
+    private static final String CONSERV_SCORES =
+            "SELECT 'CONSERV' AS type, s.accession, s.position, null AS mt_aa, s.score, null AS class FROM conserv_score s";
 
-    private static final String SELECT_CONSERV = "SELECT 'CONSERV' AS type, accession, position, null AS mt_aa, score, null AS class FROM conserv_score";
-    private static final String SELECT_EVE = "SELECT 'EVE' AS type, accession, position, mt_aa, score, class FROM eve_score";
-    private static final String SELECT_ESM = "SELECT 'ESM' AS type, accession, position, mt_aa, score, null AS class FROM esm";
-    private static final String SELECT_AM = "SELECT 'AM' AS type, accession, position, mt_aa, am_pathogenicity AS score, am_class AS class FROM alphamissense";
+    private static final String EVE_SCORES =
+            "SELECT 'EVE' AS type, s.accession, s.position, s.mt_aa, s.score, s.class FROM eve_score s";
 
-    private static final String JOIN_ON_ACC_POS = " INNER JOIN input ON input.acc = accession AND input.pos = position";
-    private static final String WHERE_ACC = " WHERE accession=:accession";
-    private static final String WHERE_ACC_POS = WHERE_ACC + " AND position=:position";
-    private static final String WHERE_ACC_POS_MT = WHERE_ACC_POS + " AND mt_aa=:mutatedType";
+    private static final String ESM_SCORES =
+            "SELECT 'ESM' AS type, s.accession, s.position, s.mt_aa, s.score, null AS class FROM esm s";
 
-    // Scores that appear in functional annotation
-    // Optimized SQL query using unnest instead of VALUES
-    private static final String SELECT_SCORES_FOR_ACC_POS = """
-    WITH input(acc, pos) AS (
-        SELECT unnest(:accessions::VARCHAR[]), unnest(:positions::INT[])
-    )
-    """ + String.join(" UNION ALL ",
-            SELECT_CONSERV + JOIN_ON_ACC_POS,
-            SELECT_EVE + JOIN_ON_ACC_POS,
-            SELECT_ESM + JOIN_ON_ACC_POS,
-            SELECT_AM + JOIN_ON_ACC_POS
-    );
-
-    private static final String SELECT_SCORES_FOR_ACC = String.join(" UNION ALL ",
-            SELECT_CONSERV + WHERE_ACC,
-            SELECT_EVE + WHERE_ACC,
-            SELECT_ESM + WHERE_ACC,
-            SELECT_AM + WHERE_ACC
-    );
-
+    private static final String AM_SCORES =
+            "SELECT 'AM' AS type, s.accession, s.position, s.mt_aa, s.am_pathogenicity AS score, s.am_class AS class FROM alphamissense s";
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     /**
@@ -57,125 +38,168 @@ public class ScoreRepo {
      * Does not populate accession or position fields in the Score object (to avoid transmitting unneeded data in the
      * response)
      */
-    public List<Score> getScores(String accession, Integer position, String mutatedType, Score.Name name) {
-        String where = (mutatedType != null && !mutatedType.isBlank()) ? WHERE_ACC_POS_MT : WHERE_ACC_POS;
-        String sql = name == null ? (
-                String.join(" UNION ALL ",
-                        SELECT_CONSERV + WHERE_ACC_POS, // conserv_score table has no mt field
-                        SELECT_EVE + where,
-                        SELECT_ESM + where,
-                        SELECT_AM + where
-                )
-        ) : (switch (name) {
-            case CONSERV -> SELECT_CONSERV + WHERE_ACC_POS;
-            case EVE -> SELECT_EVE + where;
-            case ESM -> SELECT_ESM + where;
-            case AM -> SELECT_AM + where;
-        });
 
-        MapSqlParameterSource parameters = new MapSqlParameterSource()
+    public List<Score> getScores(String accession, Integer position, String mutatedType, ScoreType type) {
+        if (accession == null || position == null || type == null) {
+            return Collections.emptyList();
+        }
+        List<ScoreType> typesToQuery = (type != null)
+                ? List.of(type)
+                : List.of(ScoreType.values());
+
+        List<String> queries = new ArrayList<>();
+
+        // Base WHERE clause
+        String baseFilter = " WHERE accession = :accession AND position = :position";
+
+        // Optional mt_aa filter for types that support it
+        String extendedFilter = baseFilter;
+        if (mutatedType != null && !mutatedType.isBlank()) {
+            extendedFilter += " AND mt_aa = :mutatedType";
+        }
+
+        // Dynamically inject WHERE clause into each subquery
+        if (typesToQuery.contains(ScoreType.CONSERV)) queries.add(CONSERV_SCORES + baseFilter); // no mutated type
+        if (typesToQuery.contains(ScoreType.EVE)) queries.add(EVE_SCORES + extendedFilter);
+        if (typesToQuery.contains(ScoreType.ESM)) queries.add(ESM_SCORES + extendedFilter);
+        if (typesToQuery.contains(ScoreType.AM)) queries.add(AM_SCORES + extendedFilter);
+
+        if (queries.isEmpty()) return Collections.emptyList();
+
+        String sql = String.join(" UNION ALL ", queries);
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("accession", accession)
                 .addValue("position", position)
                 .addValue("mutatedType", mutatedType);  // Safe even if null, won't be used unless required
 
-        return jdbcTemplate.query(sql, parameters, scoreRowMapperWithoutAccPos);
-    }
-
-    private String buildScoreQuery(Score.Name name, boolean filterByMt) {
-        String where = filterByMt ? WHERE_ACC_POS_MT : WHERE_ACC_POS;
-        return switch (name) {
-            case CONSERV -> SELECT_CONSERV + where;
-            case EVE     -> SELECT_EVE + where;
-            case ESM     -> SELECT_ESM + where;
-            case AM      -> SELECT_AM + where;
-            default -> String.join(" UNION ALL ",
-                    SELECT_CONSERV + where,
-                    SELECT_EVE + where,
-                    SELECT_ESM + where,
-                    SELECT_AM + where
-            );
-        };
-    }
-
-    /**
-     * Used in MappingFetcher
-     * Returns all scores for a list of (accession, position) pairs.
-     * Need to set the acc and pos (but not wt) to enable the use of groupBy in building the MappingResponse.
-     */
-    public List<Score> getScores(List<Object[]> accPosList, boolean isFun) {
-        if (accPosList == null || accPosList.isEmpty()) return List.of();
-
-        //SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
-        // Optimized SQL query using unnest instead of VALUES
-        List<String> accessions = new ArrayList<>();
-        List<Integer> positions = new ArrayList<>();
-        for (Object[] pair : accPosList) {
-            accessions.add((String) pair[0]);
-            positions.add((Integer) pair[1]);
-        }
-
-        MapSqlParameterSource parameters = new MapSqlParameterSource()
-                .addValue("accessions", accessions.toArray(new String[0]))  // Convert to array
-                .addValue("positions", positions.toArray(new Integer[0]));  // Convert to array
-
-        String amQuery = """
-            WITH input(acc, pos) AS (
-                SELECT unnest(:accessions::VARCHAR[]), unnest(:positions::INT[])
-            )
-        """ + SELECT_AM + JOIN_ON_ACC_POS;
-        String sql = isFun
-                ? SELECT_SCORES_FOR_ACC_POS  // All scores: Conservation, EVE, ESM, AM
-                : amQuery;                   // Only AlphaMissense score
-        return jdbcTemplate.query(sql, parameters, scoreRowMapper);
+        return jdbcTemplate.query(sql, params, minimalScoreRowMapper);
     }
 
     /**
      * Returns all scores for a given accession.
      */
-
     @Cacheable(value = "scoresByAccession", key = "#accession")
-    public List<Score> getScores(String accession) {
+    public List<Score> getScores(String accession) {// Set<ScoreType> types) {
         if (accession == null || accession.isBlank()) return List.of();
-        SqlParameterSource parameters = new MapSqlParameterSource("accession", accession);
-        return jdbcTemplate.query(SELECT_SCORES_FOR_ACC, parameters, scoreRowMapper);
+
+        // If types is null or empty, query all ScoreTypes
+        Set<ScoreType> typesToQuery = //(types == null || types.isEmpty()) ?
+                EnumSet.allOf(ScoreType.class);
+                //: types;
+
+        List<String> queries = new ArrayList<>();
+        String whereClause = " WHERE s.accession = :accession ";
+
+        if (typesToQuery.contains(ScoreType.CONSERV)) queries.add(CONSERV_SCORES + whereClause);
+        if (typesToQuery.contains(ScoreType.EVE)) queries.add(EVE_SCORES + whereClause);
+        if (typesToQuery.contains(ScoreType.ESM)) queries.add(ESM_SCORES + whereClause);
+        if (typesToQuery.contains(ScoreType.AM)) queries.add(AM_SCORES + whereClause);
+
+        if (queries.isEmpty()) return Collections.emptyList();
+
+        // Join all with UNION ALL
+        String sql = String.join(" UNION ALL ", queries);
+
+        SqlParameterSource params = new MapSqlParameterSource("accession", accession);
+        return jdbcTemplate.query(sql, params, fullScoreRowMapper);
     }
 
     /**
-     * Returns all AM scores for a given accession.
+     * Returns all scores for array of accession-position pairs.
+     * Need to set the acc and pos (but not wt) to enable the use of groupBy in building the MappingResponse.
      */
-    public List<Score> getAMScores(String accession) {
-        if (accession == null || accession.isBlank()) return List.of();
-        SqlParameterSource parameters = new MapSqlParameterSource("accession", accession);
-        return jdbcTemplate.query(SELECT_AM + WHERE_ACC, parameters, scoreRowMapper);
+    public List<Score> getScores(String[] accessions, Integer[] positions, Set<ScoreType> types) {
+        if (accessions == null || accessions.length == 0) return Collections.emptyList();
+
+        // If types is null or empty, query all ScoreTypes
+        Set<ScoreType> typesToQuery = (types == null || types.isEmpty())
+                ? EnumSet.allOf(ScoreType.class)
+                : types;
+
+        List<String> queries = new ArrayList<>();
+
+        // With and join clauses
+        String withClause = """
+                WITH input(acc, pos) AS (
+                  SELECT * FROM unnest(:accessions::VARCHAR[], :positions::INT[])
+                )
+                """;
+        //SELECT unnest(ARRAY['A', 'B']), unnest(ARRAY[1, 2]);
+        // Results in:
+        // | unnest | unnest |
+        // | ------ | ------ |
+        // | A      | 1      |
+        // | A      | 2      |
+        // | B      | 1      |
+        // | B      | 2      |
+        // vs.
+        // SELECT * FROM unnest(ARRAY['A', 'B'], ARRAY[1, 2]); << THIS IS WHAT WE NEED!!
+        // Results in:
+        // | column1 | column2 |
+        // | ------- | ------- |
+        // | A       | 1       |
+        // | B       | 2       |
+
+        // Join clause used in all subqueries
+        String joinClause = " JOIN input ON input.acc = s.accession AND input.pos = s.position ";
+
+        // For score types that don't have mt_aa (CONSERV)
+        if (typesToQuery.contains(ScoreType.CONSERV)) queries.add(CONSERV_SCORES + joinClause);
+
+        // For others with mt_aa, no mutatedType filter here because we don't have that param
+        if (typesToQuery.contains(ScoreType.EVE)) queries.add(EVE_SCORES + joinClause);
+        if (typesToQuery.contains(ScoreType.ESM)) queries.add(ESM_SCORES + joinClause);
+        if (typesToQuery.contains(ScoreType.AM)) queries.add(AM_SCORES + joinClause);
+
+        if (queries.isEmpty()) return Collections.emptyList();
+
+        // Join all with UNION ALL
+        String sql = withClause + String.join(" UNION ALL ", queries);
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("accessions", accessions)
+                .addValue("positions", positions);
+
+        return jdbcTemplate.query(sql, params, fullScoreRowMapper);
     }
 
-    private final RowMapper<Score> scoreRowMapper = (rs, rowNum) -> {
-        Score.Name name = Score.Name.valueOf(rs.getString("type"));
+    public List<Score> getMappingScores(String[] accessions, Integer[] positions) {
+        return getScores(accessions, positions, Set.of(ScoreType.AM));
+    }
+
+    public List<Score> getAnnotationScores(String[] accessions, Integer[] positions) {
+        return getScores(accessions, positions, Set.of(ScoreType.CONSERV, ScoreType.EVE, ScoreType.ESM));
+    }
+
+    private final RowMapper<Score> fullScoreRowMapper = (rs, rowNum) -> {
+        ScoreType type = ScoreType.valueOf(rs.getString("type"));
         String acc = rs.getString("accession");
         int pos = rs.getInt("position");
         String mt = rs.getString("mt_aa");
         double score = rs.getDouble("score");
         Integer clazz = rs.getObject("class", Integer.class);
 
-        return switch (name) {
-            case CONSERV -> new ConservScore(acc, pos, null, score);
-            case EVE     -> new EveScore(acc, pos, mt, score, clazz);
+        return switch (type) {
+            case CONSERV -> new ConservScore(acc, pos, score);
+            case EVE     -> new EveScore(acc, pos, mt, score, EveClass.fromValue(clazz));
             case ESM     -> new EsmScore(acc, pos, mt, score);
-            case AM      -> new AmScore(acc, pos, mt, score, clazz);
+            case AM      -> new AmScore(acc, pos, mt, score, AmClass.fromValue(clazz));
         };
     };
 
-    private final RowMapper<Score> scoreRowMapperWithoutAccPos = (rs, rowNum) -> {
-        Score.Name name = Score.Name.valueOf(rs.getString("type"));
+    private final RowMapper<Score> minimalScoreRowMapper = (rs, rowNum) -> {
+        ScoreType name = ScoreType.valueOf(rs.getString("type"));
         String mt = rs.getString("mt_aa");
         double score = rs.getDouble("score");
         Integer clazz = rs.getObject("class", Integer.class);
 
         return switch (name) {
-            case CONSERV -> new ConservScore(null, score);
-            case EVE     -> new EveScore(mt, score, clazz);
+            case CONSERV -> new ConservScore(score);
+            case EVE     -> new EveScore(mt, score, EveClass.fromValue(clazz));
             case ESM     -> new EsmScore(mt, score);
-            case AM      -> new AmScore(mt, score, clazz);
+            case AM      -> new AmScore(mt, score, AmClass.fromValue(clazz));
         };
     };
+
 }

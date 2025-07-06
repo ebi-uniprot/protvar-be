@@ -24,11 +24,31 @@ public class AlleleFreqRepo {
    			ON t.chr=af.chr AND t.pos=af.pos
    			""";
 
+    private static final String ALLELE_FREQ_WITH_UNNEST = """
+    WITH coord_list (chr, pos) AS (
+      SELECT UNNEST(:chromosomes) as chr, UNNEST(:positions) as pos
+    )
+    SELECT af.* FROM %s AS af
+    JOIN coord_list ON af.chromosome = coord_list.chr
+      AND af.position = coord_list.pos
+    """;
+
     public List<AlleleFreq> getAlleleFreqs(List<Object[]> chrPosList) {
         if (chrPosList == null || chrPosList.isEmpty())
             return List.of();
         SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
         String sql = String.format(ALLELE_FREQ_IN_CHR_POS, allelefreqTable);
+        return namedParameterJdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(AlleleFreq.class));
+    }
+
+    public List<AlleleFreq> getAlleleFreqs(String[] chromosomes, Integer[] positions) {
+        if (chromosomes == null || chromosomes.length == 0)
+            return List.of();
+
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("chromosomes", chromosomes)
+                .addValue("positions", positions);
+        String sql = String.format(ALLELE_FREQ_WITH_UNNEST, allelefreqTable);
         return namedParameterJdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(AlleleFreq.class));
     }
 

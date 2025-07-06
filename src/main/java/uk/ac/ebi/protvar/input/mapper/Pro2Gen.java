@@ -18,6 +18,7 @@ import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.protvar.types.Codon;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -109,7 +110,7 @@ public class Pro2Gen {
 
         // 2. get all the relevant db records by accessions and positions
         Map<String, List<GenomeToProteinMapping>> gCoords = mappingRepo.getMappingsByAccPos(accPosList)
-                .stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupByProteinAccAndPos));
+                .stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getVariantKeyProtein));
 
         // 3. we expect each protein input to have 3 genomic coordinates (in normal cases),
         //	which we will try to pin down to one, if possible, based on the user inputs
@@ -118,7 +119,7 @@ public class Pro2Gen {
             if (i instanceof HGVSp || i instanceof ProteinInput) {
                 ProteinInput input = (ProteinInput) i;
 
-                String key = Commons.joinWithDash(input.getAcc(), input.getPos());
+                String key = VariantKey.protein(input.getAcc(), input.getPos());
                 List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
                 // ^ all the genomic coordinates for protein accession and position
 
@@ -170,7 +171,7 @@ public class Pro2Gen {
                         Integer gCoordCodonPos = gCoord.getCodonPosition();
                         Boolean gCoordIsReverse = gCoord.isReverseStrand();
 
-                        Set<String> possibleAltAlleles = GenomicInput.getAlternates(gCoordRefAllele); // allele is in DNA letters -ATCG
+                        Set<String> possibleAltAlleles = GenomicInput.getAlternateBases(gCoordRefAllele); // allele is in DNA letters -ATCG
 
                         AminoAcid gCoordRefAA = AminoAcid.fromOneOrThreeLetter(gCoordAa);
 
@@ -273,7 +274,7 @@ public class Pro2Gen {
             } else if (i instanceof HGVSc) {
                 HGVSc input = (HGVSc) i;
 
-                String key = Commons.joinWithDash(input.getDerivedUniprotAcc(), input.getDerivedProtPos());
+                String key = VariantKey.protein(input.getDerivedUniprotAcc(), input.getDerivedProtPos());
                 List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
 
                 Set<String> seen = new HashSet<>();

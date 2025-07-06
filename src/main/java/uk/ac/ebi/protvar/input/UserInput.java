@@ -17,15 +17,14 @@ import java.util.stream.Collectors;
  *                           /  |  |  \___________________
  *                    ______/   |  |__________           |
  *                   |          |            |           |
- *  Type          Genomic    Coding       Protein      ID/Ref
+ *  Type          Genomic----Coding------Protein------ID/Ref ----implements----> DerivedGenomicInputProvider
  *  (props)    chr,pos,(id),             acc,pos       id
  *             ref,alt,mappings          ref,alt_aa
  *                  |           |            |           |
  *  Format        Internal    HGVSc       Internal   DBSNP, ClinVar
- *                VCF            \        HGVSc        COSMIC
- *                HGVSg           \         |         /
- *                GnomAD           \        |        /
- *                                   derivedGenInputs
+ *                VCF                     HGVSc        COSMIC
+ *                HGVSg
+ *                GnomAD
  */
 @Getter
 @Setter
@@ -87,17 +86,6 @@ public abstract class UserInput {
 		return "";
 	}
 
-	abstract public List<Object[]> chrPos();
-	abstract public List<GenomicInput> genInputs();
-
-	protected List<Object[]> chrPosForDerivedGenomicInputs(List<GenomicInput> derivedGenomicInputs) {
-		List<Object[]> chrPosList = new ArrayList<>();
-		for (GenomicInput genomicInput : derivedGenomicInputs) {
-			if (genomicInput.getChr() != null && genomicInput.getPos() != null)
-				chrPosList.add(new Object[]{genomicInput.getChr(), genomicInput.getPos()});
-		}
-		return chrPosList;
-	}
-
-
+	abstract public List<GenomicInput> getDerivedGenomicInputs();
+	abstract public List<Object[]> getChrPosList(); // default impl in DerivedGenomicInputProvider
 }

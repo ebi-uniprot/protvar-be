@@ -10,6 +10,17 @@ import uk.ac.ebi.protvar.model.CachedUserInputData;
 
 import java.util.List;
 
+/**
+ * todo rethink user cache
+ * - cache normalised original input lines
+ * - or, converted genomic variants from user inputs for e.g.
+ *    [ -- idx, raw input, format, derived genomic variants from input
+ *      -- note type is known from format
+ *       0, raw, VCF , [chr-pos-ref-alt, ...],
+ *       1, raw, HGVS, [chr-pos-ref-alt, ...],
+ *       ...
+ *       ]
+ */
 @Service
 public class UserInputCacheService {
     @Cacheable(value = "userInputs", key = "#inputId")

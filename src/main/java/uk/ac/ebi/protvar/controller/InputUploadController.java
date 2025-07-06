@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.UserInputRequest;
 import uk.ac.ebi.protvar.model.response.InputUploadResponse;
 import uk.ac.ebi.protvar.service.UserInputService;
@@ -26,7 +27,6 @@ import java.nio.charset.StandardCharsets;
 @CrossOrigin
 @RequiredArgsConstructor
 public class InputUploadController {
-    public static final String ASSEMBLY_DESC = "Genome assembly to use for mapping (AUTO, GRCH37, or GRCH38).";
     private final UserInputService userInputService;
 
     @Operation(
@@ -37,7 +37,7 @@ public class InputUploadController {
     public ResponseEntity<?> uploadFile(
             @Parameter(description = "A text file where each line contains a variant in a supported format.")
             @RequestParam MultipartFile file,
-            @Parameter(description = ASSEMBLY_DESC)
+            @Parameter(description = MappingRequest.ASSEMBLY_DESC)
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
         try {
             String rawInput = new String(file.getBytes(), StandardCharsets.UTF_8);
@@ -65,7 +65,7 @@ public class InputUploadController {
                 )
             )
             @RequestBody String text,
-            @Parameter(description = ASSEMBLY_DESC)
+            @Parameter(description = MappingRequest.ASSEMBLY_DESC)
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
         String inputId = userInputService.processInput(UserInputRequest.builder()
                 .rawInput(text)

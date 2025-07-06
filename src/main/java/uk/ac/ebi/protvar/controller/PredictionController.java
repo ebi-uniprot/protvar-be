@@ -17,7 +17,10 @@ import uk.ac.ebi.protvar.repo.PocketRepo;
 import uk.ac.ebi.protvar.types.AminoAcid;
 
 import jakarta.servlet.ServletContext;
+import uk.ac.ebi.protvar.utils.VariantKey;
+
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Prediction")
 @RestController
@@ -56,7 +59,11 @@ public class PredictionController {
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer position,
             @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
-        List<Foldx> foldxs = foldxRepo.getFoldxs(accession, position, AminoAcid.oneLetter(variantAA));
+        Map<String, List<Foldx>> foldxMap = foldxRepo.getFoldxs(accession, position, AminoAcid.oneLetter(variantAA));
+        List<Foldx> foldxs = foldxMap.get(VariantKey.protein(accession, position, variantAA));
+        if (foldxs == null || foldxs.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
         return new ResponseEntity<>(foldxs, HttpStatus.OK);
     }
 
@@ -74,7 +81,11 @@ public class PredictionController {
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer resid) {
 
-        List<Pocket> pockets = pocketRepo.getPockets(accession, resid);
+        Map<String, List<Pocket>> pocketMap = pocketRepo.getPockets(accession, resid);
+        List<Pocket> pockets = pocketMap.get(VariantKey.protein(accession, resid));
+        if (pockets == null || pockets.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
         return new ResponseEntity<>(pockets, HttpStatus.OK);
     }
 
@@ -92,7 +103,11 @@ public class PredictionController {
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer resid) {
 
-        List<Interaction> interactions = interactionRepo.getInteractions(accession, resid);
+        Map<String, List<Interaction>> interactMap = interactionRepo.getInteractions(accession, resid);
+        List<Interaction> interactions = interactMap.get(VariantKey.protein(accession, resid));
+        if (interactions == null || interactions.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
         interactions.forEach(i -> i.setPdbModel(context.getContextPath() + i.getPdbModel()));
         return new ResponseEntity<>(interactions, HttpStatus.OK);
     }

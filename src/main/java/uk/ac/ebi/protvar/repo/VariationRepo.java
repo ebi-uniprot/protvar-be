@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.types.AminoAcid;
+import uk.ac.ebi.protvar.utils.VariantKey;
 import uk.ac.ebi.uniprot.domain.features.Feature;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
@@ -33,9 +34,9 @@ public class VariationRepo {
     @Value("${tbl.variation}")
     private String variationTable;
 
-    public List<Feature> getFeatures(String accession, int proteinLocation) {
+    public List<Feature> getFeatures(String accession, int position) {
         List<Object[]> params = new ArrayList<>();
-        params.add(new Object[] {accession, proteinLocation});
+        params.add(new Object[] {accession, position});
         String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosList)",
                 variationTable);
         SqlParameterSource parameters = new MapSqlParameterSource("accPosList", params);
@@ -66,12 +67,20 @@ public class VariationRepo {
     }
 
     // Method for handling a list of accession-position pairs
-    public Map<String, List<Feature>> getFeatureMap(List<Object[]> accPosList) {
-        if (accPosList == null || accPosList.isEmpty())
-            return new HashedMap();
-        String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosList)",
-                variationTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
+    public Map<String, List<Feature>> getFeatureMap(String[] accessions, Integer[] positions) {
+        if (accessions == null || accessions.length == 0)  return Map.of();
+
+        String sql = String.format("""
+        WITH coord_list (acc, pos) AS (
+          SELECT * FROM unnest(:accessions::VARCHAR[], :positions::INT[])
+        )
+        SELECT * FROM %s
+        INNER JOIN coord_list ON accession = coord_list.acc
+          AND position = coord_list.pos
+        """, variationTable);
+        MapSqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("accessions", accessions)
+                .addValue("positions", positions);
 
         return getFeatureMapFromQuery(sql, parameters);
     }
@@ -98,10 +107,10 @@ public class VariationRepo {
                     int pos = rs.getInt("position");
                     Feature f = createVariant(rs);
                     if (f != null) {
-                        String mapKey = acc + ":" + pos;
-                        if (!featureMap.containsKey(mapKey))
-                            featureMap.put(mapKey, new ArrayList<>());
-                        featureMap.get(mapKey).add(f);
+                        String variantKey = VariantKey.protein(acc, pos);
+                        if (!featureMap.containsKey(variantKey))
+                            featureMap.put(variantKey, new ArrayList<>());
+                        featureMap.get(variantKey).add(f);
                     }
                 }
                 return featureMap;

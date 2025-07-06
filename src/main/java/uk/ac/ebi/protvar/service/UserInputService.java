@@ -59,7 +59,7 @@ public class UserInputService {
     public List<Object[]> genInputList(List<UserInput> inputs) {
         return inputs.stream()
                 .flatMap(userInput ->
-                        userInput.genInputs().stream()
+                        userInput.getDerivedGenomicInputs().stream()
                                 .map(gen -> new Object[] {
                                         userInput.getInputStr(),
                                         gen.getChr(),

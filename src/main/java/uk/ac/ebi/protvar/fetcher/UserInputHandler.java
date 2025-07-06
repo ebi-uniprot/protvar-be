@@ -29,23 +29,24 @@ public class UserInputHandler implements InputHandler {
 
     // For UI/API
     public Page<UserInput> pagedInput(MappingRequest request) {
-        List<String> fullInput = userInputCacheService.getInputs(request.getInput());
-        if (fullInput == null || fullInput.isEmpty()) {
-            return Page.empty();
-        }
-        int fromIndex = (request.getPage() - 1) * request.getPageSize();
-        if (fromIndex >= fullInput.size()) {
-            return Page.empty();
-        }
+        List<String> fullList = userInputCacheService.getInputs(request.getInput());
+        if (fullList == null || fullList.isEmpty()) return Page.empty();
 
-        List<String> subList = fullInput.subList(fromIndex, Math.min(fromIndex + request.getPageSize(), fullInput.size()));
+        int page = request.getPage() - 1; // request page is 1-based, pageable is 0-based
+        int pageSize = request.getPageSize();
+        int total = fullList.size();
+
+        int fromIndex = page * pageSize;
+        if (fromIndex >= total) return Page.empty();
+
+        List<String> subList = fullList.subList(fromIndex, Math.min(fromIndex + pageSize, total));
         List<UserInput> parsed = UserInputParser.parse(subList);
-        Pageable pageable = PageRequest.of(request.getPage() - 1, request.getPageSize()); // page (0-based), size
-        long totalElements = fullInput.size();
-        return new PageImpl<>(parsed, pageable, totalElements);
+        Pageable pageable = PageRequest.of(page, pageSize);
+        return new PageImpl<>(parsed, pageable, total);
     }
 
     // For download
+    // todo check for possible use of jdbcTemplate queryForStream
     public Stream<List<UserInput>> streamChunkedInput(MappingRequest request) {
         List<String> fullInput = userInputCacheService.getInputs(request.getInput());
 

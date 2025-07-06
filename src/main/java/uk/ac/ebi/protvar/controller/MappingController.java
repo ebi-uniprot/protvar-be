@@ -3,18 +3,22 @@ package uk.ac.ebi.protvar.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.MappingRequest;
-import uk.ac.ebi.protvar.model.response.MappingResponse;
-import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static uk.ac.ebi.protvar.constants.PageUtils.*;
 
@@ -26,60 +30,63 @@ import static uk.ac.ebi.protvar.constants.PageUtils.*;
 public class MappingController {
     private final static String SUMMARY = """
             Retrieve mappings for the specified input and type (UniProt accession, gene symbol, Ensembl, PDB or RefSeq ID).
-            If `type` is not specified, it will be inferred automatically.
+            If `type` is not specified, the system will try to infer it automatically.
             """;
-    public final static String PAGE_DESC = "The page number to retrieve.";
-    public final static String PAGE_SIZE_DESC = "The number of results per page. Minimum 10, maximum 1000. Uses default value if not within this range.";
+    private final Validator validator;
     private final MappingService mappingService;
 
-
-    @Operation(
-        summary = "Retrieve mappings for a single variant input - used for direct query. Unpaged response."
-    )
+    @Operation(summary = "Retrieve mappings for a single variant input - used for direct query.")
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<MappingResponse> getSingleVariantMapping(
+    public ResponseEntity<?> getSingleVariantMapping(
             @Parameter(description = "Single variant query in a supported format.", example = "19-1010539-G-C")
-            @RequestParam String input,
-            @RequestParam(required = false) String assembly) {
-        /*
-                MappingRequest request = MappingRequest.builder()
-                .inputs(inputs)
-                .function(function)
-                .population(population)
-                .structure(structure)
+            @RequestParam String variant,
+            @Parameter(description = MappingRequest.ASSEMBLY_DESC)
+            @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
+        MappingRequest request = MappingRequest.builder()
+                .input(variant)
+                .type(InputType.SINGLE_VARIANT)
                 .assembly(assembly)
+                .page(1)
+                .pageSize(1)
                 .build();
-         */
-        // todo:
-        // create a MappingRequest, with provided input, and inputType=SINGLE_VARIANT?
-        return new ResponseEntity<>(mappingService.get(input, assembly), HttpStatus.OK);
+        return handleRequest(request);
     }
 
-    @Operation(
-            summary = "Retrieve mappings for a given input ID"
-    )
-    // TODO use a simple or Request DTO here
+    @Operation(summary = "Retrieve mappings for a given input ID")
     @GetMapping(value = "/{inputId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getInputIdMapping(
             @Parameter(description = "The unique ID of the input to retrieve mappings for.", example = "id")
             @PathVariable("inputId") String inputId,
-            @Parameter(description = PAGE_DESC, example = PAGE)
-            @RequestParam(value = "page", defaultValue = PAGE, required = false) int page,
-            @Parameter(description = PAGE_SIZE_DESC, example = PAGE_SIZE)
-            @RequestParam(value = "pageSize", defaultValue = PAGE_SIZE, required = false) int pageSize,
-            @Parameter(description = InputUploadController.ASSEMBLY_DESC)
+            @Parameter(description = MappingRequest.PAGE_DESC, example = PAGE)
+            @RequestParam(value = "page", defaultValue = PAGE, required = false) Integer page,
+            @Parameter(description = MappingRequest.PAGE_SIZE_DESC, example = PAGE_SIZE)
+            @RequestParam(value = "pageSize", defaultValue = PAGE_SIZE, required = false) Integer pageSize,
+            @Parameter(description = MappingRequest.ASSEMBLY_DESC)
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
 
-        if (page < 1)
-            page = DEFAULT_PAGE;
-        if (pageSize < PAGE_SIZE_MIN || pageSize > PAGE_SIZE_MAX)
-            pageSize = DEFAULT_PAGE_SIZE;
+        // we may not need to do these checks
+        if (page < 1) page = DEFAULT_PAGE;
+        if (pageSize < PAGE_SIZE_MIN || pageSize > PAGE_SIZE_MAX) pageSize = DEFAULT_PAGE_SIZE;
 
-        PagedMappingResponse response = mappingService.getInputIdMapping(inputId, page, pageSize, assembly);
-        if (response != null)
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        else
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        MappingRequest request = MappingRequest.builder()
+                .input(inputId)
+                .type(InputType.INPUT_ID)
+                .page(page)
+                .pageSize(pageSize)
+                .assembly(assembly)
+                .build();
+
+        Set<ConstraintViolation<MappingRequest>> violations = validator.validate(request);
+
+        if (!violations.isEmpty()) {
+            List<String> errors = violations.stream()
+                    .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.badRequest().body(errors);
+        }
+
+        return handleRequest(request);
     }
 
     @Operation(summary = SUMMARY)

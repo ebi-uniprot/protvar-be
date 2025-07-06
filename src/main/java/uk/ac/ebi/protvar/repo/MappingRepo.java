@@ -43,6 +43,15 @@ public class MappingRepo {
    			ON t.chr=chromosome AND t.pos=genomic_position 
    			ORDER BY is_canonical DESC
    			""";
+
+	private static final String MAPPINGS_WITH_UNNEST = """
+			SELECT m.* FROM %s m
+			INNER JOIN (
+			  SELECT UNNEST(:chromosomes) as chr, UNNEST(:positions) as pos
+			) coord_list ON coord_list.chr = m.chromosome
+			  AND coord_list.pos = m.genomic_position
+			ORDER BY m.is_canonical DESC
+			""";
 	private static final String MAPPINGS_IN_ACC_POS = """
 			SELECT
 				chromosome, genomic_position, allele, 
@@ -232,6 +241,20 @@ public class MappingRepo {
 
 		return jdbcTemplate.query(String.format(MAPPINGS_IN_CHR_POS, mappingTable), parameters, (rs, rowNum) -> createMapping(rs))
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
+	}
+
+	public List<GenomeToProteinMapping> getMappingsByChrPos(String[] chromosomes, Integer[] positions) {
+		if (chromosomes == null || chromosomes.length == 0)
+			return List.of();
+
+		MapSqlParameterSource parameters = new MapSqlParameterSource()
+				.addValue("chromosomes", chromosomes)
+				.addValue("positions", positions);
+
+		return jdbcTemplate.query(String.format(MAPPINGS_WITH_UNNEST, mappingTable), parameters, (rs, rowNum) -> createMapping(rs))
+				.stream()
+				.filter(gm -> Objects.nonNull(gm.getCodon()))
+				.collect(Collectors.toList());
 	}
 
 	private GenomeToProteinMapping createMapping(ResultSet rs) throws SQLException {

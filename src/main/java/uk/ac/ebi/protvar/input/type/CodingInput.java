@@ -12,7 +12,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public abstract class CodingInput extends UserInput {
+public abstract class CodingInput extends UserInput implements DerivedGenomicInputProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(CodingInput.class);
     List<GenomicInput> derivedGenomicInputs = new ArrayList<>();
 
@@ -22,12 +22,7 @@ public abstract class CodingInput extends UserInput {
     }
 
     @Override
-    public List<Object[]> chrPos() {
-        return chrPosForDerivedGenomicInputs(derivedGenomicInputs);
-    }
-
-    @Override
-    public List<GenomicInput> genInputs() {
-        return derivedGenomicInputs;
+    public List<Object[]> getChrPosList() {
+        return DerivedGenomicInputProvider.super.getChrPosList();
     }
 }

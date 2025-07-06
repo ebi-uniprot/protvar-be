@@ -4,7 +4,8 @@ import java.util.*;
 
 import org.springframework.stereotype.Service;
 
-//import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
+import uk.ac.ebi.protvar.mapper.AnnotationData;
+import uk.ac.ebi.protvar.model.response.Isoform;
 import uk.ac.ebi.uniprot.domain.features.DbReferenceObject;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
@@ -14,22 +15,23 @@ import uk.ac.ebi.uniprot.domain.variation.Variant;
 import static uk.ac.ebi.protvar.utils.CsvUtils.getValOrNA;
 
 @Service
-public class CsvPopulationDataFetcher {
+public class CsvPopulationDataBuilder {
 
-	public List<String> fetch(PopulationObservation populationObservations, String refAA, String variantAA,
-			Integer genomicLocation) {
+	public List<String> build(Isoform isoform,
+							  String chromosome, Integer genomicPosition,
+							  String altBase,
+							  AnnotationData annData) {
+		if (!annData.isPop()) return Collections.emptyList();
+
+		PopulationObservation populationObservations = annData.get(isoform.getAccession(),
+				isoform.getIsoformPosition(),
+				chromosome, genomicPosition, altBase);
+
+		String variantAA = isoform.getVariantAA();
 		List<Variant> variants = new ArrayList<>();
 		List<Variant> colocatedVariants = new ArrayList<>();
 		if (populationObservations.getVariants() != null) {
 			populationObservations.getVariants().forEach(v -> {
-				//Integer featureGenLocation = HGVSg.extractLocation(feature.getGenomicLocation());
-				/*if (genomicLocation.equals(featureGenLocation)) {
-					if (refAA.equalsIgnoreCase(feature.getWildType()) &&
-							variantAA.equalsIgnoreCase(feature.getAlternativeSequence())) {
-						variants.add(feature);
-					}
-				}*/
-				// Tmp fix to align downloaded file with what is displayed in the UI
 				if (variantAA.equalsIgnoreCase(v.getAlternativeSequence())) {
 					variants.add(v);
 				} else {

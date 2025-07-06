@@ -1,32 +1,29 @@
 package uk.ac.ebi.protvar.converter;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import uk.ac.ebi.protvar.input.params.InputParams;
-import uk.ac.ebi.protvar.model.data.*;
+import uk.ac.ebi.protvar.model.data.CaddPrediction;
+import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.score.Score;
-import uk.ac.ebi.uniprot.domain.variation.Variant;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class GeneConverter {
 	private IsoformConverter isoformConverter;
 
-	public List<Gene> createGenes(List<GenomeToProteinMapping> mappings,
-								  Set<String> altBases,
-								  List<CaddPrediction> caddScores,
-								  List<AlleleFreq> alleleFreqs,
-								  Map<String, List<Score>>  scoresMap,
-								  Map<String, List<Variant>> variantsMap,
-								  Map<String, List<Pocket>> pocketsMap,
-								  Map<String, List<Interaction>> interactionsMap,
-								  Map<String, List<Foldx>> foldxsMap,
-								  InputParams params) {
+	// Used in MixedInputMapper where ref-alt may be missing;
+	// and we default to mappingRef and all alternative bases of that ref
+	public List<Gene> createGenes(Set<String> altBases,
+								List<GenomeToProteinMapping> mappings,
+								List<CaddPrediction> caddScores,
+								Map<String, List<Score>>  amScores) {
 		if (mappings == null || mappings.isEmpty()) return Collections.emptyList();
 		return filterEnsgMappings(mappings.stream()
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getEnsg)))
@@ -37,39 +34,27 @@ public class GeneConverter {
 					List<GenomeToProteinMapping> mappingList = entry.getValue();
 					GenomeToProteinMapping representative = mappingList.get(0);
 
-					return altBases.stream().map(alt -> {
-						var isoforms = isoformConverter.createIsoforms(mappingList, alt,
-								scoresMap, variantsMap, pocketsMap, interactionsMap, foldxsMap,
-								params);
+					return altBases.stream().map(altBase -> {
+						var isoforms = isoformConverter.createIsoforms(altBase, mappingList, amScores);
 						return Gene.builder()
 								.ensg(ensg)
 								.reverseStrand(representative.isReverseStrand())
 								.geneName(representative.getGeneName())
 								.refAllele(representative.getBaseNucleotide())
-								.altAllele(alt)
+								.altAllele(altBase)
 								.isoforms(isoforms)
-								.caddScore(findScore(caddScores, alt))
-								.gnomadFreq(findFreq(alleleFreqs, alt))
+								.caddScore(findScore(caddScores, altBase))
 								.build();
 					});
 				})
 				.collect(Collectors.toList());
 	}
 
-	private Double findScore(List<CaddPrediction> scores, String alt) {
+	private Double findScore(List<CaddPrediction> scores, String altBase) {
 		return scores == null ? null :
 				scores.stream()
-						.filter(s -> alt.equalsIgnoreCase(s.getAltAllele()))
+						.filter(s -> altBase.equalsIgnoreCase(s.getAltAllele()))
 						.map(CaddPrediction::getScore)
-						.findFirst()
-						.orElse(null);
-	}
-
-	private AlleleFreq.GnomadFreq findFreq(List<AlleleFreq> freqs, String alt) {
-		return freqs == null ? null :
-				freqs.stream()
-						.filter(f -> alt.equalsIgnoreCase(f.getAlt()))
-						.map(AlleleFreq::toGnomadFreq)
 						.findFirst()
 						.orElse(null);
 	}

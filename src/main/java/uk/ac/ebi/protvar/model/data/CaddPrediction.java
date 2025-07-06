@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 @Getter
 @Setter
@@ -17,7 +18,7 @@ public class CaddPrediction {
 	private double rawScore;
 	private double score;
 	
-	public String getGroupBy() {
-		return this.chromosome+"-"+this.getPosition();
+	public String getVariantKey() {
+		return VariantKey.genomic(this.chromosome, position);
 	}
 }

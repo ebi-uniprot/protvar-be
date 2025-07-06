@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.score.Score;
+import uk.ac.ebi.protvar.model.score.ScoreType;
 import uk.ac.ebi.protvar.repo.ScoreRepo;
 
 import java.util.List;
@@ -38,7 +39,7 @@ public class ScoreController {
             @Parameter(example = "Q9NUW8") @PathVariable String acc,
             @Parameter(example = "493") @PathVariable Integer pos,
             @Parameter(example = "R") @RequestParam(required = false) String mt,
-            @Parameter(example = "") @RequestParam(required = false) Score.Name name) {
+            @Parameter(example = "") @RequestParam(required = false) ScoreType name) {
 
         List<Score> scores = scoreRepo.getScores(acc, pos, mt, name);
         return new ResponseEntity<>(scores, HttpStatus.OK);

@@ -62,6 +62,6 @@ class GnomadTest {
         assertEquals(pos, actual.getPos());
         assertEquals(ref, actual.getRef());
         assertEquals(alt, actual.getAlt());
-        assertEquals(group, actual.groupByChrAndPos());
+        assertEquals(group, actual.getVariantKey());
     }
 }

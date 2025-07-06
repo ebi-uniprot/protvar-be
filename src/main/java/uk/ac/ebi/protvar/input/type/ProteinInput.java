@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
  */
 @Getter
 @Setter
-public class ProteinInput extends UserInput {
+public class ProteinInput extends UserInput implements DerivedGenomicInputProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(ProteinInput.class);
 
     // General patterns
@@ -181,12 +181,7 @@ public class ProteinInput extends UserInput {
     }
 
     @Override
-    public List<Object[]> chrPos() {
-        return chrPosForDerivedGenomicInputs(derivedGenomicInputs);
-    }
-
-    @Override
-    public List<GenomicInput> genInputs() {
-        return derivedGenomicInputs;
+    public List<Object[]> getChrPosList() {
+        return DerivedGenomicInputProvider.super.getChrPosList();
     }
 }

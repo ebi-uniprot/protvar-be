@@ -1,31 +1,29 @@
 package uk.ac.ebi.protvar.model.score;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Getter
-@Setter
-@NoArgsConstructor
 public class EsmScore extends Score {
 	private Double score; // ESM1b_score
 
-	public EsmScore(Double score) {
-		super(Name.ESM);
-		this.score = score;
-	}
-
-	public EsmScore(String mt, Double score) {
-		super(Name.ESM, mt);
-		this.score = score;
-	}
-
+	// Full constructor
 	public EsmScore(String acc, Integer pos, String mt, Double score) {
-		super(Name.ESM, acc, pos, mt);
+		super(ScoreType.ESM);
+		this.acc = acc;
+		this.pos = pos;
+		this.mt = mt;
 		this.score = score;
 	}
 
-	public EsmScore copy() {
-		return new EsmScore(score);
+	// Minimal constructor
+	public EsmScore(String mt, Double score) {
+		super(ScoreType.ESM);
+		this.mt = mt;
+		this.score = score;
+	}
+
+	@Override
+	public EsmScore copySubclassFields() {
+		return new EsmScore(null, score);
 	}
 }

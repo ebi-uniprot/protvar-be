@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.input.processor;
 
+import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.coding.HGVSc;
 import uk.ac.ebi.protvar.input.format.genomic.Gnomad;
@@ -31,6 +32,17 @@ public class UserInputParser {
                 .filter(s -> !s.startsWith("#"))              // Remove strings starting with '#' (comments)
                 .map(UserInputParser::parse)
                 .collect(Collectors.toList());
+    }
+
+
+    public static GenomicInput parseValidGenomicInput(String variant) {
+        if (variant == null || variant.isBlank()) return null;
+
+        UserInput input = parse(variant);
+        if (input.isValid() && input.getType() == Type.GENOMIC) {
+            return (GenomicInput) input;
+        }
+        return null;
     }
 
     /**

@@ -1,13 +1,17 @@
 package uk.ac.ebi.protvar.fetcher.csv;
 
+import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.mapper.AnnotationData;
+import uk.ac.ebi.protvar.mapper.FunctionalInfoEnricher;
 import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.model.response.Isoform;
 import uk.ac.ebi.protvar.model.score.EveScore;
+import uk.ac.ebi.protvar.service.FunctionalAnnService;
 import uk.ac.ebi.protvar.utils.CsvUtils;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
@@ -25,7 +29,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-public class CsvFunctionDataFetcher {
+@RequiredArgsConstructor
+public class CsvFunctionDataBuilder {
 	//private static final String CSV_HEADER_OUTPUT_FUNCTION = "Residue_function_(evidence),Region_function_(evidence),"
 	//	+ "Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,"
 	//	+ "Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)";
@@ -37,9 +42,19 @@ public class CsvFunctionDataFetcher {
 	// AlphaMissense
 	// EVE
 	// ESM
-	public List<String> fetch(Isoform mapping) {
+
+	private final FunctionalAnnService functionalAnnService;
+	private final FunctionalInfoEnricher functionalInfoEnricher;
+	public List<String> build(Isoform isoform, AnnotationData annData) {
+		if (!annData.isFun()) return Collections.emptyList();
+
+		// functional info would have been preloaded in the cache
+		FunctionalInfo functionalInfo = functionalAnnService.get(isoform.getAccession(), isoform.getIsoformPosition());
+		if (functionalInfo == null) Collections.emptyList();
+
+		functionalInfoEnricher.enrich(functionalInfo, annData, isoform.getVariantAA());
+
 		List<String> output = new ArrayList<>();
-		FunctionalInfo functionalInfo = mapping.getReferenceFunction();
 
 		Map<Boolean, List<Feature>> partitionedFeatures = functionalInfo.getFeatures().stream()
 				.filter(feature -> !feature.getCategory().equals(FeatureCategory.VARIANTS))
@@ -56,18 +71,18 @@ public class CsvFunctionDataFetcher {
 		output.add(CsvUtils.getValOrNA(buildPredictedInteractions(functionalInfo.getInteractions())));
 		output.add(CsvUtils.getValOrNA(buildFoldxPrediction(functionalInfo.getFoldxs())));
 		output.add(CsvUtils.getValOrNA(functionalInfo.getConservScore() == null ? null : functionalInfo.getConservScore().getScore()));
-		output.add(getAMScore(mapping));
+		output.add(getAMScore(isoform));
 		output.add(getEveScore(functionalInfo.getEveScore()));
 		output.add(CsvUtils.getValOrNA(functionalInfo.getEsmScore() == null ? null : functionalInfo.getEsmScore().getScore()));
 		return output;
 	}
 
-	private String getAMScore(Isoform mapping) {
-		if (mapping.getAmScore() == null) return Constants.NA;
+	private String getAMScore(Isoform isoform) {
+		if (isoform.getAmScore() == null) return Constants.NA;
 		return new StringBuilder()
-				.append(mapping.getAmScore().getAmPathogenicity())
+				.append(isoform.getAmScore().getAmPathogenicity())
 				.append("(")
-				.append(mapping.getAmScore().getAmClass())
+				.append(isoform.getAmScore().getAmClass())
 				.append(")").toString();
 	}
 

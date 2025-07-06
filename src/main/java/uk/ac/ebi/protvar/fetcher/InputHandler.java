@@ -9,12 +9,8 @@ import java.util.stream.Stream;
 
 public interface InputHandler {
 
-    // todo: change to take an InputParam object? with inputId (type=INPUT_ID), page, pageSize
 
     // For paginated UI/API
-    // TODO DownloadParam should be made UserInputParam(orRequest)
-    // UserInputRequest<----<extends>-----DownloadRequest
-    // pre-requisite: DownloadParam must have inputId (isInputId() == true)
     Page<UserInput> pagedInput(MappingRequest request);
 
 

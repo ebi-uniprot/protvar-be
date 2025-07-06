@@ -47,6 +47,6 @@ class VCFTest {
     assertEquals(id, actual.getId());
     assertEquals(ref, actual.getRef());
     assertEquals(alt, actual.getAlt());
-    assertEquals(group, actual.groupByChrAndPos());
+    assertEquals(group, actual.getVariantKey());
   }
 }

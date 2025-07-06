@@ -1,40 +1,27 @@
 package uk.ac.ebi.protvar.model.score;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import uk.ac.ebi.protvar.utils.Commons;
 
 @Getter
-@Setter
-@NoArgsConstructor
 public class ConservScore extends Score {
 	private Double score; // AAconservation_normalised
 
+	// Full constructor - inherited and subclass fields
+	public ConservScore(String acc, Integer pos, Double score) {
+		super(ScoreType.CONSERV);
+		this.acc = acc;
+		this.pos = pos;
+		this.score = score;
+	}
+
+	// Minimal constructor - only subclass fields
 	public ConservScore(Double score) {
-		super(Name.CONSERV);
+		super(ScoreType.CONSERV);
 		this.score = score;
 	}
 
-	public ConservScore(String mt, Double score) {
-		super(Name.CONSERV, mt);
-		this.score = score;
-	}
-
-	public ConservScore(String acc, Integer pos, String mt, Double score) {
-		super(Name.CONSERV, acc, pos, mt);
-		this.score = score;
-	}
-
-	public ConservScore copy() {
-		return new ConservScore(score);
-	}
-
-	@JsonIgnore
-	// NOTE: different from other scores
-	// doesn't include mt (or wt - not needed since acc-pos combination is enough)
-	public String getGroupBy() {
-		return Commons.joinWithDash(name, acc, pos);
+	@Override
+	public ConservScore copySubclassFields() {
+		return new ConservScore(this.score);
 	}
 }

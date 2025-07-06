@@ -1,7 +1,5 @@
 package uk.ac.ebi.protvar.controller;
 
-import java.util.List;
-
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -10,13 +8,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import uk.ac.ebi.protvar.fetcher.VariantFetcher;
-import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.input.processor.UserInputParser;
+import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.mapper.AnnotationData;
+import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
+import uk.ac.ebi.protvar.mapper.FunctionalInfoEnricher;
+import uk.ac.ebi.protvar.model.response.FunctionalInfo;
+import uk.ac.ebi.protvar.model.response.PopulationObservation;
+import uk.ac.ebi.protvar.model.response.StructureResidue;
 import uk.ac.ebi.protvar.service.FunctionalAnnService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.types.AminoAcid;
-import uk.ac.ebi.uniprot.domain.variation.Variant;
+import java.util.List;
 
 @Tag(name = "Annotation")
 @RestController
@@ -25,9 +28,9 @@ import uk.ac.ebi.uniprot.domain.variation.Variant;
 public class AnnotationController {
 
 
-  private final FunctionalAnnService functionalAnnService;
-  private final VariantFetcher variantFetcher;
-
+  private final FunctionalAnnService functionalAnnService; // todo: rename to FunctionalInfoService?
+  private final AnnotationFetcher annotationFetcher;
+  private final FunctionalInfoEnricher functionalInfoEnricher;
   private final StructureService structureService;
 
   /**
@@ -42,12 +45,25 @@ public class AnnotationController {
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position,
     @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
-    FunctionalInfo functionalInfo = functionalAnnService.get(accession, position, AminoAcid.oneLetter(variantAA));
-    if (functionalInfo == null) {
-      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+    FunctionalInfo functionalInfo = functionalAnnService.get(accession, position);
+    if (functionalInfo != null) {
+      if (variantAA != null) {
+        try {
+          variantAA = AminoAcid.oneLetter(variantAA);
+        } catch (IllegalArgumentException e) {
+          return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+          //log.warn("Invalid variant amino acid '{}'", variantAA);
+          //variantAA = null; // or throw a 400 from controller if needed
+        }
+      }
+
+      AnnotationData annData = annotationFetcher.getAPIFunctionalData(accession, position, variantAA);
+      functionalInfoEnricher.enrich(functionalInfo, annData, variantAA);
+      return new ResponseEntity<>(functionalInfo, HttpStatus.OK);
     }
 
-    return new ResponseEntity<>(functionalInfo, HttpStatus.OK);
+    return new ResponseEntity<>(HttpStatus.NOT_FOUND);
   }
 
   /**
@@ -59,9 +75,28 @@ public class AnnotationController {
   @GetMapping(value = "/population/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<PopulationObservation> getPopulationObservation(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
-    @Parameter(example = "493") @PathVariable("position") int position) {
-    List<Variant> variants = variantFetcher.getVariants(accession, position);
-    return new ResponseEntity<>(new PopulationObservation(variants), HttpStatus.OK);
+    @Parameter(example = "493") @PathVariable("position") int position,
+    @Parameter(example = "14-89993420-A-C") @RequestParam(required = false) String genomicVariant) {
+
+    GenomicInput genomicInput = UserInputParser.parseValidGenomicInput(genomicVariant);
+    String chromosome = null;
+    Integer genomicPosition = null;
+    String altBase = null;
+
+    if (genomicInput != null) {
+      chromosome = genomicInput.getChr();
+      genomicPosition = genomicInput.getPos();
+      altBase = genomicInput.getAlt();
+    }
+
+    AnnotationData annData = annotationFetcher.getAPIPopulationData(accession, position, chromosome, genomicPosition);
+
+    if (annData == null)
+      return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+
+    PopulationObservation populationObservation = annData.get(accession, position, chromosome, genomicPosition, altBase);
+
+    return new ResponseEntity<>(populationObservation, HttpStatus.OK);
   }
 
   /**

@@ -8,6 +8,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.model.data.Pocket;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -37,20 +38,20 @@ public class PocketRepo {
  			""";
 
     // Note: score in v1 is score_combined_scaled in v2
-    private static final String SELECT_ = """
-        SELECT p.struct_id 
-             , p.pocket_id
-             , p.pocket_rad_gyration AS rad_gyration
-             , p.pocket_energy_per_vol AS energy_per_vol
-             , p.pocket_buriedness AS buriedness
-             , p.pocket_resid AS resid
-             , p."pocket_pLDDT_mean" AS mean_plddt
-             , p.pocket_score_combined_scaled AS score
+    private static final String POCKET_FIELDS = """
+        p.struct_id,
+        p.pocket_id,
+        p.pocket_rad_gyration AS rad_gyration,
+        p.pocket_energy_per_vol AS energy_per_vol,
+        p.pocket_buriedness AS buriedness,
+        p.pocket_resid AS resid,
+        p."pocket_pLDDT_mean" AS mean_plddt,
+        p.pocket_score_combined_scaled AS score
         """;
 
-    // Query 1: Single accession + single residue
-    public List<Pocket> getPockets(String accession, Integer resid) {
-        String sql = String.format(SELECT_ + """
+    // Single accession-resid pair
+    public Map<String, List<Pocket>> getPockets(String accession, Integer resid) {
+        String sql = String.format("SELECT " + POCKET_FIELDS + """
             FROM %s p
             WHERE p.struct_id = :accession AND :resid = ANY(p.pocket_resid)
             ORDER BY p.pocket_score_combined_scaled DESC
@@ -60,81 +61,62 @@ public class PocketRepo {
                 .addValue("accession", accession)
                 .addValue("resid", resid);
 
-        return jdbcTemplate.query(sql, params, (rs, rowNum) -> createPocket(rs));
+        List<Pocket> results = jdbcTemplate.query(sql, params, (rs, rowNum) -> createPocket(rs));
+        if (results != null && !results.isEmpty())
+            return Map.of(VariantKey.protein(accession, resid), results);
+        return Map.of();
     }
 
-    // Query 2: Multiple accession-residue pairs
-    public Map<String, List<Pocket>> getPockets(List<Object[]> accResidList) {
-        if (accResidList == null || accResidList.isEmpty()) return Collections.emptyMap();
+    // Array of accession-residue pairs
+    //Example input
+    //P22304,205
+    //P07949,783
+    //P22309,71
+    //Q9NUW8,493
+    public Map<String, List<Pocket>> getPockets(String[] accessions, Integer[] positions) {
+        if (accessions == null || accessions.length == 0)
+            return Collections.emptyMap();
 
-        // Build VALUES part dynamically
-        StringBuilder valuesClause = new StringBuilder();
-        MapSqlParameterSource params = new MapSqlParameterSource();
+        String sql = String.format("SELECT " + POCKET_FIELDS + """
+           , t.resid AS query_resid
+        FROM %s p
+        JOIN (
+            SELECT unnest(:accessions) AS accession, unnest(:residues) AS resid
+        ) t ON p.struct_id = t.accession
+        WHERE t.resid = ANY(p.pocket_resid)
+        ORDER BY p.struct_id, t.resid, p.pocket_score_combined_scaled DESC
+        """, pocketTable);
 
-        for (int i = 0; i < accResidList.size(); i++) {
-            String accParam = "acc" + i;
-            String residParam = "resid" + i;
-
-            if (i > 0) valuesClause.append(", ");
-            valuesClause.append(String.format("(:%s, :%s)", accParam, residParam));
-
-            params.addValue(accParam, accResidList.get(i)[0]); // accession
-            params.addValue(residParam, accResidList.get(i)[1]); // resid
-        }
-
-        String sql = String.format(SELECT_ + """
-               , t.resid AS query_resid 
-            FROM %s p 
-            """, pocketTable) + """
-            JOIN ( VALUES 
-            """ + valuesClause + """
-            ) AS t(accession, resid)
-              ON p.struct_id = t.accession
-            WHERE t.resid = ANY(p.pocket_resid)
-            """;
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("accessions", accessions)
+                .addValue("residues", positions);
 
         return jdbcTemplate.query(sql, params, rs -> {
             Map<String, List<Pocket>> result = new HashMap<>();
             while (rs.next()) {
                 Pocket pocket = createPocket(rs);
-                String key = rs.getString("struct_id") + "-" + rs.getInt("query_resid");
-                result.computeIfAbsent(key, k -> new ArrayList<>()).add(pocket);
+                result.computeIfAbsent(VariantKey.protein(rs.getString("struct_id"), rs.getInt("query_resid")),
+                        k -> new ArrayList<>()).add(pocket);
             }
-            // Sort pockets by score for each key
-            sortPocketsByScore(result);
+            //sortPocketsByScore(result);
             return result;
         });
     }
 
-    // Query 3: Single accession + multiple residues
-    public Map<String, List<Pocket>> getPockets(String accession, List<Integer> residues) {
-        if (residues == null || residues.isEmpty()) return Collections.emptyMap();
-        String sql =  String.format(SELECT_ + """
-               , ARRAY(
-                           SELECT unnest(p.pocket_resid)
-                           INTERSECT
-                           SELECT unnest(:residues)
-                       ) AS matched_residues 
-            FROM %s p 
-            """, pocketTable) + """
-                WHERE p.struct_id = :accession
-                  AND p.pocket_resid && :residues
-                """;
+    /*
+    If we ever need only the top N pockets per accession-resid pair, use:
+    SELECT ...
+         , ROW_NUMBER() OVER (PARTITION BY p.struct_id, t.resid ORDER BY p.pocket_score_combined_scaled DESC) AS rn
+    FROM ...
+    WHERE ...
+    -- Optional filter:
+    -- WHERE rn <= 3
+     */
 
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("accession", accession)
-                .addValue("residues", residues);
-
-        return jdbcTemplate.query(sql, params, rs -> {
-            Map<String, List<Pocket>> result = mapPocketsByResidue(rs, "struct_id", "matched_residues");
-            sortPocketsByScore(result);
-            return result;
-        });
-    }
 
     /**
-     * Query 4: All residues for a given accession
-     * This will give you a complete mapping of every residue that appears in at least one pocket, and which pockets they map to.
+     * All pockets for a given accession
+     * This will give a complete mapping of every residue that appears in at least one pocket, and which pockets they map to.
      *
      * {
      *   acc-12 -> [PocketA, PocketC],
@@ -146,7 +128,7 @@ public class PocketRepo {
      */
     @Cacheable(value = "pocketsByAccession", key = "#accession")
     public Map<String, List<Pocket>> getPockets(String accession) {
-        String sql = String.format(SELECT_ + """
+        String sql = String.format("SELECT " + POCKET_FIELDS + """
         FROM %s p
         WHERE p.struct_id = :accession
         """, pocketTable);
@@ -171,8 +153,7 @@ public class PocketRepo {
             String structId = rs.getString(structIdColumn);
 
             for (Integer resid : residues) {
-                String key = structId + "-" + resid;
-                result.computeIfAbsent(key, k -> new ArrayList<>()).add(pocket);
+                result.computeIfAbsent(VariantKey.protein(structId, resid), k -> new ArrayList<>()).add(pocket);
             }
         }
         return result;

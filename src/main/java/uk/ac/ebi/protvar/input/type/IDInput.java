@@ -9,7 +9,7 @@ import java.util.List;
 
 @Getter
 @Setter
-public class IDInput extends UserInput {
+public class IDInput extends UserInput implements DerivedGenomicInputProvider {
 
     // TODO id is not needed for IDInput, we can use the raw inputStr
 
@@ -29,14 +29,7 @@ public class IDInput extends UserInput {
     }
 
     @Override
-    public List<Object[]> chrPos() {
-        return chrPosForDerivedGenomicInputs(derivedGenomicInputs);
+    public List<Object[]> getChrPosList() {
+        return DerivedGenomicInputProvider.super.getChrPosList();
     }
-
-
-    @Override
-    public List<GenomicInput> genInputs() {
-        return derivedGenomicInputs;
-    }
-
 }

@@ -17,8 +17,8 @@ import java.util.stream.Stream;
 public class SearchInputHandler implements InputHandler {
     // returns genomic-level variants (chr pos ref alt x3)
     // for the largest protein, ~30k AA, that would be at most ~90k genomic variants
-    // (depending on filters), so about 18 chunks if chunk size is 5000
-    private static final int SEARCH_INPUT_CHUNK_SIZE = 6000;
+    // (depending on filters), so about 15 chunks for chunk size is 6000
+    private static final int FULL_INPUT_CHUNK_SIZE = 6000;
     private MappingRepo mappingRepo;
 
 
@@ -32,7 +32,7 @@ public class SearchInputHandler implements InputHandler {
     public Stream<List<UserInput>> streamChunkedInput(MappingRequest request) {
         return Stream.iterate(0, page -> page + 1)
                 .map(page ->
-                        mappingRepo.getGenomicVariantsForInput(request, PageRequest.of(page, SEARCH_INPUT_CHUNK_SIZE))
+                        mappingRepo.getGenomicVariantsForInput(request, PageRequest.of(page, FULL_INPUT_CHUNK_SIZE))
                                 .getContent()
                 )
                 .takeWhile(batch -> !batch.isEmpty());

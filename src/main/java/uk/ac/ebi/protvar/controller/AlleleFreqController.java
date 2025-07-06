@@ -10,12 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.ac.ebi.protvar.model.Coord;
 import uk.ac.ebi.protvar.model.data.AlleleFreq;
 import uk.ac.ebi.protvar.repo.AlleleFreqRepo;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Tag(name = "Allele Frequency")
 @RestController
@@ -46,18 +44,33 @@ public class AlleleFreqController {
 
     @Operation(summary = "Gnomad allele frequencies - multiple inputs ",
             description = "Retrieve the allele frequencies for the list of genomic coordinates (chromosome-position pairs)")
-    @PostMapping(value = "/allelefreqs", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<AlleleFreq>> getAlleleFreqs(
+    @PostMapping(value = "/allele-freq", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> getAlleleFreqs(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     content = @Content(
-                            examples = @ExampleObject(value = "[\n" +
-                                    "    { \"chr\": \"1\", \"pos\": 56933412 },\n" +
-                                    "    { \"chr\": \"2\", \"pos\": 233760498 }\n" +
-                                    "]")
+                            examples = @ExampleObject(value = "[[\"1\", 56933412], [\"2\", 233760498]]")
                     )
             )
-            @RequestBody List<Coord.Gen> chrPosList) {
-        List<AlleleFreq> alleleFreqs = alleleFreqRepo.getAlleleFreqs(chrPosList.stream().map(p -> p.toObjectArray()).collect(Collectors.toList()));
-        return new ResponseEntity<>(alleleFreqs, HttpStatus.OK);
+            @RequestBody List<List<Object>> chrPosList) {
+        if (chrPosList == null || chrPosList.isEmpty()) {
+            return ResponseEntity.badRequest().body("Empty input");
+        }
+
+        int size = chrPosList.size();
+        String[] chromosomes = new String[size];
+        Integer[] positions = new Integer[size];
+
+        for (int i = 0; i < size; i++) {
+            List<Object> entry = chrPosList.get(i);
+            if (entry.size() != 2) {
+                return ResponseEntity.badRequest().body("Each input must have exactly two elements: [chr, pos]");
+            }
+
+            chromosomes[i] = entry.get(0).toString();
+            positions[i] = Integer.parseInt(entry.get(1).toString());
+        }
+
+        List<AlleleFreq> alleleFreqs = alleleFreqRepo.getAlleleFreqs(chromosomes, positions);
+        return ResponseEntity.ok(alleleFreqs);
     }
 }

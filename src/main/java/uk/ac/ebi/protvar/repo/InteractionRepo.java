@@ -10,6 +10,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.model.data.Interaction;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -40,34 +41,33 @@ public class InteractionRepo {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     // Query 1: Single accession + single residue
-    public List<Interaction> getInteractions(String accession, Integer resid) {
+    public Map<String, List<Interaction>> getInteractions(String accession, Integer resid) {
         SqlParameterSource params = new MapSqlParameterSource("accession", accession)
                 .addValue("resid", resid);
-        return jdbcTemplate.query(SELECT_INTERACTIONS_BY_ACC_AND_RESID, params, (rs, rowNum) -> createInteraction(rs));
+
+        List<Interaction> results = jdbcTemplate.query(SELECT_INTERACTIONS_BY_ACC_AND_RESID, params, (rs, rowNum) -> createInteraction(rs));
+        if (results != null && !results.isEmpty())
+            return Map.of(VariantKey.protein(accession, resid), results);
+        return Map.of();
     }
 
-    public Map<String, List<Interaction>> getInteractions(String accession, List<Integer> residues) {
-        if (residues == null || residues.isEmpty()) return Collections.emptyMap();
+    public Map<String, List<Interaction>> getInteractions(String[] accessions, Integer[] residues) {
+        if (accessions == null || accessions.length == 0)
+            return Collections.emptyMap();
 
         String sql = """
-        SELECT a, a_residues, b, b_residues, pdockq,
-            ARRAY(
-                SELECT unnest(
-                    CASE 
-                        WHEN a = :accession THEN a_residues
-                        ELSE b_residues 
-                    END
-                )
-                INTERSECT
-                SELECT unnest(:residues)
-          ) AS matched_residues
-        FROM af2complexes_interaction
-        WHERE (a = :accession AND a_residues && :residues)
-           OR (b = :accession AND b_residues && :residues)
-        """;
+            SELECT t.accession, t.resid, i.a, i.a_residues, i.b, i.b_residues, i.pdockq
+            FROM af2complexes_interaction i
+            JOIN (
+                     SELECT unnest(:accessions) AS accession, unnest(:residues) AS resid
+             ) t
+              ON (i.a = t.accession AND t.resid = ANY(i.a_residues))
+              OR (i.b = t.accession AND t.resid = ANY(i.b_residues))
+            ORDER BY pdockq DESC
+            """;
 
         SqlParameterSource params = new MapSqlParameterSource()
-                .addValue("accession", accession)
+                .addValue("accessions", accessions)
                 .addValue("residues", residues);
 
         return jdbcTemplate.query(sql, params, rs -> {
@@ -75,17 +75,10 @@ public class InteractionRepo {
 
             while (rs.next()) {
                 Interaction interaction = createInteraction(rs);
-                Array matchedArray = rs.getArray("matched_residues");
-                if (matchedArray == null) continue;
-
-                Integer[] matchedResidues = (Integer[]) matchedArray.getArray();
-                for (Integer resid : matchedResidues) {
-                    String key = accession + "-" + resid;
-                    result.computeIfAbsent(key, k -> new ArrayList<>()).add(interaction);
-                }
+                result.computeIfAbsent(VariantKey.protein(rs.getString("acc"), rs.getInt("resid")),
+                        k -> new ArrayList<>()).add(interaction);
             }
 
-            //sortByScore(result);
             return result;
         });
     }
@@ -103,6 +96,7 @@ public class InteractionRepo {
             SELECT a, a_residues, b, b_residues, pdockq
             FROM af2complexes_interaction
             WHERE a = :accession OR b = :accession
+            ORDER BY pdockq DESC
             """;
 
         SqlParameterSource params = new MapSqlParameterSource("accession", accession);
@@ -117,15 +111,15 @@ public class InteractionRepo {
 
                 if (rs.getString("a").equals(accession) && aResidues != null) {
                     for (Integer resid : (Integer[]) aResidues.getArray()) {
-                        String key = accession + "-" + resid;
-                        result.computeIfAbsent(key, k -> new ArrayList<>()).add(interaction);
+                        result.computeIfAbsent(VariantKey.protein(accession, resid),
+                                k -> new ArrayList<>()).add(interaction);
                     }
                 }
 
                 if (rs.getString("b").equals(accession) && bResidues != null) {
                     for (Integer resid : (Integer[]) bResidues.getArray()) {
-                        String key = accession + "-" + resid;
-                        result.computeIfAbsent(key, k -> new ArrayList<>()).add(interaction);
+                        result.computeIfAbsent(VariantKey.protein(accession, resid),
+                                k -> new ArrayList<>()).add(interaction);
                     }
                 }
             }
@@ -153,12 +147,6 @@ public class InteractionRepo {
                 rs.getString("b"),
                 Arrays.asList((Integer[]) rs.getArray("b_residues").getArray()),
                 rs.getDouble("pdockq")
-        );
-    }
-
-    private <T> void sortByScore(Map<T, List<Interaction>> map) {
-        map.values().forEach(list ->
-                list.sort(Comparator.comparing(Interaction::getPdockq).reversed())
         );
     }
 }

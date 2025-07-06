@@ -4,13 +4,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import uk.ac.ebi.protvar.fetcher.UserInputHandler;
+import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
 import uk.ac.ebi.protvar.mapper.UserInputMapper;
-import uk.ac.ebi.protvar.mapper.ProteinInputMapper;
 import uk.ac.ebi.protvar.fetcher.SearchInputHandler;
-import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataFetcher;
-import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataFetcher;
-import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataFetcher;
-import uk.ac.ebi.protvar.repo.MappingRepo;
+import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
+import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
+import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
+import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.service.UserInputCacheService;
 import uk.ac.ebi.protvar.service.UserInputService;
 import uk.ac.ebi.protvar.utils.Constants;
@@ -23,16 +23,16 @@ class DownloadProcessorTest {
   private static final int TOTAL_CSV_COLUMNS = 43;
   DownloadProcessor mockDeps = new DownloadProcessor(
           mock(ThreadPoolTaskExecutor.class),
-          mock(UserInputMapper.class),
-          mock(ProteinInputMapper.class),
-          mock(CsvFunctionDataFetcher.class),
-          mock(CsvPopulationDataFetcher.class),
-          mock(CsvStructureDataFetcher.class),
-          mock(MappingRepo.class),
+          mock(CsvFunctionDataBuilder.class),
+          mock(CsvPopulationDataBuilder.class),
+          mock(CsvStructureDataBuilder.class),
           mock(UserInputService.class),
           mock(UserInputCacheService.class),
           mock(UserInputHandler.class),
-          mock(SearchInputHandler.class));
+          mock(SearchInputHandler.class),
+          mock(UserInputMapper.class),
+          mock(AnnotationFetcher.class),
+          mock(StructureService.class));
 
   @Nested
   class Header {

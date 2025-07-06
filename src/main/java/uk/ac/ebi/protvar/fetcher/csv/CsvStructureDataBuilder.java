@@ -11,9 +11,9 @@ import uk.ac.ebi.protvar.model.response.StructureResidue;
 import uk.ac.ebi.protvar.utils.CsvUtils;
 
 @Service
-public class CsvStructureDataFetcher {
+public class CsvStructureDataBuilder {
 
-	public String fetch(List<StructureResidue> proteinStructure) {
+	public String build(List<StructureResidue> proteinStructure) {
 		StringJoiner structure = new StringJoiner("|");
 		Map<String, List<StructureResidue>> pdbAccessionMap = proteinStructure.stream()
 				.collect(Collectors.groupingBy(StructureResidue::getPdbId));

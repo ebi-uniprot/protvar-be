@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 @Repository
 @RequiredArgsConstructor
 public class FoldxRepo {
-
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Value("${tbl.foldx}")
@@ -23,7 +22,7 @@ public class FoldxRepo {
 
 
     // Single accession + single position + optional variant
-    public List<Foldx> getFoldxs(String accession, Integer position, String variantAA) {
+    public Map<String, List<Foldx>> getFoldxs(String accession, Integer position, String variantAA) {
         MapSqlParameterSource parameters = new MapSqlParameterSource();
         parameters.addValue("accession", accession);
         parameters.addValue("position", position);
@@ -42,13 +41,11 @@ public class FoldxRepo {
         List<Foldx> foldxs = jdbcTemplate.query(sql.toString(), parameters, (rs, rowNum) -> createFoldx(rs));
         // Group by accession-position-variantAA and return only the middle fragment
         Map<String, List<Foldx>> groupedFoldxs = foldxs.stream()
-                .collect(Collectors.groupingBy(Foldx::getGroupBy));
+                .collect(Collectors.groupingBy(Foldx::getVariantKey));
 
         groupedFoldxs.values().forEach(this::groupAndReturnMiddleFragment);
 
-        return groupedFoldxs.values().stream()
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+        return groupedFoldxs;
     }
 
     // All positions for a given accession, grouped by position and variantAA
@@ -58,7 +55,6 @@ public class FoldxRepo {
      * @param accession
      * @return accession-position-variantAA mapping
      */
-
     public Map<String, List<Foldx>> getFoldxs(String accession) {
         String sql = String.format("""
 				SELECT * FROM %s 
@@ -69,10 +65,36 @@ public class FoldxRepo {
 
         // Group by accession-position-variantAA and return only the middle fragment
         Map<String, List<Foldx>> foldxsMap = foldxs.stream()
-                .collect(Collectors.groupingBy(Foldx::getGroupBy));
+                .collect(Collectors.groupingBy(Foldx::getVariantKey));
 
         foldxsMap.values().forEach(this::groupAndReturnMiddleFragment);
         return foldxsMap;
+    }
+
+    public Map<String, List<Foldx>> getFoldxs(String[] accessions, Integer[] positions) {
+        if (accessions == null || accessions.length == 0) {
+            return Collections.emptyMap();
+        }
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("accessions", accessions)
+                .addValue("positions", positions);
+
+        String sql = String.format("""
+        SELECT f.* FROM %s f
+        JOIN (
+            SELECT unnest(:accessions) AS acc, unnest(:positions) AS pos
+        ) AS t ON f.protein_acc = t.acc AND f.position = t.pos
+        """, foldxTable);
+
+        List<Foldx> foldxs = jdbcTemplate.query(sql, params, (rs, rowNum) -> createFoldx(rs));
+
+        Map<String, List<Foldx>> grouped = foldxs.stream()
+                .collect(Collectors.groupingBy(Foldx::getVariantKey));
+
+        grouped.values().forEach(this::groupAndReturnMiddleFragment);
+
+        return grouped;
     }
 
     // Helper method to group by accession-position-variantAA and return the middle fragment
