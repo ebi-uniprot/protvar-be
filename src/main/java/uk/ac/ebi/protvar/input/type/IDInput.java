@@ -9,12 +9,12 @@ import java.util.List;
 
 @Getter
 @Setter
-public class IDInput extends UserInput implements DerivedGenomicInputProvider {
+public class IDInput extends UserInput {
 
     // TODO id is not needed for IDInput, we can use the raw inputStr
 
     String id; // this is not needed as in the case of InputType is ID, the inputStr is the id
-    List<GenomicInput> derivedGenomicInputs = new ArrayList<>();
+    List<GenomicInput> derivedGenomicInputs = new ArrayList<>(); // @Getter annotation will generate getDerivedGenomicInputs()
 
     public IDInput(String inputStr) {
         super();
@@ -26,10 +26,5 @@ public class IDInput extends UserInput implements DerivedGenomicInputProvider {
     @Override
     public String toString() {
         return "ID [id=" + id + "]";
-    }
-
-    @Override
-    public List<Object[]> getChrPosList() {
-        return DerivedGenomicInputProvider.super.getChrPosList();
     }
 }

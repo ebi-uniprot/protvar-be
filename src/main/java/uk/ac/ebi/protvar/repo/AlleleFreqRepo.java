@@ -29,8 +29,8 @@ public class AlleleFreqRepo {
       SELECT UNNEST(:chromosomes) as chr, UNNEST(:positions) as pos
     )
     SELECT af.* FROM %s AS af
-    JOIN coord_list ON af.chromosome = coord_list.chr
-      AND af.position = coord_list.pos
+    JOIN coord_list ON af.chr = coord_list.chr
+      AND af.pos = coord_list.pos
     """;
 
     public List<AlleleFreq> getAlleleFreqs(List<Object[]> chrPosList) {

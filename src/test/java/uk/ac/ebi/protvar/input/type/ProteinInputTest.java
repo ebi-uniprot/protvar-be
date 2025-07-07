@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar.input.type;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import uk.ac.ebi.protvar.input.parser.protein.ProteinInputParser;
 import uk.ac.ebi.protvar.types.AminoAcid;
 
 import java.util.regex.Pattern;
@@ -11,17 +12,17 @@ public class ProteinInputTest {
     @Test
     void testOneLetterAA() {
         for (String c : AminoAcid.VALID_AA1) {
-            assert (Pattern.matches(ProteinInput.AMINO_ACID_REF1, c));
+            assert (Pattern.matches(ProteinInputParser.AMINO_ACID_REF1, c));
         }
     }
 
     @Test
     void testThreeLetterAA() {
         for (String c : AminoAcid.VALID_AA3) {
-            assert(Pattern.matches(ProteinInput.AMINO_ACID_REF3, c));
+            assert(Pattern.matches(ProteinInputParser.AMINO_ACID_REF3, c));
         }
-        assert(Pattern.matches(ProteinInput.AMINO_ACID_REF3, "VAL"));
-        assert(!Pattern.matches(ProteinInput.AMINO_ACID_REF3, "XXX"));
+        assert(Pattern.matches(ProteinInputParser.AMINO_ACID_REF3, "VAL"));
+        assert(!Pattern.matches(ProteinInputParser.AMINO_ACID_REF3, "XXX"));
     }
 
     @Test // ACC 999
@@ -70,7 +71,7 @@ public class ProteinInputTest {
     }
 
     private void assertInput(String input, String acc, Integer pos, String ref, String alt) {
-        ProteinInput userInput = ProteinInput.parse(input);
+        ProteinInput userInput = ProteinInputParser.parse(input);
         Assertions.assertEquals(acc, userInput.getAcc());
         Assertions.assertEquals(pos, userInput.getPos());
         Assertions.assertEquals(ref, userInput.getRef());

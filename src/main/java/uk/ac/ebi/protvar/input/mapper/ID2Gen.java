@@ -9,6 +9,8 @@ import uk.ac.ebi.protvar.input.UserInput;
 import uk.ac.ebi.protvar.input.format.id.ClinVarID;
 import uk.ac.ebi.protvar.input.format.id.CosmicID;
 import uk.ac.ebi.protvar.input.format.id.DbsnpID;
+import uk.ac.ebi.protvar.input.parser.variantid.ClinvarInputParser;
+import uk.ac.ebi.protvar.input.parser.variantid.CosmicInputParser;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.ClinVarExtended;
 import uk.ac.ebi.protvar.model.data.Cosmic;
@@ -19,7 +21,6 @@ import uk.ac.ebi.protvar.repo.DbsnpRepo;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -89,26 +90,26 @@ public class ID2Gen {
         Map<String, List<ClinVarExtended>> clinvarRCVMap = null; // Changed to ClinVarExtended
         Map<String, List<ClinVarExtended>> clinvarVCVMap = null; // Changed to ClinVarExtended
 
-        if (clinvarIdTypeMap.get(ClinVarID.RCV) != null) {
+        if (clinvarIdTypeMap.get(ClinvarInputParser.RCV) != null) {
             //List<Object[]> rcvIds = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toList());
             //clinvarRCVMap = clinVarRepo.getByRCV(rcvIds).stream().collect(Collectors.groupingBy(ClinVar::getRcv));
-            List<String> rcvs = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toList());
+            List<String> rcvs = clinvarIdTypeMap.get(ClinvarInputParser.RCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toList());
             clinvarRCVMap = clinVarRepo.getByRCVMap(rcvs);
         }
 
-        if (clinvarIdTypeMap.get(ClinVarID.VCV) != null) {
+        if (clinvarIdTypeMap.get(ClinvarInputParser.VCV) != null) {
             //List<Object[]> vcvIds = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toList());
             //clinvarVCVMap = clinVarRepo.getByVCV(vcvIds).stream().collect(Collectors.groupingBy(ClinVar::getVcv));
-            List<String> vcvs = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toList());
+            List<String> vcvs = clinvarIdTypeMap.get(ClinvarInputParser.VCV).stream().map(i -> ((ClinVarID) i).getId()).collect(Collectors.toList());
             clinvarVCVMap = clinVarRepo.getByVCVMap(vcvs);
         }
 
         for (UserInput ui : clinvarIdInputs) {
             ClinVarID input = (ClinVarID) ui;
             String id = input.getId();
-            if (input.getClinVarIDPrefix().equals(ClinVarID.RCV) && clinvarRCVMap != null) {
+            if (input.getClinVarIDPrefix().equals(ClinvarInputParser.RCV) && clinvarRCVMap != null) {
                 addDerivedGenomicInputs(clinvarRCVMap.get(id), input);
-            } else if (input.getClinVarIDPrefix().equals(ClinVarID.VCV) && clinvarVCVMap != null) {
+            } else if (input.getClinVarIDPrefix().equals(ClinvarInputParser.VCV) && clinvarVCVMap != null) {
                 addDerivedGenomicInputs(clinvarVCVMap.get(id), input);
             }
             if (input.getDerivedGenomicInputs().isEmpty()) {
@@ -123,10 +124,10 @@ public class ID2Gen {
 
         Map<String, List<UserInput>> cosmicIdTypeMap = cosmicIdInputs.stream().collect(Collectors.groupingBy(UserInput::getCosmicIDPrefix));
 
-        List<Object[]> ids = cosmicIdTypeMap.get(CosmicID.COSV) == null ? null :
-                cosmicIdTypeMap.get(CosmicID.COSV).stream().map(i -> new Object[]{((CosmicID) i).getId()}).collect(Collectors.toList());
-        List<Object[]> legacyIds = Stream.concat(cosmicIdTypeMap.get(CosmicID.COSM) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicID.COSM).stream(),
-                        cosmicIdTypeMap.get(CosmicID.COSN) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicID.COSN).stream())
+        List<Object[]> ids = cosmicIdTypeMap.get(CosmicInputParser.COSV) == null ? null :
+                cosmicIdTypeMap.get(CosmicInputParser.COSV).stream().map(i -> new Object[]{((CosmicID) i).getId()}).collect(Collectors.toList());
+        List<Object[]> legacyIds = Stream.concat(cosmicIdTypeMap.get(CosmicInputParser.COSM) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicInputParser.COSM).stream(),
+                        cosmicIdTypeMap.get(CosmicInputParser.COSN) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicInputParser.COSN).stream())
                 .map(i -> new Object[]{((CosmicID) i).getId()}).collect(Collectors.toList());
 
         Map<String, List<Cosmic>> cosmicIdMap = cosmicRepo.getById(ids).stream().collect(Collectors.groupingBy(Cosmic::getId));
@@ -134,9 +135,9 @@ public class ID2Gen {
 
         cosmicIdInputs.stream().map(i -> (CosmicID) i).forEach(input -> {
             String id = input.getId();
-            if (cosmicIdMap != null && input.getCosmicIDPrefix().equals(CosmicID.COSV)) {
+            if (cosmicIdMap != null && input.getCosmicIDPrefix().equals(CosmicInputParser.COSV)) {
                 addDerivedGenomicInputs(cosmicIdMap.get(id), input);
-            } else if (cosmicLegacyIdMap != null && (input.getCosmicIDPrefix().equals(CosmicID.COSM) || input.getCosmicIDPrefix().equals(CosmicID.COSN))) {
+            } else if (cosmicLegacyIdMap != null && (input.getCosmicIDPrefix().equals(CosmicInputParser.COSM) || input.getCosmicIDPrefix().equals(CosmicInputParser.COSN))) {
                 addDerivedGenomicInputs(cosmicLegacyIdMap.get(id), input);
             }
             if (input.getDerivedGenomicInputs().isEmpty()) {

@@ -1,6 +1,7 @@
 package uk.ac.ebi.protvar.model.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import uk.ac.ebi.protvar.utils.VariantKey;
@@ -10,6 +11,7 @@ import uk.ac.ebi.protvar.utils.VariantKey;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AlleleFreq extends Base {
     Integer ac;
     Integer an;

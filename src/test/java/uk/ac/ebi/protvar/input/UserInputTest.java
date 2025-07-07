@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
-import uk.ac.ebi.protvar.input.format.genomic.VCF;
+import uk.ac.ebi.protvar.input.parser.genomic.GenomicInputParser;
 import uk.ac.ebi.protvar.input.processor.UserInputParser;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.utils.Constants;
@@ -40,54 +40,54 @@ public class UserInputTest {
 	@ValueSource(strings = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
 		"17", "18", "19", "20", "21", "22"})
 	void numberChromosomeTest(String chromosome) {
-		assertEquals(chromosome, VCF.convertChr(chromosome));
+		assertEquals(chromosome, GenomicInputParser.convertChr(chromosome));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"x", "X", " x", "x ", " X "})
 	void xChromosomeTest(String chromosome) {
-		assertEquals("X", VCF.convertChr(chromosome));
+		assertEquals("X", GenomicInputParser.convertChr(chromosome));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"y", "Y", " y", "Y ", " Y "})
 	void yChromosomeTest(String chromosome) {
-		assertEquals("Y", VCF.convertChr(chromosome));
+		assertEquals("Y", GenomicInputParser.convertChr(chromosome));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"chrM", "CHRM", "mitochondria", " mitoCHondria", "mitochondrion", "MITOchondrion ", "MT ", "mtDNA", "mit"})
 	void mtChromosomeTest(String chromosome) {
-		Assertions.assertEquals(VCF.MT, VCF.convertChr(chromosome));
+		Assertions.assertEquals(GenomicInputParser.MT, GenomicInputParser.convertChr(chromosome));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"23", "24", "a", "b", " ",""})
 	void invalidChromosomeTest(String chromosome) {
-		Assertions.assertEquals(Constants.NA, VCF.convertChr(chromosome));
+		Assertions.assertEquals(Constants.NA, GenomicInputParser.convertChr(chromosome));
 	}
 
 	@Test
 	void nullChromosomeTest() {
-		Assertions.assertEquals(Constants.NA, VCF.convertChr(null));
+		Assertions.assertEquals(Constants.NA, GenomicInputParser.convertChr(null));
 	}
 
 	@ParameterizedTest
 	@NullAndEmptySource
 	void alleleEmptyNullTest(String allele) {
-		assertFalse(VCF.validBase(allele));
+		assertFalse(GenomicInputParser.validBase(allele));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"A", "C", "G", "T", "a", "c", " g", "t "})
 	void alleleValid(String allele) {
-		assertTrue(VCF.validBase(allele));
+		assertTrue(GenomicInputParser.validBase(allele));
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = {"B", "D", "H", "K", "z", "x", " e", "m "})
 	void alleleInValid(String allele) {
-		assertFalse(VCF.validBase(allele));
+		assertFalse(GenomicInputParser.validBase(allele));
 	}
 
 	/**

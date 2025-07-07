@@ -1,6 +1,7 @@
 package uk.ac.ebi.protvar.input.format.protein;
 
 import org.junit.jupiter.api.Test;
+import uk.ac.ebi.protvar.input.parser.hgvs.HGVSpInputParser;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -8,7 +9,7 @@ class HGVSpTest {
 
     @Test
     void testValid3LetterAA() {
-        HGVSp userInput = HGVSp.parse("NP_003997.1:p.Arg490Ser");
+        HGVSp userInput = HGVSpInputParser.parse("NP_003997.1:p.Arg490Ser");
         assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 490);
         assert(userInput.getRef().equals("Arg"));
@@ -17,7 +18,7 @@ class HGVSpTest {
 
     @Test
     void testValid1LetterAA() {
-        HGVSp userInput = HGVSp.parse("NP_003997.1:p.R490S");
+        HGVSp userInput = HGVSpInputParser.parse("NP_003997.1:p.R490S");
         assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 490);
         assert(userInput.getRef().equals("R"));
@@ -26,7 +27,7 @@ class HGVSpTest {
 
     @Test
     void testValid3LetterAA_Ter() {
-        HGVSp userInput = HGVSp.parse("NP_003997.1:p.Trp87Ter");
+        HGVSp userInput = HGVSpInputParser.parse("NP_003997.1:p.Trp87Ter");
         assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 87);
         assert(userInput.getRef().equals("Trp"));
@@ -35,7 +36,7 @@ class HGVSpTest {
 
     @Test
     void testValid3LetterAA_StopCodon() {
-        HGVSp userInput = HGVSp.parse("NP_003997.1:p.Trp78*");
+        HGVSp userInput = HGVSpInputParser.parse("NP_003997.1:p.Trp78*");
         assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 78);
         assert(userInput.getRef().equals("Trp"));
@@ -44,7 +45,7 @@ class HGVSpTest {
 
     @Test
     void testValid1LetterAA_StopCodon() {
-        HGVSp userInput = HGVSp.parse("NP_003997.1:p.W87*");
+        HGVSp userInput = HGVSpInputParser.parse("NP_003997.1:p.W87*");
         assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 87);
         assert(userInput.getRef().equals("W"));
@@ -53,7 +54,7 @@ class HGVSpTest {
 
     @Test
     void testInvalid3and1LetterAA() {
-        HGVSp userInput = HGVSp.parse("NP_003997.1:p.Arg87S");
+        HGVSp userInput = HGVSpInputParser.parse("NP_003997.1:p.Arg87S");
 
         assertEquals(userInput.getRsAcc(), "NP_003997.1");
         assert(userInput.getPos() == null);
@@ -64,7 +65,7 @@ class HGVSpTest {
 
     @Test
     void testValidEqualForAlt() {
-        HGVSp userInput = HGVSp.parse("NP_003997.1:p.Trp78=");
+        HGVSp userInput = HGVSpInputParser.parse("NP_003997.1:p.Trp78=");
         assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 78);
         assert(userInput.getRef().equals("Trp"));
@@ -73,7 +74,7 @@ class HGVSpTest {
 
     @Test
     void testValidBrackets1() {
-        HGVSp userInput = HGVSp.parse("NP_003997.1:p.(Trp78*)");
+        HGVSp userInput = HGVSpInputParser.parse("NP_003997.1:p.(Trp78*)");
         assert(userInput.getRsAcc().equals("NP_003997.1"));
         assert(userInput.getPos() == 78);
         assert(userInput.getRef().equals("Trp"));

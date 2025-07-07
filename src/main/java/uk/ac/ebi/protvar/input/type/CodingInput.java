@@ -12,17 +12,12 @@ import java.util.List;
 
 @Getter
 @Setter
-public abstract class CodingInput extends UserInput implements DerivedGenomicInputProvider {
+public abstract class CodingInput extends UserInput {
     private static final Logger LOGGER = LoggerFactory.getLogger(CodingInput.class);
-    List<GenomicInput> derivedGenomicInputs = new ArrayList<>();
+    List<GenomicInput> derivedGenomicInputs = new ArrayList<>(); // @Getter annotation will generate getDerivedGenomicInputs()
 
     public CodingInput(String inputStr) {
         setType(Type.CODING);
         setInputStr(inputStr);
-    }
-
-    @Override
-    public List<Object[]> getChrPosList() {
-        return DerivedGenomicInputProvider.super.getChrPosList();
     }
 }

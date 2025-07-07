@@ -6,6 +6,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.parser.genomic.GenomicInputParser;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -21,39 +22,39 @@ class GenomicInputTest {
     @ValueSource(strings = {"1 123", "1    123"})
     // in-between spaces work; spaces at the start/end don't - inputStr is trim before parse
     void test_chrPos(String inputStr) {
-        assertTrue(GenomicInput.matchesPattern(inputStr));
-        GenomicInput parsedInput = GenomicInput.parse(inputStr);
+        assertTrue(GenomicInputParser.matchesPattern(inputStr));
+        GenomicInput parsedInput = GenomicInputParser.parse(inputStr);
         assertInput(true, inputStr, "1", 123, null, null, parsedInput);
     }
 
     @Test
     void test_chrPosRef() {
         String inputStr = "1 123 A";
-        assertTrue(GenomicInput.matchesPattern(inputStr));
-        GenomicInput parsedInput = GenomicInput.parse(inputStr);
+        assertTrue(GenomicInputParser.matchesPattern(inputStr));
+        GenomicInput parsedInput = GenomicInputParser.parse(inputStr);
         assertInput(true, inputStr, "1", 123, "A", null, parsedInput);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"x 123 a t", "x 123 a/t", "x 123 a>t"})
     void test_chrPosRefAlt(String inputStr) {
-        assertTrue(GenomicInput.matchesPattern(inputStr));
-        GenomicInput parsedInput = GenomicInput.parse(inputStr);
+        assertTrue(GenomicInputParser.matchesPattern(inputStr));
+        GenomicInput parsedInput = GenomicInputParser.parse(inputStr);
         assertInput(true, inputStr, "X", 123, "A", "T", parsedInput);
     }
 
     @Test
     void test_inputMT() {
         String inputStr = "mt 4 g c";
-        assertTrue(GenomicInput.matchesPattern(inputStr));
-        GenomicInput parsedInput = GenomicInput.parse(inputStr);
-        assertInput(true, inputStr, GenomicInput.MT, 4, "G", "C", parsedInput);
+        assertTrue(GenomicInputParser.matchesPattern(inputStr));
+        GenomicInput parsedInput = GenomicInputParser.parse(inputStr);
+        assertInput(true, inputStr, GenomicInputParser.MT, 4, "G", "C", parsedInput);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"3 123", "4 456", "x 789", "Y 987", "22 654"})
     void test_moreChrAndPos(String inputStr) {
-        GenomicInput parsedInput = GenomicInput.parse(inputStr);
+        GenomicInput parsedInput = GenomicInputParser.parse(inputStr);
         String[] tokens = inputStr.split(" ");
         assertInput(true, inputStr, tokens[0].toUpperCase(), Integer.parseInt(tokens[1]),
                 null, null, parsedInput);
@@ -63,7 +64,7 @@ class GenomicInputTest {
     @ValueSource(strings = {"5 123 A", "6 456 C", "7 789 G", "8 987 T"})
     // will not consider id if 3rd is base
     void test_moreChrPosRef(String inputStr) {
-        GenomicInput parsedInput = GenomicInput.parse(inputStr);
+        GenomicInput parsedInput = GenomicInputParser.parse(inputStr);
         String[] tokens = inputStr.split(" ");
         assertInput(true, inputStr, tokens[0].toUpperCase(), Integer.parseInt(tokens[1]),
                 tokens[2], null, parsedInput);
@@ -73,20 +74,20 @@ class GenomicInputTest {
     @ParameterizedTest
     @ValueSource(strings = {"13 0", "14 a", "15 $", "16 a1", "17 b2£", "18 *t"})
     void test_validChrInvalidPosition(String inputStr) {
-        GenomicInput parsedInput = GenomicInput.parse(inputStr);
+        GenomicInput parsedInput = GenomicInputParser.parse(inputStr);
         assertTrue(parsedInput.getErrors().stream().anyMatch(ErrorConstants.INVALID_POS.getErrorMessage()::equalsIgnoreCase));
     }
 
     @Test
     void testInvalidInputTabs() {
         String input = "21\t25891796\t25891797\tC . . .";
-        assertFalse(GenomicInput.matchesPattern(input));
+        assertFalse(GenomicInputParser.matchesPattern(input));
     }
 
     @Test
     void testInvalidInputDots() {
         String input = "21 25891796 25891797 . . .";
-        assertFalse(GenomicInput.matchesPattern(input));
+        assertFalse(GenomicInputParser.matchesPattern(input));
     }
 
     @ParameterizedTest
@@ -103,13 +104,13 @@ class GenomicInputTest {
             "chr1", "chrX", "M"
     })
     void test_validChr(String chr) {
-        assertTrue(GenomicInput.validChr(chr));
+        assertTrue(GenomicInputParser.validChr(chr));
     }
 
     @ParameterizedTest
     @NullSource
     void test_invalidChr_null(String chr) {
-        assertFalse(GenomicInput.validChr(chr));
+        assertFalse(GenomicInputParser.validChr(chr));
     }
 
     @ParameterizedTest
@@ -119,7 +120,7 @@ class GenomicInputTest {
             "chr M" // inbetween space
     })
     void test_invalidChr(String chr) {
-        assertFalse(GenomicInput.validChr(chr));
+        assertFalse(GenomicInputParser.validChr(chr));
     }
 
 
@@ -127,47 +128,47 @@ class GenomicInputTest {
     @ValueSource(strings = {"1", "1000", " 10 ", "00100"
     })
     void test_validPos(String pos) {
-        assertTrue(GenomicInput.validPos(pos));
+        assertTrue(GenomicInputParser.validPos(pos));
     }
 
     @ParameterizedTest
     @NullSource
     void test_validPos_null(String pos) {
-        assertFalse(GenomicInput.validPos(pos));
+        assertFalse(GenomicInputParser.validPos(pos));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {" ", "-1", "0", "abc", "1x"
     })
     void test_validPos_false(String pos) {
-        assertFalse(GenomicInput.validPos(pos));
+        assertFalse(GenomicInputParser.validPos(pos));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"A", " A", "A ", " A ", "T", "C", "G", "a", "t", "c", "g"
     })
     void test_validBase(String base) {
-        assertTrue(GenomicInput.validBase(base));
+        assertTrue(GenomicInputParser.validBase(base));
     }
 
     @ParameterizedTest
     @NullSource
     void test_invalidBase_null(String base) {
-        assertFalse(GenomicInput.validBase(base));
+        assertFalse(GenomicInputParser.validBase(base));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {" ", "AA", "aa", "U", "X", "Y", "1"
     })
     void test_invalidBase(String base) {
-        assertFalse(GenomicInput.validBase(base));
+        assertFalse(GenomicInputParser.validBase(base));
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "1", " 1", " 1 ", "01", "001"
     })
     void test_convertChr_valid_num(String chr) {
-        assertEquals("1", GenomicInput.convertChr(chr));
+        assertEquals("1", GenomicInputParser.convertChr(chr));
     }
 
     @ParameterizedTest
@@ -176,29 +177,29 @@ class GenomicInputTest {
             " ChrM", "Mitochondria ", " MT " , // chr MT spaces
     })
     void test_convertChr_valid_MT(String mt) {
-        assertEquals("MT", GenomicInput.convertChr(mt));
+        assertEquals("MT", GenomicInputParser.convertChr(mt));
     }
 
     @Test
     void test_convertChr_valid_other() {
-        assertEquals("X", GenomicInput.convertChr("x"));
-        assertEquals("X", GenomicInput.convertChr(" X"));
-        assertEquals("X", GenomicInput.convertChr(" X "));
+        assertEquals("X", GenomicInputParser.convertChr("x"));
+        assertEquals("X", GenomicInputParser.convertChr(" X"));
+        assertEquals("X", GenomicInputParser.convertChr(" X "));
     }
 
     @Test
     void test_convertPos_valid() {
-        assertEquals(1, GenomicInput.convertPosition("1"));
-        assertEquals(1000, GenomicInput.convertPosition("1000"));
-        assertEquals(10, GenomicInput.convertPosition(" 10 "));
-        assertEquals(100, GenomicInput.convertPosition("00100"));
+        assertEquals(1, GenomicInputParser.convertPosition("1"));
+        assertEquals(1000, GenomicInputParser.convertPosition("1000"));
+        assertEquals(10, GenomicInputParser.convertPosition(" 10 "));
+        assertEquals(100, GenomicInputParser.convertPosition("00100"));
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "0", "-1", "x", "10000000000000000000000"
     })
     void test_convertPos_invalid(String pos) {
-        assertEquals(Integer.valueOf(-1), GenomicInput.convertPosition(pos));
+        assertEquals(Integer.valueOf(-1), GenomicInputParser.convertPosition(pos));
     }
 
     @ParameterizedTest
@@ -207,20 +208,20 @@ class GenomicInputTest {
             "17 7456845 A  t", "10    1012145   T  c", "0001  23423525   G t", "22 23545643  C a"// both bases - ref and alt
     })
     void test_validInternalInput_valid(String input) {
-        assertTrue(GenomicInput.matchesPattern(input));
+        assertTrue(GenomicInputParser.matchesPattern(input));
     }
 
     @ParameterizedTest
     @ValueSource(strings = { "17 7456845 A  t", "10    1012145   T>c", "0001  23423525   G/t", "22 23545643  C/a"// spaces or slash or greater than sign
     })
     void test_validInternalInput_valid_sub_sign(String input) {
-        assertTrue(GenomicInput.matchesPattern(input));
+        assertTrue(GenomicInputParser.matchesPattern(input));
     }
 
     @Test
     void test_parse() {
         String inputStr = "x 123 a t";
-        UserInput userInput = GenomicInput.parse(inputStr); // from previous VCFTest
+        UserInput userInput = GenomicInputParser.parse(inputStr); // from previous VCFTest
         assertInput(true, inputStr, "X", 123, "A", "T", (GenomicInput)userInput);
     }
 

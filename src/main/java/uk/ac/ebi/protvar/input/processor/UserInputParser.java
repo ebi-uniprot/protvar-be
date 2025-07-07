@@ -2,16 +2,17 @@ package uk.ac.ebi.protvar.input.processor;
 
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.format.coding.HGVSc;
-import uk.ac.ebi.protvar.input.format.genomic.Gnomad;
-import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
-import uk.ac.ebi.protvar.input.format.genomic.VCF;
-import uk.ac.ebi.protvar.input.format.id.ClinVarID;
-import uk.ac.ebi.protvar.input.format.id.CosmicID;
-import uk.ac.ebi.protvar.input.format.id.DbsnpID;
-import uk.ac.ebi.protvar.input.format.protein.HGVSp;
+import uk.ac.ebi.protvar.input.parser.hgvs.HGVScInputParser;
+import uk.ac.ebi.protvar.input.parser.hgvs.HGVSgInputParser;
+import uk.ac.ebi.protvar.input.parser.protein.ProteinInputParser;
+import uk.ac.ebi.protvar.input.parser.genomic.GenomicInputParser;
+import uk.ac.ebi.protvar.input.parser.genomic.GnomadInputParser;
+import uk.ac.ebi.protvar.input.parser.genomic.VCFInputParser;
+import uk.ac.ebi.protvar.input.parser.hgvs.HGVSpInputParser;
+import uk.ac.ebi.protvar.input.parser.variantid.ClinvarInputParser;
+import uk.ac.ebi.protvar.input.parser.variantid.CosmicInputParser;
+import uk.ac.ebi.protvar.input.parser.variantid.DbsnpInputParser;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
-import uk.ac.ebi.protvar.input.type.ProteinInput;
 import uk.ac.ebi.protvar.utils.HGVS;
 import uk.ac.ebi.protvar.utils.RegexUtils;
 
@@ -105,14 +106,14 @@ public class UserInputParser {
 
         if (singleWord) {
             // IDs should be single word input
-            if (DbsnpID.startsWithPrefix(inputLine))
-                return DbsnpID.parse(inputLine);
+            if (DbsnpInputParser.startsWithPrefix(inputLine))
+                return DbsnpInputParser.parse(inputLine);
 
-            if (ClinVarID.startsWithPrefix(inputLine))
-                return ClinVarID.parse(inputLine);
+            if (ClinvarInputParser.startsWithPrefix(inputLine))
+                return ClinvarInputParser.parse(inputLine);
 
-            if (CosmicID.startsWithPrefix(inputLine))
-                return CosmicID.parse(inputLine);
+            if (CosmicInputParser.startsWithPrefix(inputLine))
+                return CosmicInputParser.parse(inputLine);
         }
 
         /**
@@ -121,30 +122,30 @@ public class UserInputParser {
          *                 REF_SEQ        VAR_DESC
          */
         if (HGVS.matchesPattern(inputLine)) {
-            if (HGVSg.matchesPattern(inputLine))
-                return HGVSg.parse(inputLine);
+            if (HGVSgInputParser.matchesPattern(inputLine))
+                return HGVSgInputParser.parse(inputLine);
 
-            if (HGVSc.matchesPattern(inputLine))
-                return HGVSc.parse(inputLine);
+            if (HGVScInputParser.matchesPattern(inputLine))
+                return HGVScInputParser.parse(inputLine);
 
-            if (HGVSp.matchesPattern(inputLine))
-                return HGVSp.parse(inputLine);
+            if (HGVSpInputParser.matchesPattern(inputLine))
+                return HGVSpInputParser.parse(inputLine);
 
             return HGVS.invalid(inputLine);
         }
 
-        if (ProteinInput.startsWithAccession(inputLine))
-            return ProteinInput.parse(inputLine);
+        if (ProteinInputParser.startsWithAccession(inputLine))
+            return ProteinInputParser.parse(inputLine);
 
-        if (GenomicInput.startsWithChromo(inputLine)) {
-            if (Gnomad.matchesPattern(inputLine)) // ^chr-pos-ref-alt$
-                return Gnomad.parse(inputLine);
+        if (GenomicInputParser.startsWithChromo(inputLine)) {
+            if (GnomadInputParser.matchesPattern(inputLine)) // ^chr-pos-ref-alt$
+                return GnomadInputParser.parse(inputLine);
 
-            if (VCF.matchesPattern(inputLine)) // ^chr pos id ref alt...
-                return VCF.parse(inputLine);
+            if (VCFInputParser.matchesPattern(inputLine)) // ^chr pos id ref alt...
+                return VCFInputParser.parse(inputLine);
 
-            if (GenomicInput.matchesPattern(inputLine)) // ^chr pos( ref( alt)?)?$
-                return GenomicInput.parse(inputLine);
+            if (GenomicInputParser.matchesPattern(inputLine)) // ^chr pos( ref( alt)?)?$
+                return GenomicInputParser.parse(inputLine);
         }
         return GenomicInput.invalid(inputLine); // default (or most common) input is expected to be genomic, so
         // let's assume any invalid input is of GenomicInput type.

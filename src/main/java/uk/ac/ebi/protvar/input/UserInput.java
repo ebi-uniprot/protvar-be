@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import uk.ac.ebi.protvar.input.format.id.ClinVarID;
 import uk.ac.ebi.protvar.input.format.id.CosmicID;
+import uk.ac.ebi.protvar.input.parser.variantid.ClinvarInputParser;
+import uk.ac.ebi.protvar.input.parser.variantid.CosmicInputParser;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.response.Message;
 
@@ -29,11 +31,16 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 public abstract class UserInput {
-
-	String inputStr;
 	Type type;
 	Format format;
 
+	String inputStr;
+
+
+	@Override
+	public String toString() {
+		return String.format("UserInput [type=%s, format=%s, inputStr=%s]", type, format, inputStr);
+	}
 	private final List<Message> messages = new LinkedList<>(); // to maintain insertion order
 
 	public void addError(String text) {
@@ -70,8 +77,8 @@ public abstract class UserInput {
 	public String getClinVarIDPrefix() {
 		if (this instanceof ClinVarID
 				&& ((ClinVarID)this).getId() != null
-				&& ((ClinVarID)this).getId().length() > ClinVarID.PREFIX_LEN) {
-			return ((ClinVarID)this).getId().substring(0, ClinVarID.PREFIX_LEN);
+				&& ((ClinVarID)this).getId().length() > ClinvarInputParser.PREFIX_LEN) {
+			return ((ClinVarID)this).getId().substring(0, ClinvarInputParser.PREFIX_LEN);
 		}
 		return "";
 	}
@@ -80,12 +87,21 @@ public abstract class UserInput {
 	public String getCosmicIDPrefix() {
 		if (this instanceof CosmicID
 				&& ((CosmicID)this).getId() != null
-				&& ((CosmicID)this).getId().length() > CosmicID.PREFIX_LEN) {
-			return ((CosmicID)this).getId().substring(0, CosmicID.PREFIX_LEN);
+				&& ((CosmicID)this).getId().length() > CosmicInputParser.PREFIX_LEN) {
+			return ((CosmicID)this).getId().substring(0, CosmicInputParser.PREFIX_LEN);
 		}
 		return "";
 	}
 
+	@JsonIgnore
 	abstract public List<GenomicInput> getDerivedGenomicInputs();
-	abstract public List<Object[]> getChrPosList(); // default impl in DerivedGenomicInputProvider
+	//abstract public List<Object[]> getChrPosList(); // default impl in DerivedGenomicInputProvider
+
+	@JsonIgnore
+	public List<Object[]> getChrPosList() {
+		return getDerivedGenomicInputs().stream()
+				.filter(g -> g.getChr() != null && g.getPos() != null)
+				.map(g -> new Object[]{g.getChr(), g.getPos()})
+				.collect(Collectors.toList());
+	}
 }

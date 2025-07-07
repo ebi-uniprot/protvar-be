@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar.input.format.genomic;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import uk.ac.ebi.protvar.input.parser.genomic.VCFInputParser;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,15 +18,15 @@ class VCFTest {
           "y 987654321 rs123 t g description;",
     "y 987654321 rs123 t g 100 PASS AA=T|||;AC=1;AF=0"})
   void test_inputWithDiffEndOptions(String inputStr) {
-    VCF userInput = VCF.parse(inputStr);
-    assertParsedInput(true, inputStr, "Y", 987654321, "rs123", "T", "G", "Y-987654321", userInput);
+    VCF userInput = VCFInputParser.parse(inputStr);
+    assertParsedInput(true, inputStr, "Y", 987654321, "rs123", "T", "G", "Y:987654321", userInput);
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"y 987654321 . t g"})
   void test_noIdProvided(String inputStr) {
-    VCF userInput = VCF.parse(inputStr);
-    assertParsedInput(true, inputStr, "Y", 987654321, null, "T", "G", "Y-987654321", userInput);
+    VCF userInput = VCFInputParser.parse(inputStr);
+    assertParsedInput(true, inputStr, "Y", 987654321, null, "T", "G", "Y:987654321", userInput);
   }
 
   @ParameterizedTest
@@ -35,7 +36,7 @@ class VCFTest {
           "12 987 45 t", // 4 cols
           })
   void test_matchesPatternFalse(String inputStr) {
-    assertFalse(VCF.matchesPattern(inputStr));
+    assertFalse(VCFInputParser.matchesPattern(inputStr));
   }
 
   private void assertParsedInput(boolean valid, String inputStr, String chr, Integer pos, String id, String ref, String alt,

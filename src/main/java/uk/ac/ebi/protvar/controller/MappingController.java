@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.MappingRequest;
+import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
@@ -37,7 +38,7 @@ public class MappingController {
 
     @Operation(summary = "Retrieve mappings for a single variant input - used for direct query.")
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> getSingleVariantMapping(
+    public ResponseEntity<PagedMappingResponse> getSingleVariantMapping(
             @Parameter(description = "Single variant query in a supported format.", example = "19-1010539-G-C")
             @RequestParam String variant,
             @Parameter(description = MappingRequest.ASSEMBLY_DESC)
@@ -49,7 +50,8 @@ public class MappingController {
                 .page(1)
                 .pageSize(1)
                 .build();
-        return handleRequest(request);
+        PagedMappingResponse response = mappingService.get(request);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @Operation(summary = "Retrieve mappings for a given input ID")

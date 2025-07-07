@@ -30,7 +30,6 @@ import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.processor.UserInputParser;
-import uk.ac.ebi.protvar.input.type.DerivedGenomicInputProvider;
 import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
@@ -293,18 +292,8 @@ public class DownloadProcessor {
 				}
 				// Process the input and generate CSV rows
 				userInputMapper.processInput(input, coreMapping);
-
-				switch (input.getType()) {
-					case GENOMIC -> {
-						GenomicInput userInput = (GenomicInput) input;
-						generateGenomicCsvRows(builder, input, userInput, annData);
-					}
-					case CODING, PROTEIN, ID -> {
-						DerivedGenomicInputProvider userInput = (DerivedGenomicInputProvider) input;
-						userInput.getDerivedGenomicInputs()
-								.forEach(genInput -> generateGenomicCsvRows(builder, input, genInput, annData));
-					}
-				}
+				input.getDerivedGenomicInputs()
+						.forEach(genInput -> generateGenomicCsvRows(builder, input, genInput, annData));
 		});
 
 		return builder.build();
