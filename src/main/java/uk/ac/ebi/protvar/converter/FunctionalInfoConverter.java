@@ -16,7 +16,7 @@ public class FunctionalInfoConverter {
 		FunctionalInfo functionalInfo = new FunctionalInfo();
 		// direct UPEntry to FunctionalInfo fields mapping
 		functionalInfo.setAccession(entry.getAccession());
-		functionalInfo.setId(entry.getId());
+		functionalInfo.setEntryId(entry.getId());
 		functionalInfo.setProteinExistence(entry.getProteinExistence());
 		functionalInfo.setGene(Commons.emptyOrList(entry.getGene()));
 		functionalInfo.setComments(Commons.emptyOrList(entry.getComments()));

@@ -23,7 +23,7 @@ import uk.ac.ebi.protvar.model.data.Pocket;
 public class FunctionalInfo {
 	// Common UPEntry fields
 	private String accession;
-	private String id; // todo: rename to entryId?
+	private String entryId;
 	private String proteinExistence;
 	private List<Gene> gene;
 	private List<Comment> comments;

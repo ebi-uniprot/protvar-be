@@ -21,4 +21,9 @@ public class CsvUtils {
 		if (value == null) return Constants.NA;
 		return getValOrNA(value.toString());
 	}
+
+	public static String getValOrNA(Object value) {
+		if (value == null) return Constants.NA;
+		return getValOrNA(value.toString());
+	}
 }

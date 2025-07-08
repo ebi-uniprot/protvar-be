@@ -86,7 +86,7 @@ public class AnnotationController {
     if (genomicInput != null) {
       chromosome = genomicInput.getChr();
       genomicPosition = genomicInput.getPos();
-      altBase = genomicInput.getAlt();
+      //altBase = genomicInput.getAlt(); // commented to return all bases
     }
 
     AnnotationData annData = annotationFetcher.getAPIPopulationData(accession, position, chromosome, genomicPosition);

@@ -90,7 +90,8 @@ public class MappingService {
                     .totalPages(page.getTotalPages())
                     .last(page.isLast())
                     //input
-                    .id(request.getInput())
+                    .input(request.getInput())
+                    .type(request.getType())
                     //assembly, if provided, is relevant only for genomic input
                     .assembly(request.getAssembly())
                     //mapping response

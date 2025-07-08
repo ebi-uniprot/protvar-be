@@ -36,11 +36,6 @@ public abstract class UserInput {
 
 	String inputStr;
 
-
-	@Override
-	public String toString() {
-		return String.format("UserInput [type=%s, format=%s, inputStr=%s]", type, format, inputStr);
-	}
 	private final List<Message> messages = new LinkedList<>(); // to maintain insertion order
 
 	public void addError(String text) {
@@ -103,5 +98,10 @@ public abstract class UserInput {
 				.filter(g -> g.getChr() != null && g.getPos() != null)
 				.map(g -> new Object[]{g.getChr(), g.getPos()})
 				.collect(Collectors.toList());
+	}
+
+	@Override
+	public String toString() {
+		return String.format("UserInput [type=%s, format=%s, inputStr=%s]", type, format, inputStr);
 	}
 }

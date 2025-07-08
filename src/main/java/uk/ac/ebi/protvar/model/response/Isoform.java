@@ -31,17 +31,9 @@ public class Isoform implements Comparable<Isoform> {
 	private List<Transcript> transcripts;
 
 	@JsonInclude(Include.NON_NULL)
-	private PopulationObservation populationObservations;
-	@JsonInclude(Include.NON_NULL)
 	private String populationObservationsUri;
-
-	@JsonInclude(Include.NON_NULL)
-	private FunctionalInfo referenceFunction;
 	@JsonInclude(Include.NON_NULL)
 	private String referenceFunctionUri;
-
-	@JsonInclude(Include.NON_NULL)
-	private List<StructureResidue> proteinStructure;
 	@JsonInclude(Include.NON_NULL)
 	private String proteinStructureUri;
 

@@ -37,8 +37,8 @@ public class MappingController {
     private final MappingService mappingService;
 
     @Operation(summary = "Retrieve mappings for a single variant input - used for direct query.")
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PagedMappingResponse> getSingleVariantMapping(
+    @GetMapping(value = "/single", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PagedMappingResponse> singleVariant(
             @Parameter(description = "Single variant query in a supported format.", example = "19-1010539-G-C")
             @RequestParam String variant,
             @Parameter(description = MappingRequest.ASSEMBLY_DESC)
@@ -93,13 +93,13 @@ public class MappingController {
 
     @Operation(summary = SUMMARY)
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> mappingGet(@Valid @RequestBody MappingRequest request) {
+    public ResponseEntity<?> mappingJson(@Valid @RequestBody MappingRequest request) {
         return handleRequest(request);
     }
 
     @Operation(summary = SUMMARY)
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> mappingPost(@Valid @RequestBody @ModelAttribute MappingRequest request) {
+    public ResponseEntity<?> mappingForm(@Valid @RequestBody @ModelAttribute MappingRequest request) {
         return handleRequest(request);
     }
 
@@ -119,7 +119,7 @@ public class MappingController {
         request.setType(resolved);
 
         if (request.getInput() != null &&
-                (resolved != InputType.PDB || resolved != InputType.INPUT_ID)) {
+                (resolved != InputType.PDB && resolved != InputType.INPUT_ID)) { // todo: move normalizing case in SQL query for consistency
             request.setInput(request.getInput().toUpperCase());
         }
 

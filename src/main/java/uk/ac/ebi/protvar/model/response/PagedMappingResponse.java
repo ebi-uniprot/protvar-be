@@ -1,6 +1,7 @@
 package uk.ac.ebi.protvar.model.response;
 
 import lombok.*;
+import uk.ac.ebi.protvar.types.InputType;
 
 @Data
 @Builder
@@ -11,7 +12,8 @@ public class PagedMappingResponse { // todo: consider using Page<MappingResponse
 	// the original mapping request object
 	private MappingResponse content;
 
-	private String id; // is the input e.g. inputId, proteinAcc, etc.
+	private String input; // e.g. inputId, proteinAcc, etc.
+	private InputType type;
 
 	private int page;
 

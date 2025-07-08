@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import uk.ac.ebi.protvar.constants.PageUtils;
 import uk.ac.ebi.protvar.types.AmClass;
@@ -17,6 +18,7 @@ import java.util.List;
 @Data
 @SuperBuilder
 @Schema(description = "Base request used for mapping")
+@NoArgsConstructor
 // TODO decapitalise all params like CADD, ASC, DESC and other enums
 public class MappingRequest {
 

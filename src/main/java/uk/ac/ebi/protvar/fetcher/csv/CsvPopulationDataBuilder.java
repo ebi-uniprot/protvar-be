@@ -5,6 +5,7 @@ import java.util.*;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.protvar.mapper.AnnotationData;
+import uk.ac.ebi.protvar.model.data.AlleleFreq;
 import uk.ac.ebi.protvar.model.response.Isoform;
 import uk.ac.ebi.uniprot.domain.features.DbReferenceObject;
 import uk.ac.ebi.protvar.utils.Constants;
@@ -41,6 +42,18 @@ public class CsvPopulationDataBuilder {
 		}
 
 		List<String> csv = new ArrayList<>();
+		Map<String, AlleleFreq> freqMap = populationObservations.getFreqMap();
+		AlleleFreq alleleFreq = (freqMap != null) ? freqMap.get(altBase) : null;
+		if (alleleFreq != null) {
+			csv.add(String.format("%d;%d;%d",
+					getValOrNA(alleleFreq.getAc()),
+					getValOrNA(alleleFreq.getAn()),
+					getValOrNA(alleleFreq.getAf())
+			));
+		} else {
+			csv.add(Constants.NA);
+		}
+
 		if (variants.isEmpty()) {
 			csv.addAll(List.of(Constants.NA, Constants.NA, Constants.NA, Constants.NA));
 		} else {

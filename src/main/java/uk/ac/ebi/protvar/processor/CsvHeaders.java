@@ -48,12 +48,13 @@ public final class CsvHeaders {
     ); // length = 18
 
     public static final String OUTPUT_POPULATION = String.join(",",
+            "Gnomad_allele_freq(ac;an;af)",
             "Genomic_location",
             "Cytogenetic_band",
             "Other_identifiers_for_the_variant",
             "Diseases_associated_with_variant",
             "Variants_colocated_at_residue_position"
-    ); // length = 5
+    ); // length = 6
 
     public static final String OUTPUT_STRUCTURE = "Position_in_structures"; // length = 1
 
@@ -62,7 +63,7 @@ public final class CsvHeaders {
             OUTPUT_FUNCTION,
             OUTPUT_POPULATION,
             OUTPUT_STRUCTURE
-    ); // total = 36
+    ); // total = 37
 
     public static final int OUTPUT_LENGTH = OUTPUT.split(Constants.COMMA).length; // total = 36
 

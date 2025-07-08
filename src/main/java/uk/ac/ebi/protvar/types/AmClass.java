@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.types;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -24,5 +25,21 @@ public enum AmClass { // TODO use existing AMClass enum
             }
         }
         return null;
+    }
+
+    @JsonCreator
+    public static AmClass fromString(String source) {
+        if (source == null) return null;
+
+        switch (source.trim().toLowerCase()) {
+            case "ambiguous":
+                return AMBIGUOUS;
+            case "benign":
+                return BENIGN;
+            case "pathogenic":
+                return PATHOGENIC;
+            default:
+                throw new IllegalArgumentException("Invalid value '" + source + "' for AmClass");
+        }
     }
 }
