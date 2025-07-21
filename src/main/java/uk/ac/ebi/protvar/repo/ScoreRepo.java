@@ -184,7 +184,7 @@ public class ScoreRepo {
             case CONSERV -> new ConservScore(acc, pos, score);
             case EVE     -> new EveScore(acc, pos, mt, score, EveClass.fromValue(clazz));
             case ESM     -> new EsmScore(acc, pos, mt, score);
-            case AM      -> new AmScore(acc, pos, mt, score, AmClass.fromValue(clazz));
+            case AM      -> new AmScore(acc, pos, mt, score, AmClass.parseOrNull(clazz));
         };
     };
 
@@ -198,7 +198,7 @@ public class ScoreRepo {
             case CONSERV -> new ConservScore(score);
             case EVE     -> new EveScore(mt, score, EveClass.fromValue(clazz));
             case ESM     -> new EsmScore(mt, score);
-            case AM      -> new AmScore(mt, score, AmClass.fromValue(clazz));
+            case AM      -> new AmScore(mt, score, AmClass.parseOrNull(clazz));
         };
     };
 

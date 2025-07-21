@@ -16,6 +16,7 @@ import java.util.List;
 
 @Tag(name = "Score")
 @RestController
+@RequestMapping("/score")
 @CrossOrigin
 @RequiredArgsConstructor
 public class ScoreController {
@@ -34,7 +35,7 @@ public class ScoreController {
             description="Retrieve Conservation, EVE, ESM1b and AlphaMissense scores for accession and position. " +
                     "Mutated type (mt) is disregarded for Conservation score and optional for the other scores. " +
                     "By default, all scores are retrieved.")
-    @GetMapping(value = "/score/{acc}/{pos}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/{acc}/{pos}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Score>> getScores(
             @Parameter(example = "Q9NUW8") @PathVariable String acc,
             @Parameter(example = "493") @PathVariable Integer pos,

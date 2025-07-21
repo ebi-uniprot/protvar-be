@@ -14,7 +14,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.constants.PageUtils;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;

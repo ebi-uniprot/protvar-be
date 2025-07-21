@@ -24,6 +24,7 @@ import java.util.Map;
 
 @Tag(name = "Prediction")
 @RestController
+@RequestMapping("/prediction")
 @CrossOrigin
 @RequiredArgsConstructor
 public class PredictionController {
@@ -34,7 +35,7 @@ public class PredictionController {
 
     @Operation(summary = "Nucleotide predictions - CADD (WIP)",
             description="Retrieve CADD score for the given genomic positions.")
-    @PostMapping(value = "/prediction/cadd", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/cadd", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Object> getCADDScores(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
             @ExampleObject(value = "[\"19 1010539\"]"))})
@@ -54,7 +55,7 @@ public class PredictionController {
      */
     @Operation(summary = "Predictions based on structure - foldx",
             description = "Retrieve foldx predictions for accession and position")
-    @GetMapping(value = { "/foldx/{accession}/{position}", "/prediction/foldx/{accession}/{position}"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/foldx/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Foldx>> getFoldxsByAccAndPos(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer position,
@@ -76,7 +77,7 @@ public class PredictionController {
      */
     @Operation(summary = "Predictions based on structure - pocket",
             description = "Retrieves predicted pockets for accession and residue")
-    @GetMapping(value = { "/pocket/{accession}/{resid}", "/prediction/pocket/{accession}/{resid}"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/pocket/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Pocket>> getPocketsByAccAndResid(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer resid) {
@@ -98,7 +99,7 @@ public class PredictionController {
      */
     @Operation(summary = "Predictions based on structure - interaction",
             description = "Retrieve predicted interacting structures for accession and residue")
-    @GetMapping(value = { "/interaction/{accession}/{resid}", "/prediction/interaction/{accession}/{resid}" }, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/interaction/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Interaction>> getInteractionsByAccAndResid(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
             @Parameter(example = "493") @PathVariable Integer resid) {
@@ -121,7 +122,7 @@ public class PredictionController {
      */
     @Operation(summary = "Predictions based on structure - interaction model",
             description = "Retrieve model of two interacting protein")
-    @GetMapping(value = { "/interaction/{a}/{b}/model", "/prediction/interaction/{a}/{b}/model" }, produces = MediaType.TEXT_PLAIN_VALUE)
+    @GetMapping(value = "/interaction/{a}/{b}/model", produces = MediaType.TEXT_PLAIN_VALUE)
     public @ResponseBody String getInteractionModel(
             @Parameter(example = "Q9NUW8") @PathVariable String a,
             @Parameter(example = "Q9UBZ4") @PathVariable String b) {

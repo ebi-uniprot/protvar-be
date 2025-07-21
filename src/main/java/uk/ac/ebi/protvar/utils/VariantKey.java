@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.utils;
 
-import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.model.score.ScoreType;
 
 public class VariantKey {

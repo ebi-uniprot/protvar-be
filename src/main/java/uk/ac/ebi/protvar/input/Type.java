@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.input;
 
-public enum Type {
+public enum Type { // todo: rename VariantType
     GENOMIC("genomic"),
     CODING("coding"), // coding DNA
     PROTEIN("protein"),

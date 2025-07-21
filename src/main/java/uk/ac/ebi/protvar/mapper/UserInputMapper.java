@@ -6,16 +6,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.converter.GeneConverter;
-import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Type;
-import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.format.coding.HGVSc;
-import uk.ac.ebi.protvar.input.format.protein.HGVSp;
+import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.mapper.Coding2Pro;
-import uk.ac.ebi.protvar.input.mapper.ID2Gen;
+import uk.ac.ebi.protvar.input.mapper.Id2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
+import uk.ac.ebi.protvar.input.parser.ParsedField;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
-import uk.ac.ebi.protvar.input.type.GenomicInput;
 import uk.ac.ebi.protvar.model.data.CaddPrediction;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Gene;
@@ -50,7 +46,7 @@ public class UserInputMapper {
 	private final ScoreRepo scoreRepo;
 	private final UniprotRefseqRepo uniprotRefseqRepo;
 	private final BuildProcessor buildProcessor;
-	private final ID2Gen id2Gen;
+	private final Id2Gen id2Gen;
 	private final Coding2Pro coding2Pro;
 	private final Pro2Gen pro2Gen;
 	private final GeneConverter geneConverter;
@@ -67,11 +63,10 @@ public class UserInputMapper {
 
 		// RefSeq-UniProt accession mapping
 		Set<String> rsAccs = inputs.stream()
-				.filter(input -> input instanceof HGVSp || input instanceof HGVSc)
+				.filter(input -> input.getFormat() == Format.HGVS_PROT ||
+						input.getFormat() == Format.HGVS_CODING)
 				.map(input -> {
-					String rsAcc = (input instanceof HGVSp)
-							? ((HGVSp) input).getRsAcc()
-							: ((HGVSc) input).getRsAcc();
+					String rsAcc = input.getRsAcc();
 					if (rsAcc != null && !rsAcc.isEmpty()) {
 						int dotIdx = rsAcc.lastIndexOf(".");
 						if (dotIdx != -1)
@@ -118,6 +113,14 @@ public class UserInputMapper {
 	public MappingData loadCoreMappingAndScores(List<UserInput> inputs) {
 		// Collect unique ChromosomePosition objects
 		Set<ChromosomePosition> uniqueChrPos = inputs.stream()
+				.peek(userInput -> {
+					if (userInput instanceof GenomicInput genomicInput
+							&& (genomicInput.getDerivedGenomicVariants() == null ||
+							genomicInput.getDerivedGenomicVariants().isEmpty())) {
+						genomicInput.getDerivedGenomicVariants()
+								.add(genomicInput.toGenomicVariant());
+					}
+				})
 				.flatMap(userInput -> userInput.getChrPosList().stream())
 				.map(objArray -> new ChromosomePosition((String) objArray[0], (Integer) objArray[1]))
 				.collect(Collectors.toSet());
@@ -166,9 +169,9 @@ public class UserInputMapper {
 	}
 
 	public void processInput(UserInput input, MappingData core) {
-		input.getDerivedGenomicInputs().forEach(gInput -> {
+		input.getDerivedGenomicVariants().forEach(genomicVariant -> {
 			try {
-				var chrPos = gInput.getVariantKey();
+				var chrPos = genomicVariant.getVariantKey();
 				var mappingList = core.getG2pMap().get(chrPos);
 				var caddScores = core.getCaddMap().get(chrPos);
 
@@ -176,7 +179,7 @@ public class UserInputMapper {
 
 				if (mappingList != null && !mappingList.isEmpty()) {
 					String mappingRef = mappingList.get(0).getBaseNucleotide();
-					Set<String> altBases = resolveAltBases(gInput, mappingRef);
+					Set<String> altBases = resolveAltBases(input, genomicVariant, mappingRef);
 
 					// if we have the alt base at this point, we can get the altCodon/AA
 					/*Set<String> altCodons = altBases.stream()
@@ -186,42 +189,42 @@ public class UserInputMapper {
 					ensgMappingList = geneConverter.createGenes(altBases, mappingList, caddScores, core.getAmScoreMap());
 				}
 
-				gInput.getGenes().addAll(ensgMappingList);
+				genomicVariant.getGenes().addAll(ensgMappingList);
 			} catch (Exception ex) {
-				gInput.getErrors().add("An exception occurred while processing this input");
-				LOGGER.error("Error processing input {}: {}", gInput, ex.getMessage(), ex);
+				input.getErrors().add("Error processing input");
+				LOGGER.error("Error processing input {}: {}", genomicVariant, ex.getMessage(), ex);
 			}
 		});
 	}
 
-	private Set<String> resolveAltBases(GenomicInput gInput, String mappingRef) {
-		String ref = gInput.getRef();
-		String alt = gInput.getAlt();
+	private Set<String> resolveAltBases(UserInput input, GenomicVariant genomicVariant, String mappingRef) {
+		String ref = genomicVariant.getRef();
+		String alt = genomicVariant.getAlt();
 
 		if (ref != null) {
 			// Handle ref mismatch whether or not alt is provided
 			if (!ref.equalsIgnoreCase(mappingRef)) {
-				gInput.addWarning(String.format(ErrorConstants.ERR_REF_ALLELE_MISMATCH.toString(), ref, mappingRef));
-				gInput.setRef(mappingRef);
+				input.addWarning(String.format(ErrorConstants.ERR_REF_ALLELE_MISMATCH.toString(), ref, mappingRef));
+				genomicVariant.setRef(mappingRef);
 			}
 
 			// Case: Both ref and alt are provided (Y Y)
 			if (alt != null) {
 				if (alt.equalsIgnoreCase(mappingRef)) {
-					gInput.addWarning(ErrorConstants.ERR_REF_AND_VAR_ALLELE_SAME);
+					input.addWarning(ErrorConstants.ERR_REF_AND_VAR_ALLELE_SAME);
 					return GenomicInput.getAlternateBases(mappingRef);
 				}
 				return Set.of(alt);
 			} // Case: Only ref is provided (Y X)
 			else {
-				gInput.addWarning(ErrorConstants.ERR_VAR_ALLELE_EMPTY);
+				input.addWarning(ErrorConstants.ERR_VAR_ALLELE_EMPTY);
 				return GenomicInput.getAlternateBases(mappingRef);
 			}
 		}
 
 		// Case: Both ref and alt are missing (X X)
-		gInput.addWarning(ErrorConstants.ERR_REF_ALLELE_EMPTY);
-		gInput.setRef(mappingRef);
+		input.addWarning(ErrorConstants.ERR_REF_ALLELE_EMPTY);
+		genomicVariant.setRef(mappingRef);
 		return GenomicInput.getAlternateBases(mappingRef);
 	}
 

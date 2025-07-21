@@ -37,14 +37,14 @@ public class MappingController {
     private final MappingService mappingService;
 
     @Operation(summary = "Retrieve mappings for a single variant input - used for direct query.")
-    @GetMapping(value = "/single", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PagedMappingResponse> singleVariant(
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PagedMappingResponse> singleInput(
             @Parameter(description = "Single variant query in a supported format.", example = "19-1010539-G-C")
-            @RequestParam String variant,
+            @RequestParam String input,
             @Parameter(description = MappingRequest.ASSEMBLY_DESC)
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
         MappingRequest request = MappingRequest.builder()
-                .input(variant)
+                .input(input)
                 .type(InputType.SINGLE_VARIANT)
                 .assembly(assembly)
                 .page(1)

@@ -5,7 +5,8 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.format.coding.HGVSc;
+import uk.ac.ebi.protvar.input.HGVSCodingInput;
+import uk.ac.ebi.protvar.input.parser.ParsedField;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.*;
@@ -47,8 +48,9 @@ public class Coding2Pro {
     public void convert(Map<Type, List<UserInput>> groupedInputs, TreeMap<String, List<String>> rsAccsMap) {
         if (groupedInputs.containsKey(Type.CODING)) {
             List<UserInput> codingInputs = groupedInputs.get(Type.CODING);
-            codingInputs.stream().map(i -> (HGVSc) i).forEach(cDNAProt -> {
-                List<String> uniprotAccs = getUniprotAccs(cDNAProt.getRsAcc(), rsAccsMap, cDNAProt);
+            codingInputs.stream().map(i -> (HGVSCodingInput) i).forEach(cDNAProt -> {
+                List<String> uniprotAccs = getUniprotAccs(cDNAProt.getRsAcc(),
+                        rsAccsMap, cDNAProt);
                 if (uniprotAccs != null && uniprotAccs.size() > 0) {
                     int[] protAndCodonPos = coding2ProteinPosition(cDNAProt.getPos());
                     if (protAndCodonPos.length == 2) {

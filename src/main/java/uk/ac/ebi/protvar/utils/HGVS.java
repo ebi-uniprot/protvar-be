@@ -1,7 +1,8 @@
 package uk.ac.ebi.protvar.utils;
 
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
+import uk.ac.ebi.protvar.input.Format;
+import uk.ac.ebi.protvar.input.GenomicInput;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -82,9 +83,10 @@ public class HGVS {
         return inputStr.toUpperCase().startsWith(prefix);
     }
 
-    public static HGVSg invalid(String inputStr) {
+    public static GenomicInput invalid(String inputStr) {
         // has to be one of the HGVS, so HGVSg
-        HGVSg invalid = new HGVSg(inputStr);
+        GenomicInput invalid = new GenomicInput(inputStr);
+        invalid.setFormat(Format.HGVS_GEN);
         Matcher generalMatcher = GENERAL_HGVS_PATTERN.matcher(inputStr);
         if (generalMatcher.matches()) {
             String scheme = generalMatcher.group("scheme");

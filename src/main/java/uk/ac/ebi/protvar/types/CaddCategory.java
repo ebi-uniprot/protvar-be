@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.types;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -17,4 +18,29 @@ public enum CaddCategory {
 
     private final double min;
     private final double max;
+
+    /**
+     * Parses a CaddCategory from a string (case-insensitive).
+     * Shared by both JSON deserialization and Spring's Converter.
+     */
+    public static CaddCategory parse(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        for (CaddCategory c : values()) {
+            if (c.name().equalsIgnoreCase(trimmed)) {
+                return c;
+            }
+        }
+        throw new IllegalArgumentException("Invalid CADD category: " + value);
+    }
+
+    /**
+     * Enables case-insensitive deserialization from JSON.
+     * Used only for JSON (@RequestBody) via Jackson.
+     * For query params (@RequestParam), see the Converter.
+     */
+    @JsonCreator
+    public static CaddCategory fromString(String value) {
+        return parse(value);
+    }
 }

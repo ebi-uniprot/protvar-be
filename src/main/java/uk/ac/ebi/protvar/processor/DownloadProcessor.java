@@ -29,8 +29,7 @@ import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
 import uk.ac.ebi.protvar.input.*;
-import uk.ac.ebi.protvar.input.processor.UserInputParser;
-import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.input.parser.InputParser;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
 import uk.ac.ebi.protvar.mapper.MappingData;
@@ -159,7 +158,7 @@ public class DownloadProcessor {
 		List<UserInput> userInputs;
 
 		if (request.getType() == InputType.SINGLE_VARIANT) {
-			userInputs = List.of(UserInputParser.parse(request.getInput()));
+			userInputs = List.of(InputParser.parse(request.getInput()));
 			processAndWriteCsv(userInputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
 			return;
 		}
@@ -292,8 +291,8 @@ public class DownloadProcessor {
 				}
 				// Process the input and generate CSV rows
 				userInputMapper.processInput(input, coreMapping);
-				input.getDerivedGenomicInputs()
-						.forEach(genInput -> generateGenomicCsvRows(builder, input, genInput, annData));
+				input.getDerivedGenomicVariants()
+						.forEach(genomicVariant -> generateGenomicCsvRows(builder, input, genomicVariant, annData));
 		});
 
 		return builder.build();
@@ -301,38 +300,36 @@ public class DownloadProcessor {
 
 	private void generateGenomicCsvRows(Stream.Builder<String[]> builder,
 										UserInput userInput,
-										GenomicInput genInput,
+										GenomicVariant genomicVariant,
 										AnnotationData annData) {
-		String chr = genInput.getChr();
-		Integer genomicLocation = genInput.getPos();
-		String varAllele = genInput.getAlt();
-		String id = genInput.getId();
-		String input = genInput.getInputStr();
-		String messages = Stream.concat(
-						userInput.getMessages().stream().map(Message::toString),
-						genInput.getMessages().stream().map(Message::toString)
-				)
+		String messages = userInput.getMessages().stream().map(Message::toString)
 				.filter(msg -> !msg.isEmpty()) // Filter for non-empty messages
 				.collect(Collectors.joining(";"));
 		final String notes = messages.isEmpty() ? Constants.NA : messages;
 
-		var genes = genInput.getGenes();
+		var genes = genomicVariant.getGenes();
 		if (genes.isEmpty())
-			builder.add(getCsvDataMappingNotFound(genInput));
+			builder.add(getCsvDataMappingNotFound(userInput, genomicVariant));
 		else
 			genes.stream()
-					.forEach(gene -> builder.add(getCsvData(notes, gene, chr, genomicLocation, varAllele, id, input, annData)));
+					.forEach(gene -> builder.add(getCsvData(notes, gene, userInput, genomicVariant, annData)));
+	}
+
+	String idValue(UserInput userInput) {
+		return userInput.getType() == Type.ID ? userInput.getInputStr() :
+				(userInput.getFormat() == Format.VCF ? ((GenomicInput) userInput).getId() : null);
 	}
 
 	// Method to generate the CSV data for invalid mapping
-	String[] getCsvDataMappingNotFound(GenomicInput genInput){
+	String[] getCsvDataMappingNotFound(UserInput userInput, GenomicVariant genomicVariant){
+		String id = idValue(userInput);
 		List<String> valList = new ArrayList<>();
-		valList.add(genInput.getInputStr()); // User_input
-		valList.add(strValOrNA(genInput.getChr())); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
-		valList.add(intValOrNA(genInput.getPos()));
-		valList.add(strValOrNA(genInput.getId()));
-		valList.add(strValOrNA(genInput.getRef()));
-		valList.add(strValOrNA(genInput.getAlt()));
+		valList.add(userInput.getInputStr()); // User_input
+		valList.add(strValOrNA(genomicVariant.getChr())); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
+		valList.add(intValOrNA(genomicVariant.getPos()));
+		valList.add(strValOrNA(id));
+		valList.add(strValOrNA(genomicVariant.getRef()));
+		valList.add(strValOrNA(genomicVariant.getAlt()));
 		valList.add(NO_MAPPING); // Notes
 		valList.addAll(Collections.nCopies(CsvHeaders.OUTPUT_LENGTH, Constants.NA));
 		return valList.toArray(String[]::new); // Return a String[] array
@@ -361,9 +358,15 @@ public class DownloadProcessor {
 	}
 
 	private String[] getCsvData(String notes, Gene gene,
-								String chr, Integer genomicLocation,
-								String varAllele, String id, String input,
+								UserInput userInput,
+								GenomicVariant genomicVariant,
 								AnnotationData annData) {
+		String chr = genomicVariant.getChr();
+		Integer genomicLocation = genomicVariant.getPos();
+		String varAllele = genomicVariant.getAlt();
+
+		String id = idValue(userInput);
+
 		String cadd = null;
 		if (gene.getCaddScore() != null)
 			cadd = gene.getCaddScore().toString();
@@ -377,7 +380,7 @@ public class DownloadProcessor {
 		var alternateInformDetails = buildAlternateInformDetails(gene.getIsoforms());
 		List<String> transcripts = addTranscripts(isoform.getTranscripts());
 
-		List<String> output = new ArrayList<>(Arrays.asList(input, chr, genomicLocation.toString(), id, gene.getRefAllele(),
+		List<String> output = new ArrayList<>(Arrays.asList(userInput.getInputStr(), chr, genomicLocation.toString(), id, gene.getRefAllele(),
 			varAllele, notes, gene.getGeneName(), isoform.getCodonChange(), strand, cadd,
 				transcripts.toString(), Constants.NA,isoform.getAccession(), CsvUtils.getValOrNA(alternateInformDetails), isoform.getProteinName(),
 			String.valueOf(isoform.getIsoformPosition()), isoform.getAminoAcidChange(),

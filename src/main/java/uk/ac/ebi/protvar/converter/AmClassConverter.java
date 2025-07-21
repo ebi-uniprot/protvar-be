@@ -8,12 +8,6 @@ import uk.ac.ebi.protvar.types.AmClass;
 public class AmClassConverter implements Converter<String, AmClass> {
     @Override
     public AmClass convert(String source) {
-        if (source == null) return null;
-
-        try {
-            return AmClass.valueOf(source.trim().toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid AlphaMissense category: " + source);
-        }
+        return AmClass.parse(source);
     }
 }

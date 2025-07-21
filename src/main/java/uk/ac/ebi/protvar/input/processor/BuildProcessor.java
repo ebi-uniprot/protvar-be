@@ -7,11 +7,11 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
-import uk.ac.ebi.protvar.input.parser.genomic.GenomicInputParser;
-import uk.ac.ebi.protvar.input.parser.genomic.GnomadInputParser;
-import uk.ac.ebi.protvar.input.parser.genomic.VCFInputParser;
-import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.input.parser.ParsedField;
+import uk.ac.ebi.protvar.input.parser.genomic.GenomicParser;
+import uk.ac.ebi.protvar.input.parser.genomic.GnomadParser;
+import uk.ac.ebi.protvar.input.parser.genomic.VCFParser;
+import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.model.data.Crossmap;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.CrossmapRepo;
@@ -41,15 +41,15 @@ public class BuildProcessor {
     public List<UserInput> filterGenomicInputs(List<String> inputs) {
         return inputs.stream()
                 .map(inputStr -> {
-                    if (GenomicInputParser.startsWithChromo(inputStr)) {
-                        if (GnomadInputParser.matchesPattern(inputStr)) // ^chr-pos-ref-alt$
-                            return GnomadInputParser.parse(inputStr);
+                    if (GenomicParser.startsWithChromo(inputStr)) {
+                        if (GnomadParser.matchesPattern(inputStr)) // ^chr-pos-ref-alt$
+                            return GnomadParser.parse(inputStr);
 
-                        if (VCFInputParser.matchesPattern(inputStr)) // ^chr pos id ref alt...
-                            return VCFInputParser.parse(inputStr);
+                        if (VCFParser.matchesPattern(inputStr)) // ^chr pos id ref alt...
+                            return VCFParser.parse(inputStr);
 
-                        if (GenomicInputParser.matchesPattern(inputStr)) // ^chr pos( ref( alt)?)?$
-                            return GenomicInputParser.parse(inputStr);
+                        if (GenomicParser.matchesPattern(inputStr)) // ^chr pos( ref( alt)?)?$
+                            return GenomicParser.parse(inputStr);
                     }
                     return GenomicInput.invalid(inputStr);
                 })
@@ -127,7 +127,8 @@ public class BuildProcessor {
         genomicInputs.stream()
                 .filter(UserInput::isValid) // filter out invalid gen inputs
                 .forEach(i -> {
-                    if (i.getFormat() == Format.HGVS_GEN && Boolean.TRUE.equals(((HGVSg) i).getRsAcc37())) {
+                    if (i.getFormat() == Format.HGVS_GEN &&
+                            Boolean.TRUE.equals(i.getParsedFields().get(ParsedField.RS_37))) {
                         hgvsGs37.add(i);
                     } else {
                         nonHgvsGs.add(i);

@@ -10,7 +10,7 @@ import uk.ac.ebi.protvar.cache.InputSummary;
 import uk.ac.ebi.protvar.fetcher.SearchInputHandler;
 import uk.ac.ebi.protvar.fetcher.UserInputHandler;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.processor.UserInputParser;
+import uk.ac.ebi.protvar.input.parser.InputParser;
 import uk.ac.ebi.protvar.mapper.UserInputMapper;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.UserInputRequest;
@@ -35,7 +35,7 @@ public class MappingService {
 
     private Page<UserInput> singleInputPage(String input) {
         return new PageImpl<>(
-                UserInputParser.parse(List.of(input)),
+                InputParser.parse(List.of(input)),
                 PageRequest.of(0, 1), // page index 0, size 1
                 1 // total elements
         );

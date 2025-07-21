@@ -6,8 +6,8 @@ import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputSummary;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.parser.InputParser;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
-import uk.ac.ebi.protvar.input.processor.UserInputParser;
 import uk.ac.ebi.protvar.model.UserInputRequest;
 import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.utils.ChecksumUtils;
@@ -46,7 +46,7 @@ public class UserInputService {
             }
 
             List<UserInput> parsed = normalizedLines.stream()
-                    .map(UserInputParser::parse)
+                    .map(InputParser::parse)
                     .collect(Collectors.toList());
 
             InputSummary summary = summarize(parsed);
@@ -54,21 +54,6 @@ public class UserInputService {
 
         });
         return id;
-    }
-
-    public List<Object[]> genInputList(List<UserInput> inputs) {
-        return inputs.stream()
-                .flatMap(userInput ->
-                        userInput.getDerivedGenomicInputs().stream()
-                                .map(gen -> new Object[] {
-                                        userInput.getInputStr(),
-                                        gen.getChr(),
-                                        gen.getPos(),
-                                        gen.getRef(),
-                                        gen.getAlt()
-                                })
-                )
-                .collect(Collectors.toList());
     }
 
     public static List<String> normalizeInput(String rawInput) {

@@ -18,28 +18,53 @@ public enum AmClass { // TODO use existing AMClass enum
 
     private final int value;
 
-    public static AmClass fromValue(int value) {
-        for (AmClass amClass : values()) {
-            if (amClass.getValue() == value) {
-                return amClass;
+    /**
+     *
+     * @param input the input value to parse
+     * @return corresponding AmClass enum or null if input is invalid or null
+     */
+    public static AmClass parseOrNull(Object input) {
+        try {
+            return parse(input);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    public static AmClass parse(Object input) {
+        if (input == null) return null;
+
+        if (input instanceof Integer intVal) {
+            for (AmClass amClass : values()) {
+                if (amClass.value == intVal) {
+                    return amClass;
+                }
+            }
+        } else {
+            String str = input.toString().trim();
+            // Try case-insensitive enum name match
+            for (AmClass amClass : values()) {
+                if (amClass.name().equalsIgnoreCase(str)) {
+                    return amClass;
+                }
+            }
+            // Try parsing numeric string
+            try {
+                int intVal = Integer.parseInt(str);
+                for (AmClass amClass : values()) {
+                    if (amClass.value == intVal) {
+                        return amClass;
+                    }
+                }
+            } catch (NumberFormatException ignored) {
+                // fall through
             }
         }
-        return null;
+        throw new IllegalArgumentException("Invalid AlphaMissense class: " + input);
     }
 
     @JsonCreator
-    public static AmClass fromString(String source) {
-        if (source == null) return null;
-
-        switch (source.trim().toLowerCase()) {
-            case "ambiguous":
-                return AMBIGUOUS;
-            case "benign":
-                return BENIGN;
-            case "pathogenic":
-                return PATHOGENIC;
-            default:
-                throw new IllegalArgumentException("Invalid value '" + source + "' for AmClass");
-        }
+    public static AmClass fromJson(Object input) {
+        return parse(input);
     }
 }

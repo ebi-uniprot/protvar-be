@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.types;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 /*
@@ -24,6 +25,7 @@ import lombok.RequiredArgsConstructor;
  *
  * RefSeq accession starts with "NC_" prefix and maps to the corresponding genomic chromosome.
  */
+@Getter
 @RequiredArgsConstructor
 public enum RefseqChr {
 	NC_1("NC_000001.11", "NC_000001.10", "1"),
@@ -52,26 +54,7 @@ public enum RefseqChr {
 	NC_24("NC_000024.10", "NC_000024.9", "Y"),
 	NC_MT("NC_012920.1", "NC_012920.1", "MT");  // same for both builds
 
-	private final String grch38Acc;
-	private final String grch37Acc;
+	private final String refseq38;
+	private final String refseq37;
 	private final String chr;
-	
-	public static String getChrForGRCh38Acc(String acc) {
-		if (acc == null) return null;
-		for (RefseqChr val : RefseqChr.values()) {
-			if (val.grch38Acc.equalsIgnoreCase(acc))
-				return val.chr;
-		}
-		return null;
-	}
-
-	public static String getChrForGRCh37Acc(String acc) {
-		if (acc == null) return null;
-		for (RefseqChr val : RefseqChr.values()) {
-			if (val.grch37Acc.equalsIgnoreCase(acc))
-				return val.chr;
-		}
-		return null;
-	}
-
 }

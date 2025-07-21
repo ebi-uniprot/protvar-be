@@ -20,7 +20,7 @@ import static org.mockito.Mockito.mock;
 
 class DownloadProcessorTest {
 
-  private static final int TOTAL_CSV_COLUMNS = 43;
+  private static final int TOTAL_CSV_COLUMNS = 44;
   DownloadProcessor mockDeps = new DownloadProcessor(
           mock(ThreadPoolTaskExecutor.class),
           mock(CsvFunctionDataBuilder.class),
@@ -46,7 +46,7 @@ class DownloadProcessorTest {
         "Protein_family,Protein_interactions_PROTEIN(gene),Predicted_pockets(energy;per_vol;score;resids)," +
         "Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ),Foldx_prediction(foldxDdg;plddt),Conservation_score," +
         "AlphaMissense_pathogenicity(class),EVE_score(class),ESM1b_score," +
-        "Genomic_location,Cytogenetic_band," +
+        "Gnomad_allele_freq(ac;an;af),Genomic_location,Cytogenetic_band," +
         "Other_identifiers_for_the_variant,Diseases_associated_with_variant,Variants_colocated_at_residue_position," +
         "Position_in_structures";
       assertEquals(header, CsvHeaders.CSV_HEADER);

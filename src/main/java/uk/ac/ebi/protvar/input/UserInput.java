@@ -1,13 +1,12 @@
 package uk.ac.ebi.protvar.input;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
-import uk.ac.ebi.protvar.input.format.id.ClinVarID;
-import uk.ac.ebi.protvar.input.format.id.CosmicID;
-import uk.ac.ebi.protvar.input.parser.variantid.ClinvarInputParser;
-import uk.ac.ebi.protvar.input.parser.variantid.CosmicInputParser;
-import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.input.parser.ParsedField;
+import uk.ac.ebi.protvar.input.parser.variantid.ClinvarParser;
+import uk.ac.ebi.protvar.input.parser.variantid.CosmicParser;
 import uk.ac.ebi.protvar.model.response.Message;
 
 import java.util.*;
@@ -19,7 +18,7 @@ import java.util.stream.Collectors;
  *                           /  |  |  \___________________
  *                    ______/   |  |__________           |
  *                   |          |            |           |
- *  Type          Genomic----Coding------Protein------ID/Ref ----implements----> DerivedGenomicInputProvider
+ *  Type          Genomic    Coding      Protein      ID/Ref
  *  (props)    chr,pos,(id),             acc,pos       id
  *             ref,alt,mappings          ref,alt_aa
  *                  |           |            |           |
@@ -30,13 +29,36 @@ import java.util.stream.Collectors;
  */
 @Getter
 @Setter
-public abstract class UserInput {
-	Type type;
+public class UserInput {
+	//Type type;
 	Format format;
 
 	String inputStr;
 
+	Map<String, Object> parsedFields = new HashMap<>();
+
 	private final List<Message> messages = new LinkedList<>(); // to maintain insertion order
+
+	List<GenomicVariant> derivedGenomicVariants = new ArrayList<>();
+
+	public UserInput(Format format, String inputStr) {
+		this.format = format;
+		this.inputStr = inputStr;
+	}
+
+	public Type getType() {
+		return format.type;
+	}
+
+	@JsonIgnore
+	public List<Object[]> getChrPosList() {
+		return getDerivedGenomicVariants().stream()
+				.filter(g -> g.getChr() != null && g.getPos() != null)
+				.map(g -> new AbstractMap.SimpleEntry<>(g.getChr(), g.getPos())) // removes duplicates
+				.distinct()
+				.map(e -> new Object[]{e.getKey(), e.getValue()})
+				.collect(Collectors.toList());
+	}
 
 	public void addError(String text) {
 		this.messages.add(new Message(Message.MessageType.ERROR, text));
@@ -69,39 +91,38 @@ public abstract class UserInput {
 	}
 
 	@JsonIgnore
-	public String getClinVarIDPrefix() {
-		if (this instanceof ClinVarID
-				&& ((ClinVarID)this).getId() != null
-				&& ((ClinVarID)this).getId().length() > ClinvarInputParser.PREFIX_LEN) {
-			return ((ClinVarID)this).getId().substring(0, ClinvarInputParser.PREFIX_LEN);
-		}
-		return "";
-	}
-
-	@JsonIgnore
-	public String getCosmicIDPrefix() {
-		if (this instanceof CosmicID
-				&& ((CosmicID)this).getId() != null
-				&& ((CosmicID)this).getId().length() > CosmicInputParser.PREFIX_LEN) {
-			return ((CosmicID)this).getId().substring(0, CosmicInputParser.PREFIX_LEN);
-		}
-		return "";
-	}
-
-	@JsonIgnore
-	abstract public List<GenomicInput> getDerivedGenomicInputs();
-	//abstract public List<Object[]> getChrPosList(); // default impl in DerivedGenomicInputProvider
-
-	@JsonIgnore
-	public List<Object[]> getChrPosList() {
-		return getDerivedGenomicInputs().stream()
-				.filter(g -> g.getChr() != null && g.getPos() != null)
-				.map(g -> new Object[]{g.getChr(), g.getPos()})
-				.collect(Collectors.toList());
+	public String getIdPrefix() {
+		return switch (format) {
+			case CLINVAR -> ClinvarParser.getPrefix(inputStr);
+			case COSMIC -> CosmicParser.getPrefix(inputStr);
+			case DBSNP -> "rs";
+			default -> "";
+		};
 	}
 
 	@Override
 	public String toString() {
-		return String.format("UserInput [type=%s, format=%s, inputStr=%s]", type, format, inputStr);
+		return String.format("UserInput [format=%s, inputStr=%s]", format, inputStr);
 	}
+
+
+	// HGVSg parsed fields
+	public void setRefSeq37(boolean refSeq37) {
+		getParsedFields().put(ParsedField.RS_37, refSeq37);
+	}
+
+	public boolean isRefSeq37() {
+		return Boolean.TRUE.equals(getParsedFields().get(ParsedField.RS_37));
+	}
+
+	// HGVSp+c parsed fields
+	public void setRsAcc(String rsAcc) {
+		getParsedFields().put(ParsedField.RS_ACC, rsAcc);
+	}
+	public String getRsAcc() {
+		return (String) getParsedFields().get(ParsedField.RS_ACC);
+	}
+
+	// HGVSc parsed fields
+	// In HGVSCodingInput
 }
