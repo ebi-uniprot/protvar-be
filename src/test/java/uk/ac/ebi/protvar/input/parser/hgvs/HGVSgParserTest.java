@@ -13,10 +13,10 @@ class HGVSgParserTest {
     @Test
     void test_valid() {
         GenomicInput g = HGVSgParser.parse("NC_000023.11:g.149498202C>G");
-        assertEquals(g.getChr(), "X");
-        assertEquals(g.getPos(), 149498202);
-        assertEquals(g.getRef(), "C");
-        assertEquals(g.getAlt(), "G");
+        assertEquals(g.getChromosome(), "X");
+        assertEquals(g.getPosition(), 149498202);
+        assertEquals(g.getRefBase(), "C");
+        assertEquals(g.getAltBase(), "G");
     }
 
     @Test

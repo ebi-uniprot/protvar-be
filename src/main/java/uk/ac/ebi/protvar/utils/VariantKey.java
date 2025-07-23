@@ -35,11 +35,11 @@ public class VariantKey {
     }
 
     public static String genomic(GenomicInput input) {
-        return String.join(SEP, safe(input.getChr()), safe(input.getPos()));
+        return String.join(SEP, safe(input.getChromosome()), safe(input.getPosition()));
     }
 
     public static String genomicWithAlt(GenomicInput input) {
-        return String.join(SEP, safe(input.getChr()), safe(input.getPos()), safe(input.getAlt()));
+        return String.join(SEP, safe(input.getChromosome()), safe(input.getPosition()), safe(input.getAltBase()));
     }
 
     private static String safe(Object value) {

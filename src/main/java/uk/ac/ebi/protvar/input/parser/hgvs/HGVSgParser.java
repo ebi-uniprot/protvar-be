@@ -19,9 +19,9 @@ public class HGVSgParser extends InputParser {
     public static final String SCHEME = "g.";
 
     public static final String SCHEME_PATTERN_REGEX = ":(\\s+)?g\\.";
-    public static final String GENERAL_HGVS_G_PATTERN_REGEX = "^(?<refSeq>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
+    public static final String GENERAL_HGVS_G_PATTERN_REGEX = "^(?<refseqId>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
 
-    public static final String REF_SEQ_REGEX = "(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq NC accession
+    public static final String REF_SEQ_REGEX = "(?<refseqId>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq NC accession
     public static final String VAR_DESC_REGEX =
             "(?<pos>"+ POS + ")" +
                     "(?<sub>"+ GenomicParser.BASE_SUB + ")"; // (A|T|C|G)>(A|T|C|G)
@@ -50,20 +50,20 @@ public class HGVSgParser extends InputParser {
         try {
             Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
             if (generalMatcher.matches()) {
-                String refSeq = generalMatcher.group("refSeq");
-                if (REF_SEQ_PATTERN.matcher(refSeq).matches()) {
+                String refseqId = generalMatcher.group("refseqId");
+                if (REF_SEQ_PATTERN.matcher(refseqId).matches()) {
                     for (RefseqChr val : RefseqChr.values()) {
-                        if (val.getRefseq38().equalsIgnoreCase(refSeq)) {
-                            parsedInput.setChr(val.getChr());
+                        if (val.getRefseqId38().equalsIgnoreCase(refseqId)) {
+                            parsedInput.setChromosome(val.getChr());
                             break;
                         }
-                        if (val.getRefseq37().equalsIgnoreCase(refSeq)) {
-                            parsedInput.setChr(val.getChr());
-                            parsedInput.setRefSeq37(true);
+                        if (val.getRefseqId37().equalsIgnoreCase(refseqId)) {
+                            parsedInput.setChromosome(val.getChr());
+                            parsedInput.setRefseq37(true);
                             break;
                         }
                     }
-                    if (parsedInput.getChr() == null) {
+                    if (parsedInput.getChromosome() == null) {
                         parsedInput.addError(ErrorConstants.HGVS_G_REFSEQ_NOT_MAP_TO_CHR);
                     }
                 } else {
@@ -79,9 +79,9 @@ public class HGVSgParser extends InputParser {
                     String ref = bases[0];
                     String alt = bases[1];
 
-                    parsedInput.setPos(Integer.parseInt(pos));
-                    parsedInput.setRef(ref);
-                    parsedInput.setAlt(alt);
+                    parsedInput.setPosition(Integer.parseInt(pos));
+                    parsedInput.setRefBase(ref);
+                    parsedInput.setAltBase(alt);
                 } else {
                     parsedInput.addError(ErrorConstants.HGVS_G_VARDESC_INVALID);
                 }

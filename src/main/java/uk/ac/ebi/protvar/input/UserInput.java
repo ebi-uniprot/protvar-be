@@ -1,10 +1,8 @@
 package uk.ac.ebi.protvar.input;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
-import uk.ac.ebi.protvar.input.parser.ParsedField;
 import uk.ac.ebi.protvar.input.parser.variantid.ClinvarParser;
 import uk.ac.ebi.protvar.input.parser.variantid.CosmicParser;
 import uk.ac.ebi.protvar.model.response.Message;
@@ -13,29 +11,25 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- *                            UserInput
- *                            ^ ^  ^ ^
- *                           /  |  |  \___________________
- *                    ______/   |  |__________           |
- *                   |          |            |           |
- *  Type          Genomic    Coding      Protein      ID/Ref
- *  (props)    chr,pos,(id),             acc,pos       id
- *             ref,alt,mappings          ref,alt_aa
- *                  |           |            |           |
- *  Format        Internal    HGVSc       Internal   DBSNP, ClinVar
- *                VCF                     HGVSc        COSMIC
- *                HGVSg
- *                GnomAD
+ *                            UserInput (Generic) e.g. Variant Type    ID
+ *                            ^  ^  ^                          Format  DBSNP,CLINVAR,COSMIC
+ *                           /   |  |
+ *                    ______/    |  |_________
+ *                  /            |            \
+ *            GenomicInput  HGVSCodingInput  ProteinInput (Specialised)
+ *
+ *  Variant
+ *  Type      GENOMIC           CODING        PROTEIN
+ *  Format    VCF,GNOMAD,       HGVSC         INTERNAL,HGVSP
+ *            INTERNAL,HGVSG
  */
 @Getter
 @Setter
 public class UserInput {
-	//Type type;
+	Type type; // Derived from format.type; declared here only to control json property order (doesn't need to be explicitly set)
 	Format format;
 
 	String inputStr;
-
-	Map<String, Object> parsedFields = new HashMap<>();
 
 	private final List<Message> messages = new LinkedList<>(); // to maintain insertion order
 
@@ -53,8 +47,8 @@ public class UserInput {
 	@JsonIgnore
 	public List<Object[]> getChrPosList() {
 		return getDerivedGenomicVariants().stream()
-				.filter(g -> g.getChr() != null && g.getPos() != null)
-				.map(g -> new AbstractMap.SimpleEntry<>(g.getChr(), g.getPos())) // removes duplicates
+				.filter(g -> g.getChromosome() != null && g.getPosition() != null)
+				.map(g -> new AbstractMap.SimpleEntry<>(g.getChromosome(), g.getPosition())) // removes duplicates
 				.distinct()
 				.map(e -> new Object[]{e.getKey(), e.getValue()})
 				.collect(Collectors.toList());
@@ -105,24 +99,4 @@ public class UserInput {
 		return String.format("UserInput [format=%s, inputStr=%s]", format, inputStr);
 	}
 
-
-	// HGVSg parsed fields
-	public void setRefSeq37(boolean refSeq37) {
-		getParsedFields().put(ParsedField.RS_37, refSeq37);
-	}
-
-	public boolean isRefSeq37() {
-		return Boolean.TRUE.equals(getParsedFields().get(ParsedField.RS_37));
-	}
-
-	// HGVSp+c parsed fields
-	public void setRsAcc(String rsAcc) {
-		getParsedFields().put(ParsedField.RS_ACC, rsAcc);
-	}
-	public String getRsAcc() {
-		return (String) getParsedFields().get(ParsedField.RS_ACC);
-	}
-
-	// HGVSc parsed fields
-	// In HGVSCodingInput
 }

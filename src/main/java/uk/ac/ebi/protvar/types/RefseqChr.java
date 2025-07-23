@@ -54,7 +54,7 @@ public enum RefseqChr {
 	NC_24("NC_000024.10", "NC_000024.9", "Y"),
 	NC_MT("NC_012920.1", "NC_012920.1", "MT");  // same for both builds
 
-	private final String refseq38;
-	private final String refseq37;
+	private final String refseqId38;
+	private final String refseqId37;
 	private final String chr;
 }

@@ -158,7 +158,7 @@ public class GenomicParser extends InputParser {
 
     public static void parseChr(String chr, GenomicInput input) {
         if (RegexUtils.matchIgnoreCase(CHR, chr))
-            input.setChr(convertChr(chr));
+            input.setChromosome(convertChr(chr));
         else
             input.addError(ErrorConstants.INVALID_CHR);
     }
@@ -166,7 +166,7 @@ public class GenomicParser extends InputParser {
     public static void parsePos(String pos, GenomicInput input) {
         if (RegexUtils.matchIgnoreCase(POS, pos)) {
             try {
-                input.setPos(Integer.parseInt(pos));
+                input.setPosition(Integer.parseInt(pos));
             } catch (NumberFormatException ex) {
                 input.addError(ErrorConstants.INVALID_POS);
             }
@@ -181,14 +181,14 @@ public class GenomicParser extends InputParser {
 
     public static void parseRef(String ref, GenomicInput input) {
         if (RegexUtils.matchIgnoreCase(BASE, ref))
-            input.setRef(ref.toUpperCase());
+            input.setRefBase(ref.toUpperCase());
         else
             input.addError(ErrorConstants.INVALID_REF);
     }
 
     public static void parseAlt(String alt, GenomicInput input) {
         if (RegexUtils.matchIgnoreCase(BASE, alt))
-            input.setAlt(alt.toUpperCase());
+            input.setAltBase(alt.toUpperCase());
         else
             input.addError(ErrorConstants.INVALID_ALT);
     }

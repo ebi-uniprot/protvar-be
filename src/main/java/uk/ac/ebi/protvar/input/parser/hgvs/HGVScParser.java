@@ -20,26 +20,26 @@ public class HGVScParser extends InputParser {
     public static final String PREFIX = "NM_"; // not necessary any more!
     public static final String SCHEME = "c.";
     public static final String GENE = "[A-Z][A-Z0-9]+"; // MAIN CRITERIA: must only contain uppercase letters and numbers, start with a letter
-    public static final String SCHEME_PATTERN_REGEX = ":(\\s+)?c\\.";
+    public static final String SCHEME_PATTERN_REGEX = ":(\\s+)?c\\."; // relaxed ":c." or ": c."
 
-    public static final String GENERAL_HGVS_C_PATTERN_REGEX = "^(?<refSeq>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
+    public static final String GENERAL_HGVS_C_PATTERN_REGEX = "^(?<refseq>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
 
     private static final String REF_SEQ_REGEX =
-            //"(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")" + // RefSeq NM accession
-            "(?<rsAcc>(NM_|NP_)" + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")" +
+            //"(?<refseqId>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")" + // RefSeq NM accession
+            "(?<refseqId>(NM_|NP_)" + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")" +
                     // OPTIONALLY, gene name
                     "(("+ RegexUtils.SPACES +")?\\((?<gene>"+GENE+")\\))?";
 
     private static final String VAR_DESC_REGEX_ =
-            "(?<ref>" + BASE + ")" +
+            "(?<refBase>" + BASE + ")" +
                     "(" + HGVS.SUB_SIGN + ")" +
-                    "(?<alt>" + BASE + ")" +
+                    "(?<altBase>" + BASE + ")" +
                     // OPTIONALLY, with or without space followed by protein substitution
                     "(("+ RegexUtils.SPACES +")?" +
                     "(p.\\(|\\(p.)" + // lenient on where the opening bracket is
-                    "(?<protRef>"+ ProteinParser.AMINO_ACID_REF3 + ")" +
-                    "(?<protPos>" + POS + ")" +
-                    "(?<protAlt>" + ProteinParser.AMINO_ACID_ALT3 +")\\))?";
+                    "(?<refAA>"+ ProteinParser.AMINO_ACID_REF3 + ")" +
+                    "(?<aaPos>" + POS + ")" +
+                    "(?<altAA>" + ProteinParser.AMINO_ACID_ALT3 +")\\))?";
 
     private static final String VAR_DESC_REGEX =
             "(?<pos>" + POS + ")" + VAR_DESC_REGEX_;
@@ -77,16 +77,15 @@ public class HGVScParser extends InputParser {
         try {
             Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
             if (generalMatcher.matches()) {
-                String refSeq = generalMatcher.group("refSeq");
+                String refseq = generalMatcher.group("refseq");
 
-                Matcher refSeqMatcher = REF_SEQ_PATTERN.matcher(refSeq);
-                if (refSeqMatcher.matches()) {
-                    String rsAcc = refSeqMatcher.group("rsAcc"); // refseq accession
+                Matcher refseqMatcher = REF_SEQ_PATTERN.matcher(refseq);
+                if (refseqMatcher.matches()) {
+                    String refseqId = refseqMatcher.group("refseqId");
+                    parsedInput.setRefseqId(refseqId);
                     // optional gene
-                    String gene = refSeqMatcher.group("gene");
-                    //parsedInput.setRsAcc(rsAcc);
-                    parsedInput.setRsAcc(rsAcc);
-                    parsedInput.setGene(gene);
+                    String gene = refseqMatcher.group("gene");
+                    parsedInput.setGeneSymbol(gene);
                 } else {
                     parsedInput.addError(ErrorConstants.HGVS_C_REFSEQ_INVALID);
                 }
@@ -95,24 +94,24 @@ public class HGVScParser extends InputParser {
                 Matcher varDescMatcher = VAR_DESC_PATTERN.matcher(varDesc);
                 if (varDescMatcher.matches()) {
                     String pos = varDescMatcher.group("pos");
-                    String ref = varDescMatcher.group("ref");
-                    String alt = varDescMatcher.group("alt");
+                    String refBase = varDescMatcher.group("refBase");
+                    String altBase = varDescMatcher.group("altBase");
 
-                    parsedInput.setPos(Integer.parseInt(pos));
-                    parsedInput.setRef(ref);
-                    parsedInput.setAlt(alt);
+                    parsedInput.setPosition(Integer.parseInt(pos));
+                    parsedInput.setRefBase(refBase);
+                    parsedInput.setAltBase(altBase);
 
                     // Optional fields
-                    String protRef = varDescMatcher.group("protRef");
-                    String protAlt = varDescMatcher.group("protAlt");
-                    if (protAlt != null && protAlt.equals("=")) {
-                        protAlt = protRef;
+                    String refAA = varDescMatcher.group("refAA");
+                    String altAA = varDescMatcher.group("altAA");
+                    if (altAA != null && altAA.equals("=")) {
+                        altAA = refAA;
                     }
-                    String protPos = varDescMatcher.group("protPos");
+                    String aaPos = varDescMatcher.group("aaPos");
 
-                    parsedInput.setProtRef(protRef);
-                    parsedInput.setProtAlt(protAlt);
-                    parsedInput.setProtPos(protPos == null ? null : Integer.parseInt(protPos));
+                    parsedInput.setRefAA(refAA);
+                    parsedInput.setAltAA(altAA);
+                    parsedInput.setAaPos(aaPos == null ? null : Integer.parseInt(aaPos));
 
                 } else {
                     if (PATTERN_5_PRIME_UTR.matcher(varDesc).matches()) {

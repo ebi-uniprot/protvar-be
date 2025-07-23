@@ -10,23 +10,23 @@ import java.util.Objects;
 
 @Data
 public class GenomicVariant {
-    String chr;
-    Integer pos;
-    String ref;
-    String alt;
+    String chromosome;
+    Integer position;
+    String refBase;
+    String altBase;
 
     // Mappings
     List<Gene> genes = new ArrayList<>();
     // todo move caddScore/alleleFreq here?
 
-    public GenomicVariant(String chr, Integer pos, String ref) {
-        this.chr = chr;
-        this.pos = pos;
-        this.ref = ref;
+    public GenomicVariant(String chromosome, Integer position, String refBase) {
+        this.chromosome = chromosome;
+        this.position = position;
+        this.refBase = refBase;
     }
-    public GenomicVariant(String chr, Integer pos, String ref, String alt) {
-        this(chr, pos, ref);
-        this.alt = alt;
+    public GenomicVariant(String chromosome, Integer position, String refBase, String altBase) {
+        this(chromosome, position, refBase);
+        this.altBase = altBase;
     }
 
     @Override
@@ -34,18 +34,18 @@ public class GenomicVariant {
         if (this == o) return true;
         if (!(o instanceof GenomicVariant)) return false;
         GenomicVariant that = (GenomicVariant) o;
-        return Objects.equals(chr, that.chr) &&
-                Objects.equals(pos, that.pos) &&
-                Objects.equals(ref, that.ref) &&
-                Objects.equals(alt, that.alt);
+        return Objects.equals(chromosome, that.chromosome) &&
+                Objects.equals(position, that.position) &&
+                Objects.equals(refBase, that.refBase) &&
+                Objects.equals(altBase, that.altBase);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(chr, pos, ref, alt);
+        return Objects.hash(chromosome, position, refBase, altBase);
     }
 
     public String getVariantKey() {
-        return VariantKey.genomic(this.chr, this.pos);
+        return VariantKey.genomic(chromosome, position);
     }
 }

@@ -70,7 +70,7 @@ public class HGVS {
     // c. <POS><A>\\><A> optionally, (p.<AAA><POS><AAA>)
     // p. <AAA><POS><AAA>| <AAA><POS>\\* | <A><POS><A> | <A><POS>\\*
 
-    public static final String GENERAL_HGVS_PATTERN_REGEX = "^(?<refSeq>[^:]+):(?<scheme>(\\s+)?[a-z]\\.)[^:]+$";
+    public static final String GENERAL_HGVS_PATTERN_REGEX = "^(?<refseqId>[^:]+):(?<scheme>(\\s+)?[a-z]\\.)[^:]+$";
 
     private static final Pattern GENERAL_HGVS_PATTERN = Pattern.compile(GENERAL_HGVS_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
 
@@ -99,14 +99,14 @@ public class HGVS {
                 default -> invalid.addError(ErrorConstants.HGVS_INVALID_SCHEME);
             }
 
-            String refSeq = generalMatcher.group("refSeq");
-            refSeq = refSeq == null ? "" : refSeq.trim().toUpperCase();
+            String refseqId = generalMatcher.group("refseqId");
+            refseqId = refseqId == null ? "" : refseqId.trim().toUpperCase();
 
-            if (refSeq.startsWith("NG"))
+            if (refseqId.startsWith("NG"))
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_NG);
-            else if (refSeq.startsWith("LRG"))
+            else if (refseqId.startsWith("LRG"))
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_LRG);
-            else if (refSeq.startsWith("NR"))
+            else if (refseqId.startsWith("NR"))
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_NR);
             else
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX);

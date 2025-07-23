@@ -325,11 +325,11 @@ public class DownloadProcessor {
 		String id = idValue(userInput);
 		List<String> valList = new ArrayList<>();
 		valList.add(userInput.getInputStr()); // User_input
-		valList.add(strValOrNA(genomicVariant.getChr())); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
-		valList.add(intValOrNA(genomicVariant.getPos()));
+		valList.add(strValOrNA(genomicVariant.getChromosome())); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
+		valList.add(intValOrNA(genomicVariant.getPosition()));
 		valList.add(strValOrNA(id));
-		valList.add(strValOrNA(genomicVariant.getRef()));
-		valList.add(strValOrNA(genomicVariant.getAlt()));
+		valList.add(strValOrNA(genomicVariant.getRefBase()));
+		valList.add(strValOrNA(genomicVariant.getAltBase()));
 		valList.add(NO_MAPPING); // Notes
 		valList.addAll(Collections.nCopies(CsvHeaders.OUTPUT_LENGTH, Constants.NA));
 		return valList.toArray(String[]::new); // Return a String[] array
@@ -361,9 +361,9 @@ public class DownloadProcessor {
 								UserInput userInput,
 								GenomicVariant genomicVariant,
 								AnnotationData annData) {
-		String chr = genomicVariant.getChr();
-		Integer genomicLocation = genomicVariant.getPos();
-		String varAllele = genomicVariant.getAlt();
+		String chr = genomicVariant.getChromosome();
+		Integer genomicLocation = genomicVariant.getPosition();
+		String varAllele = genomicVariant.getAltBase();
 
 		String id = idValue(userInput);
 

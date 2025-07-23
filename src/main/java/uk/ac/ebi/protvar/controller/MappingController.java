@@ -36,6 +36,20 @@ public class MappingController {
     private final Validator validator;
     private final MappingService mappingService;
 
+    /**
+     * Example URLs
+     * 1. With both parameters:
+     * /mapping?input=19-1010539-G-C&assembly=GRCh38
+     * 2. With only the required parameter (uses default assembly = AUTO):
+     * /mapping?input=19-1010539-G-C
+     *
+     * vs. using @GetMapping("/{input}") with @PathVariable String input:
+     * /mapping/19-1010539-G-C
+     *
+     * @param input
+     * @param assembly
+     * @return
+     */
     @Operation(summary = "Retrieve mappings for a single variant input - used for direct query.")
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PagedMappingResponse> singleInput(

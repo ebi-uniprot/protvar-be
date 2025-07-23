@@ -229,9 +229,9 @@ class GenomicParserTest {
                                    GenomicInput actual) {
         assertEquals(valid, actual.isValid());
         assertEquals(inputStr, actual.getInputStr());
-        assertEquals(chr, actual.getChr());
-        assertEquals(pos, actual.getPos());
-        assertEquals(ref, actual.getRef());
-        assertEquals(alt, actual.getAlt());
+        assertEquals(chr, actual.getChromosome());
+        assertEquals(pos, actual.getPosition());
+        assertEquals(ref, actual.getRefBase());
+        assertEquals(alt, actual.getAltBase());
     }
 }

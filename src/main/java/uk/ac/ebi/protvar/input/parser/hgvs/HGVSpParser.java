@@ -26,10 +26,10 @@ public class HGVSpParser extends InputParser {
     public static final String SCHEME = "p.";
     public static final String SCHEME_PATTERN_REGEX = ":(\\s+)?p\\.";
 
-    public static final String GENERAL_HGVS_P_PATTERN_REGEX = "^(?<refSeq>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
+    public static final String GENERAL_HGVS_P_PATTERN_REGEX = "^(?<refseqId>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
 
     private static final String REF_SEQ_REGEX =
-            //"(?<rsAcc>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq.NP accession
+            //"(?<refseqId>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq.NP accession
             "(NM_|NP_)" + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM;
 
     private static final String VAR_DESC_X_POS_Y = "(\\()?" +
@@ -69,9 +69,9 @@ public class HGVSpParser extends InputParser {
         try {
             Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
             if (generalMatcher.matches()) {
-                String rsAcc = generalMatcher.group("refSeq");
-                if (REF_SEQ_PATTERN.matcher(rsAcc).matches()) {
-                    parsedInput.setRsAcc(rsAcc);
+                String refseqId = generalMatcher.group("refseqId");
+                if (REF_SEQ_PATTERN.matcher(refseqId).matches()) {
+                    parsedInput.setRefseqId(refseqId);
                 } else {
                     parsedInput.addError(ErrorConstants.HGVS_P_REFSEQ_INVALID);
                 }
@@ -103,8 +103,8 @@ public class HGVSpParser extends InputParser {
         String ref = matcher.group("ref");
         String alt = matcher.group("alt");
         alt = ProteinParser.normalizeAltAllele(alt, ref);
-        input.setPos(Integer.parseInt(pos));
-        input.setRef(ref);
-        input.setAlt(alt);
+        input.setPosition(Integer.parseInt(pos));
+        input.setRefAA(ref);
+        input.setAltAA(alt);
     }
 }

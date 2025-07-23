@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.variant.controller;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +42,7 @@ API - annotate	    POST /api/variants/annotate	    For full processing + results
 @RestController
 @RequestMapping("/variants")
 @RequiredArgsConstructor
+@Hidden
 public class MultiVariantController {
     private final VariantInputParser variantInputParser;
     private final VariantService variantService;

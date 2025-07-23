@@ -30,44 +30,44 @@ public class UniprotRefseqRepo {
      * having count(*) > 1
      */
 
-    public Map<String, List<String>> getRefSeqUniprotMap(Set<String> rsAccs) {
-        if (rsAccs == null || rsAccs.isEmpty())
+    public Map<String, List<String>> getRefSeqUniprotMap(Set<String> refseqIds) {
+        if (refseqIds == null || refseqIds.isEmpty())
             return new HashMap();
-        String sql = String.format("SELECT * FROM %s WHERE refseq_acc IN (:rsAccs)",
+        String sql = String.format("SELECT * FROM %s WHERE refseq_acc IN (:ids)",
                 uniprotRefseqTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("rsAccs", rsAccs);
+        SqlParameterSource parameters = new MapSqlParameterSource("ids", refseqIds);
         return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<Map>() {
             @Override
             public Map extractData(ResultSet rs) throws SQLException, DataAccessException {
                 Map<String, List<String>> resultMap = new HashMap();
                 while(rs.next()){
-                    String upAcc = rs.getString("uniprot_acc");
-                    String rsAcc = rs.getString("refseq_acc");
-                    if (!resultMap.containsKey(rsAcc))
-                        resultMap.put(rsAcc, new ArrayList<>());
-                    resultMap.get(rsAcc).add(upAcc);
+                    String uniprotAcc = rs.getString("uniprot_acc");
+                    String refseqId = rs.getString("refseq_acc");
+                    if (!resultMap.containsKey(refseqId))
+                        resultMap.put(refseqId, new ArrayList<>());
+                    resultMap.get(refseqId).add(uniprotAcc);
                 }
                 return resultMap;
             }
         });
     }
 
-    public TreeMap<String, List<String>> getRefSeqNoVerUniprotMap(Set<String> rsAccs) {
-        if (rsAccs == null || rsAccs.isEmpty())
+    public TreeMap<String, List<String>> getRefSeqNoVerUniprotMap(Set<String> refseqIds) {
+        if (refseqIds == null || refseqIds.isEmpty())
             return new TreeMap<>();
-        String sql = String.format("SELECT * FROM %s WHERE split_part(refseq_acc, '.', 1) IN (:rsAccs)",
+        String sql = String.format("SELECT * FROM %s WHERE split_part(refseq_acc, '.', 1) IN (:ids)",
                 uniprotRefseqTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("rsAccs", rsAccs);
+        SqlParameterSource parameters = new MapSqlParameterSource("ids", refseqIds);
         return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<TreeMap>() {
             @Override
             public TreeMap extractData(ResultSet rs) throws SQLException, DataAccessException {
                 TreeMap<String, List<String>> resultMap = new TreeMap<>();
                 while(rs.next()){
-                    String upAcc = rs.getString("uniprot_acc");
-                    String rsAcc = rs.getString("refseq_acc");
-                    if (!resultMap.containsKey(rsAcc))
-                        resultMap.put(rsAcc, new ArrayList<>());
-                    resultMap.get(rsAcc).add(upAcc);
+                    String uniprotAcc = rs.getString("uniprot_acc");
+                    String refseqId = rs.getString("refseq_acc");
+                    if (!resultMap.containsKey(refseqId))
+                        resultMap.put(refseqId, new ArrayList<>());
+                    resultMap.get(refseqId).add(uniprotAcc);
                 }
                 return resultMap;
             }

@@ -6,10 +6,14 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ProteinInput extends UserInput {
-    protected String acc; // UniProt accession
-    protected Integer pos;
-    protected String ref;
-    protected String alt;
+    // Parsed fields
+    String accession;
+    Integer position;
+    String refAA;
+    String altAA;
+
+    // HGVSp input
+    String refseqId;
 
     public ProteinInput(String inputStr) {
         super(Format.INTERNAL_PROTEIN, inputStr);

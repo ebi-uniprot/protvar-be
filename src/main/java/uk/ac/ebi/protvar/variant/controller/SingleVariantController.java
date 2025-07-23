@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.variant.controller;
 
+import io.swagger.v3.oas.annotations.Hidden;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,7 @@ import uk.ac.ebi.protvar.variant.dto.VariantResponse;
 @RestController
 @RequestMapping("/variant")
 @RequiredArgsConstructor
+@Hidden
 public class SingleVariantController {
     private final VariantService variantService;
 

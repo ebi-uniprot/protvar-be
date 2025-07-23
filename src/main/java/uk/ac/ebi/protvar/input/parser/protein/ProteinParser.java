@@ -132,10 +132,10 @@ public class ProteinParser extends InputParser {
             String ref = matcher.group("ref");
             String alt = matcher.group("alt");
             alt = normalizeAltAllele(alt, ref);
-            parsedInput.setAcc(acc.toUpperCase());
-            parsedInput.setPos(Integer.parseInt(pos));
-            parsedInput.setRef(AminoAcid.oneLetter(ref));
-            parsedInput.setAlt(AminoAcid.oneLetter(alt));
+            parsedInput.setAccession(acc.toUpperCase());
+            parsedInput.setPosition(Integer.parseInt(pos));
+            parsedInput.setRefAA(AminoAcid.oneLetter(ref));
+            parsedInput.setAltAA(AminoAcid.oneLetter(alt));
             return true;
         }
         return false;

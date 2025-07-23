@@ -9,36 +9,42 @@ import java.util.Set;
 @Getter
 @Setter
 public class GenomicInput extends UserInput {
-    // Parsed genomic fields
-    String chr;
-    Integer pos;
-    String ref;
-    String alt;
+    // Parsed fields
+    String chromosome;
+    Integer position;
     String id; // VCF ID field
-    Boolean converted; // true if coords converted from 37->38
+    String refBase;
+    String altBase;
+
+    // HGVSg input
+    String refseqId;
+    Boolean refseq37;
+
+    // Derived fields
+    Boolean isLiftedFrom37;
 
     public GenomicInput(String inputStr) {
         super(Format.INTERNAL_GENOMIC, inputStr);
-        // defaults to internal format until explicit set
+        // defaults to internal format until explicitly set
     }
-    public GenomicInput(String inputStr, String chr, Integer pos, String ref) {
+    public GenomicInput(String inputStr, String chromosome, Integer position, String refBase) {
         super(Format.INTERNAL_GENOMIC, inputStr);
-        setChr(chr);
-        setPos(pos);
-        setRef(ref);
+        setChromosome(chromosome);
+        setPosition(position);
+        setRefBase(refBase);
         //derivedGenomicVariants.add(new GenomicVariant(chr, pos, ref));
     }
-    public GenomicInput(String inputStr, String chr, Integer pos, String ref, String alt) {
+    public GenomicInput(String inputStr, String chromosome, Integer position, String refBase, String altBase) {
         super(Format.INTERNAL_GENOMIC, inputStr);
-        setChr(chr);
-        setPos(pos);
-        setRef(ref);
-        setAlt(alt);
+        setChromosome(chromosome);
+        setPosition(position);
+        setRefBase(refBase);
+        setAltBase(altBase);
         //derivedGenomicVariants.add(new GenomicVariant(chr, pos, ref, alt));
     }
 
-    public static UserInput invalid(String userInput){
-        GenomicInput invalid = new GenomicInput(userInput);
+    public static UserInput invalid(String inputStr){
+        GenomicInput invalid = new GenomicInput(inputStr);
         invalid.addError(ErrorConstants.INVALID_GENERIC_INPUT);
         return invalid;
     }
@@ -54,33 +60,7 @@ public class GenomicInput extends UserInput {
         return ALTERNATE_ALLELES_MAP.getOrDefault(refBase.toUpperCase(), Set.of());
     }
 
-    // Overriding equals() to compare two Genomic objects
-    @Override
-    public boolean equals(Object o) {
-
-        // If the object is compared with itself then return true
-        if (o == this) {
-            return true;
-        }
-
-        /* Check if o is an instance of Genomic or not
-          "null instanceof [type]" also returns false */
-        if (!(o instanceof GenomicInput)) {
-            return false;
-        }
-
-        // typecast o to Genomic so that we can compare data members
-        GenomicInput g = (GenomicInput) o;
-
-        return this.chr.equals(g.chr)
-                && this.pos == g.pos
-                && this.ref.equals(g.ref)
-                && this.alt.equals(g.alt)
-                && this.id.equals(g.id)
-                && this.getInputStr().equals(g.getInputStr());
-    }
-
     public GenomicVariant toGenomicVariant() {
-        return new GenomicVariant(chr, pos, ref, alt);
+        return new GenomicVariant(chromosome, position, refBase, altBase);
     }
 }

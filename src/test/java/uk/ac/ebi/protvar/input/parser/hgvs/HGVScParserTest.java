@@ -8,10 +8,10 @@ class HGVScParserTest {
     @Test
     void test_valid() {
         HGVSCodingInput g = HGVScParser.parse("NM_004006.2:c.234C>G");
-        assert "NM_004006.2".equals(g.getRsAcc());
-        assert g.getPos() != null && g.getPos() == 234;
-        assert "C".equals(g.getRef());
-        assert "G".equals(g.getAlt());
+        assert "NM_004006.2".equals(g.getRefseqId());
+        assert g.getPosition() != null && g.getPosition() == 234;
+        assert "C".equals(g.getRefBase());
+        assert "G".equals(g.getAltBase());
     }
     @Test
     void test_invalid_prefix() {
@@ -82,18 +82,18 @@ class HGVScParserTest {
         assertInput(true, inputStr, "NM_017547.4", 1289 , "A", "G", null, "Asn", "Ser", 430, parsedInput);
     }
 
-    private void assertInput(boolean valid, String inputStr, String rsAcc, int pos, String ref, String alt,
+    private void assertInput(boolean valid, String inputStr, String refseqId, int pos, String ref, String alt,
                              String gene, String protRef, String protAlt, Integer protPos, HGVSCodingInput actual) {
         assert valid == actual.isValid();
         assert inputStr.equals(actual.getInputStr());
-        assert rsAcc.equals(actual.getRsAcc());
-        assert actual.getPos() != null && actual.getPos() == pos;
-        assert ref.equals(actual.getRef());
-        assert alt.equals(actual.getAlt());
+        assert refseqId.equals(actual.getRefseqId());
+        assert actual.getPosition() != null && actual.getPosition() == pos;
+        assert ref.equals(actual.getRefBase());
+        assert alt.equals(actual.getAltBase());
         // optional fields
-        assert gene == null || gene.equals(actual.getGene());
-        assert protRef == null || protRef.equals(actual.getProtRef());
-        assert protAlt == null || protAlt.equals(actual.getProtAlt());
-        assert protPos == null || protPos.equals(actual.getProtPos());
+        assert gene == null || gene.equals(actual.getGeneSymbol());
+        assert protRef == null || protRef.equals(actual.getRefAA());
+        assert protAlt == null || protAlt.equals(actual.getAltAA());
+        assert protPos == null || protPos.equals(actual.getAaPos());
     }
 }

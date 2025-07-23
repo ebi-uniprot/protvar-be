@@ -10,7 +10,6 @@ import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.input.mapper.Coding2Pro;
 import uk.ac.ebi.protvar.input.mapper.Id2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
-import uk.ac.ebi.protvar.input.parser.ParsedField;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.model.data.CaddPrediction;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
@@ -62,29 +61,35 @@ public class UserInputMapper {
 		id2Gen.map(groupedInputs);
 
 		// RefSeq-UniProt accession mapping
-		Set<String> rsAccs = inputs.stream()
+		Set<String> refseqIds = inputs.stream()
 				.filter(input -> input.getFormat() == Format.HGVS_PROT ||
 						input.getFormat() == Format.HGVS_CODING)
 				.map(input -> {
-					String rsAcc = input.getRsAcc();
-					if (rsAcc != null && !rsAcc.isEmpty()) {
-						int dotIdx = rsAcc.lastIndexOf(".");
+					String refseqId = null;
+					if (input instanceof ProteinInput) {
+						refseqId = ((ProteinInput) input).getRefseqId();
+					} else if (input instanceof HGVSCodingInput) {
+						refseqId = ((HGVSCodingInput) input).getRefseqId();
+					}
+
+					if (refseqId != null && !refseqId.isEmpty()) {
+						int dotIdx = refseqId.lastIndexOf(".");
 						if (dotIdx != -1)
-							rsAcc = rsAcc.substring(0, dotIdx);
-						return rsAcc;
+							refseqId = refseqId.substring(0, dotIdx);
+						return refseqId;
 					}
 					return null;
 				})
 				.filter(Objects::nonNull)
 				.collect(Collectors.toSet());
 
-		TreeMap<String, List<String>> rsAccsMap = uniprotRefseqRepo.getRefSeqNoVerUniprotMap(rsAccs);
+		TreeMap<String, List<String>> refseqIdMap = uniprotRefseqRepo.getRefSeqNoVerUniprotMap(refseqIds);
 
 		// cDNA to protein inputs conversion
-		coding2Pro.convert(groupedInputs, rsAccsMap);
+		coding2Pro.convert(groupedInputs, refseqIdMap);
 
 		// protein to genomic inputs conversion
-		pro2Gen.convert(groupedInputs, rsAccsMap);
+		pro2Gen.convert(groupedInputs, refseqIdMap);
 	}
 
 	// TODO rename UserInput -> VariantInput
@@ -198,14 +203,14 @@ public class UserInputMapper {
 	}
 
 	private Set<String> resolveAltBases(UserInput input, GenomicVariant genomicVariant, String mappingRef) {
-		String ref = genomicVariant.getRef();
-		String alt = genomicVariant.getAlt();
+		String ref = genomicVariant.getRefBase();
+		String alt = genomicVariant.getAltBase();
 
 		if (ref != null) {
 			// Handle ref mismatch whether or not alt is provided
 			if (!ref.equalsIgnoreCase(mappingRef)) {
 				input.addWarning(String.format(ErrorConstants.ERR_REF_ALLELE_MISMATCH.toString(), ref, mappingRef));
-				genomicVariant.setRef(mappingRef);
+				genomicVariant.setRefBase(mappingRef);
 			}
 
 			// Case: Both ref and alt are provided (Y Y)
@@ -224,7 +229,7 @@ public class UserInputMapper {
 
 		// Case: Both ref and alt are missing (X X)
 		input.addWarning(ErrorConstants.ERR_REF_ALLELE_EMPTY);
-		genomicVariant.setRef(mappingRef);
+		genomicVariant.setRefBase(mappingRef);
 		return GenomicInput.getAlternateBases(mappingRef);
 	}
 

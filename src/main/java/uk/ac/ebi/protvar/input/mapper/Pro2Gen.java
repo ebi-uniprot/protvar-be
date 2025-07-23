@@ -8,7 +8,6 @@ import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.MappingRepo;
-import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.protvar.types.Codon;
@@ -27,34 +26,31 @@ public class Pro2Gen {
     @Autowired
     UniprotEntryCache uniprotEntryCache;
 
-    private UniprotRefseqRepo uniprotRefseqRepo;
-
-    public void convert(Map<Type, List<UserInput>> groupedInputs, TreeMap<String, List<String>> rsAccsMap) {
+    public void convert(Map<Type, List<UserInput>> groupedInputs, TreeMap<String, List<String>> refseqIdMap) {
         List<UserInput> proteinInputs = new ArrayList<>();
         if (groupedInputs.get(Type.PROTEIN) != null)
             proteinInputs.addAll(groupedInputs.get(Type.PROTEIN));
         if (groupedInputs.get(Type.CODING) != null)
             proteinInputs.addAll(groupedInputs.get(Type.CODING));
         if (!proteinInputs.isEmpty())
-            convert(proteinInputs, rsAccsMap);
+            convert(proteinInputs, refseqIdMap);
     }
 
-    private void convert(List<UserInput> proteinInputs, TreeMap<String, List<String>> rsAccsMap) {
+    private void convert(List<UserInput> proteinInputs, TreeMap<String, List<String>> refseqIdMap) {
         // 1. get all the accessions and positions
         List<Object[]> accPosList = new ArrayList<>();
         for (UserInput input : proteinInputs) {
-            String rsAcc = input.getRsAcc();
 
             if (input.getFormat() == Format.HGVS_PROT) {
                 ProteinInput hgvsProt = (ProteinInput) input;
 
-                List<String> uniprotAccs = Coding2Pro.getUniprotAccs(rsAcc, rsAccsMap, hgvsProt);
+                List<String> uniprotAccs = Coding2Pro.getUniprotAccs(hgvsProt.getRefseqId(), refseqIdMap, hgvsProt);
                 if (uniprotAccs != null && uniprotAccs.size() > 0){
                     List<String> head =  uniprotAccs.subList(0, 1);
                     List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());
 
-                    hgvsProt.setAcc(head.get(0));
-                    accPosList.add(new Object[]{head.get(0), hgvsProt.getPos()});
+                    hgvsProt.setAccession(head.get(0));
+                    accPosList.add(new Object[]{head.get(0), hgvsProt.getPosition()});
 
                     if (tail != null) {
                         /*
@@ -70,10 +66,10 @@ public class Pro2Gen {
                                     head.get(0)));
                         }
                     }
-                    if (!uniprotEntryCache.isValidEntry(hgvsProt.getAcc())) {
+                    if (!uniprotEntryCache.isValidEntry(hgvsProt.getAccession())) {
                         hgvsProt.addWarning(
-                                String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
-                                , rsAcc, hgvsProt.getAcc()));
+                                String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage(),
+                                        hgvsProt.getRefseqId(), hgvsProt.getAccession()));
                     }
                 } else {
                     hgvsProt.addWarning(ErrorConstants.HGVS_REFSEQ_NO_PROTEIN);
@@ -81,10 +77,10 @@ public class Pro2Gen {
 
             } else if(input instanceof ProteinInput) { // internal Protein
                 ProteinInput internalProt = (ProteinInput) input;
-                accPosList.add(new Object[]{internalProt.getAcc(), internalProt.getPos()});
+                accPosList.add(new Object[]{internalProt.getAccession(), internalProt.getPosition()});
 
-                if (!uniprotEntryCache.isValidEntry(internalProt.getAcc())) {
-                    internalProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), internalProt.getAcc()));
+                if (!uniprotEntryCache.isValidEntry(internalProt.getAccession())) {
+                    internalProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), internalProt.getAccession()));
                 }
 
             } else if (input.getFormat() == Format.HGVS_CODING) {
@@ -97,7 +93,7 @@ public class Pro2Gen {
                     if (!uniprotEntryCache.isValidEntry(codingInput.getDerivedUniprotAcc()))
                         codingInput.addWarning(
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
-                                        , rsAcc, codingInput.getDerivedUniprotAcc()));
+                                        , codingInput.getRefseqId(), codingInput.getDerivedUniprotAcc()));
                     if (codingInput.getDerivedProtPos() != null)
                         accPosList.add(new Object[]{codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos()});
                 }
@@ -115,7 +111,7 @@ public class Pro2Gen {
             if (i.getType() == Type.PROTEIN) { // INTERNAL_PROT or HGVS_PROT formats
                 ProteinInput input = (ProteinInput) i;
 
-                String key = VariantKey.protein(input.getAcc(), input.getPos());
+                String key = VariantKey.protein(input.getAccession(), input.getPosition());
                 List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
                 // ^ all the genomic coordinates for protein accession and position
 
@@ -172,12 +168,12 @@ public class Pro2Gen {
                         AminoAcid gCoordRefAA = AminoAcid.fromOneOrThreeLetter(gCoordAa);
 
                         // both ref and alt not provided
-                        if (input.getRef() == null && input.getAlt() == null) {
+                        if (input.getRefAA() == null && input.getAltAA() == null) {
                             // Ref & var empty
                             if (!errors.contains(ERR_CODE_REF_EMPTY)) {
                                 errors.add(ERR_CODE_REF_EMPTY);
                                 input.getMessages().add(new Message(Message.MessageType.WARN,
-                                        String.format(ERR_CODE_REF_EMPTY.getErrorMessage(), input.getPos(), gCoordRefAA.getThreeLetter())));
+                                        String.format(ERR_CODE_REF_EMPTY.getErrorMessage(), input.getPosition(), gCoordRefAA.getThreeLetter())));
                             }
 
                             if (!errors.contains(ERR_CODE_VAR_EMPTY)) {
@@ -191,21 +187,21 @@ public class Pro2Gen {
                                 GenomicVariant genomicVariant = new GenomicVariant(gCoordChr, gCoordPos, gCoordRefAllele, altAllele);
                                 input.getDerivedGenomicVariants().add(genomicVariant);
                             }
-                        } else if (input.getRef() != null) { // ref provided
+                        } else if (input.getRefAA() != null) { // ref provided
 
-                            AminoAcid refAA = AminoAcid.fromOneOrThreeLetter(input.getRef());
+                            AminoAcid refAA = AminoAcid.fromOneOrThreeLetter(input.getRefAA());
 
                             // reference mismatch
                             if (!refAA.equals(gCoordRefAA) && !errors.contains(ERR_CODE_REF_MISMATCH)) {
                                 errors.add(ERR_CODE_REF_MISMATCH);
                                 input.getMessages().add(new Message(Message.MessageType.WARN,
                                         String.format(ERR_CODE_REF_MISMATCH.getErrorMessage(),
-                                                refAA.getThreeLetter(), gCoordRefAA.getThreeLetter(), input.getPos(), gCoordRefAA.getThreeLetter())));
-                                input.setRef(gCoordAa);
+                                                refAA.getThreeLetter(), gCoordRefAA.getThreeLetter(), input.getPosition(), gCoordRefAA.getThreeLetter())));
+                                input.setRefAA(gCoordAa);
                             }
 
                             AminoAcid userAltAA = null;
-                            if (input.getAlt() == null) { // alt not provided
+                            if (input.getAltAA() == null) { // alt not provided
                                 if (!errors.contains(ERR_CODE_VAR_EMPTY)) {
                                     errors.add(ERR_CODE_VAR_EMPTY);
                                     input.getMessages().add(new Message(Message.MessageType.WARN,
@@ -213,7 +209,7 @@ public class Pro2Gen {
                                 }
                             }
                             else {
-                                userAltAA = AminoAcid.fromOneOrThreeLetter(input.getAlt());
+                                userAltAA = AminoAcid.fromOneOrThreeLetter(input.getAltAA());
 
                                 // variant non SNV
                                 if (!AminoAcid.isSNV(gCoordRefAA, userAltAA) && !errors.contains(ERR_CODE_VARIANT_NON_SNV)) {
@@ -281,8 +277,8 @@ public class Pro2Gen {
                         if (!gCoordCodonPos.equals(codingInput.getDerivedCodonPos()))
                             return;
 
-                        String cdnaRef = codingInput.getRef();
-                        String cdnaAlt = codingInput.getAlt();
+                        String cdnaRef = codingInput.getRefBase();
+                        String cdnaAlt = codingInput.getAltBase();
 
                         if (gCoord.isReverseStrand()) {
                             cdnaRef = reverseDNA(cdnaRef);

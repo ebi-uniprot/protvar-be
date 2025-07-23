@@ -18,10 +18,10 @@ public class InputParserTest {
 	void testGetInput() {
 		String input = "21 25891796 25891797 C/T . . .";
 		GenomicInput actual = (GenomicInput) InputParser.parse(input);
-		assertEquals("21", actual.getChr());
-		assertEquals(25891796, actual.getPos());
-		assertEquals("C", actual.getRef());
-		assertEquals("T", actual.getAlt());
+		assertEquals("21", actual.getChromosome());
+		assertEquals(25891796, actual.getPosition());
+		assertEquals("C", actual.getRefBase());
+		assertEquals("T", actual.getAltBase());
 	}
 
 	@Test
@@ -29,10 +29,10 @@ public class InputParserTest {
 	void testGetInputTab() {
 		String input = "21\t25891796\t25891797\tC/T . . .";
 		GenomicInput actual = (GenomicInput) InputParser.parse(input);
-		assertEquals("21", actual.getChr());
-		assertEquals(25891796, actual.getPos());
-		assertEquals("C", actual.getRef());
-		assertEquals("T", actual.getAlt());
+		assertEquals("21", actual.getChromosome());
+		assertEquals(25891796, actual.getPosition());
+		assertEquals("C", actual.getRefBase());
+		assertEquals("T", actual.getAltBase());
 	}
 
 	@ParameterizedTest

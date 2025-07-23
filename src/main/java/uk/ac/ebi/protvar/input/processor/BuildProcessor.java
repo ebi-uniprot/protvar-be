@@ -7,7 +7,6 @@ import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.Format;
 import uk.ac.ebi.protvar.input.Type;
 import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.parser.ParsedField;
 import uk.ac.ebi.protvar.input.parser.genomic.GenomicParser;
 import uk.ac.ebi.protvar.input.parser.genomic.GnomadParser;
 import uk.ac.ebi.protvar.input.parser.genomic.VCFParser;
@@ -127,8 +126,9 @@ public class BuildProcessor {
         genomicInputs.stream()
                 .filter(UserInput::isValid) // filter out invalid gen inputs
                 .forEach(i -> {
-                    if (i.getFormat() == Format.HGVS_GEN &&
-                            Boolean.TRUE.equals(i.getParsedFields().get(ParsedField.RS_37))) {
+                    if (i instanceof GenomicInput &&
+                            i.getFormat() == Format.HGVS_GEN &&
+                            Boolean.TRUE.equals(((GenomicInput)i).getRefseq37())) {
                         hgvsGs37.add(i);
                     } else {
                         nonHgvsGs.add(i);
@@ -158,22 +158,22 @@ public class BuildProcessor {
 
         List<Object[]> chrPos37 = new ArrayList<>();
         genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
-            chrPos37.add(new Object[]{input.getChr(), input.getPos()});
+            chrPos37.add(new Object[]{input.getChromosome(), input.getPosition()});
         });
 
         Map<String, List<Crossmap>> groupedCrossmaps = crossmapRepo.getCrossmapsByChrPos37(chrPos37)
                 .stream().collect(Collectors.groupingBy(Crossmap::getGroupByChrAnd37Pos));
 
         genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
-            List<Crossmap> crossmaps = groupedCrossmaps.get(VariantKey.genomic(input.getChr(), input.getPos()));
+            List<Crossmap> crossmaps = groupedCrossmaps.get(VariantKey.genomic(input.getChromosome(), input.getPosition()));
 
             if (crossmaps != null && crossmaps.size() > 0) {
                 // We should expect 1 result, multiple mapping not possible based on
                 // select chr, grch37_pos, count(*) from crossmap
                 // group by chr, grch37_pos
                 // having count(*) > 1 -- no result!
-                input.setPos(crossmaps.get(0).getGrch38Pos());
-                input.setConverted(true);
+                input.setPosition(crossmaps.get(0).getGrch38Pos());
+                input.setIsLiftedFrom37(true);
             } else {
                 input.addError(ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND);
             }
@@ -184,7 +184,7 @@ public class BuildProcessor {
     private double buildPercentageMatch(List<UserInput> nonHgvsGs, String build) {
         List<Object[]> chrPosRefList = new ArrayList<>();
         nonHgvsGs.stream().map(i -> (GenomicInput) i).forEach(input -> {
-            chrPosRefList.add(new Object[]{input.getChr(), input.getPos(), input.getRef()});
+            chrPosRefList.add(new Object[]{input.getChromosome(), input.getPosition(), input.getRefBase()});
         });
         return crossmapRepo.getPercentageMatch(chrPosRefList, build);
     }

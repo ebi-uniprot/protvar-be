@@ -84,8 +84,8 @@ public class AnnotationController {
     String altBase = null;
 
     if (genomicInput != null) {
-      chromosome = genomicInput.getChr();
-      genomicPosition = genomicInput.getPos();
+      chromosome = genomicInput.getChromosome();
+      genomicPosition = genomicInput.getPosition();
       //altBase = genomicInput.getAlt(); // commented to return all bases
     }
 

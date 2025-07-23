@@ -72,10 +72,10 @@ public class ProteinParserTest {
 
     private void assertInput(String input, String acc, Integer pos, String ref, String alt) {
         ProteinInput userInput = ProteinParser.parse(input);
-        Assertions.assertEquals(acc, userInput.getAcc());
-        Assertions.assertEquals(pos, userInput.getPos());
-        Assertions.assertEquals(ref, userInput.getRef());
-        Assertions.assertEquals(alt, userInput.getAlt());
+        Assertions.assertEquals(acc, userInput.getAccession());
+        Assertions.assertEquals(pos, userInput.getPosition());
+        Assertions.assertEquals(ref, userInput.getRefAA());
+        Assertions.assertEquals(alt, userInput.getAltAA());
     }
 
 }
