@@ -9,9 +9,9 @@ import java.util.List;
 
 @Data
 @AllArgsConstructor
-public class CachedUserInputData {
+public class CachedInputData {
     private List<String> inputs;
-    //private Map<String, UserInput> inputMap;
+    //private Map<String, VariantInput> inputMap;
     private InputBuild build;
     private InputSummary summary;
 }

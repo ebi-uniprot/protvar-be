@@ -2,7 +2,7 @@ package uk.ac.ebi.protvar.input.parser.hgvs;
 
 import uk.ac.ebi.protvar.exception.InvalidInputException;
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Format;
+import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.parser.InputParser;
 import uk.ac.ebi.protvar.input.parser.protein.ProteinParser;
 import uk.ac.ebi.protvar.input.ProteinInput;
@@ -65,7 +65,7 @@ public class HGVSpParser extends InputParser {
     public static ProteinInput parse(String inputStr) {
         // pre-condition: fits _:(S?)p._ pattern
         ProteinInput parsedInput = new ProteinInput(inputStr);
-        parsedInput.setFormat(Format.HGVS_PROT);
+        parsedInput.setFormat(VariantFormat.HGVS_PROTEIN);
         try {
             Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
             if (generalMatcher.matches()) {

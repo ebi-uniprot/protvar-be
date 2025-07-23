@@ -8,7 +8,7 @@ import java.util.Set;
 
 @Getter
 @Setter
-public class GenomicInput extends UserInput {
+public class GenomicInput extends VariantInput {
     // Parsed fields
     String chromosome;
     Integer position;
@@ -24,18 +24,18 @@ public class GenomicInput extends UserInput {
     Boolean isLiftedFrom37;
 
     public GenomicInput(String inputStr) {
-        super(Format.INTERNAL_GENOMIC, inputStr);
+        super(VariantFormat.INTERNAL_GENOMIC, inputStr);
         // defaults to internal format until explicitly set
     }
     public GenomicInput(String inputStr, String chromosome, Integer position, String refBase) {
-        super(Format.INTERNAL_GENOMIC, inputStr);
+        super(VariantFormat.INTERNAL_GENOMIC, inputStr);
         setChromosome(chromosome);
         setPosition(position);
         setRefBase(refBase);
         //derivedGenomicVariants.add(new GenomicVariant(chr, pos, ref));
     }
     public GenomicInput(String inputStr, String chromosome, Integer position, String refBase, String altBase) {
-        super(Format.INTERNAL_GENOMIC, inputStr);
+        super(VariantFormat.INTERNAL_GENOMIC, inputStr);
         setChromosome(chromosome);
         setPosition(position);
         setRefBase(refBase);
@@ -43,7 +43,7 @@ public class GenomicInput extends UserInput {
         //derivedGenomicVariants.add(new GenomicVariant(chr, pos, ref, alt));
     }
 
-    public static UserInput invalid(String inputStr){
+    public static VariantInput invalid(String inputStr){
         GenomicInput invalid = new GenomicInput(inputStr);
         invalid.addError(ErrorConstants.INVALID_GENERIC_INPUT);
         return invalid;

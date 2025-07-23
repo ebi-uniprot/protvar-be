@@ -5,7 +5,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.GenomicInput;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -221,8 +221,8 @@ class GenomicParserTest {
     @Test
     void test_parse() {
         String inputStr = "x 123 a t";
-        UserInput userInput = GenomicParser.parse(inputStr); // from previous VCFTest
-        assertInput(true, inputStr, "X", 123, "A", "T", (GenomicInput)userInput);
+        VariantInput input = GenomicParser.parse(inputStr); // from previous VCFTest
+        assertInput(true, inputStr, "X", 123, "A", "T", (GenomicInput)input);
     }
 
     private void assertInput(boolean valid, String inputStr, String chr, Integer pos, String ref, String alt,

@@ -27,8 +27,8 @@ public class CosmicParser extends InputParser {
         return FULL_PATTERN.matcher(input).matches();
     }
 
-    public static UserInput parse(String inputStr) {
-        UserInput parsedInput = new UserInput(Format.COSMIC, inputStr);
+    public static VariantInput parse(String inputStr) {
+        VariantInput parsedInput = new VariantInput(VariantFormat.COSMIC, inputStr);
         if (!valid(inputStr)) {
             LOGGER.warn(parsedInput + ": parsing error");
             parsedInput.addError(ErrorConstants.COSMIC_ID_INVALID);

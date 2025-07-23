@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
-public class UserInputRequest {
+public class InputRequest {
     // Unique identifier for the input. Will be null on the initial request.
     // Returned as part of the response and used in subsequent requests to reference cached input.
     String inputId;

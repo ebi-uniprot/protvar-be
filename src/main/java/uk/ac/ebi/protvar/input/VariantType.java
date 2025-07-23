@@ -1,17 +1,16 @@
 package uk.ac.ebi.protvar.input;
 
-public enum Type { // todo: rename VariantType
+public enum VariantType {
     GENOMIC("genomic"),
-    CODING("coding"), // coding DNA
+    CODING_DNA("coding DNA"),
     PROTEIN("protein"),
-    // todo: rename to VARIANT_ID?
-    ID("ID"),   // variant ID e.g. DBSNP, ClinVar or COSMIC IDs
+    VARIANT_ID("variant ID"),
 
     INVALID("invalid");
 
     private String name;
 
-    Type(String name) {
+    VariantType(String name) {
         this.name = name;
     }
 

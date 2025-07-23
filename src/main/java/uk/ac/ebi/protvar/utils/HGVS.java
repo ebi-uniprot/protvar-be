@@ -1,7 +1,7 @@
 package uk.ac.ebi.protvar.utils;
 
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Format;
+import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.GenomicInput;
 
 import java.util.regex.Matcher;
@@ -86,7 +86,7 @@ public class HGVS {
     public static GenomicInput invalid(String inputStr) {
         // has to be one of the HGVS, so HGVSg
         GenomicInput invalid = new GenomicInput(inputStr);
-        invalid.setFormat(Format.HGVS_GEN);
+        invalid.setFormat(VariantFormat.HGVS_GENOMIC);
         Matcher generalMatcher = GENERAL_HGVS_PATTERN.matcher(inputStr);
         if (generalMatcher.matches()) {
             String scheme = generalMatcher.group("scheme");

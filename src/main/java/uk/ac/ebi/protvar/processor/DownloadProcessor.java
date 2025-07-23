@@ -33,12 +33,12 @@ import uk.ac.ebi.protvar.input.parser.InputParser;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
 import uk.ac.ebi.protvar.mapper.MappingData;
-import uk.ac.ebi.protvar.mapper.UserInputMapper;
+import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.DownloadRequest;
-import uk.ac.ebi.protvar.model.UserInputRequest;
+import uk.ac.ebi.protvar.model.InputRequest;
 import uk.ac.ebi.protvar.service.StructureService;
-import uk.ac.ebi.protvar.service.UserInputCacheService;
-import uk.ac.ebi.protvar.service.UserInputService;
+import uk.ac.ebi.protvar.service.InputCacheService;
+import uk.ac.ebi.protvar.service.InputService;
 import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
@@ -78,11 +78,11 @@ public class DownloadProcessor {
 	private final CsvFunctionDataBuilder csvFunctionDataBuilder;
 	private final CsvPopulationDataBuilder csvPopulationDataBuilder;
 	private final CsvStructureDataBuilder csvStructureDataBuilder;
-	private final UserInputService userInputService;
-	private final UserInputCacheService userInputCacheService;
-	private final UserInputHandler userInputHandler;
+	private final InputService inputService;
+	private final InputCacheService inputCacheService;
+	private final CachedInputHandler cachedInputHandler;
 	private final SearchInputHandler searchInputHandler;
-	private final UserInputMapper userInputMapper;
+	private final InputMapper inputMapper;
 	private final AnnotationFetcher annotationFetcher;
 	private final StructureService structureService;
 	@Value("${app.data.folder}")
@@ -113,9 +113,9 @@ public class DownloadProcessor {
 					// no handler needed for single input
 				}
 				case INPUT_ID -> {
-					handler = userInputHandler;
+					handler = cachedInputHandler;
 					// ensure that the build is detected and cached
-					userInputService.detectBuild(UserInputRequest.builder()
+					inputService.detectBuild(InputRequest.builder()
 							.inputId(request.getInput())
 							.assembly(request.getAssembly())
 							.build());
@@ -155,21 +155,21 @@ public class DownloadProcessor {
 		boolean pop = Boolean.TRUE.equals(request.getPopulation());
 		boolean str = Boolean.TRUE.equals(request.getStructure());
 
-		List<UserInput> userInputs;
+		List<VariantInput> inputs;
 
 		if (request.getType() == InputType.SINGLE_VARIANT) {
-			userInputs = List.of(InputParser.parse(request.getInput()));
-			processAndWriteCsv(userInputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
+			inputs = List.of(InputParser.parse(request.getInput()));
+			processAndWriteCsv(inputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
 			return;
 		}
 
 		InputBuild build = request.getType() != null && request.getType() == InputType.INPUT_ID ?
-				userInputCacheService.getBuild(request.getInput()) : null; // use cached build
+				inputCacheService.getBuild(request.getInput()) : null; // use cached build
 
 		if (!Boolean.TRUE.equals(request.getFull())) { // paged download: process in main thread
 			LOGGER.info("Page download request: {}", request.getFname());
-			userInputs = inputHandler.pagedInput(request).getContent();
-			processAndWriteCsv(userInputs, csvPath, request.getAssembly(), build, fun, pop, str, true);
+			inputs = inputHandler.pagedInput(request).getContent();
+			processAndWriteCsv(inputs, csvPath, request.getAssembly(), build, fun, pop, str, true);
 		} else { // full download: partition and process in parallel, if large
 			LOGGER.info("Full download request: {}", request.getFname());
 			processFullDownload(inputHandler, request, csvPath, build, fun, pop, str);
@@ -180,13 +180,13 @@ public class DownloadProcessor {
 		Files.deleteIfExists(csvPath);
 	}
 
-	private void processAndWriteCsv(List<UserInput> inputs, Path outputPath, String assembly, InputBuild build,
-									boolean fun, boolean pop, boolean str, boolean writeHeader) throws Exception {
-		userInputMapper.preprocess(inputs, assembly, build);
+	private void processAndWriteCsv(List<VariantInput> inputs, Path outputPath, String assembly, InputBuild build,
+                                    boolean fun, boolean pop, boolean str, boolean writeHeader) throws Exception {
+		inputMapper.preprocess(inputs, assembly, build);
 
-		MappingData coreMapping = userInputMapper.loadCoreMappingAndScores(inputs);
+		MappingData coreMapping = inputMapper.loadCoreMappingAndScores(inputs);
 		if (coreMapping != null) {
-			AnnotationData annData = annotationFetcher.preloadOptionalAnnotations(inputs, coreMapping, fun, pop, str);
+			AnnotationData annData = annotationFetcher.preloadOptionalAnnotations(coreMapping, fun, pop, str);
 
 			try (Stream<String[]> rows = streamInputsToCsv(inputs, coreMapping, annData)) {
 				writeCsv(outputPath, rows, writeHeader);
@@ -203,8 +203,8 @@ public class DownloadProcessor {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
 		List<Future<Path>> futures = new ArrayList<>();
 
-		try (Stream<List<UserInput>> chunkStream = inputHandler.streamChunkedInput(request)) {
-			for (List<UserInput> chunk : (Iterable<List<UserInput>>) chunkStream::iterator) {
+		try (Stream<List<VariantInput>> chunkStream = inputHandler.streamChunkedInput(request)) {
+			for (List<VariantInput> chunk : (Iterable<List<VariantInput>>) chunkStream::iterator) {
 				int chunkNum = chunkIndex.getAndIncrement();
 				// Limit concurrent DB/file-processing
 				dbTaskSemaphore.acquire(); // blocks if limit reached
@@ -276,13 +276,13 @@ public class DownloadProcessor {
 	}
 
 	// Stream the inputs and expand them based on input types
-	private Stream<String[]> streamInputsToCsv(List<UserInput> inputs,
+	private Stream<String[]> streamInputsToCsv(List<VariantInput> inputs,
 											   MappingData coreMapping,
 												AnnotationData annData) {
 		// Stream the inputs instead of collecting them into a list
 		Stream.Builder<String[]> builder = Stream.builder();
 		inputs.stream()
-			.filter(UserInput::isValid)
+			.filter(VariantInput::isValid)
 			.forEach(input -> {
 				if (!input.isValid()) {
 					// Invalid input, add one row
@@ -290,7 +290,7 @@ public class DownloadProcessor {
 					return;
 				}
 				// Process the input and generate CSV rows
-				userInputMapper.processInput(input, coreMapping);
+				inputMapper.processInput(input, coreMapping);
 				input.getDerivedGenomicVariants()
 						.forEach(genomicVariant -> generateGenomicCsvRows(builder, input, genomicVariant, annData));
 		});
@@ -299,32 +299,32 @@ public class DownloadProcessor {
 	}
 
 	private void generateGenomicCsvRows(Stream.Builder<String[]> builder,
-										UserInput userInput,
+										VariantInput input,
 										GenomicVariant genomicVariant,
 										AnnotationData annData) {
-		String messages = userInput.getMessages().stream().map(Message::toString)
+		String messages = input.getMessages().stream().map(Message::toString)
 				.filter(msg -> !msg.isEmpty()) // Filter for non-empty messages
 				.collect(Collectors.joining(";"));
 		final String notes = messages.isEmpty() ? Constants.NA : messages;
 
 		var genes = genomicVariant.getGenes();
 		if (genes.isEmpty())
-			builder.add(getCsvDataMappingNotFound(userInput, genomicVariant));
+			builder.add(getCsvDataMappingNotFound(input, genomicVariant));
 		else
 			genes.stream()
-					.forEach(gene -> builder.add(getCsvData(notes, gene, userInput, genomicVariant, annData)));
+					.forEach(gene -> builder.add(getCsvData(notes, gene, input, genomicVariant, annData)));
 	}
 
-	String idValue(UserInput userInput) {
-		return userInput.getType() == Type.ID ? userInput.getInputStr() :
-				(userInput.getFormat() == Format.VCF ? ((GenomicInput) userInput).getId() : null);
+	String idValue(VariantInput input) {
+		return input.getType() == VariantType.VARIANT_ID ? input.getInputStr() :
+				(input.getFormat() == VariantFormat.VCF ? ((GenomicInput) input).getId() : null);
 	}
 
 	// Method to generate the CSV data for invalid mapping
-	String[] getCsvDataMappingNotFound(UserInput userInput, GenomicVariant genomicVariant){
-		String id = idValue(userInput);
+	String[] getCsvDataMappingNotFound(VariantInput input, GenomicVariant genomicVariant){
+		String id = idValue(input);
 		List<String> valList = new ArrayList<>();
-		valList.add(userInput.getInputStr()); // User_input
+		valList.add(input.getInputStr()); // User_input
 		valList.add(strValOrNA(genomicVariant.getChromosome())); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
 		valList.add(intValOrNA(genomicVariant.getPosition()));
 		valList.add(strValOrNA(id));
@@ -336,7 +336,7 @@ public class DownloadProcessor {
 	}
 
 	// Method to generate CSV data for invalid input
-	String[] getCsvDataInvalidInput(UserInput input){
+	String[] getCsvDataInvalidInput(VariantInput input){
 		List<String> valList = new ArrayList<>();
 		valList.add(input.getInputStr()); // User_input
 		valList.addAll(Collections.nCopies(5, Constants.NA)); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
@@ -358,14 +358,14 @@ public class DownloadProcessor {
 	}
 
 	private String[] getCsvData(String notes, Gene gene,
-								UserInput userInput,
+								VariantInput input,
 								GenomicVariant genomicVariant,
 								AnnotationData annData) {
 		String chr = genomicVariant.getChromosome();
 		Integer genomicLocation = genomicVariant.getPosition();
 		String varAllele = genomicVariant.getAltBase();
 
-		String id = idValue(userInput);
+		String id = idValue(input);
 
 		String cadd = null;
 		if (gene.getCaddScore() != null)
@@ -380,7 +380,7 @@ public class DownloadProcessor {
 		var alternateInformDetails = buildAlternateInformDetails(gene.getIsoforms());
 		List<String> transcripts = addTranscripts(isoform.getTranscripts());
 
-		List<String> output = new ArrayList<>(Arrays.asList(userInput.getInputStr(), chr, genomicLocation.toString(), id, gene.getRefAllele(),
+		List<String> output = new ArrayList<>(Arrays.asList(input.getInputStr(), chr, genomicLocation.toString(), id, gene.getRefAllele(),
 			varAllele, notes, gene.getGeneName(), isoform.getCodonChange(), strand, cadd,
 				transcripts.toString(), Constants.NA,isoform.getAccession(), CsvUtils.getValOrNA(alternateInformDetails), isoform.getProteinName(),
 			String.valueOf(isoform.getIsoformPosition()), isoform.getAminoAcidChange(),

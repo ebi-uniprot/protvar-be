@@ -20,11 +20,11 @@ public class DbsnpParser extends InputParser {
         return PATTERN.matcher(input).matches();
     }
 
-    public static UserInput parse(String inputStr) {
-        UserInput parsedInput = new UserInput(Format.DBSNP, inputStr.toLowerCase());// for db case-insensitive query to work
+    public static VariantInput parse(String inputStr) {
+        VariantInput parsedInput = new VariantInput(VariantFormat.DBSNP, inputStr.toLowerCase());// for db case-insensitive query to work
         // db table which stores RS IDs with lower-case prefix
         // ensures Rs, rS, RS work
-        parsedInput.setFormat(Format.DBSNP);
+        parsedInput.setFormat(VariantFormat.DBSNP);
         if (!valid(inputStr)) { // starts with prefix but doesn't match completely
             LOGGER.warn(parsedInput + ": parsing error");
             parsedInput.addError(ErrorConstants.DBSNP_ID_INVALID);

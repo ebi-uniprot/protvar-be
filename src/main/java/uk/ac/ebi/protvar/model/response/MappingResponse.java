@@ -3,7 +3,7 @@ package uk.ac.ebi.protvar.model.response;
 import java.util.*;
 import lombok.Getter;
 import lombok.Setter;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantInput;
 
 /**
  *  GenomicInput
@@ -61,12 +61,12 @@ import uk.ac.ebi.protvar.input.UserInput;
 public class MappingResponse {
 
 	// todo: add request field
-	List<UserInput> inputs;  // todo: rename to mappings? Mapping object with each input line, and corresponding
+	List<VariantInput> inputs;  // todo: rename to mappings? Mapping object with each input line, and corresponding
 	// mapped list of genes Mapping(input, [genes])
 	// perhaps a Map of input(variant) to List<Gene>?
 	List<Message> messages;
 
-	public MappingResponse(List<UserInput> inputs) {
+	public MappingResponse(List<VariantInput> inputs) {
 		this.inputs = inputs;
 		this.messages = new ArrayList<>();
 	}

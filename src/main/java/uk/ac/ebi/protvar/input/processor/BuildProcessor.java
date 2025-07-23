@@ -4,9 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Format;
-import uk.ac.ebi.protvar.input.Type;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantFormat;
+import uk.ac.ebi.protvar.input.VariantType;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.genomic.GenomicParser;
 import uk.ac.ebi.protvar.input.parser.genomic.GnomadParser;
 import uk.ac.ebi.protvar.input.parser.genomic.VCFParser;
@@ -37,7 +37,7 @@ public class BuildProcessor {
      * @param inputs
      * @return
      */
-    public List<UserInput> filterGenomicInputs(List<String> inputs) {
+    public List<VariantInput> filterGenomicInputs(List<String> inputs) {
         return inputs.stream()
                 .map(inputStr -> {
                     if (GenomicParser.startsWithChromo(inputStr)) {
@@ -52,7 +52,7 @@ public class BuildProcessor {
                     }
                     return GenomicInput.invalid(inputStr);
                 })
-                .filter(UserInput::isValid)
+                .filter(VariantInput::isValid)
                 .collect(Collectors.toList());
     }
 
@@ -78,8 +78,8 @@ public class BuildProcessor {
      * @param genomicInputs
      * @return
      */
-    public InputBuild detect(List<UserInput> genomicInputs) {
-        List<UserInput> sampleGenomicInputs;
+    public InputBuild detect(List<VariantInput> genomicInputs) {
+        List<VariantInput> sampleGenomicInputs;
         if (genomicInputs.size() < AUTO_DETECT_MIN_SIZE) {
             sampleGenomicInputs = genomicInputs;
         } else {
@@ -106,8 +106,8 @@ public class BuildProcessor {
     }
 
 
-    public void process(Map<Type, List<UserInput>> groupedInputs, String requestAssembly, InputBuild detectedBuild) {
-        List<UserInput> genomicInputs = groupedInputs.get(Type.GENOMIC);
+    public void process(Map<VariantType, List<VariantInput>> groupedInputs, String requestAssembly, InputBuild detectedBuild) {
+        List<VariantInput> genomicInputs = groupedInputs.get(VariantType.GENOMIC);
         if (genomicInputs == null || genomicInputs.isEmpty()) {
             return;
         }
@@ -120,14 +120,14 @@ public class BuildProcessor {
         }
 
         // Separate inputs that need to be converted irrespective of user-specified assembly e.g. HGVSg37
-        List<UserInput> hgvsGs37 = new ArrayList<>(); // to convert
-        List<UserInput> nonHgvsGs = new ArrayList<>();
+        List<VariantInput> hgvsGs37 = new ArrayList<>(); // to convert
+        List<VariantInput> nonHgvsGs = new ArrayList<>();
 
         genomicInputs.stream()
-                .filter(UserInput::isValid) // filter out invalid gen inputs
+                .filter(VariantInput::isValid) // filter out invalid gen inputs
                 .forEach(i -> {
                     if (i instanceof GenomicInput &&
-                            i.getFormat() == Format.HGVS_GEN &&
+                            i.getFormat() == VariantFormat.HGVS_GENOMIC &&
                             Boolean.TRUE.equals(((GenomicInput)i).getRefseq37())) {
                         hgvsGs37.add(i);
                     } else {
@@ -135,7 +135,7 @@ public class BuildProcessor {
                     }
             });
 
-        List<UserInput> convertList = new ArrayList<>(hgvsGs37);
+        List<VariantInput> convertList = new ArrayList<>(hgvsGs37);
 
         if (!nonHgvsGs.isEmpty() && is37) {
             convertList.addAll(nonHgvsGs);
@@ -154,7 +154,7 @@ public class BuildProcessor {
      * - the latter is tackled in the main mapping logic.
      * @param genomicInputs
      */
-    private void convert(List<UserInput> genomicInputs) {
+    private void convert(List<VariantInput> genomicInputs) {
 
         List<Object[]> chrPos37 = new ArrayList<>();
         genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
@@ -181,7 +181,7 @@ public class BuildProcessor {
         });
     }
 
-    private double buildPercentageMatch(List<UserInput> nonHgvsGs, String build) {
+    private double buildPercentageMatch(List<VariantInput> nonHgvsGs, String build) {
         List<Object[]> chrPosRefList = new ArrayList<>();
         nonHgvsGs.stream().map(i -> (GenomicInput) i).forEach(input -> {
             chrPosRefList.add(new Object[]{input.getChromosome(), input.getPosition(), input.getRefBase()});

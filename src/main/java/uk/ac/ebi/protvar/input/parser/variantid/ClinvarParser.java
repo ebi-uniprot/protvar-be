@@ -28,8 +28,8 @@ public class ClinvarParser extends InputParser {
         return PATTERN.matcher(input).matches();
     }
 
-    public static UserInput parse(String inputStr) {
-        UserInput parsedInput = new UserInput(Format.CLINVAR, inputStr); // keep "raw" input, add parsedField "clinvarId" normalised
+    public static VariantInput parse(String inputStr) {
+        VariantInput parsedInput = new VariantInput(VariantFormat.CLINVAR, inputStr); // keep "raw" input, add parsedField "clinvarId" normalised
         if (!valid(inputStr)) {
             LOGGER.warn(parsedInput + ": parsing error");
             parsedInput.addError(ErrorConstants.CLINVAR_ID_INVALID);

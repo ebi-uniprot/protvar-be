@@ -8,12 +8,12 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputSummary;
 import uk.ac.ebi.protvar.fetcher.SearchInputHandler;
-import uk.ac.ebi.protvar.fetcher.UserInputHandler;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.fetcher.CachedInputHandler;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.InputParser;
-import uk.ac.ebi.protvar.mapper.UserInputMapper;
+import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.MappingRequest;
-import uk.ac.ebi.protvar.model.UserInputRequest;
+import uk.ac.ebi.protvar.model.InputRequest;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
@@ -27,13 +27,13 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class MappingService {
-    private final UserInputService userInputService;
-    private final UserInputCacheService userInputCacheService;
-    private final UserInputHandler userInputHandler; // get the input
+    private final InputService inputService;
+    private final InputCacheService inputCacheService;
+    private final CachedInputHandler cachedInputHandler; // get the input
     private final SearchInputHandler searchInputHandler;
-    private final UserInputMapper userInputMapper;   // do the mapping logic
+    private final InputMapper inputMapper;   // do the mapping logic
 
-    private Page<UserInput> singleInputPage(String input) {
+    private Page<VariantInput> singleInputPage(String input) {
         return new PageImpl<>(
                 InputParser.parse(List.of(input)),
                 PageRequest.of(0, 1), // page index 0, size 1
@@ -42,26 +42,26 @@ public class MappingService {
     }
 
     public PagedMappingResponse get(MappingRequest request) {
-        Page<UserInput> page = switch (request.getType()) {
+        Page<VariantInput> page = switch (request.getType()) {
             case SINGLE_VARIANT -> singleInputPage(request.getInput());
-            case INPUT_ID -> userInputHandler.pagedInput(request);
+            case INPUT_ID -> cachedInputHandler.pagedInput(request);
             case UNIPROT, ENSEMBL, GENE, PDB, REFSEQ -> searchInputHandler.pagedInput(request);
         };
 
-        List<UserInput> inputs = page.getContent();
+        List<VariantInput> inputs = page.getContent();
 
         InputBuild build = null;
         if (request.getType() == InputType.INPUT_ID) {
             // ensure that the build is detected and cached
-            userInputService.detectBuild(UserInputRequest.builder()
+            inputService.detectBuild(InputRequest.builder()
                     .inputId(request.getInput())
                     .assembly(request.getAssembly())
                     .build());
-            build = userInputCacheService.getBuild(request.getInput());
+            build = inputCacheService.getBuild(request.getInput());
         }
 
         boolean multiFormat = request.getType() == InputType.SINGLE_VARIANT || request.getType() == InputType.INPUT_ID;
-        MappingResponse mapping = userInputMapper.getMapping(inputs, request.getAssembly(), build, multiFormat);
+        MappingResponse mapping = inputMapper.getMapping(inputs, request.getAssembly(), build, multiFormat);
 
         if (mapping !=null && request.getType() == InputType.INPUT_ID) {
             List<Message> messages = Optional.ofNullable(mapping.getMessages()).orElseGet(ArrayList::new);
@@ -73,7 +73,7 @@ public class MappingService {
             }
 
             // Add input summary as the first message
-            InputSummary inputSummary = userInputCacheService.getSummary(request.getInput());
+            InputSummary inputSummary = inputCacheService.getSummary(request.getInput());
             String summaryText = (inputSummary != null)
                     ? inputSummary.toString()
                     // probably still generating.. use basic summary

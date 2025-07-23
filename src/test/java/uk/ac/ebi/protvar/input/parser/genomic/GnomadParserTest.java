@@ -26,8 +26,8 @@ class GnomadParserTest {
             "x-149498202-c-g" // lower case / ignore case
     })
     void test_valid(String inputStr) {
-        GenomicInput userInput = GnomadParser.parse(inputStr);
-        assertParsedInput(true, inputStr, "X", 149498202, "C", "G", userInput);
+        GenomicInput input = GnomadParser.parse(inputStr);
+        assertParsedInput(true, inputStr, "X", 149498202, "C", "G", input);
     }
 
     @Test

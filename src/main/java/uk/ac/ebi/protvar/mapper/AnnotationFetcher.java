@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.fetcher.VariantFetcher;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.model.data.AlleleFreq;
 import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
@@ -67,7 +67,7 @@ public class AnnotationFetcher {
 
 	TO check: which calls can be/is cached
 	 */
-	public AnnotationData preloadOptionalAnnotations(List<UserInput> inputs, MappingData core, boolean fun, boolean pop, boolean str) {
+	public AnnotationData preloadOptionalAnnotations(MappingData core, boolean fun, boolean pop, boolean str) {
 		Map<String, List<Variant>> variantMap = Map.of();
 		Map<String, List<AlleleFreq>> freqMap = Map.of();
 

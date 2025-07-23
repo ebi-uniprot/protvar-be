@@ -70,12 +70,12 @@ public class ProteinParserTest {
         assertInput("Q4ZIN3 p.Ser558Arg", "Q4ZIN3", 558, "S", "R");
     }
 
-    private void assertInput(String input, String acc, Integer pos, String ref, String alt) {
-        ProteinInput userInput = ProteinParser.parse(input);
-        Assertions.assertEquals(acc, userInput.getAccession());
-        Assertions.assertEquals(pos, userInput.getPosition());
-        Assertions.assertEquals(ref, userInput.getRefAA());
-        Assertions.assertEquals(alt, userInput.getAltAA());
+    private void assertInput(String inputStr, String acc, Integer pos, String ref, String alt) {
+        ProteinInput input = ProteinParser.parse(inputStr);
+        Assertions.assertEquals(acc, input.getAccession());
+        Assertions.assertEquals(pos, input.getPosition());
+        Assertions.assertEquals(ref, input.getRefAA());
+        Assertions.assertEquals(alt, input.getAltAA());
     }
 
 }

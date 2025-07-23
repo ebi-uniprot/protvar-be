@@ -26,22 +26,22 @@ public class Pro2Gen {
     @Autowired
     UniprotEntryCache uniprotEntryCache;
 
-    public void convert(Map<Type, List<UserInput>> groupedInputs, TreeMap<String, List<String>> refseqIdMap) {
-        List<UserInput> proteinInputs = new ArrayList<>();
-        if (groupedInputs.get(Type.PROTEIN) != null)
-            proteinInputs.addAll(groupedInputs.get(Type.PROTEIN));
-        if (groupedInputs.get(Type.CODING) != null)
-            proteinInputs.addAll(groupedInputs.get(Type.CODING));
+    public void convert(Map<VariantType, List<VariantInput>> groupedInputs, TreeMap<String, List<String>> refseqIdMap) {
+        List<VariantInput> proteinInputs = new ArrayList<>();
+        if (groupedInputs.get(VariantType.PROTEIN) != null)
+            proteinInputs.addAll(groupedInputs.get(VariantType.PROTEIN));
+        if (groupedInputs.get(VariantType.CODING_DNA) != null)
+            proteinInputs.addAll(groupedInputs.get(VariantType.CODING_DNA));
         if (!proteinInputs.isEmpty())
             convert(proteinInputs, refseqIdMap);
     }
 
-    private void convert(List<UserInput> proteinInputs, TreeMap<String, List<String>> refseqIdMap) {
+    private void convert(List<VariantInput> proteinInputs, TreeMap<String, List<String>> refseqIdMap) {
         // 1. get all the accessions and positions
         List<Object[]> accPosList = new ArrayList<>();
-        for (UserInput input : proteinInputs) {
+        for (VariantInput input : proteinInputs) {
 
-            if (input.getFormat() == Format.HGVS_PROT) {
+            if (input.getFormat() == VariantFormat.HGVS_PROTEIN) {
                 ProteinInput hgvsProt = (ProteinInput) input;
 
                 List<String> uniprotAccs = Coding2Pro.getUniprotAccs(hgvsProt.getRefseqId(), refseqIdMap, hgvsProt);
@@ -83,7 +83,7 @@ public class Pro2Gen {
                     internalProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), internalProt.getAccession()));
                 }
 
-            } else if (input.getFormat() == Format.HGVS_CODING) {
+            } else if (input.getFormat() == VariantFormat.HGVS_CODING) {
                 HGVSCodingInput codingInput = (HGVSCodingInput) input;
                 if (codingInput.getDerivedUniprotAcc() != null) {/*
                     codingInput.addInfo(String.format(
@@ -108,7 +108,7 @@ public class Pro2Gen {
         //	which we will try to pin down to one, if possible, based on the user inputs
         proteinInputs.stream().filter(i -> i.isValid()).forEach(i -> {
 
-            if (i.getType() == Type.PROTEIN) { // INTERNAL_PROT or HGVS_PROT formats
+            if (i.getType() == VariantType.PROTEIN) { // INTERNAL_PROT or HGVS_PROT formats
                 ProteinInput input = (ProteinInput) i;
 
                 String key = VariantKey.protein(input.getAccession(), input.getPosition());
@@ -255,7 +255,7 @@ public class Pro2Gen {
                     }
                 }
 
-            } else if (i.getFormat() == Format.HGVS_CODING) {
+            } else if (i.getFormat() == VariantFormat.HGVS_CODING) {
                 HGVSCodingInput codingInput = (HGVSCodingInput) i;
 
                 String key = VariantKey.protein(codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos());

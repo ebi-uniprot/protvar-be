@@ -6,7 +6,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputSummary;
-import uk.ac.ebi.protvar.model.CachedUserInputData;
+import uk.ac.ebi.protvar.model.CachedInputData;
 
 import java.util.List;
 
@@ -22,14 +22,14 @@ import java.util.List;
  *       ]
  */
 @Service
-public class UserInputCacheService {
-    @Cacheable(value = "userInputs", key = "#inputId")
-    //public List<UserInput> getInputs(String inputId) { return null; }
-    public List<String> getInputs(String inputId) { return null; }
+public class InputCacheService {
+    @Cacheable(value = "inputs", key = "#inputId")
+    //public List<VariantInput> getInput(String inputId) { return null; }
+    public List<String> getInput(String inputId) { return null; }
 
-    @CachePut(value = "userInputs", key = "#inputId")
-    //public List<UserInput> cacheInputs(String inputId, List<UserInput> inputs) { return inputs; }
-    public List<String> cacheInputs(String inputId, List<String> inputs) { return inputs; }
+    @CachePut(value = "inputs", key = "#inputId")
+    //public List<VariantInput> cacheInput(String inputId, List<VariantInput> inputs) { return inputs; }
+    public List<String> cacheInput(String inputId, List<String> inputs) { return inputs; }
 
     // Rename InputBuild to GenomeBuild
     @Cacheable(value = "inputBuilds", key = "#inputId")
@@ -44,11 +44,11 @@ public class UserInputCacheService {
     @CachePut(value = "inputSummaries", key = "#inputId")
     public InputSummary cacheSummary(String inputId, InputSummary summary) { return summary; }
 
-    public CachedUserInputData getAll(String inputId) {
-        return new CachedUserInputData(getInputs(inputId), getBuild(inputId), getSummary(inputId));
+    public CachedInputData getAll(String inputId) {
+        return new CachedInputData(getInput(inputId), getBuild(inputId), getSummary(inputId));
     }
 
-    @CacheEvict(value = {"userInputs", "inputBuilds", "inputSummaries"}, key = "#inputId")
+    @CacheEvict(value = {"inputs", "inputBuilds", "inputSummaries"}, key = "#inputId")
     public void clearCache(String inputId) {}
 
 }

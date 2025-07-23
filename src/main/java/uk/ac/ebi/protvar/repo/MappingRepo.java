@@ -13,7 +13,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.constants.PageUtils;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.MappingRequest;
@@ -132,7 +132,7 @@ public class MappingRepo {
 	// -- addressed at source (import) and chr-pos-allele-alt need
 	// -- to be all PKs (no need to save allele in tbl).
 
-	public Page<UserInput> getGenInputsByAccession(String accession, Pageable pageable) {
+	public Page<VariantInput> getGenInputsByAccession(String accession, Pageable pageable) {
 		String rowCountSql = String.format("""
     		SELECT COUNT(DISTINCT (chromosome, genomic_position, allele, protein_position)) 
 				AS row_count 
@@ -152,7 +152,7 @@ public class MappingRepo {
 
 		SqlParameterSource queryParameters = new MapSqlParameterSource("acc", accession);
 
-		List<UserInput> genomicInputs =
+		List<VariantInput> genomicInputs =
 				jdbcTemplate.query(querySql, queryParameters,
 						(rs, rowNum) -> new GenomicInput(accession, rs.getString("chromosome"), rs.getInt("genomic_position"), rs.getString("allele"))
 				);
@@ -167,7 +167,7 @@ public class MappingRepo {
 	 * especially when filters are involved. See the corresponding method where database-side
 	 * generation is used along with filtering for an example.
 	 */
-	public Page<UserInput> getGenInputsByAccession_x3(String accession, Pageable pageable) {
+	public Page<VariantInput> getGenInputsByAccession_x3(String accession, Pageable pageable) {
 
 		String fields = "chromosome, genomic_position, allele, protein_position, codon_position";
 		String rowCountSql = String.format("""
@@ -189,7 +189,7 @@ public class MappingRepo {
 
 		SqlParameterSource queryParameters = new MapSqlParameterSource("acc", accession);
 
-		List<UserInput> genomicInputs = new ArrayList<>();
+		List<VariantInput> genomicInputs = new ArrayList<>();
 		jdbcTemplate.query(querySql, queryParameters, (rs) -> {
 			String chr = rs.getString("chromosome");
 			int pos = rs.getInt("genomic_position");
@@ -332,9 +332,9 @@ public class MappingRepo {
 	// Recommendation:
 	// If performance is critical and this query runs often or on large datasets, go with the simpler VALUES + CROSS JOIN version.
 
-	public Page<UserInput> getGenInputsByAccession_CTE(String accession,
-													   List<CaddCategory> caddCategories, List<AmClass> amClasses,
-													   String sort, String order, Pageable pageable) {
+	public Page<VariantInput> getGenInputsByAccession_CTE(String accession,
+														  List<CaddCategory> caddCategories, List<AmClass> amClasses,
+														  String sort, String order, Pageable pageable) {
 		boolean filterByCadd = caddCategories != null
 				&& !caddCategories.isEmpty();
 		// handled (normalized) in controller
@@ -441,7 +441,7 @@ public class MappingRepo {
 		parameters.addValue("pageSize", pageable.getPageSize());
 		parameters.addValue("offset", pageable.getOffset());
 
-		List<UserInput> genomicInputs = jdbcTemplate.query(
+		List<VariantInput> genomicInputs = jdbcTemplate.query(
 				String.format(sql.toString(), "DISTINCT " + fields),
 				parameters,
 				(rs, rowNum) -> {
@@ -460,7 +460,7 @@ public class MappingRepo {
 	//	cadd_table(chromosome, position, ref, alt)
 	//	alphamissense_table(accession, position, ref, alt)
 
-	public Page<UserInput> getGenomicVariantsForInput(MappingRequest request, Pageable pageable
+	public Page<VariantInput> getGenomicVariantsForInput(MappingRequest request, Pageable pageable
 	) {
 		boolean isDownload = request instanceof DownloadRequest;
 		return getGenomicVariantsForInput(
@@ -476,7 +476,7 @@ public class MappingRepo {
 		);
 
 	}
-	public Page<UserInput> getGenomicVariantsForInput(
+	public Page<VariantInput> getGenomicVariantsForInput(
 			String identifier,
 			InputType identifierType,
 			List<CaddCategory> caddCategories,
@@ -714,7 +714,7 @@ public class MappingRepo {
 		parameters.addValue("pageSize", pageable.getPageSize());
 		parameters.addValue("offset", pageable.getOffset());
 
-		List<UserInput> genomicInputs = jdbcTemplate.query(
+		List<VariantInput> genomicInputs = jdbcTemplate.query(
 				String.format(sql.toString(), "DISTINCT " + fields),
 				parameters,
 				(rs, rowNum) -> {

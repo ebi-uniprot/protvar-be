@@ -4,11 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputSummary;
-import uk.ac.ebi.protvar.input.Type;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantType;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.InputParser;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
-import uk.ac.ebi.protvar.model.UserInputRequest;
+import uk.ac.ebi.protvar.model.InputRequest;
 import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.utils.ChecksumUtils;
 
@@ -22,10 +22,10 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class UserInputService {
+public class InputService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
-    private final UserInputCacheService cacheService;
+    private final InputCacheService cacheService;
     private final BuildProcessor buildProcessor;
 
     private String checksumFromLines(List<String> lines) {
@@ -33,19 +33,19 @@ public class UserInputService {
         return ChecksumUtils.checksum(joined.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String processInput(UserInputRequest request) {
+    public String processInput(InputRequest request) {
         List<String> normalizedLines = normalizeInput(request.getRawInput()); // ensure consistent checksums across semantically identical inputs
         String id = checksumFromLines(normalizedLines);
         // Launch async job to cache, determine build and summarise input
         executorService.submit(() -> {
-            cacheService.cacheInputs(id, normalizedLines); // cache the normalized input lines
+            cacheService.cacheInput(id, normalizedLines); // cache the normalized input lines
 
             if (request.isAutoDetectBuild()) {
                 InputBuild build = detectBuild(normalizedLines);
                 cacheService.cacheBuild(id, build);
             }
 
-            List<UserInput> parsed = normalizedLines.stream()
+            List<VariantInput> parsed = normalizedLines.stream()
                     .map(InputParser::parse)
                     .collect(Collectors.toList());
 
@@ -99,13 +99,13 @@ public class UserInputService {
      * @return
      */
 
-    public void detectBuild(UserInputRequest request) {
+    public void detectBuild(InputRequest request) {
         if (request.isAutoDetectBuild()) {
             String id = request.getInputId();
             if (id != null &&
                     cacheService.getBuild(id) == null) {
 
-                List<String> inputs = cacheService.getInputs(id);
+                List<String> inputs = cacheService.getInput(id);
                 InputBuild build = detectBuild(inputs);
                 cacheService.cacheBuild(id, build);
             }
@@ -113,7 +113,7 @@ public class UserInputService {
     }
 
     private InputBuild detectBuild(List<String> allInputs) {
-        List<UserInput> genomicInputs = buildProcessor.filterGenomicInputs(allInputs);
+        List<VariantInput> genomicInputs = buildProcessor.filterGenomicInputs(allInputs);
         if (!genomicInputs.isEmpty()) {
             return buildProcessor.detect(genomicInputs); // returns a default (AUTO_DETECT_UNKNOWN)
         }
@@ -127,9 +127,9 @@ public class UserInputService {
      * @param inputs may be for an input partition or whole input
      * @return
      */
-    public static InputSummary summarize(List<UserInput> inputs) {
-        EnumMap<Type, Integer> inputCounts = new EnumMap<>(Type.class);
-        for (Type type : Type.values()) {
+    public static InputSummary summarize(List<VariantInput> inputs) {
+        EnumMap<VariantType, Integer> inputCounts = new EnumMap<>(VariantType.class);
+        for (VariantType type : VariantType.values()) {
             inputCounts.put(type, 0);
         }
 
@@ -137,7 +137,7 @@ public class UserInputService {
             if (input.isValid() && input.getType() != null) {
                 inputCounts.put(input.getType(), inputCounts.get(input.getType()) + 1);
             } else {
-                inputCounts.put(Type.INVALID, inputCounts.get(Type.INVALID) + 1);
+                inputCounts.put(VariantType.INVALID, inputCounts.get(VariantType.INVALID) + 1);
             }
         });
         return InputSummary.builder()

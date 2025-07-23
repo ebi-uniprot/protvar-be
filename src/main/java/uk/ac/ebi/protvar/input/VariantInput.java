@@ -1,4 +1,5 @@
 package uk.ac.ebi.protvar.input;
+// todo move to uk.ac.ebi.protvar.variant?
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
@@ -11,37 +12,37 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- *                            UserInput (Generic) e.g. Variant Type    ID
- *                            ^  ^  ^                          Format  DBSNP,CLINVAR,COSMIC
+ *                          VariantInput (Generic) e.g. Variant Type    VARIANT_ID
+ *                            ^  ^  ^                           Format  DBSNP,CLINVAR,COSMIC
  *                           /   |  |
  *                    ______/    |  |_________
  *                  /            |            \
  *            GenomicInput  HGVSCodingInput  ProteinInput (Specialised)
  *
  *  Variant
- *  Type      GENOMIC           CODING        PROTEIN
- *  Format    VCF,GNOMAD,       HGVSC         INTERNAL,HGVSP
- *            INTERNAL,HGVSG
+ *  Type      GENOMIC           CODING_DNA     PROTEIN
+ *  Format    VCF,GNOMAD,       HGVS_C         INTERNAL,HGVS_P
+ *            INTERNAL,HGVS_G
  */
 @Getter
 @Setter
-public class UserInput {
-	Type type; // Derived from format.type; declared here only to control json property order (doesn't need to be explicitly set)
-	Format format;
-
-	String inputStr;
+public class VariantInput {
+	int index; // order of the input
+	String inputStr; // raw input string; trimmed, non-null
+	VariantFormat format;
+	VariantType type; // Derived from format.type; declared here only to control json property order (doesn't need to be explicitly set)
 
 	private final List<Message> messages = new LinkedList<>(); // to maintain insertion order
 
 	List<GenomicVariant> derivedGenomicVariants = new ArrayList<>();
 
-	public UserInput(Format format, String inputStr) {
+	public VariantInput(VariantFormat format, String inputStr) {
 		this.format = format;
 		this.inputStr = inputStr;
 	}
 
-	public Type getType() {
-		return format.type;
+	public VariantType getType() {
+		return format.getType();
 	}
 
 	@JsonIgnore
@@ -96,7 +97,7 @@ public class UserInput {
 
 	@Override
 	public String toString() {
-		return String.format("UserInput [format=%s, inputStr=%s]", format, inputStr);
+		return String.format("Input [format=%s (%s), inputStr=%s]", format,  format.getType(), inputStr);
 	}
 
 }

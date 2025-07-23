@@ -2,7 +2,7 @@ package uk.ac.ebi.protvar.input.parser.genomic;
 
 import uk.ac.ebi.protvar.exception.InvalidInputException;
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Format;
+import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.parser.InputParser;
 import uk.ac.ebi.protvar.input.GenomicInput;
 
@@ -28,7 +28,7 @@ public class GnomadParser extends InputParser {
     public static GenomicInput parse(String inputStr) {
         // pre-condition: matchesPattern
         GenomicInput parsedInput = new GenomicInput(inputStr);
-        parsedInput.setFormat(Format.GNOMAD);
+        parsedInput.setFormat(VariantFormat.GNOMAD);
         try {
             Matcher matcher = PATTERN.matcher(inputStr);
             if (matcher.matches()) {

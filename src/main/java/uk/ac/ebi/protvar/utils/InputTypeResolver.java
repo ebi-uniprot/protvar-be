@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.utils;
 
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.InputParser;
 import uk.ac.ebi.protvar.types.InputType;
 import java.util.regex.Pattern;
@@ -57,7 +57,7 @@ public class InputTypeResolver {
 
         // Try parsing as a variant
         if (isSingleLine(trimmed)) {
-            UserInput parsed = InputParser.parse(trimmed);
+            VariantInput parsed = InputParser.parse(trimmed);
             if (parsed != null && parsed.isValid()) {
                 return InputType.SINGLE_VARIANT;
             }

@@ -1,7 +1,7 @@
 package uk.ac.ebi.protvar.fetcher;
 
 import org.springframework.data.domain.Page;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.model.MappingRequest;
 
 import java.util.List;
@@ -11,9 +11,9 @@ public interface InputHandler {
 
 
     // For paginated UI/API
-    Page<UserInput> pagedInput(MappingRequest request);
+    Page<VariantInput> pagedInput(MappingRequest request);
 
 
     // Stream chunks for download
-    Stream<List<UserInput>> streamChunkedInput(MappingRequest request); // for full input
+    Stream<List<VariantInput>> streamChunkedInput(MappingRequest request); // for full input
 }

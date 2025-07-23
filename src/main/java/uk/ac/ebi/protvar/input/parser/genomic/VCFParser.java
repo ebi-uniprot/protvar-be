@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.ebi.protvar.exception.InvalidInputException;
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Format;
+import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.GenomicInput;
 
 import java.util.regex.Matcher;
@@ -49,7 +49,7 @@ public class VCFParser {
     public static GenomicInput parse(String inputStr) {
         // pre-condition: matchesPattern
         GenomicInput parsedInput = new GenomicInput(inputStr);
-        parsedInput.setFormat(Format.VCF);
+        parsedInput.setFormat(VariantFormat.VCF);
 
         try {
             Matcher matcher = PATTERN.matcher(inputStr);

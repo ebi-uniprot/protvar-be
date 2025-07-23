@@ -2,7 +2,7 @@ package uk.ac.ebi.protvar.input.parser.hgvs;
 
 import uk.ac.ebi.protvar.exception.InvalidInputException;
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Format;
+import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.input.parser.InputParser;
 import uk.ac.ebi.protvar.input.parser.genomic.GenomicParser;
@@ -46,7 +46,7 @@ public class HGVSgParser extends InputParser {
     public static GenomicInput parse(String inputStr) {
         // pre-condition: fits _:(S?)g._ pattern
         GenomicInput parsedInput = new GenomicInput(inputStr);
-        parsedInput.setFormat(Format.HGVS_GEN);
+        parsedInput.setFormat(VariantFormat.HGVS_GENOMIC);
         try {
             Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
             if (generalMatcher.matches()) {

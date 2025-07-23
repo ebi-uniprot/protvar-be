@@ -3,16 +3,16 @@ package uk.ac.ebi.protvar.processor;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import uk.ac.ebi.protvar.fetcher.UserInputHandler;
+import uk.ac.ebi.protvar.fetcher.CachedInputHandler;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
-import uk.ac.ebi.protvar.mapper.UserInputMapper;
+import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.fetcher.SearchInputHandler;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
 import uk.ac.ebi.protvar.service.StructureService;
-import uk.ac.ebi.protvar.service.UserInputCacheService;
-import uk.ac.ebi.protvar.service.UserInputService;
+import uk.ac.ebi.protvar.service.InputCacheService;
+import uk.ac.ebi.protvar.service.InputService;
 import uk.ac.ebi.protvar.utils.Constants;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,11 +26,11 @@ class DownloadProcessorTest {
           mock(CsvFunctionDataBuilder.class),
           mock(CsvPopulationDataBuilder.class),
           mock(CsvStructureDataBuilder.class),
-          mock(UserInputService.class),
-          mock(UserInputCacheService.class),
-          mock(UserInputHandler.class),
+          mock(InputService.class),
+          mock(InputCacheService.class),
+          mock(CachedInputHandler.class),
           mock(SearchInputHandler.class),
-          mock(UserInputMapper.class),
+          mock(InputMapper.class),
           mock(AnnotationFetcher.class),
           mock(StructureService.class));
 
@@ -57,89 +57,4 @@ class DownloadProcessorTest {
       assertEquals(TOTAL_CSV_COLUMNS, CsvHeaders.CSV_HEADER.split(Constants.COMMA).length);
     }
   }
-/*
-  @Nested
-  class InvalidInput {
-    @Test
-    void columnSizeMatch() {
-      var colsForInvalidInput = mockDeps.getCsvDataInvalidInput(UserInput.getInput("abc"));
-      assertEquals(TOTAL_CSV_COLUMNS, colsForInvalidInput.length);
-    }
-
-    @Test
-    void firstColAlwaysInput() {
-      var input = "input";
-      var colsForInvalidInput = mockDeps.getCsvDataInvalidInput(UserInput.getInput(input));
-      assertEquals(input, colsForInvalidInput[0]);
-    }
-
-    @Test
-    void allOtherColsWillBeNa_expectNoteCol() {
-      var positionColIndex = 2;
-      var noteColIndex = 6;
-      var colsForInvalidInput = mockDeps.getCsvDataInvalidInput(UserInput.getInput("abc"));
-      for (int i = 1; i < colsForInvalidInput.length; i++) {
-        if (i != noteColIndex && i != positionColIndex)
-          assertEquals(Constants.NA, colsForInvalidInput[i], String.valueOf(i));
-        if (i == noteColIndex)
-          assertEquals("Invalid chromosome abc|Position should be a number |Invalid reference |Invalid alternative ",
-            colsForInvalidInput[i], String.valueOf(i));
-        if (i == positionColIndex)
-          assertEquals(-1L, Long.parseLong(colsForInvalidInput[i]), String.valueOf(i));
-      }
-    }
-  }
-
-  @Nested
-  class MappingNotFound {
-    private final String validInput = "x 1234 id G C";
-    private final String[] colsMissingMapping = mockDeps.getCsvDataMappingNotFound(validInput);
-
-    @Test
-    void columnSizeMatch() {
-      assertEquals(TOTAL_CSV_COLUMNS, colsMissingMapping.length);
-    }
-
-    @Test
-    void firstColWillBeInput() {
-      assertEquals(validInput, colsMissingMapping[0]);
-    }
-
-    @Test
-    void secondColIsChromosome() {
-      assertEquals("X", colsMissingMapping[1]);
-    }
-
-    @Test
-    void thirdColIsPosition() {
-      assertEquals("1234", colsMissingMapping[2]);
-    }
-
-    @Test
-    void forthColIsId() {
-      assertEquals("id", colsMissingMapping[3]);
-    }
-
-    @Test
-    void fifthCol() {
-      assertEquals("G", colsMissingMapping[4]);
-    }
-
-    @Test
-    void sixCol() {
-      assertEquals("C", colsMissingMapping[5]);
-    }
-
-    @Test
-    void notesCol() {
-      Assertions.assertEquals(Constants.NOTE_MAPPING_NOT_FOUND, colsMissingMapping[6]);
-    }
-
-    @Test
-    void allOtherColsAreNa() {
-      for (int i = 7; i < TOTAL_CSV_COLUMNS; i++)
-        Assertions.assertEquals(Constants.NA, colsMissingMapping[i], String.valueOf(i));
-    }
-  }
- */
 }

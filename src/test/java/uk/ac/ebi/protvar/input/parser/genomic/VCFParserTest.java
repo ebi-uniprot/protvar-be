@@ -18,15 +18,15 @@ class VCFParserTest {
           "y 987654321 rs123 t g description;",
     "y 987654321 rs123 t g 100 PASS AA=T|||;AC=1;AF=0"})
   void test_inputWithDiffEndOptions(String inputStr) {
-    GenomicInput userInput = VCFParser.parse(inputStr);
-    assertParsedInput(true, inputStr, "Y", 987654321, "rs123", "T", "G", userInput);
+    GenomicInput input = VCFParser.parse(inputStr);
+    assertParsedInput(true, inputStr, "Y", 987654321, "rs123", "T", "G", input);
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"y 987654321 . t g"})
   void test_noIdProvided(String inputStr) {
-    GenomicInput userInput = VCFParser.parse(inputStr);
-    assertParsedInput(true, inputStr, "Y", 987654321, null, "T", "G", userInput);
+    GenomicInput input = VCFParser.parse(inputStr);
+    assertParsedInput(true, inputStr, "Y", 987654321, null, "T", "G", input);
   }
 
   @ParameterizedTest

@@ -38,8 +38,8 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class UserInputMapper {
-	private static final Logger LOGGER = LoggerFactory.getLogger(UserInputMapper.class);
+public class InputMapper {
+	private static final Logger LOGGER = LoggerFactory.getLogger(InputMapper.class);
 	private final MappingRepo mappingRepo;
 	private final CaddPredictionRepo caddPredictionRepo;
 	private final ScoreRepo scoreRepo;
@@ -50,10 +50,10 @@ public class UserInputMapper {
 	private final Pro2Gen pro2Gen;
 	private final GeneConverter geneConverter;
 
-	public void preprocess(List<UserInput> inputs, String requestAssembly, InputBuild detectedBuild) {
-		Map<Type, List<UserInput>> groupedInputs = inputs.stream()
-				.filter(UserInput::isValid)
-				.collect(Collectors.groupingBy(UserInput::getType));
+	public void preprocess(List<VariantInput> inputs, String requestAssembly, InputBuild detectedBuild) {
+		Map<VariantType, List<VariantInput>> groupedInputs = inputs.stream()
+				.filter(VariantInput::isValid)
+				.collect(Collectors.groupingBy(VariantInput::getType));
 		// Build conversion for genomic + HGVSg 37 inputs
 		buildProcessor.process(groupedInputs, requestAssembly, detectedBuild);
 
@@ -62,8 +62,8 @@ public class UserInputMapper {
 
 		// RefSeq-UniProt accession mapping
 		Set<String> refseqIds = inputs.stream()
-				.filter(input -> input.getFormat() == Format.HGVS_PROT ||
-						input.getFormat() == Format.HGVS_CODING)
+				.filter(input -> input.getFormat() == VariantFormat.HGVS_PROTEIN ||
+						input.getFormat() == VariantFormat.HGVS_CODING)
 				.map(input -> {
 					String refseqId = null;
 					if (input instanceof ProteinInput) {
@@ -92,8 +92,7 @@ public class UserInputMapper {
 		pro2Gen.convert(groupedInputs, refseqIdMap);
 	}
 
-	// TODO rename UserInput -> VariantInput
-	public MappingResponse getMapping(List<UserInput> inputs, String requestAssembly,
+	public MappingResponse getMapping(List<VariantInput> inputs, String requestAssembly,
 									  InputBuild build, boolean multiFormat) {
 		if (inputs == null || inputs.isEmpty())
 			return new MappingResponse(List.of());
@@ -109,24 +108,24 @@ public class UserInputMapper {
 		//AnnotationData ann = preloadOptionalAnnotations(params, core);
 
 		inputs.stream()
-			.filter(UserInput::isValid)
+			.filter(VariantInput::isValid)
 			.forEach(input -> processInput(input, core));
 
 		return response;
 	}
 
-	public MappingData loadCoreMappingAndScores(List<UserInput> inputs) {
+	public MappingData loadCoreMappingAndScores(List<VariantInput> inputs) {
 		// Collect unique ChromosomePosition objects
 		Set<ChromosomePosition> uniqueChrPos = inputs.stream()
-				.peek(userInput -> {
-					if (userInput instanceof GenomicInput genomicInput
+				.peek(input -> {
+					if (input instanceof GenomicInput genomicInput
 							&& (genomicInput.getDerivedGenomicVariants() == null ||
 							genomicInput.getDerivedGenomicVariants().isEmpty())) {
 						genomicInput.getDerivedGenomicVariants()
 								.add(genomicInput.toGenomicVariant());
 					}
 				})
-				.flatMap(userInput -> userInput.getChrPosList().stream())
+				.flatMap(input -> input.getChrPosList().stream())
 				.map(objArray -> new ChromosomePosition((String) objArray[0], (Integer) objArray[1]))
 				.collect(Collectors.toSet());
 
@@ -173,7 +172,7 @@ public class UserInputMapper {
 		return new MappingData(chrPosArrays, g2pMap, caddPredictionMap, accPosArrays, canonicalAccessions, amScoreMap);
 	}
 
-	public void processInput(UserInput input, MappingData core) {
+	public void processInput(VariantInput input, MappingData core) {
 		input.getDerivedGenomicVariants().forEach(genomicVariant -> {
 			try {
 				var chrPos = genomicVariant.getVariantKey();
@@ -202,7 +201,7 @@ public class UserInputMapper {
 		});
 	}
 
-	private Set<String> resolveAltBases(UserInput input, GenomicVariant genomicVariant, String mappingRef) {
+	private Set<String> resolveAltBases(VariantInput input, GenomicVariant genomicVariant, String mappingRef) {
 		String ref = genomicVariant.getRefBase();
 		String alt = genomicVariant.getAltBase();
 

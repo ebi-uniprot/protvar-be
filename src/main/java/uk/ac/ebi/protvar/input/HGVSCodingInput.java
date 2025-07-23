@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class HGVSCodingInput extends UserInput {
+public class HGVSCodingInput extends VariantInput {
     // Parsed fields
     String refseqId;       // e.g. "NM_020975.6"
     String geneSymbol;     // optional, e.g. "RET"
@@ -25,6 +25,6 @@ public class HGVSCodingInput extends UserInput {
     Integer derivedCodonPos;
 
     public HGVSCodingInput(String inputStr) {
-        super(Format.HGVS_CODING, inputStr);
+        super(VariantFormat.HGVS_CODING, inputStr);
     }
 }

@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class ProteinInput extends UserInput {
+public class ProteinInput extends VariantInput {
     // Parsed fields
     String accession;
     Integer position;
@@ -16,6 +16,6 @@ public class ProteinInput extends UserInput {
     String refseqId;
 
     public ProteinInput(String inputStr) {
-        super(Format.INTERNAL_PROTEIN, inputStr);
+        super(VariantFormat.INTERNAL_PROTEIN, inputStr);
     }
 }

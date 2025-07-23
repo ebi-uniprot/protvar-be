@@ -30,18 +30,18 @@ public class Id2Gen {
      * It is possible that an ID gives multiple variants - in which case they are added to the genomicInputList.
      * @param groupedInputs
      */
-    public void map(Map<Type, List<UserInput>> groupedInputs) {
-        if (groupedInputs.containsKey(Type.ID)) {
-            List<UserInput> idInputs = groupedInputs.get(Type.ID);
-            Map<Format, List<UserInput>> idGroups = idInputs.stream().collect(Collectors.groupingBy(UserInput::getFormat));
+    public void map(Map<VariantType, List<VariantInput>> groupedInputs) {
+        if (groupedInputs.containsKey(VariantType.VARIANT_ID)) {
+            List<VariantInput> idInputs = groupedInputs.get(VariantType.VARIANT_ID);
+            Map<VariantFormat, List<VariantInput>> idGroups = idInputs.stream().collect(Collectors.groupingBy(VariantInput::getFormat));
 
-            dbsnpLookup(idGroups.get(Format.DBSNP));
-            clinvarLookup(idGroups.get(Format.CLINVAR));
-            cosmicLookup(idGroups.get(Format.COSMIC));
+            dbsnpLookup(idGroups.get(VariantFormat.DBSNP));
+            clinvarLookup(idGroups.get(VariantFormat.CLINVAR));
+            cosmicLookup(idGroups.get(VariantFormat.COSMIC));
         }
     }
 
-    public void dbsnpLookup(List<UserInput> dbsnpIdInputs) {
+    public void dbsnpLookup(List<VariantInput> dbsnpIdInputs) {
         if (dbsnpIdInputs == null || dbsnpIdInputs.isEmpty())
             return;
 
@@ -70,12 +70,12 @@ public class Id2Gen {
                 });
     }
 
-    public void clinvarLookup(List<UserInput> clinvarIdInputs) {
+    public void clinvarLookup(List<VariantInput> clinvarIdInputs) {
         if (clinvarIdInputs == null || clinvarIdInputs.isEmpty())
             return;
 
-        Map<String, List<UserInput>> clinvarIdTypeMap = clinvarIdInputs.stream()
-                .collect(Collectors.groupingBy(UserInput::getIdPrefix));
+        Map<String, List<VariantInput>> clinvarIdTypeMap = clinvarIdInputs.stream()
+                .collect(Collectors.groupingBy(VariantInput::getIdPrefix));
 
         Map<String, List<ClinVarExtended>> clinvarRCVMap = null; // Changed to ClinVarExtended
         Map<String, List<ClinVarExtended>> clinvarVCVMap = null; // Changed to ClinVarExtended
@@ -83,7 +83,7 @@ public class Id2Gen {
         if (clinvarIdTypeMap.get(ClinvarParser.RCV) != null) {
             //List<Object[]> rcvIds = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toList());
             //clinvarRCVMap = clinVarRepo.getByRCV(rcvIds).stream().collect(Collectors.groupingBy(ClinVar::getRcv));
-            List<String> rcvs = clinvarIdTypeMap.get(ClinvarParser.RCV).stream().map(UserInput::getInputStr).collect(Collectors.toList());
+            List<String> rcvs = clinvarIdTypeMap.get(ClinvarParser.RCV).stream().map(VariantInput::getInputStr).collect(Collectors.toList());
             clinvarRCVMap = clinVarRepo.getByRCVMap(rcvs.stream()
                     .map(String::toUpperCase)
                     .collect(Collectors.toList())); // todo move this capitalisation earlier on, or in db query
@@ -92,13 +92,13 @@ public class Id2Gen {
         if (clinvarIdTypeMap.get(ClinvarParser.VCV) != null) {
             //List<Object[]> vcvIds = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toList());
             //clinvarVCVMap = clinVarRepo.getByVCV(vcvIds).stream().collect(Collectors.groupingBy(ClinVar::getVcv));
-            List<String> vcvs = clinvarIdTypeMap.get(ClinvarParser.VCV).stream().map(UserInput::getInputStr).collect(Collectors.toList());
+            List<String> vcvs = clinvarIdTypeMap.get(ClinvarParser.VCV).stream().map(VariantInput::getInputStr).collect(Collectors.toList());
             clinvarVCVMap = clinVarRepo.getByVCVMap(vcvs.stream()
                     .map(String::toUpperCase)
                     .collect(Collectors.toList())); // todo same here!
         }
 
-        for (UserInput input : clinvarIdInputs) {
+        for (VariantInput input : clinvarIdInputs) {
             String id = input.getInputStr();
             if (input.getIdPrefix().equals(ClinvarParser.RCV) && clinvarRCVMap != null) {
                 addClinvarDerivedGenomicVariants(clinvarRCVMap.get(id), input);
@@ -111,11 +111,11 @@ public class Id2Gen {
         }
     }
 
-    public void cosmicLookup(List<UserInput> cosmicIdInputs) {
+    public void cosmicLookup(List<VariantInput> cosmicIdInputs) {
         if (cosmicIdInputs == null || cosmicIdInputs.isEmpty())
             return;
 
-        Map<String, List<UserInput>> cosmicIdTypeMap = cosmicIdInputs.stream().collect(Collectors.groupingBy(UserInput::getIdPrefix));
+        Map<String, List<VariantInput>> cosmicIdTypeMap = cosmicIdInputs.stream().collect(Collectors.groupingBy(VariantInput::getIdPrefix));
 
         List<Object[]> ids = cosmicIdTypeMap.get(CosmicParser.COSV) == null ? null :
                 cosmicIdTypeMap.get(CosmicParser.COSV).stream().map(i -> new Object[]{i.getInputStr().toUpperCase()}).collect(Collectors.toList());
@@ -142,7 +142,7 @@ public class Id2Gen {
     }
 
     // ClinVar changed to ClinVarExtended
-    private void addClinvarDerivedGenomicVariants(List<ClinVarExtended> clinVars, UserInput input) {
+    private void addClinvarDerivedGenomicVariants(List<ClinVarExtended> clinVars, VariantInput input) {
         if (clinVars != null && !clinVars.isEmpty()) {
             clinVars.forEach(clinVar -> {
                 GenomicVariant newVariant = new GenomicVariant(clinVar.getChr(), clinVar.getPos(),
@@ -153,7 +153,7 @@ public class Id2Gen {
         }
     }
 
-    private void addCosmicDerivedGenomicVariants(List<Cosmic> cosmics, UserInput input) {
+    private void addCosmicDerivedGenomicVariants(List<Cosmic> cosmics, VariantInput input) {
         if (cosmics != null && !cosmics.isEmpty()) {
             cosmics.forEach(cosmic -> {
                 GenomicVariant newVariant = new GenomicVariant(cosmic.getChr(), cosmic.getPos(),

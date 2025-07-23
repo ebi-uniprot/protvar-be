@@ -3,8 +3,8 @@ package uk.ac.ebi.protvar.input.parser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.ebi.protvar.input.GenomicInput;
-import uk.ac.ebi.protvar.input.Type;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantType;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.genomic.GenomicParser;
 import uk.ac.ebi.protvar.input.parser.genomic.GnomadParser;
 import uk.ac.ebi.protvar.input.parser.genomic.VCFParser;
@@ -28,11 +28,11 @@ public class InputParser {
     public static final String POS = "([0-9]*[1-9][0-9]*)";  // positive-only integers incl. w/ leading zeros
 
     /**
-     * Takes a list of input strings and return corresponding list of userInput objects
+     * Takes a list of input strings and return corresponding list of parsed variant input objects
      * @param inputs
      * @return
      */
-    public static List<UserInput> parse(List<String> inputs) {
+    public static List<VariantInput> parse(List<String> inputs) {
         return inputs.stream()
                 .filter(s -> s != null)                       // Remove null strings
                 .map(String::trim)                            // Trim the strings
@@ -45,20 +45,20 @@ public class InputParser {
     public static GenomicInput parseValidGenomicInput(String variant) {
         if (variant == null || variant.isBlank()) return null;
 
-        UserInput input = parse(variant);
-        if (input.isValid() && input.getType() == Type.GENOMIC) {
+        VariantInput input = parse(variant);
+        if (input.isValid() && input.getType() == VariantType.GENOMIC) {
             return (GenomicInput) input;
         }
         return null;
     }
 
     /**
-     * Parse input string into a UserInput object.
+     * Parse input string into a VariantInput object.
      * @param inputLine	Null and empty inputs will have been filtered before calling this function.
      *             Input string will have been trimmed as well.
      * @return
      */
-    public static UserInput parse(String inputLine) {
+    public static VariantInput parse(String inputLine) {
         if (inputLine == null || inputLine.isEmpty()) // prior checks will not make this be true
             return null;
 

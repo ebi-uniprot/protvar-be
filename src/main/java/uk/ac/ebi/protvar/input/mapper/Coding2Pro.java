@@ -3,8 +3,8 @@ package uk.ac.ebi.protvar.input.mapper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Type;
-import uk.ac.ebi.protvar.input.UserInput;
+import uk.ac.ebi.protvar.input.VariantType;
+import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.HGVSCodingInput;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 
@@ -25,7 +25,7 @@ import java.util.*;
 @AllArgsConstructor
 public class Coding2Pro {
 
-    public static List<String> getUniprotAccs(String refseqId, TreeMap<String, List<String>> refseqIdMap, UserInput input) {
+    public static List<String> getUniprotAccs(String refseqId, TreeMap<String, List<String>> refseqIdMap, VariantInput input) {
         if (refseqIdMap.containsKey(refseqId))
             return refseqIdMap.get(refseqId);
         else {
@@ -44,9 +44,9 @@ public class Coding2Pro {
         return List.of();
     }
 
-    public void convert(Map<Type, List<UserInput>> groupedInputs, TreeMap<String, List<String>> refseqIdMap) {
-        if (groupedInputs.containsKey(Type.CODING)) {
-            List<UserInput> codingInputs = groupedInputs.get(Type.CODING);
+    public void convert(Map<VariantType, List<VariantInput>> groupedInputs, TreeMap<String, List<String>> refseqIdMap) {
+        if (groupedInputs.containsKey(VariantType.CODING_DNA)) {
+            List<VariantInput> codingInputs = groupedInputs.get(VariantType.CODING_DNA);
             codingInputs.stream().map(i -> (HGVSCodingInput) i).forEach(cDNAProt -> {
                 List<String> uniprotAccs = getUniprotAccs(cDNAProt.getRefseqId(),
                         refseqIdMap, cDNAProt);

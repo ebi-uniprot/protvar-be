@@ -11,9 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import uk.ac.ebi.protvar.model.MappingRequest;
-import uk.ac.ebi.protvar.model.UserInputRequest;
+import uk.ac.ebi.protvar.model.InputRequest;
 import uk.ac.ebi.protvar.model.response.InputUploadResponse;
-import uk.ac.ebi.protvar.service.UserInputService;
+import uk.ac.ebi.protvar.service.InputService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets;
 @CrossOrigin
 @RequiredArgsConstructor
 public class InputUploadController {
-    private final UserInputService userInputService;
+    private final InputService inputService;
 
     @Operation(
         summary = "Upload variant input file and receive a corresponding input ID",
@@ -41,7 +41,7 @@ public class InputUploadController {
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
         try {
             String rawInput = new String(file.getBytes(), StandardCharsets.UTF_8);
-            String inputId = userInputService.processInput(UserInputRequest.builder()
+            String inputId = inputService.processInput(InputRequest.builder()
                     .rawInput(rawInput)
                     .assembly(assembly)
                     .build());
@@ -67,7 +67,7 @@ public class InputUploadController {
             @RequestBody String text,
             @Parameter(description = MappingRequest.ASSEMBLY_DESC)
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
-        String inputId = userInputService.processInput(UserInputRequest.builder()
+        String inputId = inputService.processInput(InputRequest.builder()
                 .rawInput(text)
                 .assembly(assembly)
                 .build());
