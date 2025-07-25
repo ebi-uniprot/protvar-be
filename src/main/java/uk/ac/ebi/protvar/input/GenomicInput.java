@@ -43,7 +43,7 @@ public class GenomicInput extends VariantInput {
         //derivedGenomicVariants.add(new GenomicVariant(chr, pos, ref, alt));
     }
 
-    public static VariantInput invalid(String inputStr){
+    public static GenomicInput invalid(String inputStr){
         GenomicInput invalid = new GenomicInput(inputStr);
         invalid.addError(ErrorConstants.INVALID_GENERIC_INPUT);
         return invalid;

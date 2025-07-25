@@ -40,16 +40,14 @@ public class BuildProcessor {
     public List<VariantInput> filterGenomicInputs(List<String> inputs) {
         return inputs.stream()
                 .map(inputStr -> {
-                    if (GenomicParser.startsWithChromo(inputStr)) {
-                        if (GnomadParser.matchesPattern(inputStr)) // ^chr-pos-ref-alt$
-                            return GnomadParser.parse(inputStr);
+                    if (GnomadParser.matchesPattern(inputStr)) // ^chr-pos-ref-alt$
+                        return GnomadParser.parse(inputStr);
 
-                        if (VCFParser.matchesPattern(inputStr)) // ^chr pos id ref alt...
-                            return VCFParser.parse(inputStr);
+                    if (VCFParser.matchesPattern(inputStr)) // ^chr pos id ref alt...
+                        return VCFParser.parse(inputStr);
 
-                        if (GenomicParser.matchesPattern(inputStr)) // ^chr pos( ref( alt)?)?$
-                            return GenomicParser.parse(inputStr);
-                    }
+                    if (GenomicParser.matchesPattern(inputStr)) // ^chr pos( ref( alt)?)?$
+                        return GenomicParser.parse(inputStr);
                     return GenomicInput.invalid(inputStr);
                 })
                 .filter(VariantInput::isValid)

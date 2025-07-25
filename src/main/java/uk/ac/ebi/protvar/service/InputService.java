@@ -6,7 +6,7 @@ import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputSummary;
 import uk.ac.ebi.protvar.input.VariantType;
 import uk.ac.ebi.protvar.input.VariantInput;
-import uk.ac.ebi.protvar.input.parser.InputParser;
+import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.model.InputRequest;
 import uk.ac.ebi.protvar.types.Assembly;
@@ -46,7 +46,7 @@ public class InputService {
             }
 
             List<VariantInput> parsed = normalizedLines.stream()
-                    .map(InputParser::parse)
+                    .map(VariantParser::parse)
                     .collect(Collectors.toList());
 
             InputSummary summary = summarize(parsed);

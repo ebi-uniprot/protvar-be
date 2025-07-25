@@ -42,4 +42,21 @@ public enum VariantFormat {
         }
     }
 
+    /*
+    Utility: detect format
+     */
+
+    /**
+     * Utility to detect format - to complete
+     * @param input
+     * @return
+     */
+    public static VariantFormat detectFormat(String input) {
+        if (input.matches("rs\\d+")) return DBSNP;
+        if (input.startsWith("NM_") && input.contains(":c.")) return HGVS_CODING;
+        if (input.matches("chr\\d+-\\d+(-[ACGT]+)?(-[ACGT]+)?")) return INTERNAL_GENOMIC;
+        //...
+        return INVALID; // fallback
+    }
+
 }

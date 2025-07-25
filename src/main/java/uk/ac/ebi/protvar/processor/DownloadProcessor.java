@@ -29,7 +29,7 @@ import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
 import uk.ac.ebi.protvar.input.*;
-import uk.ac.ebi.protvar.input.parser.InputParser;
+import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
 import uk.ac.ebi.protvar.mapper.MappingData;
@@ -108,7 +108,7 @@ public class DownloadProcessor {
 
 			switch (request.getType()) {
 
-				case SINGLE_VARIANT -> {
+				case VARIANT -> {
 					LOGGER.info("Single variant download request: {}", request.getFname());
 					// no handler needed for single input
 				}
@@ -157,8 +157,8 @@ public class DownloadProcessor {
 
 		List<VariantInput> inputs;
 
-		if (request.getType() == InputType.SINGLE_VARIANT) {
-			inputs = List.of(InputParser.parse(request.getInput()));
+		if (request.getType() == InputType.VARIANT) {
+			inputs = List.of(VariantParser.parse(request.getInput()));
 			processAndWriteCsv(inputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
 			return;
 		}

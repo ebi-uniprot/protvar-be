@@ -1,5 +1,4 @@
 package uk.ac.ebi.protvar.input;
-// todo move to uk.ac.ebi.protvar.variant?
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
@@ -27,7 +26,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 public class VariantInput {
-	int index; // order of the input
+	int originalIndex;
 	String inputStr; // raw input string; trimmed, non-null
 	VariantFormat format;
 	VariantType type; // Derived from format.type; declared here only to control json property order (doesn't need to be explicitly set)

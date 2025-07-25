@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.ac.ebi.protvar.input.parser.InputParser;
+import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
@@ -78,7 +78,7 @@ public class AnnotationController {
     @Parameter(example = "493") @PathVariable("position") int position,
     @Parameter(example = "14-89993420-A-C") @RequestParam(required = false) String genomicVariant) {
 
-    GenomicInput genomicInput = InputParser.parseValidGenomicInput(genomicVariant);
+    GenomicInput genomicInput = VariantParser.parseValidGenomicInput(genomicVariant);
     String chromosome = null;
     Integer genomicPosition = null;
     String altBase = null;

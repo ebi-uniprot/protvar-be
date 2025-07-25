@@ -1,110 +1,123 @@
 package uk.ac.ebi.protvar.input.parser.hgvs;
 
-import uk.ac.ebi.protvar.exception.InvalidInputException;
 import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.VariantFormat;
-import uk.ac.ebi.protvar.input.parser.InputParser;
+import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.parser.protein.ProteinParser;
 import uk.ac.ebi.protvar.input.ProteinInput;
-import uk.ac.ebi.protvar.utils.HGVS;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Valid format:
- * NP_xxx:p.(Arg490Ser)     regex
- * NP_xxx:p.Arg490Ser    -> AA3 + POS + AA3
- * NP_xxx:p.R490S        -> AA1 + POS + AA1
- * NP_xxx:p.Trp87Ter     -> AA3 + POS + AA3
- * NP_xxx:p.Trp78*       -> AA3 + POS + *
- * NP_xxx:p.W87*         -> AA1 + POS + AA1
+ * Supported HGVS protein formats (flexible approach - mixed amino acid notation allowed):
+ * - NP_xxx.x:p.Arg490Ser     (three letter REF and ALT)
+ * - NP_xxx.x:p.R490S         (single letter REF and ALT)
+ * - NP_xxx.x:p.R490Ser       (single letter REF, three letter ALT)
+ * - NP_xxx.x:p.Arg490*       (three letter REF, single letter stop)
+ * - NP_xxx.x:p.R490*         (single letter REF, stop codon)
+ * - NP_xxx.x:p.R490Ter       (single letter REF, three letter stop)
+ * - NP_xxx.x:p.(Arg490Ser)   (optional parentheses around variant)
+ * - NP_xxx.x:p.R490=         (unchanged notation)
+ * - NP_xxx.x: p.R490S        (relaxed spacing - space between : and p.)
+ *
+ * Notes:
+ * - RefSeq ID can be NP_ (protein) or NM_ (transcript)
+ * - Mixed amino acid notation is allowed (e.g., R490Ser, Arg490*)
+ * - Parentheses around variant description are optional
+ * - Relaxed spacing between : and p. is supported
+ * - All amino acids are normalized to single letter codes in output
+ * - "=" represents unchanged/silent mutations
+ * - "*" and "Ter" both represent stop codon
  */
-public class HGVSpParser extends InputParser {
+public class HGVSpParser extends VariantParser {
     // Protein, Associated with an NM_ or NC_ accession e.g. NP_001138917.1
-    public static final String PREFIX = "NP_"; // -> lookup transcript (enst)? // not necessary any more!
-    public static final String SCHEME = "p.";
-    public static final String SCHEME_PATTERN_REGEX = ":(\\s+)?p\\.";
+    public static final String SCHEME_REGEX = ":(\\s*)p\\.";
 
-    public static final String GENERAL_HGVS_P_PATTERN_REGEX = "^(?<refseqId>[^:]+)"+SCHEME_PATTERN_REGEX+"(?<varDesc>[^:]+)$";
+    // Structural pattern - quick check for general HGVS protein structure: _:p._
+    // Relaxed to allow space between : and p. (e.g., "NP_123: p.R490S")
+    public static final String STRUCTURE_REGEX = String.format("^(?<refseq>[^:]+)%s(?<varDesc>.+)$",
+            SCHEME_REGEX // Scheme: :(optional space)p.
+    );
 
-    private static final String REF_SEQ_REGEX =
-            //"(?<refseqId>"+PREFIX + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM + ")"; // RefSeq.NP accession
-            "(NM_|NP_)" + HGVS.POSTFIX_NUM + HGVS.VERSION_NUM;
+    // no anchors (^...$)
+    public static final String REFSEQ_REGEX = "(NM_|NP_)\\d+(\\.\\d+)?"; // RefSeq part: NM_/NP_ + digits + version
 
-    private static final String VAR_DESC_X_POS_Y = "(\\()?" +
-            "(?<ref>"+ ProteinParser.AMINO_ACID_REF1 + ")" +
-            "(?<pos>" + POS + ")" +
-            "(?<alt>" + ProteinParser.AMINO_ACID_ALT1 + ")" + // includes STOP_CODON (*)
-            "(\\))?";
-    private static final String VAR_DESC_XXX_POS_YYY = "(\\()?" +
-            "(?<ref>"+ ProteinParser.AMINO_ACID_REF3 + ")" +
-            "(?<pos>" + POS + ")" +
-            "(?<alt>" + ProteinParser.AMINO_ACID_ALT3 + ")" +
-            "(\\))?";
+    // no anchors (^...$)
+    public static final String VARDESC_REGEX = String.format("\\(?(?<ref>%s|%s)(?<pos>%s)(?<alt>%s|%s|=)\\)?",
+            ProteinParser.VALID_AA_SINGLE, ProteinParser.VALID_AA_THREE,  // REF: single OR three letter
+            VALID_POSITION,                       // Position: digits
+            ProteinParser.VALID_AA_SINGLE, ProteinParser.VALID_AA_THREE   // ALT: single OR three letter (includes * and Ter)
+    );
 
-    private static Pattern GENERAL_PATTERN = Pattern.compile(GENERAL_HGVS_P_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
-    private static Pattern REF_SEQ_PATTERN = Pattern.compile(REF_SEQ_REGEX, Pattern.CASE_INSENSITIVE);
-    private static Pattern PATTERN_VAR_DESC_X_POS_Y = Pattern.compile(VAR_DESC_X_POS_Y, Pattern.CASE_INSENSITIVE);
-    private static Pattern PATTERN_VAR_DESC_XXX_POS_YYY = Pattern.compile(VAR_DESC_XXX_POS_YYY, Pattern.CASE_INSENSITIVE);
+    // Full pattern - for matchesPattern() method
+    public static final String FULL_REGEX = String.format("^%s%s%s$",
+            REFSEQ_REGEX,
+            SCHEME_REGEX,
+            VARDESC_REGEX
+    );
 
-    // Pre-check (level 1)
-    // Pattern: NP_?:p.?
-    public static boolean preCheck(String inputStr) {
-        return HGVS.preCheck(PREFIX, SCHEME, inputStr);
+    private static Pattern STRUCTURE_PATTERN = Pattern.compile(STRUCTURE_REGEX, Pattern.CASE_INSENSITIVE);
+    private static Pattern REFSEQ_PATTERN = Pattern.compile("^" + REFSEQ_REGEX + "$", Pattern.CASE_INSENSITIVE);
+    private static Pattern VARDESC_PATTERN = Pattern.compile("^" + VARDESC_REGEX + "$", Pattern.CASE_INSENSITIVE);
+    private static Pattern FULL_PATTERN = Pattern.compile(FULL_REGEX, Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Quick structural check - verifies input looks like HGVS protein format.
+     * Checks for general structure: RefSeq:p.variant with relaxed spacing.
+     * More permissive than full pattern validation.
+     */
+    public static boolean matchesStructure(String inputStr) {
+        if (inputStr == null || inputStr.trim().isEmpty()) {
+            return false;
+        }
+        return STRUCTURE_PATTERN.matcher(inputStr).lookingAt();
     }
 
-    public static boolean startsWithPrefix(String inputStr) {
-        return HGVS.startsWithPrefix(PREFIX, inputStr);
-    }
-
+    /**
+     * Full pattern validation - validates complete HGVS protein format.
+     * Validates RefSeq format, scheme, and variant description syntax.
+     */
     public static boolean matchesPattern(String input) {
-        return input.matches(GENERAL_HGVS_P_PATTERN_REGEX);
+        return input != null && FULL_PATTERN.matcher(input).matches();
     }
 
     public static ProteinInput parse(String inputStr) {
-        // pre-condition: fits _:(S?)p._ pattern
         ProteinInput parsedInput = new ProteinInput(inputStr);
         parsedInput.setFormat(VariantFormat.HGVS_PROTEIN);
+
         try {
-            Matcher generalMatcher = GENERAL_PATTERN.matcher(inputStr);
-            if (generalMatcher.matches()) {
-                String refseqId = generalMatcher.group("refseqId");
-                if (REF_SEQ_PATTERN.matcher(refseqId).matches()) {
-                    parsedInput.setRefseqId(refseqId);
+            Matcher structureMatcher = STRUCTURE_PATTERN.matcher(inputStr);
+            if (structureMatcher.matches()) {
+                String refseqPart = structureMatcher.group("refseq");
+                if (REFSEQ_PATTERN.matcher(refseqPart).matches()) {
+                    parsedInput.setRefseqId(refseqPart);
                 } else {
                     parsedInput.addError(ErrorConstants.HGVS_P_REFSEQ_INVALID);
                 }
 
-                String varDesc = generalMatcher.group("varDesc");
-                Matcher varDescMatcher1 = PATTERN_VAR_DESC_X_POS_Y.matcher(varDesc);
-                if (varDescMatcher1.matches()) { // 1 letter AA
-                    setParams(parsedInput, varDescMatcher1);
+                String vardescPart = structureMatcher.group("varDesc");
+                Matcher vardescMatcher = VARDESC_PATTERN.matcher(vardescPart);
+
+                if (vardescMatcher.matches()) {
+                    String pos = vardescMatcher.group("pos");
+                    String ref = vardescMatcher.group("ref");
+                    String alt = vardescMatcher.group("alt");
+
+                    alt = ProteinParser.normalizeEquals(alt, ref);
+                    parsedInput.setPosition(Integer.parseInt(pos));
+                    parsedInput.setRefAA(ProteinParser.normalizeAA(ref));
+                    parsedInput.setAltAA(ProteinParser.normalizeAA(alt));
                 } else {
-                    Matcher varDescMatcher2 = PATTERN_VAR_DESC_XXX_POS_YYY.matcher(varDesc);
-                    if (varDescMatcher2.matches()) { // 3 letter AA
-                        setParams(parsedInput, varDescMatcher2);
-                    } else {
-                        parsedInput.addError(ErrorConstants.HGVS_P_VARDESC_INVALID);
-                    }
+                    parsedInput.addError(ErrorConstants.HGVS_P_VARDESC_INVALID);
                 }
             } else {
-                throw new InvalidInputException("No match found.");
+                parsedInput.addError("HGVS p. invalid"); // todo: ErrorConstants.HGVS_P_FORMAT_INVALID
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);
             parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
         }
         return parsedInput;
-    }
-
-    private static void setParams(ProteinInput input, Matcher matcher) {
-        String pos = matcher.group("pos");
-        String ref = matcher.group("ref");
-        String alt = matcher.group("alt");
-        alt = ProteinParser.normalizeAltAllele(alt, ref);
-        input.setPosition(Integer.parseInt(pos));
-        input.setRefAA(ref);
-        input.setAltAA(alt);
     }
 }

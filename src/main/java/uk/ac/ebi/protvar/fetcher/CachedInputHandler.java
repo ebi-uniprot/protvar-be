@@ -10,7 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.input.VariantInput;
-import uk.ac.ebi.protvar.input.parser.InputParser;
+import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.service.InputCacheService;
 
@@ -40,7 +40,7 @@ public class CachedInputHandler implements InputHandler {
         if (fromIndex >= total) return Page.empty();
 
         List<String> subList = fullList.subList(fromIndex, Math.min(fromIndex + pageSize, total));
-        List<VariantInput> parsed = InputParser.parse(subList);
+        List<VariantInput> parsed = VariantParser.parse(subList);
         Pageable pageable = PageRequest.of(page, pageSize);
         return new PageImpl<>(parsed, pageable, total);
     }
@@ -60,6 +60,6 @@ public class CachedInputHandler implements InputHandler {
         // Use Guava's Iterables.partition or implement own partition logic
         return StreamSupport.stream(
                 Iterables.partition(fullInput, USER_INPUT_CHUNK_SIZE).spliterator(), false
-        ).map(InputParser::parse);
+        ).map(VariantParser::parse);
     }
 }

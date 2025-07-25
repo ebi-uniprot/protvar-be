@@ -20,6 +20,6 @@ public enum InputType {
     PDB,     // PDB structure ID
     REFSEQ,  // RefSeq identifier
     GENE,    // Gene symbol
-    SINGLE_VARIANT // single variant input in any of the supported format
+    VARIANT // variant input in any supported format
     // FREE_TEXT, // used for semantic search(?)
 }

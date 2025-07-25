@@ -1,8 +1,8 @@
-package uk.ac.ebi.protvar.utils;
+package uk.ac.ebi.protvar.input.parser.hgvs;
 
 import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.VariantFormat;
-import uk.ac.ebi.protvar.input.GenomicInput;
+import uk.ac.ebi.protvar.input.VariantInput;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,45 +48,22 @@ import java.util.regex.Pattern;
  */
 public class HGVS {
 
-    public static final String HGVS_SUPPORTED_PREFIXES = "(NC_|NM_|NP_)"; // not support NG_|LRG_|NR_
-    public static final String HGVS_SUPPORTED_SCHEMES = "(g|c|p)"; // not supported n|m|r
-
-    public static final String POSTFIX_NUM = "(\\d+)";
-    public static final String VERSION_NUM = "(\\.\\d+)?"; // optional
-
-    public static final String HGVS_SUPPORTED_REFERENCE = HGVS_SUPPORTED_PREFIXES + POSTFIX_NUM + VERSION_NUM;
-
-    public static final String COLON = ":";
-    public static final String DOT = "\\.";
-    public static final String SUB_SIGN = ">";
-
-    // letters, numbers, underscores, dots, any order.
-    public static final String GENERIC_HGVS_ACCESSION = "([A-Za-z0-9\\.\\_]+)";
-    public static final String GENERIC_BASE = "[a-zA-Z\\*]";
-
-    // any letter, number, dot, brackets, star, greater than sign
-    public static final String SUB_PART = "[0-9a-zA-Z\\.\\(\\)\\*\\>]{3,}";
-    // g. <POS><A>\\><A>
-    // c. <POS><A>\\><A> optionally, (p.<AAA><POS><AAA>)
-    // p. <AAA><POS><AAA>| <AAA><POS>\\* | <A><POS><A> | <A><POS>\\*
-
+    // Generic HGVS structure pattern for initial validation
     public static final String GENERAL_HGVS_PATTERN_REGEX = "^(?<refseqId>[^:]+):(?<scheme>(\\s+)?[a-z]\\.)[^:]+$";
-
     private static final Pattern GENERAL_HGVS_PATTERN = Pattern.compile(GENERAL_HGVS_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
 
-    public static boolean matchesPattern(String input) {
-        return input.matches(GENERAL_HGVS_PATTERN_REGEX);
+    /**
+     * Quick structural check for any HGVS format
+     */
+    public static boolean matchesStructure(String input) {
+        return input != null && GENERAL_HGVS_PATTERN.matcher(input).matches();
     }
 
-
-    public static boolean startsWithPrefix(String prefix, String inputStr) {
-        return inputStr.toUpperCase().startsWith(prefix);
-    }
-
-    public static GenomicInput invalid(String inputStr) {
-        // has to be one of the HGVS, so HGVSg
-        GenomicInput invalid = new GenomicInput(inputStr);
-        invalid.setFormat(VariantFormat.HGVS_GENOMIC);
+    /**
+     * Create invalid input with appropriate error messages for unsupported formats
+     */
+    public static VariantInput invalid(String inputStr) {
+        VariantInput invalid = new VariantInput(VariantFormat.INVALID, inputStr);
         Matcher generalMatcher = GENERAL_HGVS_PATTERN.matcher(inputStr);
         if (generalMatcher.matches()) {
             String scheme = generalMatcher.group("scheme");
@@ -108,7 +85,7 @@ public class HGVS {
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_LRG);
             else if (refseqId.startsWith("NR"))
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_NR);
-            else
+            else if (!refseqId.matches("(NC_|NM_|NP_)\\d+(\\.\\d+)?"))
                 invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX);
         }
 
@@ -116,22 +93,4 @@ public class HGVS {
             invalid.addError(ErrorConstants.HGVS_GENERIC_ERROR);
         return invalid;
     }
-
-    public static boolean preCheck(String prefix, String scheme, String input) {
-        return input.toUpperCase().startsWith(prefix) || input.contains(scheme);
-    }
-
-
-    public static boolean supportedPrefix(String input) {
-        return RegexUtils.matchIgnoreCase("^"+ HGVS_SUPPORTED_PREFIXES, input);
-    }
-
-    public static boolean containsSupportedScheme(String input) {
-        return RegexUtils.matchIgnoreCase("^.*:"+ HGVS_SUPPORTED_SCHEMES + ".*$", input);
-    }
-
-    public static boolean validRefSeq(String input) {
-        return RegexUtils.matchIgnoreCase("^"+ HGVS_SUPPORTED_REFERENCE + "$", input);
-    }
-
 }

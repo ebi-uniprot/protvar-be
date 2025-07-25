@@ -1,53 +1,66 @@
 package uk.ac.ebi.protvar.input.parser.genomic;
 
-import uk.ac.ebi.protvar.exception.InvalidInputException;
-import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.VariantFormat;
-import uk.ac.ebi.protvar.input.parser.InputParser;
+import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.GenomicInput;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class GnomadParser extends InputParser {
+public class GnomadParser extends VariantParser {
+    // Structural pattern - quick format check: ?-?-?-?
+    public static final Pattern GNOMAD_STRUCTURE = Pattern.compile("^\\S+-\\S+-\\S+-\\S+$");
+
+    // Full validation pattern
+    // GnomAD format: CHR-POS-REF-ALT (all components required, dash-separated)
+    public static final String GNOMAD_REGEX = String.format(
+            "^(%s)-(%s)-(%s)-(%s)$",
+            VALID_CHROMOSOME,  // Group 1: CHR (required)
+            VALID_POSITION,    // Group 2: POS (required)
+            VALID_BASE,        // Group 3: REF (required)
+            VALID_BASE         // Group 4: ALT (required)
+    );
+
+    public static final Pattern GNOMAD_PATTERN = Pattern.compile(GNOMAD_REGEX, Pattern.CASE_INSENSITIVE);
 
     /**
-     * [^\\s-]+: Matches one or more characters that are neither whitespace (\s) nor dash (-).
-     * The ^ inside the square brackets negates the character class, so it matches any character that is
-     * not a whitespace or a dash.
+     * Quick structural check - doesn't validate content, only format structure
      */
-
-    public static final Pattern PATTERN = Pattern.compile("^([^\\s-]+)-([^\\s-]+)-([^\\s-]+)-([^\\s-]+)$", Pattern.CASE_INSENSITIVE);
-
-    // Level 1 check
-    // Matches pattern: ?-?-?-?
-    public static boolean matchesPattern(String inputStr) {
-        return PATTERN.matcher(inputStr).find();
+    public static boolean matchesStructure(String inputStr) {
+        return GNOMAD_STRUCTURE.matcher(inputStr).matches();
     }
 
-    public static GenomicInput parse(String inputStr) {
-        // pre-condition: matchesPattern
-        GenomicInput parsedInput = new GenomicInput(inputStr);
-        parsedInput.setFormat(VariantFormat.GNOMAD);
-        try {
-            Matcher matcher = PATTERN.matcher(inputStr);
-            if (matcher.matches()) {
-                String chr = matcher.group(1);
-                String pos = matcher.group(2);
-                String ref = matcher.group(3);
-                String alt = matcher.group(4);
+    /**
+     * Full pattern validation including content validation
+     */
+    public static boolean matchesPattern(String inputStr) {
+        return GNOMAD_PATTERN.matcher(inputStr).matches();
+    }
 
-                GenomicParser.parseChr(chr, parsedInput);
-                GenomicParser.parsePos(pos, parsedInput);
-                GenomicParser.parseRef(ref, parsedInput);
-                GenomicParser.parseAlt(alt, parsedInput);
-            } else {
-                throw new InvalidInputException("No match found.");
+    /**
+     * Parses a GnomAD format variant string: CHR-POS-REF-ALT
+     * All components are required.
+     *
+     * @param inputStr Input string in format CHR-POS-REF-ALT
+     * @return GenomicInput object with parsed and normalized data, or invalid if parsing fails
+     */
+    public static GenomicInput parse(String inputStr) {
+        try {
+            Matcher matcher = GNOMAD_PATTERN.matcher(inputStr);
+            if (matcher.matches()) {
+                GenomicInput parsedInput = new GenomicInput(inputStr);
+                parsedInput.setFormat(VariantFormat.GNOMAD);
+                parsedInput.setChromosome(normalizeChr(matcher.group(1)));
+                parsedInput.setPosition(Integer.parseInt(matcher.group(2)));
+                parsedInput.setRefBase(normalizeBase(matcher.group(3)));
+                parsedInput.setAltBase(normalizeBase(matcher.group(4)));
+                return parsedInput;
             }
-        } catch (Exception ex) {
-            parsedInput.addError(ErrorConstants.INVALID_GNOMAD);
-            LOGGER.error(parsedInput + ": parsing error", ex);
+        } catch (NumberFormatException e) {
+            // Position parsing failed, return invalid
+            return GenomicInput.invalid(inputStr);
         }
-        return parsedInput;
+
+        return GenomicInput.invalid(inputStr); // No match
     }
 }

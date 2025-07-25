@@ -10,7 +10,7 @@ import uk.ac.ebi.protvar.cache.InputSummary;
 import uk.ac.ebi.protvar.fetcher.SearchInputHandler;
 import uk.ac.ebi.protvar.fetcher.CachedInputHandler;
 import uk.ac.ebi.protvar.input.VariantInput;
-import uk.ac.ebi.protvar.input.parser.InputParser;
+import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
@@ -35,7 +35,7 @@ public class MappingService {
 
     private Page<VariantInput> singleInputPage(String input) {
         return new PageImpl<>(
-                InputParser.parse(List.of(input)),
+                VariantParser.parse(List.of(input)),
                 PageRequest.of(0, 1), // page index 0, size 1
                 1 // total elements
         );
@@ -43,7 +43,7 @@ public class MappingService {
 
     public PagedMappingResponse get(MappingRequest request) {
         Page<VariantInput> page = switch (request.getType()) {
-            case SINGLE_VARIANT -> singleInputPage(request.getInput());
+            case VARIANT -> singleInputPage(request.getInput());
             case INPUT_ID -> cachedInputHandler.pagedInput(request);
             case UNIPROT, ENSEMBL, GENE, PDB, REFSEQ -> searchInputHandler.pagedInput(request);
         };
@@ -60,7 +60,7 @@ public class MappingService {
             build = inputCacheService.getBuild(request.getInput());
         }
 
-        boolean multiFormat = request.getType() == InputType.SINGLE_VARIANT || request.getType() == InputType.INPUT_ID;
+        boolean multiFormat = request.getType() == InputType.VARIANT || request.getType() == InputType.INPUT_ID;
         MappingResponse mapping = inputMapper.getMapping(inputs, request.getAssembly(), build, multiFormat);
 
         if (mapping !=null && request.getType() == InputType.INPUT_ID) {

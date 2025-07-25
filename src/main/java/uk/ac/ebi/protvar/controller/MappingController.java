@@ -59,7 +59,7 @@ public class MappingController {
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
         MappingRequest request = MappingRequest.builder()
                 .input(input)
-                .type(InputType.SINGLE_VARIANT)
+                .type(InputType.VARIANT)
                 .assembly(assembly)
                 .page(1)
                 .pageSize(1)
