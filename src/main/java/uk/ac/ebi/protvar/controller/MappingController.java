@@ -118,12 +118,12 @@ public class MappingController {
     }
 
     public ResponseEntity<?> handleRequest(MappingRequest request) {
-        InputType type = request.getType(); // user-provided, may be made optional
+        InputType providedType = request.getType(); // user-provided, may be null
         InputType resolved = InputTypeResolver.resolve(request.getInput());
 
-        if (type != null && !type.equals(resolved)) {
+        if (providedType != null && !providedType.equals(resolved)) {
             return ResponseEntity.badRequest().body(
-                    String.format("Input type '%s' does not match resolved type '%s'.", type, resolved)
+                    String.format("Input type '%s' does not match resolved type '%s'.", providedType, resolved)
             );
         }
         if (resolved == null) {

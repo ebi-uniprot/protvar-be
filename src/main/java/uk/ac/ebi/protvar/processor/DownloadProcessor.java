@@ -120,7 +120,7 @@ public class DownloadProcessor {
 							.assembly(request.getAssembly())
 							.build());
 				}
-				case UNIPROT /*, ENSEMBL, PDB, REFSEQ, GENE*/ -> {
+				case UNIPROT, ENSEMBL, GENE, PDB, REFSEQ -> {
 					handler = searchInputHandler;
 
 					// preload stuff here!!

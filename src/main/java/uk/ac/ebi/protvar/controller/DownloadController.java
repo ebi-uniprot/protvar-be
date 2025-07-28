@@ -17,7 +17,9 @@ import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
+import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.utils.DownloadFileUtil;
+import uk.ac.ebi.protvar.utils.InputTypeResolver;
 
 import java.io.FileInputStream;
 import java.time.LocalDateTime;
@@ -62,6 +64,25 @@ public class DownloadController implements WebMvcConfigurer {
      * @return ResponseEntity with DownloadResponse or error
      */
     public ResponseEntity<?> handleDownload(DownloadRequest request, HttpServletRequest http) {
+        InputType providedType = request.getType(); // user-provided, may be null
+        InputType resolved = InputTypeResolver.resolve(request.getInput());
+
+        if (providedType != null && !providedType.equals(resolved)) {
+            return ResponseEntity.badRequest().body(
+                    String.format("Input type '%s' does not match resolved type '%s'.", providedType, resolved)
+            );
+        }
+        if (resolved == null) {
+            return ResponseEntity.badRequest().body("Unable to resolve input type from provided input.");
+        }
+
+        request.setType(resolved);
+
+        if (request.getInput() != null &&
+                (resolved != InputType.PDB && resolved != InputType.INPUT_ID)) { // todo: move normalizing case in SQL query for consistency
+            request.setInput(request.getInput().toUpperCase());
+        }
+
         request.setTimestamp(LocalDateTime.now());
         request.setFname(DownloadFileUtil.buildFilename(request));
 

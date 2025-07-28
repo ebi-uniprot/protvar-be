@@ -12,7 +12,8 @@ import uk.ac.ebi.protvar.types.InputType;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import uk.ac.ebi.protvar.types.StabilityChange;
+
 import java.util.List;
 
 @Data
@@ -39,6 +40,7 @@ public class MappingRequest {
             If set to 'AUTO', the system will attempt to detect the appropriate assembly for genomic inputs.
             Defaults to 'AUTO' if not specified.
             """;
+
     @Schema(description = "The input. This can be inputId, single variant or one of the other input types (UniProt accession, gene symbol, Ensembl, PDB, or RefSeq ID).")
     @NotBlank(message = "Input must not be null or empty")
     // todo: actually we should allow empty so only filters will apply
@@ -48,7 +50,7 @@ public class MappingRequest {
             description = "Input type. If null, the input is treated as a single variant.", // todo: verify this!! need to add a SINGLE_VARIANT type
             example = "UNIPROT"
     )
-    @NotNull(message = "Input type must not be null")
+    //@NotNull(message = "Input type must not be null")
     protected InputType type; // searchTermType? expand to FREE_TEXT (to allow similarity?)
 
     @Schema(
@@ -82,6 +84,15 @@ public class MappingRequest {
 
     @Schema(description = "Show only known variants (default: potential included)", example = "false")
     private Boolean known;
+
+    @Schema(description = "Show only variants in predicted pocket", example = "false")
+    private Boolean pocket;
+
+    @Schema(description = "Show only variants in P-P interaction", example = "false")
+    private Boolean interact;
+
+    @Schema(description = "Stability change filter", example = "[]")
+    private List<StabilityChange> stability;
 
     @Schema(description = "Sort field: 'cadd' or 'am'", example = "cadd")
     private String sort;

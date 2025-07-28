@@ -13,13 +13,15 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 // todo add INVALID/UNKNOWN?
 @Schema(description = "The input type.")
-public enum InputType {
-    INPUT_ID, // 32-char long user input ID
+public enum InputType { // todo: rename to Query/SearchType??
+    // Variant inputs
+    VARIANT, // variant input in any supported format
+    INPUT_ID, // 32-char long user input id
+    // Identifiers
     ENSEMBL, // Ensembl identifier (ENSG, ENST, ENSP, ENSE)
     UNIPROT, // UniProt accessio
     PDB,     // PDB structure ID
     REFSEQ,  // RefSeq identifier
-    GENE,    // Gene symbol
-    VARIANT // variant input in any supported format
-    // FREE_TEXT, // used for semantic search(?)
+    GENE    // Gene symbol
+    // FREE_TEXT, // to be used for semantic search(?)
 }

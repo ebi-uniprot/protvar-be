@@ -42,6 +42,7 @@ public class MappingService {
     }
 
     public PagedMappingResponse get(MappingRequest request) {
+        // type will be set to resolved by now
         Page<VariantInput> page = switch (request.getType()) {
             case VARIANT -> singleInputPage(request.getInput());
             case INPUT_ID -> cachedInputHandler.pagedInput(request);

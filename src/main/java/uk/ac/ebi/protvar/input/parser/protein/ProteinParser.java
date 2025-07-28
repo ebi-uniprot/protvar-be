@@ -34,7 +34,7 @@ import java.util.regex.Pattern;
  */
 public class ProteinParser extends VariantParser {
     // UniProt accession pattern - validates format structure only
-    public static final String VALID_UNIPROT = "([O,P,Q][0-9][A-Z,0-9]{3}[0-9]|[A-N,R-Z]([0-9][A-Z][A-Z,0-9]{2}){1,2}[0-9])([-]([1-9][0-9]*))?";
+    public static final String VALID_UNIPROT = "([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z]([0-9][A-Z][A-Z0-9]{2}){1,2}[0-9])(-[1-9][0-9]*)?";
 
     // Amino acid patterns derived from AminoAcid enum
     public static final String VALID_AA_SINGLE = "[ACDEFGHIKLMNPQRSTVWY\\*BZUXOJ]";  // Single letter codes + stop codon (*)
