@@ -118,7 +118,7 @@ public class MappingController {
     }
 
     public ResponseEntity<?> handleRequest(MappingRequest request) {
-        InputType providedType = request.getType(); // user-provided, may be null
+        InputType providedType = request.getType(); // user-provided hint
         InputType resolved = InputTypeResolver.resolve(request.getInput());
 
         if (providedType != null && !providedType.equals(resolved)) {
