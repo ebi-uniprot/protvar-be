@@ -659,8 +659,8 @@ public class MappingRepo {
 
 	private <T extends Enum<T>> boolean isFilteringRequired(List<T> categories, Class<T> enumClass) {
 		return categories != null
-				&& !categories.isEmpty()
-				&& !EnumSet.copyOf(categories).equals(EnumSet.allOf(enumClass));
+				&& !categories.isEmpty();
+				//&& !EnumSet.copyOf(categories).equals(EnumSet.allOf(enumClass));
 	}
 
 	private String buildDbsnpJoin(boolean filterKnown) {
