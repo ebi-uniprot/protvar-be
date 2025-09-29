@@ -118,22 +118,26 @@ public class MappingController {
     }
 
     public ResponseEntity<?> handleRequest(MappingRequest request) {
-        InputType providedType = request.getType(); // user-provided hint
-        InputType resolved = InputTypeResolver.resolve(request.getInput());
+        if (request.getType() != null) {
+            // User provided type - trust them and use it
+            // No validation, no resolution needed
+        } else {
+            // Resolve type
+            InputType resolved = InputTypeResolver.resolve(request.getInput());
 
-        if (providedType != null && !providedType.equals(resolved)) {
-            return ResponseEntity.badRequest().body(
-                    String.format("Input type '%s' does not match resolved type '%s'.", providedType, resolved)
-            );
+            if (resolved == null) {
+                return ResponseEntity.badRequest().body(
+                        "Unable to resolve input type from provided input."
+                );
+            }
+
+            request.setType(resolved);
         }
-        if (resolved == null) {
-            return ResponseEntity.badRequest().body("Unable to resolve input type from provided input.");
-        }
 
-        request.setType(resolved);
-
+        // Normalize case (exclude PDB and INPUT_ID)
         if (request.getInput() != null &&
-                (resolved != InputType.PDB && resolved != InputType.INPUT_ID)) { // todo: move normalizing case in SQL query for consistency
+                request.getType() != InputType.PDB &&
+                request.getType() != InputType.INPUT_ID) {
             request.setInput(request.getInput().toUpperCase());
         }
 
