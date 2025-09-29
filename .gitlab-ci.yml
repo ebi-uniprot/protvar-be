@@ -14,7 +14,7 @@ stages:
   - integration_test
 
 .mvn:
-  image: maven:3.8.2-openjdk-17-slim
+  image: maven:3.9.9-eclipse-temurin-21-alpine
   before_script:
     - java --version
     - mvn --version
