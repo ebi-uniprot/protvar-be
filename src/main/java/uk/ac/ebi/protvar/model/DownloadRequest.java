@@ -3,12 +3,14 @@ package uk.ac.ebi.protvar.model;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
 @Data
 @SuperBuilder
+@EqualsAndHashCode(callSuper = true)
 @Schema(description = "Request payload for initiating a download")
 public class DownloadRequest extends MappingRequest {
 
@@ -40,6 +42,7 @@ public class DownloadRequest extends MappingRequest {
             """,
             defaultValue = "false"
     )
+    @lombok.Builder.Default
     private Boolean full = false;
 
     // Additional derived fields (not part of request payload)

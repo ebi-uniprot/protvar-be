@@ -695,7 +695,7 @@ public class MappingRepo {
 				// Using LOWER on the right side only to ensure index on pdb_id is used
 				parameters.addValue("input", input);
 				yield String.format("""
-                JOIN (
+                INNER JOIN (
                     SELECT DISTINCT accession, unp_start, unp_end
                     FROM %s
                     WHERE pdb_id = LOWER(:input)

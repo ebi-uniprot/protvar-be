@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 public class InputSummary {
     int totalCount;
+    @Builder.Default
     EnumMap<VariantType, Integer> inputCounts = new EnumMap<>(VariantType.class);
 
 

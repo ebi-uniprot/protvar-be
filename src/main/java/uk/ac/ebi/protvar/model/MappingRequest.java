@@ -47,7 +47,7 @@ public class MappingRequest {
     protected String input; // rename to searchTerm? (search=?&type=?)
 
     @Schema(
-            description = "Input type. If null, the input is treated as a single variant.", // todo: verify this!! need to add a SINGLE_VARIANT type
+            description = "Input type. If null, the system will try to infer it automatically.",
             example = "UNIPROT"
     )
     //@NotNull(message = "Input type must not be null")
