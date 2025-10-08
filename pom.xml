@@ -165,6 +165,12 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>com.pgvector</groupId>
+      <artifactId>pgvector</artifactId>
+      <version>0.1.4</version>
+    </dependency>
+
   </dependencies>
 
   <build>

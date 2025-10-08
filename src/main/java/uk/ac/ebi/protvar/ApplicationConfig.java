@@ -2,6 +2,7 @@ package uk.ac.ebi.protvar;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -10,6 +11,7 @@ import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,21 +26,25 @@ import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class ApplicationConfig {
 
     @Value(("${uniprot.proteins.api.url}"))
-    private String proteinsURL;
+    private String proteinsUrl;
 
     @Value(("${uniprot.variation.api.url}"))
-    private String variationURL;
+    private String variationUrl;
 
     @Value(("${uniprot.coordinates.api.url}"))
-    private String coordinatesURL;
+    private String coordinatesUrl;
 
     @Value(("${pdbe.best-structures.api.url}"))
-    private String pdbeURL;
+    private String pdbeUrl;
+
+    @Value("${embedding.service.url:http://localhost:8000}")
+    private String embeddingServiceUrl;
 
     private final ObjectMapper objectMapper;
 
@@ -65,7 +71,7 @@ public class ApplicationConfig {
     public RestTemplate variationRestTemplate() {
         RestTemplate restTemplate = new RestTemplate();// new RestTemplateCache();
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(variationURL));
+        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(variationUrl));
         return restTemplate;
     }
 
@@ -79,7 +85,7 @@ public class ApplicationConfig {
         // Create a RestTemplate with the custom converter
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinsURL));
+        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinsUrl));
         restTemplate.setMessageConverters(Collections.singletonList(converter));
 
         return restTemplate;
@@ -91,7 +97,39 @@ public class ApplicationConfig {
     public RestTemplate pdbeRestTemplate() {
         RestTemplate restTemplate = new RestTemplateCache();
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeURL));
+        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeUrl));
+        return restTemplate;
+    }
+
+    @Bean
+    @Qualifier("embeddingRestTemplate")
+    public RestTemplate embeddingRestTemplate() {
+        // Simple factory with timeouts (no external dependency needed)
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);  // 5 seconds
+        factory.setReadTimeout(10000);     // 10 seconds
+
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(objectMapper);
+
+        RestTemplate restTemplate = new RestTemplate(factory);
+        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(embeddingServiceUrl));
+        restTemplate.setMessageConverters(Collections.singletonList(converter));
+
+        // Add retry interceptor
+        restTemplate.getInterceptors().add((request, body, execution) -> {
+            RetryTemplate retryTemplate = new RetryTemplate();
+            retryTemplate.setRetryPolicy(new SimpleRetryPolicy(3));
+            try {
+                return retryTemplate.execute(context -> {
+                    log.info("Attempting embedding service call (attempt " + (context.getRetryCount() + 1) + ")");
+                    return execution.execute(request, body);
+                });
+            } catch (Throwable throwable) {
+                throw new RuntimeException(throwable);
+            }
+        });
         return restTemplate;
     }
 
