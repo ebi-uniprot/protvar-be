@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.model.score.ScoreType;
+import uk.ac.ebi.protvar.repo.ScoreNewRepo;
 import uk.ac.ebi.protvar.repo.ScoreRepo;
 
 import java.util.List;
@@ -20,7 +21,7 @@ import java.util.List;
 @CrossOrigin
 @RequiredArgsConstructor
 public class ScoreController {
-    private final ScoreRepo scoreRepo;
+    private final ScoreNewRepo scoreRepo;
 
     /**
      * Retrieve Conservation, EVE, ESM1b and AlphaMissense scores.

@@ -19,10 +19,7 @@ import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.record.AccessionPosition;
 import uk.ac.ebi.protvar.record.ArrayPair;
 import uk.ac.ebi.protvar.record.ChromosomePosition;
-import uk.ac.ebi.protvar.repo.CaddPredictionRepo;
-import uk.ac.ebi.protvar.repo.MappingRepo;
-import uk.ac.ebi.protvar.repo.ScoreRepo;
-import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
+import uk.ac.ebi.protvar.repo.*;
 import uk.ac.ebi.protvar.utils.Commons;
 
 import java.util.*;
@@ -42,7 +39,7 @@ public class InputMapper {
 	private static final Logger LOGGER = LoggerFactory.getLogger(InputMapper.class);
 	private final MappingRepo mappingRepo;
 	private final CaddPredictionRepo caddPredictionRepo;
-	private final ScoreRepo scoreRepo;
+	private final ScoreNewRepo scoreRepo;
 	private final UniprotRefseqRepo uniprotRefseqRepo;
 	private final BuildProcessor buildProcessor;
 	private final Id2Gen id2Gen;

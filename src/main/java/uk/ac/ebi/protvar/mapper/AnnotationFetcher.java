@@ -40,7 +40,7 @@ public class AnnotationFetcher {
 	private final PocketRepo pocketRepo;
 	private final InteractionRepo interactionRepo;
 	private final FoldxRepo foldxRepo;
-	private final ScoreRepo scoreRepo; // annotation scores
+	private final ScoreNewRepo scoreRepo; // annotation scores
 
 	// population ann sources
 	private final VariantFetcher variantFetcher;
