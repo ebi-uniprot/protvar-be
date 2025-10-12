@@ -28,7 +28,7 @@ public class ScoreController {
      * @param acc UniProt accession
      * @param pos  Amino acid position
      * @param mt  Mutated type (1- or 3-letter amino acid)
-     * @param name  Score name
+     * @param type  Score type
      * @return <code>Score</code>
      */
     @Operation(summary = "Amino acid-level scores",
@@ -40,9 +40,9 @@ public class ScoreController {
             @Parameter(example = "Q9NUW8") @PathVariable String acc,
             @Parameter(example = "493") @PathVariable Integer pos,
             @Parameter(example = "R") @RequestParam(required = false) String mt,
-            @Parameter(example = "") @RequestParam(required = false) ScoreType name) {
+            @Parameter(example = "") @RequestParam(required = false) ScoreType type) {
 
-        List<Score> scores = scoreRepo.getScores(acc, pos, mt, name);
+        List<Score> scores = scoreRepo.getScores(acc, pos, mt, type);
         return new ResponseEntity<>(scores, HttpStatus.OK);
     }
 }

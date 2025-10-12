@@ -40,12 +40,13 @@ public class FunctionalInfoEnricher {
             functionalInfo.setFoldxs(foldxs);
         }
 
-        // Add annotation (Conserv, Eve, Esm) scores
+        // Add annotation (Conserv, Eve, Esm, PopEve) scores
         if (annData.getScoreMap() != null || !annData.getScoreMap().isEmpty()) {
 
             String conservScoreKey = VariantKey.protein(ScoreType.CONSERV, accession, position, null);
             String eveScoreKey = VariantKey.protein(ScoreType.EVE, accession, position, variantAA);
             String esmScoreKey = VariantKey.protein(ScoreType.ESM, accession, position, variantAA);
+            String popeveScoreKey = VariantKey.protein(ScoreType.POPEVE, accession, position, variantAA);
 
             annData.getScoreMap().getOrDefault(conservScoreKey, Collections.emptyList()).stream().findFirst()
                     .map(s -> ((ConservScore) s).copySubclassFields()).ifPresent(functionalInfo::setConservScore);
@@ -55,6 +56,9 @@ public class FunctionalInfoEnricher {
 
             annData.getScoreMap().getOrDefault(esmScoreKey, Collections.emptyList()).stream().findFirst()
                     .map(s -> ((EsmScore) s).copySubclassFields()).ifPresent(functionalInfo::setEsmScore);
+
+            annData.getScoreMap().getOrDefault(popeveScoreKey, Collections.emptyList()).stream().findFirst()
+                    .map(s -> ((PopEveScore) s).copySubclassFields()).ifPresent(functionalInfo::setPopEveScore);
         }
     }
 

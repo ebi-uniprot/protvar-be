@@ -8,6 +8,7 @@ import lombok.Setter;
 import uk.ac.ebi.protvar.model.score.ConservScore;
 import uk.ac.ebi.protvar.model.score.EsmScore;
 import uk.ac.ebi.protvar.model.score.EveScore;
+import uk.ac.ebi.protvar.model.score.PopEveScore;
 import uk.ac.ebi.uniprot.domain.entry.DbReference;
 import uk.ac.ebi.uniprot.domain.entry.Gene;
 import uk.ac.ebi.uniprot.domain.entry.Sequence;
@@ -46,6 +47,7 @@ public class FunctionalInfo {
 	// ProtVar scores (CADD and AM scores in core mapping)
 	private ConservScore conservScore;
 	private EveScore eveScore;
-	private EsmScore esmScore;
+    private EsmScore esmScore;
+    private PopEveScore popEveScore;
 
 }

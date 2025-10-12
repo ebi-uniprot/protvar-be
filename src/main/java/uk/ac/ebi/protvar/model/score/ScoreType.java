@@ -9,6 +9,7 @@ public enum ScoreType {
     CONSERV("Conservation"),        // AAconservation_normalised
     EVE("EVE"),                     // EVE_score and EVE_class
     ESM("ESM1b"),                   // ESM1b_score
-    AM("AlphaMissense");            // AM_pathogenicity and AM_class
+    AM("AlphaMissense"),            // AM_pathogenicity and AM_class,
+    POPEVE("PopEVE");  // New
     private final String name;
 }
