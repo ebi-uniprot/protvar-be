@@ -67,8 +67,10 @@ public class MappingRepo {
 	private String mappingTable; // injected via Spring after constructor
 	@Value("${tbl.cadd}")
 	private String caddTable;
-	@Value("${tbl.am}")
-	private String amTable;
+    @Value("${tbl.am}")
+    private String amTable;
+    @Value("${tbl.eve}")
+    private String eveTable;
 	@Value("${tbl.ann.str}")
 	private String structureTable;
 	@Value("${tbl.uprefseq}")
@@ -350,13 +352,13 @@ public class MappingRepo {
 		boolean filterByAm = amClasses != null
 				&& !amClasses.isEmpty();
 		//&& !EnumSet.copyOf(amClasses).equals(EnumSet.allOf(AmClass.class));
-		boolean sortByCadd = "CADD".equalsIgnoreCase(sort);
-		boolean sortByAm = "AM".equalsIgnoreCase(sort);
+		boolean sortByCadd = "cadd".equalsIgnoreCase(sort);
+		boolean sortByAm = "am".equalsIgnoreCase(sort);
 
 		boolean joinCadd = filterByCadd || sortByCadd;
 		boolean joinAm = filterByAm || sortByAm;
 
-		String sortOrder = "ASC".equalsIgnoreCase(order) ? "ASC" : "DESC";
+		String sortOrder = "asc".equalsIgnoreCase(order) ? "asc" : "desc";
 		String fields = "m.chromosome, m.genomic_position, m.allele, m.alt_allele, m.protein_position, m.codon_position";
 		String baseQuery = """
 			WITH base_alleles AS (
@@ -435,10 +437,10 @@ public class MappingRepo {
 
 		// Sorting
 		sql.append(" ORDER BY ");
-		if ("CADD".equalsIgnoreCase(sort)) {
+		if ("cadd".equalsIgnoreCase(sort)) {
 			fields += ", cadd.score ";
 			sql.append("cadd.score ").append(sortOrder).append(", ");
-		} else if ("AM".equalsIgnoreCase(sort)) {
+		} else if ("am".equalsIgnoreCase(sort)) {
 			fields += ", am.am_pathogenicity ";
 			sql.append("am.am_pathogenicity ").append(sortOrder).append(", ");
 		}
@@ -478,18 +480,21 @@ public class MappingRepo {
 		// Determine filtering and sorting requirements
 		boolean filterByCadd = isFilteringRequired(request.getCadd(), CaddCategory.class);
 		boolean filterByAm = isFilteringRequired(request.getAm(), AmClass.class);
+        boolean filterByEve = request.getEveMin() != null || request.getEveMax() != null;
 		boolean filterKnown = Boolean.TRUE.equals(request.getKnown());
 		boolean filterPocket = Boolean.TRUE.equals(request.getPocket());
 		boolean filterInteract = Boolean.TRUE.equals(request.getInteract());
 		boolean filterStability = request.getStability() != null && !request.getStability().isEmpty();
-		boolean sortByCadd = "CADD".equalsIgnoreCase(request.getSort());
-		boolean sortByAm = "AM".equalsIgnoreCase(request.getSort());
+		boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
+        boolean sortByAm = "am".equalsIgnoreCase(request.getSort());
+        boolean sortByEve = "eve".equalsIgnoreCase(request.getSort());
 
 		boolean joinCadd = filterByCadd || sortByCadd;
-		boolean joinAm = filterByAm || sortByAm;
-		boolean joinCodonTable = joinAm || filterStability;
+        boolean joinAm = filterByAm || sortByAm;
+        boolean joinEve = filterByEve || sortByEve;
+		boolean joinCodonTable = joinAm || joinEve || filterStability;
 
-		String sortOrder = "ASC".equalsIgnoreCase(request.getOrder()) ? "ASC" : "DESC";
+		String sortOrder = "asc".equalsIgnoreCase(request.getOrder()) ? "asc" : "desc";
 		String fields = "m.chromosome, m.genomic_position, m.allele, m.alt_allele, m.protein_position, m.codon_position";
 
 		// Build the base query
@@ -553,6 +558,17 @@ public class MappingRepo {
 			""", joinType, amTable));
 		}
 
+        if (joinEve) {
+            String joinType = filterByEve ? "INNER" : "LEFT";  // LEFT for sorting
+            sql.append(String.format("""
+                %s JOIN %s eve ON
+                    eve.accession = m.accession AND
+                    eve.position = m.protein_position AND
+                    eve.wt_aa = m.protein_seq AND
+                    eve.mt_aa = c.amino_acid
+            """, joinType, eveTable));
+        }
+
 		if (filterPocket) {
 			sql.append(String.format("""
 				INNER JOIN %s p ON
@@ -599,6 +615,17 @@ public class MappingRepo {
 			sql.append(" AND am.am_class IN (:amClasses)");
 			parameters.addValue("amClasses", amValues);
 		}
+
+        if (filterByEve) {
+            if (request.getEveMin() != null) {
+                sql.append(" AND eve.score >= :eveMin");
+                parameters.addValue("eveMin", request.getEveMin());
+            }
+            if (request.getEveMax() != null) {
+                sql.append(" AND eve.score <= :eveMax");
+                parameters.addValue("eveMax", request.getEveMax());
+            }
+        }
 
 		if (filterStability) {
 			Set<StabilityChange> changes = EnumSet.copyOf(request.getStability());

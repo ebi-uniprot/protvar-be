@@ -94,11 +94,21 @@ public class MappingRequest {
     @Schema(description = "Stability change filter", example = "[]")
     private List<StabilityChange> stability;
 
-    @Schema(description = "Sort field: 'cadd' or 'am'", example = "cadd")
+    @Schema(description = "Sort field: 'cadd', 'am' or 'eve'", example = "cadd")
     private String sort;
 
     @Schema(description = "Sort direction: 'asc' or 'desc'", example = "asc")
     private String order;
+
+    @Schema(description = "Minimum EVE score (inclusive)", example = "0.0")
+    @Min(value = 0, message = "EVE minimum score must be at least 0")
+    @Max(value = 1, message = "EVE maximum score must not exceed 1")
+    private Double eveMin;
+
+    @Schema(description = "Maximum EVE score (inclusive)", example = "1.0")
+    @Min(value = 0, message = "EVE maximum score must be at least 0")
+    @Max(value = 1, message = "EVE maximum score must not exceed 1")
+    private Double eveMax;
 
     // override Lombok getter for page
 
