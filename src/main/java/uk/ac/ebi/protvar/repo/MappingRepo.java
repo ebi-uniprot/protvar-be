@@ -657,9 +657,12 @@ public class MappingRepo {
 			fields += ", cadd.score ";
 			sql.append("cadd.score ").append(sortOrder).append(", ");
 		} else if (sortByAm) {
-			fields += ", am.am_pathogenicity ";
-			sql.append("am.am_pathogenicity ").append(sortOrder).append(", ");
-		}
+            fields += ", am.am_pathogenicity ";
+            sql.append("am.am_pathogenicity ").append(sortOrder).append(", ");
+        } else if (sortByEve) {
+            fields += ", eve.score ";
+            sql.append("eve.score ").append(sortOrder).append(", ");
+        }
 		sql.append("m.protein_position, m.codon_position, m.alt_allele"); // consider removing alt_allele?
 
 		// Pagination
