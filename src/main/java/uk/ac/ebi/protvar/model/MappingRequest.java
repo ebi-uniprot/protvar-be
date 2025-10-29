@@ -6,13 +6,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import uk.ac.ebi.protvar.constants.PageUtils;
-import uk.ac.ebi.protvar.types.AmClass;
-import uk.ac.ebi.protvar.types.CaddCategory;
-import uk.ac.ebi.protvar.types.InputType;
+import uk.ac.ebi.protvar.types.*;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import uk.ac.ebi.protvar.types.StabilityChange;
 
 import java.util.List;
 
@@ -100,6 +97,8 @@ public class MappingRequest {
     @Schema(description = "Sort direction: 'asc' or 'desc'", example = "asc")
     private String order;
 
+    // COMMENTED OUT - Keeping EVE code just in case
+    /*
     @Schema(description = "Minimum EVE score (inclusive)", example = "0.0")
     @Min(value = 0, message = "EVE minimum score must be at least 0")
     @Max(value = 1, message = "EVE maximum score must not exceed 1")
@@ -109,6 +108,9 @@ public class MappingRequest {
     @Min(value = 0, message = "EVE maximum score must be at least 0")
     @Max(value = 1, message = "EVE maximum score must not exceed 1")
     private Double eveMax;
+    */
+    @Schema(description = "popEVE score filter categories", example = "[]")
+    private List<PopEveClass> popeve;
 
     // override Lombok getter for page
 

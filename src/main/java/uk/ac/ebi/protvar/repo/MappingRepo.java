@@ -18,10 +18,7 @@ import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
-import uk.ac.ebi.protvar.types.AmClass;
-import uk.ac.ebi.protvar.types.CaddCategory;
-import uk.ac.ebi.protvar.types.StabilityChange;
-import uk.ac.ebi.protvar.types.InputType;
+import uk.ac.ebi.protvar.types.*;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
 
 import java.sql.ResultSet;
@@ -71,6 +68,8 @@ public class MappingRepo {
     private String amTable;
     @Value("${tbl.eve}")
     private String eveTable;
+    @Value("${tbl.popeve}")
+    private String popeveTable;
 	@Value("${tbl.ann.str}")
 	private String structureTable;
 	@Value("${tbl.uprefseq}")
@@ -480,19 +479,27 @@ public class MappingRepo {
 		// Determine filtering and sorting requirements
 		boolean filterByCadd = isFilteringRequired(request.getCadd(), CaddCategory.class);
 		boolean filterByAm = isFilteringRequired(request.getAm(), AmClass.class);
-        boolean filterByEve = request.getEveMin() != null || request.getEveMax() != null;
+        boolean filterByPopEve = isFilteringRequired(request.getPopeve(), PopEveClass.class);
+        // COMMENTED OUT - EVE range filter
+        // boolean filterByEve = request.getEveMin() != null || request.getEveMax() != null;
 		boolean filterKnown = Boolean.TRUE.equals(request.getKnown());
 		boolean filterPocket = Boolean.TRUE.equals(request.getPocket());
 		boolean filterInteract = Boolean.TRUE.equals(request.getInteract());
 		boolean filterStability = request.getStability() != null && !request.getStability().isEmpty();
 		boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
         boolean sortByAm = "am".equalsIgnoreCase(request.getSort());
-        boolean sortByEve = "eve".equalsIgnoreCase(request.getSort());
+        boolean sortByPopEve = "popeve".equalsIgnoreCase(request.getSort());
+        // COMMENTED OUT - EVE sorting
+        // boolean sortByEve = "eve".equalsIgnoreCase(request.getSort());
 
 		boolean joinCadd = filterByCadd || sortByCadd;
         boolean joinAm = filterByAm || sortByAm;
-        boolean joinEve = filterByEve || sortByEve;
-		boolean joinCodonTable = joinAm || joinEve || filterStability;
+        boolean joinPopEve = filterByPopEve || sortByPopEve;
+        // COMMENTED OUT - EVE join
+        // boolean joinEve = filterByEve || sortByEve;
+        boolean joinCodonTable = joinAm || joinPopEve || filterStability;
+        // COMMENTED OUT - old condition with EVE
+        // boolean joinCodonTable = joinAm || joinEve || filterStability;
 
 		String sortOrder = "asc".equalsIgnoreCase(request.getOrder()) ? "asc" : "desc";
 		String fields = "m.chromosome, m.genomic_position, m.allele, m.alt_allele, m.protein_position, m.codon_position";
@@ -558,8 +565,23 @@ public class MappingRepo {
 			""", joinType, amTable));
 		}
 
+        if (joinPopEve) {
+            String joinType = filterByPopEve ? "INNER" : "LEFT";
+            // Changed alias from 'r' to 'unp_ref' to avoid conflict with RefSeq input condition
+            sql.append(String.format("""
+                %s JOIN %s unp_ref ON unp_ref.uniprot_acc = m.accession
+                %s JOIN %s popeve ON
+                    popeve.refseq_protein = unp_ref.refseq_acc AND
+                    popeve.position = m.protein_position AND
+                    popeve.wt_aa = m.protein_seq AND
+                    popeve.mt_aa = c.amino_acid
+            """, joinType, uniprotRefseqTable, joinType, popeveTable));
+        }
+
+        // COMMENTED OUT - EVE join code
+        /*
         if (joinEve) {
-            String joinType = filterByEve ? "INNER" : "LEFT";  // LEFT for sorting
+            String joinType = filterByEve ? "INNER" : "LEFT";
             sql.append(String.format("""
                 %s JOIN %s eve ON
                     eve.accession = m.accession AND
@@ -568,6 +590,7 @@ public class MappingRepo {
                     eve.mt_aa = c.amino_acid
             """, joinType, eveTable));
         }
+        */
 
 		if (filterPocket) {
 			sql.append(String.format("""
@@ -616,6 +639,31 @@ public class MappingRepo {
 			parameters.addValue("amClasses", amValues);
 		}
 
+        if (filterByPopEve) {
+            List<String> popeveClauses = new ArrayList<>();
+            for (int i = 0; i < request.getPopeve().size(); i++) {
+                PopEveClass category = request.getPopeve().get(i);
+                String minParam = "popeveMin" + i;
+                String maxParam = "popeveMax" + i;
+
+                // Handle infinity values
+                if (Double.isInfinite(category.getMin()) && category.getMin() < 0) {
+                    popeveClauses.add("(popeve.popeve < :" + maxParam + ")");
+                    parameters.addValue(maxParam, category.getMax());
+                } else if (Double.isInfinite(category.getMax())) {
+                    popeveClauses.add("(popeve.popeve >= :" + minParam + ")");
+                    parameters.addValue(minParam, category.getMin());
+                } else {
+                    popeveClauses.add("(popeve.popeve >= :" + minParam + " AND popeve.popeve < :" + maxParam + ")");
+                    parameters.addValue(minParam, category.getMin());
+                    parameters.addValue(maxParam, category.getMax());
+                }
+            }
+            sql.append(" AND (").append(String.join(" OR ", popeveClauses)).append(")");
+        }
+
+        // COMMENTED OUT - EVE range filter
+        /*
         if (filterByEve) {
             if (request.getEveMin() != null) {
                 sql.append(" AND eve.score >= :eveMin");
@@ -626,6 +674,7 @@ public class MappingRepo {
                 parameters.addValue("eveMax", request.getEveMax());
             }
         }
+        */
 
 		if (filterStability) {
 			Set<StabilityChange> changes = EnumSet.copyOf(request.getStability());
@@ -659,10 +708,17 @@ public class MappingRepo {
 		} else if (sortByAm) {
             fields += ", am.am_pathogenicity ";
             sql.append("am.am_pathogenicity ").append(sortOrder).append(", ");
-        } else if (sortByEve) {
+        } else if (sortByPopEve) {
+            fields += ", popeve.popeve ";
+            sql.append("popeve.popeve ").append(sortOrder).append(", ");
+        }
+        // COMMENTED OUT - EVE sorting
+        /*
+        else if (sortByEve) {
             fields += ", eve.score ";
             sql.append("eve.score ").append(sortOrder).append(", ");
         }
+        */
 		sql.append("m.protein_position, m.codon_position, m.alt_allele"); // consider removing alt_allele?
 
 		// Pagination

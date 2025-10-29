@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum AmClass { // TODO use existing AMClass enum
+public enum AmClass {
     // select distinct am_class from alphamissense;
     // am_class
     // 0
