@@ -29,7 +29,7 @@ public class FunctionVectorRepository {
      * @param limit Maximum number of results
      * @return List of similar vectors with metadata
      */
-    public List<VectorSearchResult> findSimilarVectors(float[] queryVector, int limit) {
+    public List<VectorSearchResult> findSimilarVectors(List<Number> queryVector, int limit) {
         String sql = String.format("""
             SELECT
                 accession, source_type, source_text,
@@ -57,7 +57,7 @@ public class FunctionVectorRepository {
                         rs.getString("accession"),
                         rs.getString("source_type"),
                         rs.getString("source_text"),
-                        rs.getFloat("distance")
+                        rs.getDouble("distance")
                 )
         );
     }

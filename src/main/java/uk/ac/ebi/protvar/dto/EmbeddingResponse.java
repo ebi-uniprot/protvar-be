@@ -4,20 +4,22 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class EmbeddingResponse {
-    private float[] embedding;
+    private List<Number> embedding;
     private Integer dimension;
     private String text;
     private boolean success;
     private String error;
 
-    public static EmbeddingResponse success(String text, float[] embedding) {
+    public static EmbeddingResponse success(String text, List<Number> embedding) {
         return new EmbeddingResponse(
                 embedding,
-                embedding.length,
+                embedding.size(),
                 text,
                 true,
                 null

@@ -9,6 +9,7 @@ import uk.ac.ebi.protvar.dto.EmbeddingRequest;
 import uk.ac.ebi.protvar.dto.EmbeddingResponse;
 import uk.ac.ebi.protvar.service.EmbeddingService;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -72,7 +73,7 @@ public class EmbeddingController {
     }
 
     private ResponseEntity<EmbeddingResponse> generateEmbedding(String text) {
-        Optional<float[]> embedding = embeddingService.generateEmbedding(text);
+        Optional<List<Number>> embedding = embeddingService.generateEmbedding(text);
 
         if (embedding.isPresent()) {
             return ResponseEntity.ok(EmbeddingResponse.success(text, embedding.get()));

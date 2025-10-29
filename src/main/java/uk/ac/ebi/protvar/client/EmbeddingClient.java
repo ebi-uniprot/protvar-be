@@ -28,7 +28,7 @@ public class EmbeddingClient {
      * @param queryText Text to generate embedding for
      * @return Optional containing embedding array, empty if service unavailable
      */
-    public Optional<float[]> getEmbedding(String queryText) {
+    public Optional<List<Number>> getEmbedding(String queryText) {
         try {
             Map<String, String> requestBody = Map.of("text", queryText);
 
@@ -45,12 +45,7 @@ public class EmbeddingClient {
             }
 
             List<Number> embedding = response.get("embedding");
-
-            float[] floatArray = new float[embedding.size()];
-            for (int i = 0; i < embedding.size(); i++) {
-                floatArray[i] = embedding.get(i).floatValue();
-            }
-            return Optional.of(floatArray);
+            return Optional.of(embedding);
 
         } catch (RestClientException e) {
             log.error("Failed to get embedding from service for text: {}. Error: {}",

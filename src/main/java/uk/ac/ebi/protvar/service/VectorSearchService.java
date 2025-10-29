@@ -32,7 +32,7 @@ public class VectorSearchService {
     public List<VectorSearchResult> searchByText(String queryText, int limit) {
         log.debug("Performing vector search for query: {}", queryText);
 
-        Optional<float[]> queryVector = embeddingClient.getEmbedding(queryText);
+        Optional<List<Number>> queryVector = embeddingClient.getEmbedding(queryText);
 
         if (queryVector.isEmpty()) {
             log.warn("Unable to get embedding for query text, returning empty results: {}", queryText);
@@ -48,7 +48,7 @@ public class VectorSearchService {
      * @param limit Maximum number of results
      * @return List of similar results
      */
-    public List<VectorSearchResult> searchByVector(float[] queryVector, int limit) {
+    public List<VectorSearchResult> searchByVector(List<Number> queryVector, int limit) {
         try {
             return vectorRepository.findSimilarVectors(queryVector, limit);
         } catch (Exception e) {

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.client.EmbeddingClient;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -23,7 +24,7 @@ public class EmbeddingService {
      * @param text Input text
      * @return Optional containing embedding vector
      */
-    public Optional<float[]> generateEmbedding(String text) {
+    public Optional<List<Number>> generateEmbedding(String text) {
         if (text == null || text.trim().isEmpty()) {
             log.warn("Attempted to generate embedding for empty text");
             return Optional.empty();
