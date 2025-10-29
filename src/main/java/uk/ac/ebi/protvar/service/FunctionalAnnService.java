@@ -181,6 +181,13 @@ public class FunctionalAnnService {
                         try {
                             int start = Integer.parseInt(f.getBegin());
                             int end = Integer.parseInt(f.getEnd());
+
+                            // For DISULFID, check if position matches start OR end exactly
+                            if ("DISULFID".equals(f.getType())) {
+                                return position == start || position == end;
+                            }
+
+                            // For other features, check if position is within range
                             return position >= start && position <= end;
                         } catch (NumberFormatException | NullPointerException e) {
                             // Skip features with invalid or missing start/end
