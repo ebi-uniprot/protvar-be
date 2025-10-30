@@ -72,45 +72,72 @@ public class MappingRequest {
     )
     protected String assembly;
 
-    // Optional advanced filtering criteria
+    // Advanced filtering criteria
+    // Variant Type
+    @Schema(description = "Show only known variants (default: potential included)", example = "false")
+    private Boolean known;
+
+    // Functional (not yet implemented - placeholders for future)
+    private Boolean ptm;
+    private Boolean mutagenesis;
+
+    @Schema(description = "Minimum conservation score (0-1, inclusive)", example = "0.0")
+    @Min(value = 0, message = "Conservation minimum must be at least 0")
+    @Max(value = 1, message = "Conservation minimum must not exceed 1")
+    private Double conservationMin;
+
+    @Schema(description = "Maximum conservation score (0-1, inclusive)", example = "1.0")
+    @Min(value = 0, message = "Conservation maximum must be at least 0")
+    @Max(value = 1, message = "Conservation maximum must not exceed 1")
+    private Double conservationMax;
+
+    private Boolean functionalDomain;
+
+    // Population
+    private Boolean diseaseAssociation; // Not yet implemented
+
+    @Schema(description = "Allele frequency categories", example = "[]")
+    private List<AlleleFreqCategory> alleleFreq;
+
+    // Structural
+    @Schema(description = "Show only variants with experimental structural model", example = "false")
+    private Boolean experimentalModel;
+
+    @Schema(description = "Show only variants in P-P interaction", example = "false")
+    private Boolean interact;
+
+    @Schema(description = "Show only variants in predicted pocket", example = "false")
+    private Boolean pocket;
+
+    @Schema(description = "Stability change filter", example = "[]")
+    private List<StabilityChange> stability;
+
+    // Consequence
     @Schema(description = "CADD score filter categories", example = "[]")
     private List<CaddCategory> cadd;
 
     @Schema(description = "AlphaMissense pathogenicity class filter", example = "[]")
     private List<AmClass> am;
 
-    @Schema(description = "Show only known variants (default: potential included)", example = "false")
-    private Boolean known;
+    @Schema(description = "popEVE score filter categories", example = "[]")
+    private List<PopEveClass> popeve;
 
-    @Schema(description = "Show only variants in predicted pocket", example = "false")
-    private Boolean pocket;
+    @Schema(description = "Minimum ESM1b score (-25 to 0, inclusive)", example = "-25.0")
+    @Min(value = -25, message = "ESM1b minimum must be at least -25")
+    @Max(value = 0, message = "ESM1b minimum must not exceed 0")
+    private Double esm1bMin;
 
-    @Schema(description = "Show only variants in P-P interaction", example = "false")
-    private Boolean interact;
+    @Schema(description = "Maximum ESM1b score (-25 to 0, inclusive)", example = "0.0")
+    @Min(value = -25, message = "ESM1b maximum must be at least -25")
+    @Max(value = 0, message = "ESM1b maximum must not exceed 0")
+    private Double esm1bMax;
 
-    @Schema(description = "Stability change filter", example = "[]")
-    private List<StabilityChange> stability;
-
-    @Schema(description = "Sort field: 'cadd', 'am' or 'eve'", example = "cadd")
+    // Sorting
+    @Schema(description = "Sort field: 'cadd', 'am', 'popeve', or 'esm1b'", example = "cadd")
     private String sort;
 
     @Schema(description = "Sort direction: 'asc' or 'desc'", example = "asc")
     private String order;
-
-    // COMMENTED OUT - Keeping EVE code just in case
-    /*
-    @Schema(description = "Minimum EVE score (inclusive)", example = "0.0")
-    @Min(value = 0, message = "EVE minimum score must be at least 0")
-    @Max(value = 1, message = "EVE maximum score must not exceed 1")
-    private Double eveMin;
-
-    @Schema(description = "Maximum EVE score (inclusive)", example = "1.0")
-    @Min(value = 0, message = "EVE maximum score must be at least 0")
-    @Max(value = 1, message = "EVE maximum score must not exceed 1")
-    private Double eveMax;
-    */
-    @Schema(description = "popEVE score filter categories", example = "[]")
-    private List<PopEveClass> popeve;
 
     // override Lombok getter for page
 

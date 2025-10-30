@@ -64,12 +64,18 @@ public class MappingRepo {
 	private String mappingTable; // injected via Spring after constructor
 	@Value("${tbl.cadd}")
 	private String caddTable;
+    @Value("${tbl.allelefreq}")
+    private String alleleFreqTable;
     @Value("${tbl.am}")
     private String amTable;
     @Value("${tbl.eve}")
     private String eveTable;
     @Value("${tbl.popeve}")
     private String popeveTable;
+    @Value("${tbl.esm}")
+    private String esmTable;
+    @Value("${tbl.conserv}")
+    private String conservationTable;
 	@Value("${tbl.ann.str}")
 	private String structureTable;
 	@Value("${tbl.uprefseq}")
@@ -477,29 +483,31 @@ public class MappingRepo {
 		boolean isDownload = request instanceof DownloadRequest; // no need to run countQuery for download
 
 		// Determine filtering and sorting requirements
+        boolean filterKnown = Boolean.TRUE.equals(request.getKnown());
 		boolean filterByCadd = isFilteringRequired(request.getCadd(), CaddCategory.class);
 		boolean filterByAm = isFilteringRequired(request.getAm(), AmClass.class);
         boolean filterByPopEve = isFilteringRequired(request.getPopeve(), PopEveClass.class);
-        // COMMENTED OUT - EVE range filter
-        // boolean filterByEve = request.getEveMin() != null || request.getEveMax() != null;
-		boolean filterKnown = Boolean.TRUE.equals(request.getKnown());
-		boolean filterPocket = Boolean.TRUE.equals(request.getPocket());
+        boolean filterByAlleleFreq = isFilteringRequired(request.getAlleleFreq(), AlleleFreqCategory.class);
+        boolean filterByConservation = request.getConservationMin() != null || request.getConservationMax() != null;
+        boolean filterByEsm1b = request.getEsm1bMin() != null || request.getEsm1bMax() != null;
+        boolean filterExperimentalModel = Boolean.TRUE.equals(request.getExperimentalModel());
+        boolean filterPocket = Boolean.TRUE.equals(request.getPocket());
 		boolean filterInteract = Boolean.TRUE.equals(request.getInteract());
 		boolean filterStability = request.getStability() != null && !request.getStability().isEmpty();
-		boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
+
+        boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
         boolean sortByAm = "am".equalsIgnoreCase(request.getSort());
         boolean sortByPopEve = "popeve".equalsIgnoreCase(request.getSort());
-        // COMMENTED OUT - EVE sorting
-        // boolean sortByEve = "eve".equalsIgnoreCase(request.getSort());
+        boolean sortByEsm1b = "esm1b".equalsIgnoreCase(request.getSort());
 
+        // Determine which joins are needed
 		boolean joinCadd = filterByCadd || sortByCadd;
         boolean joinAm = filterByAm || sortByAm;
         boolean joinPopEve = filterByPopEve || sortByPopEve;
-        // COMMENTED OUT - EVE join
-        // boolean joinEve = filterByEve || sortByEve;
-        boolean joinCodonTable = joinAm || joinPopEve || filterStability;
-        // COMMENTED OUT - old condition with EVE
-        // boolean joinCodonTable = joinAm || joinEve || filterStability;
+        boolean joinEsm1b = filterByEsm1b || sortByEsm1b;
+        boolean joinAlleleFreq = filterByAlleleFreq;
+        boolean joinConservation = filterByConservation;
+        boolean joinCodonTable = joinAm || joinPopEve || joinEsm1b || filterStability;
 
 		String sortOrder = "asc".equalsIgnoreCase(request.getOrder()) ? "asc" : "desc";
 		String fields = "m.chromosome, m.genomic_position, m.allele, m.alt_allele, m.protein_position, m.codon_position";
@@ -531,7 +539,8 @@ public class MappingRepo {
 				.replaceFirst("%s", inputCondition));
 
 
-		// Add conditional joins
+        // Add conditional joins in optimal order
+        // 1. Genomic-level filters first (most selective)
 		if (joinCadd) {
 			String joinType = filterByCadd ? "INNER" : "LEFT";
 			sql.append(String.format("""
@@ -543,7 +552,18 @@ public class MappingRepo {
 			""", joinType, caddTable));
 		}
 
-		if (joinCodonTable) { // amino acid level filter
+        if (joinAlleleFreq) {
+            sql.append(String.format("""
+            INNER JOIN %s af ON
+                af.chr = m.chromosome AND
+                af.pos = m.genomic_position AND
+                af.ref = m.allele AND
+                af.alt = m.alt_allele
+        """, alleleFreqTable));
+        }
+
+        // 2. Protein-level joins that require codon calculation
+		if (joinCodonTable) {
 			sql.append("""
     			LEFT JOIN codon_table c ON c.codon = upper(CASE
 					WHEN m.codon_position = 1 THEN rna_base_for_strand(m.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
@@ -578,19 +598,34 @@ public class MappingRepo {
             """, joinType, uniprotRefseqTable, joinType, popeveTable));
         }
 
-        // COMMENTED OUT - EVE join code
-        /*
-        if (joinEve) {
-            String joinType = filterByEve ? "INNER" : "LEFT";
+        if (joinEsm1b) {
+            String joinType = filterByEsm1b ? "INNER" : "LEFT";
             sql.append(String.format("""
-                %s JOIN %s eve ON
-                    eve.accession = m.accession AND
-                    eve.position = m.protein_position AND
-                    eve.wt_aa = m.protein_seq AND
-                    eve.mt_aa = c.amino_acid
-            """, joinType, eveTable));
+            %s JOIN %s esm ON
+                esm.accession = m.accession AND
+                esm.position = m.protein_position AND
+                esm.mt_aa = c.amino_acid
+        """, joinType, esmTable));
         }
-        */
+
+        // 3. Protein-level joins that don't require codon
+        if (joinConservation) {
+            sql.append(String.format("""
+            INNER JOIN %s cons ON
+                cons.accession = m.accession AND
+                cons.position = m.protein_position AND
+                cons.aa = m.protein_seq
+        """, conservationTable));
+        }
+
+        if (filterExperimentalModel) {
+            sql.append(String.format("""
+            INNER JOIN %s struct ON
+                struct.accession = m.accession AND
+                m.protein_position >= struct.unp_start AND
+                m.protein_position <= struct.unp_end
+        """, structureTable));
+        }
 
 		if (filterPocket) {
 			sql.append(String.format("""
@@ -662,19 +697,40 @@ public class MappingRepo {
             sql.append(" AND (").append(String.join(" OR ", popeveClauses)).append(")");
         }
 
-        // COMMENTED OUT - EVE range filter
-        /*
-        if (filterByEve) {
-            if (request.getEveMin() != null) {
-                sql.append(" AND eve.score >= :eveMin");
-                parameters.addValue("eveMin", request.getEveMin());
+        if (filterByAlleleFreq) {
+            List<String> afClauses = new ArrayList<>();
+            for (int i = 0; i < request.getAlleleFreq().size(); i++) {
+                AlleleFreqCategory category = request.getAlleleFreq().get(i);
+                String minParam = "afMin" + i;
+                String maxParam = "afMax" + i;
+                afClauses.add("(af.af >= :" + minParam + " AND af.af < :" + maxParam + ")");
+                parameters.addValue(minParam, category.getMin());
+                parameters.addValue(maxParam, category.getMax());
             }
-            if (request.getEveMax() != null) {
-                sql.append(" AND eve.score <= :eveMax");
-                parameters.addValue("eveMax", request.getEveMax());
+            sql.append(" AND (").append(String.join(" OR ", afClauses)).append(")");
+        }
+
+        if (filterByConservation) {
+            if (request.getConservationMin() != null) {
+                sql.append(" AND cons.score >= :conservationMin");
+                parameters.addValue("conservationMin", request.getConservationMin());
+            }
+            if (request.getConservationMax() != null) {
+                sql.append(" AND cons.score <= :conservationMax");
+                parameters.addValue("conservationMax", request.getConservationMax());
             }
         }
-        */
+
+        if (filterByEsm1b) {
+            if (request.getEsm1bMin() != null) {
+                sql.append(" AND esm.score >= :esm1bMin");
+                parameters.addValue("esm1bMin", request.getEsm1bMin());
+            }
+            if (request.getEsm1bMax() != null) {
+                sql.append(" AND esm.score <= :esm1bMax");
+                parameters.addValue("esm1bMax", request.getEsm1bMax());
+            }
+        }
 
 		if (filterStability) {
 			Set<StabilityChange> changes = EnumSet.copyOf(request.getStability());
@@ -711,14 +767,10 @@ public class MappingRepo {
         } else if (sortByPopEve) {
             fields += ", popeve.popeve ";
             sql.append("popeve.popeve ").append(sortOrder).append(", ");
+        } else if (sortByEsm1b) {
+            fields += ", esm.score ";
+            sql.append("esm.score ").append(sortOrder).append(", ");
         }
-        // COMMENTED OUT - EVE sorting
-        /*
-        else if (sortByEve) {
-            fields += ", eve.score ";
-            sql.append("eve.score ").append(sortOrder).append(", ");
-        }
-        */
 		sql.append("m.protein_position, m.codon_position, m.alt_allele"); // consider removing alt_allele?
 
 		// Pagination
