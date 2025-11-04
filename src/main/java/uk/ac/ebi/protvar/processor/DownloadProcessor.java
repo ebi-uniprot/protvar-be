@@ -36,10 +36,11 @@ import uk.ac.ebi.protvar.mapper.MappingData;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
+import uk.ac.ebi.protvar.model.SearchTerm;
+import uk.ac.ebi.protvar.types.SearchType;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.service.InputCacheService;
 import uk.ac.ebi.protvar.service.InputService;
-import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
 
@@ -90,6 +91,9 @@ public class DownloadProcessor {
 	@Value("${app.tmp.folder}")
 	private String tmpFolder;
 
+    // Semaphore limiting DB-heavy task concurrency
+    private final Semaphore dbTaskSemaphore = new Semaphore(10);
+
 	// Note:
 	// moved @Transactional from process() to a deeper method that actually hits the DB.
 	// Each task (partition) still gets its own DB connection (via Hikari).
@@ -104,40 +108,8 @@ public class DownloadProcessor {
 				return; // Skip processing if file already exists
 			}
 
-			InputHandler handler = null;
+			handleDownload(request, zipPath);
 
-			switch (request.getType()) {
-
-				case VARIANT -> {
-					LOGGER.info("Single variant download request: {}", request.getFname());
-					// no handler needed for single input
-				}
-				case INPUT_ID -> {
-					handler = cachedInputHandler;
-					// ensure that the build is detected and cached
-					inputService.detectBuild(InputRequest.builder()
-							.inputId(request.getInput())
-							.assembly(request.getAssembly())
-							.build());
-				}
-				case UNIPROT, ENSEMBL, GENE, PDB, REFSEQ -> {
-					handler = searchInputHandler;
-
-					// preload stuff here!!
-					if (request.getFull() != null && Boolean.TRUE.equals(request.getFull())
-							&& request.getType() == InputType.UNIPROT) {
-						String accession = request.getInput();
-
-						// preload full accession data
-					}
-
-
-				}
-				default -> throw new IllegalArgumentException("Unsupported type: " + request.getType());
-
-			}
-
-			handleDownload(handler, request, zipPath);
 			// Notify User
 			Email.notifyUser(request);
 		} catch (Exception e) {
@@ -149,36 +121,107 @@ public class DownloadProcessor {
 		LOGGER.info("[{}] Download request completed in {}", request.getFname(), formatDuration(durationMs));
 	}
 
-	private void handleDownload(InputHandler inputHandler, DownloadRequest request, Path zipPath) throws Exception {
+	private void handleDownload(DownloadRequest request, Path zipPath) throws Exception {
 		Path csvPath = Path.of(tmpFolder, request.getFname() + ".csv");
 		boolean fun = Boolean.TRUE.equals(request.getFunction());
 		boolean pop = Boolean.TRUE.equals(request.getPopulation());
 		boolean str = Boolean.TRUE.equals(request.getStructure());
 
-		List<VariantInput> inputs;
-
-		if (request.getType() == InputType.VARIANT) {
-			inputs = List.of(VariantParser.parse(request.getInput()));
-			processAndWriteCsv(inputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
-			return;
-		}
-
-		InputBuild build = request.getType() != null && request.getType() == InputType.INPUT_ID ?
-				inputCacheService.getBuild(request.getInput()) : null; // use cached build
-
-		if (!Boolean.TRUE.equals(request.getFull())) { // paged download: process in main thread
-			LOGGER.info("Page download request: {}", request.getFname());
-			inputs = inputHandler.pagedInput(request).getContent();
-			processAndWriteCsv(inputs, csvPath, request.getAssembly(), build, fun, pop, str, true);
-		} else { // full download: partition and process in parallel, if large
-			LOGGER.info("Full download request: {}", request.getFname());
-			processFullDownload(inputHandler, request, csvPath, build, fun, pop, str);
-		}
+        // Determine the download type based on search terms
+        if (request.isSingleVariant()) {
+            // Single variant download
+            handleSingleVariantDownload(request, csvPath, fun, pop, str);
+        } else if (request.isInputIdQuery()) {
+            // Input ID download (cached variants)
+            handleInputIdDownload(request, csvPath, fun, pop, str);
+        } else {
+            // Identifier-based or filter-only download
+            handleIdentifierDownload(request, csvPath, fun, pop, str);
+        }
 
 		// Zip final CSV
 		FileUtils.zipFile(csvPath, zipPath);
 		Files.deleteIfExists(csvPath);
 	}
+
+    /**
+     * Handle single variant download.
+     */
+    private void handleSingleVariantDownload(DownloadRequest request, Path csvPath,
+                                             boolean fun, boolean pop, boolean str) throws Exception {
+        LOGGER.info("Single variant download request: {}", request.getFname());
+
+        String variantStr = request.getSearchTerms().get(0).getValue();
+        List<VariantInput> inputs = VariantParser.parse(List.of(variantStr));
+
+        processAndWriteCsv(inputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
+    }
+
+    /**
+     * Handle input ID download (from cache).
+     */
+    private void handleInputIdDownload(DownloadRequest request, Path csvPath,
+                                       boolean fun, boolean pop, boolean str) throws Exception {
+        LOGGER.info("Input ID download request: {}", request.getFname());
+
+        String inputId = request.getSearchTerms().get(0).getValue();
+
+        // Ensure that the build is detected and cached
+        inputService.detectBuild(InputRequest.builder()
+                .inputId(inputId)
+                .assembly(request.getAssembly())
+                .build());
+
+        InputBuild build = inputCacheService.getBuild(inputId);
+
+        if (!Boolean.TRUE.equals(request.getFull())) {
+            // Paged download: process in main thread
+            LOGGER.info("Paged input ID download: {}", request.getFname());
+            List<VariantInput> inputs = cachedInputHandler.pagedInput(request).getContent();
+            processAndWriteCsv(inputs, csvPath, request.getAssembly(), build, fun, pop, str, true);
+        } else {
+            // Full download: partition and process in parallel if large
+            LOGGER.info("Full input ID download: {}", request.getFname());
+            processFullDownload(cachedInputHandler, request, csvPath, build, fun, pop, str);
+        }
+    }
+
+    /**
+     * Handle identifier-based or filter-only download.
+     */
+    private void handleIdentifierDownload(DownloadRequest request, Path csvPath,
+                                          boolean fun, boolean pop, boolean str) throws Exception {
+        List<SearchTerm> identifiers = request.getIdentifierTerms();
+
+        if (identifiers.isEmpty()) {
+            LOGGER.info("Filter-only download request: {}", request.getFname());
+        } else if (identifiers.size() == 1) {
+            LOGGER.info("Single identifier download request: {} = {}",
+                    identifiers.get(0).getType(), identifiers.get(0).getValue());
+
+            // Preload optimization for single UniProt accession full downloads
+            if (Boolean.TRUE.equals(request.getFull()) &&
+                    identifiers.get(0).getType() == SearchType.UNIPROT) {
+                String accession = identifiers.get(0).getValue();
+                // TODO: preload full accession data if needed
+                LOGGER.debug("Preloading data for UniProt accession: {}", accession);
+            }
+        } else {
+            LOGGER.info("Multiple identifiers download request: {} identifiers", identifiers.size());
+        }
+
+        if (!Boolean.TRUE.equals(request.getFull())) {
+            // Paged download: process in main thread
+            LOGGER.info("Paged identifier download: {}", request.getFname());
+            List<VariantInput> inputs = searchInputHandler.pagedInput(request)
+                    .getContent();
+            processAndWriteCsv(inputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
+        } else {
+            // Full download: partition and process in parallel if large
+            LOGGER.info("Full identifier download: {}", request.getFname());
+            processFullDownload(searchInputHandler, request, csvPath, null, fun, pop, str);
+        }
+    }
 
 	private void processAndWriteCsv(List<VariantInput> inputs, Path outputPath, String assembly, InputBuild build,
                                     boolean fun, boolean pop, boolean str, boolean writeHeader) throws Exception {
@@ -194,10 +237,9 @@ public class DownloadProcessor {
 		}
 	}
 
-	// Define a semaphore limiting DB-heavy task concurrency
-	private final Semaphore dbTaskSemaphore = new Semaphore(10); // limit to 10 concurrent DB-hitting tasks
-
-	// Process in parallel, partitioning the input into chunks
+    /**
+     * Process in parallel, partitioning the input into chunks.
+     */
 	private void processFullDownload(InputHandler inputHandler, DownloadRequest request, Path csvPath,
 									 InputBuild build, boolean fun, boolean pop, boolean str) throws Exception {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
@@ -231,7 +273,7 @@ public class DownloadProcessor {
 		// Merge all parts
 		mergeCsvFiles(csvParts, csvPath);
 
-		// uncomment to clean up
+        // Clean up temporary files (uncomment if needed)
 		// for (Path part : csvParts) Files.deleteIfExists(part);
 	}
 
@@ -275,7 +317,9 @@ public class DownloadProcessor {
 		}
 	}
 
-	// Stream the inputs and expand them based on input types
+    /**
+     * Stream the inputs and expand them based on input types.
+     */
 	private Stream<String[]> streamInputsToCsv(List<VariantInput> inputs,
 											   MappingData coreMapping,
 												AnnotationData annData) {
@@ -320,7 +364,9 @@ public class DownloadProcessor {
 				(input.getFormat() == VariantFormat.VCF ? ((GenomicInput) input).getId() : null);
 	}
 
-	// Method to generate the CSV data for invalid mapping
+    /**
+     * Generate the CSV data for mapping not found.
+     */
 	String[] getCsvDataMappingNotFound(VariantInput input, GenomicVariant genomicVariant){
 		String id = idValue(input);
 		List<String> valList = new ArrayList<>();
@@ -335,7 +381,9 @@ public class DownloadProcessor {
 		return valList.toArray(String[]::new); // Return a String[] array
 	}
 
-	// Method to generate CSV data for invalid input
+    /**
+     * Generate CSV data for invalid input.
+     */
 	String[] getCsvDataInvalidInput(VariantInput input){
 		List<String> valList = new ArrayList<>();
 		valList.add(input.getInputStr()); // User_input
@@ -370,22 +418,21 @@ public class DownloadProcessor {
 		String cadd = null;
 		if (gene.getCaddScore() != null)
 			cadd = gene.getCaddScore().toString();
-		String strand = "+";
-		Isoform isoform = gene.getIsoforms().get(0);
 
-		if (gene.isReverseStrand()) {
-			strand = "-";
-		}
+		String strand = gene.isReverseStrand() ? "-" : "+";
+		Isoform isoform = gene.getIsoforms().get(0);
 
 		var alternateInformDetails = buildAlternateInformDetails(gene.getIsoforms());
 		List<String> transcripts = addTranscripts(isoform.getTranscripts());
 
-		List<String> output = new ArrayList<>(Arrays.asList(input.getInputStr(), chr, genomicLocation.toString(), id, gene.getRefAllele(),
-			varAllele, notes, gene.getGeneName(), isoform.getCodonChange(), strand, cadd,
-				transcripts.toString(), Constants.NA,isoform.getAccession(), CsvUtils.getValOrNA(alternateInformDetails), isoform.getProteinName(),
-			String.valueOf(isoform.getIsoformPosition()), isoform.getAminoAcidChange(),
-			isoform.getConsequences()));
-
+        List<String> output = new ArrayList<>(Arrays.asList(
+                input.getInputStr(), chr, genomicLocation.toString(), id, gene.getRefAllele(),
+                varAllele, notes, gene.getGeneName(), isoform.getCodonChange(), strand, cadd,
+                transcripts.toString(), Constants.NA, isoform.getAccession(),
+                CsvUtils.getValOrNA(alternateInformDetails), isoform.getProteinName(),
+                String.valueOf(isoform.getIsoformPosition()), isoform.getAminoAcidChange(),
+                isoform.getConsequences()
+        ));
 
 		List<String> funData = csvFunctionDataBuilder.build(isoform, annData);
 		if (funData != null && !funData.isEmpty()) {
@@ -401,9 +448,11 @@ public class DownloadProcessor {
 			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_POPULATION);
 		}
 
-		// protein structures would have been preloaded in the cache
-		List<StructureResidue> proteinStructure = structureService.getStr(isoform.getAccession(),
-				isoform.getIsoformPosition());
+        // Protein structures would have been preloaded in the cache
+        List<StructureResidue> proteinStructure = structureService.getStr(
+                isoform.getAccession(),
+                isoform.getIsoformPosition()
+        );
 
 		if (annData.isStr() && proteinStructure != null)
 			output.add(csvStructureDataBuilder.build(proteinStructure));
@@ -419,22 +468,24 @@ public class DownloadProcessor {
 	}
 
 	private String buildAlternateInformDetails(List<Isoform> value) {
-		List<String> isformDetails = new ArrayList<>();
+		List<String> isoformDetails = new ArrayList<>();
 		for (Isoform mapping: value) {
 			if (mapping.isCanonical())
 				continue;
 			List<String> transcripts = addTranscripts(mapping.getTranscripts());
-			isformDetails.add(
+			isoformDetails.add(
 				mapping.getAccession() + ";" +
 					mapping.getIsoformPosition() + ";" +
 					mapping.getAminoAcidChange() + ";" +
 					mapping.getConsequences() + ";" + transcripts);
 		}
-		return String.join("|", isformDetails);
+		return String.join("|", isoformDetails);
 	}
 
 	private List<String> addTranscripts(List<Transcript> transcripts) {
-		return transcripts.stream().map(transcript -> transcript.getEnsp() + "(" + transcript.getEnst() + ")").collect(Collectors.toList());
+        return transcripts.stream()
+                .map(transcript -> transcript.getEnsp() + "(" + transcript.getEnst() + ")")
+                .collect(Collectors.toList());
 	}
 
 	public static String formatDuration(long millis) {

@@ -17,9 +17,8 @@ import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
-import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.utils.DownloadFileUtil;
-import uk.ac.ebi.protvar.utils.InputTypeResolver;
+import uk.ac.ebi.protvar.validator.MappingRequestValidator;
 
 import java.io.FileInputStream;
 import java.time.LocalDateTime;
@@ -33,9 +32,18 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DownloadController implements WebMvcConfigurer {
 
-    private final static String SUMMARY = """
-            Submit a download request. If no type is specified, the input is treated as a single variant.
+    private static final String SUMMARY = """
+            Submit a download request for variant mappings.
+            
+            Supports:
+            - Input ID (to download a previously submitted variant list)
+            - Biological identifiers with optional filters (UniProt, gene, Ensembl, PDB, RefSeq)
+            - Filter-only queries (database-wide download with filters)
+            
+            The download is processed asynchronously. Use the returned URL to check status and retrieve the file.
             """;
+
+    private final MappingRequestValidator requestValidator;
     private final DownloadService downloadService;
 
     @Operation(summary = SUMMARY)
@@ -64,35 +72,25 @@ public class DownloadController implements WebMvcConfigurer {
      * @return ResponseEntity with DownloadResponse or error
      */
     public ResponseEntity<?> handleDownload(DownloadRequest request, HttpServletRequest http) {
-        InputType providedType = request.getType(); // user-provided, may be null
-        InputType resolved = InputTypeResolver.resolve(request.getInput());
 
-        if (providedType != null && !providedType.equals(resolved)) {
-            return ResponseEntity.badRequest().body(
-                    String.format("Input type '%s' does not match resolved type '%s'.", providedType, resolved)
-            );
-        }
-        if (resolved == null) {
-            return ResponseEntity.badRequest().body("Unable to resolve input type from provided input.");
+        // Use shared validator for common validation and processing
+        MappingRequestValidator.ValidationResult validation = requestValidator.validateAndProcess(request);
+        if (!validation.isValid()) {
+            return ResponseEntity.badRequest().body(validation.getErrorMessage());
         }
 
-        request.setType(resolved);
-
-        if (request.getInput() != null &&
-                (resolved != InputType.PDB && resolved != InputType.INPUT_ID)) { // todo: move normalizing case in SQL query for consistency
-            request.setInput(request.getInput().toUpperCase());
-        }
-
+        // Set metadata for download tracking
         request.setTimestamp(LocalDateTime.now());
         request.setFname(DownloadFileUtil.buildFilename(request));
 
-        // Build URL for status or download
+        // Build URL for status checking and file retrieval
         String url = http.getRequestURL()
                 .append("/")
                 .append(request.getFname())
                 .toString();
         request.setUrl(url);
 
+        // Queue the download request for asynchronous processing
         DownloadResponse response = downloadService.queueRequest(request);
         return ResponseEntity.ok(response);
     }
@@ -101,11 +99,15 @@ public class DownloadController implements WebMvcConfigurer {
     @GetMapping(value = "/{filename}")
     @ResponseBody
     public ResponseEntity<?> downloadFile(
-            @Parameter(example = "cc3b5e1a21fd") @PathVariable("filename") String filename) {
+            @Parameter(
+                    description = "The filename returned from the download request",
+                    example = "cc3b5e1a21fd"
+            )
+            @PathVariable("filename") String filename) {
 
         FileInputStream fileInputStream = downloadService.getFileResource(filename);
         if (fileInputStream == null)
-            return new ResponseEntity<>("File not found", HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("File not found or not yet ready", HttpStatus.NOT_FOUND);
 
         InputStreamResource resource = new InputStreamResource(fileInputStream);
 
@@ -119,16 +121,21 @@ public class DownloadController implements WebMvcConfigurer {
     }
 
     /**
-     * Check download status.
+     * Check download status for multiple files.
      *
-     * @param fs List of download files. The file name follows the pattern:
+     * @param filenames List of download files. The file name follows the pattern:
      *           <prefix>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY][-filterHash]
      * @return
      */
-    @Operation(summary = "Check status of a list of download requests")
+    @Operation(summary = "Check status of download requests")
     @PostMapping(value = "/status", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, DownloadStatus>> downloadStatus(@RequestBody List<String> fs) {
-        return new ResponseEntity<>(downloadService.getDownloadStatus(fs), HttpStatus.OK);
+    public ResponseEntity<Map<String, DownloadStatus>> downloadStatus(
+            @Parameter(
+                    description = "List of download filenames to check status for",
+                    example = "[\"cc3b5e1a21fd\", \"dd4c6f2b32ge\"]"
+            )
+            @RequestBody List<String> filenames) {
+        return new ResponseEntity<>(downloadService.getDownloadStatus(filenames), HttpStatus.OK);
     }
 
 }
