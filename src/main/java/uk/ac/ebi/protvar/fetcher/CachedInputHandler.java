@@ -29,7 +29,8 @@ public class CachedInputHandler implements InputHandler {
 
     // For UI/API
     public Page<VariantInput> pagedInput(MappingRequest request) {
-        List<String> fullList = inputCacheService.getInput(request.getInput());
+        String inputId = request.getSearchTerms().get(0).getValue();
+        List<String> fullList = inputCacheService.getInput(inputId);
         if (fullList == null || fullList.isEmpty()) return Page.empty();
 
         int page = request.getPage() - 1; // request page is 1-based, pageable is 0-based
@@ -48,7 +49,8 @@ public class CachedInputHandler implements InputHandler {
     // For download
     // todo check for possible use of jdbcTemplate queryForStream
     public Stream<List<VariantInput>> streamChunkedInput(MappingRequest request) {
-        List<String> fullInput = inputCacheService.getInput(request.getInput());
+        String inputId = request.getSearchTerms().get(0).getValue();
+        List<String> fullInput = inputCacheService.getInput(inputId);
 
         if (fullInput == null || fullInput.isEmpty()) {
             return Stream.empty();
