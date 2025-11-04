@@ -35,6 +35,13 @@ public class CaddPredictionRepo {
    	and to using unnest
      */
 
+    /* TODO check
+    select * from <tbl.cadd> where chromosome='21' and position=26170620;
+    This should return 3 rows but returning 9!
+    Duplicates! using distinct fixes it but issue needs to be
+    addressed at source (import) and chr-pos-allele-alt need
+    to be all PKs (no need to save allele in tbl).
+     */
     private static final String CADDS_WITH_COORD_LIST = """
         WITH coord_list (chr, pos) AS (
           VALUES :chrPosList

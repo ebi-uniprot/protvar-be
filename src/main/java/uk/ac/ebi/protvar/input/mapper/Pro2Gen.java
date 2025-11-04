@@ -7,6 +7,7 @@ import uk.ac.ebi.protvar.cache.UniprotEntryCache;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Message;
+import uk.ac.ebi.protvar.record.AccessionPosition;
 import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.protvar.utils.Commons;
@@ -38,7 +39,7 @@ public class Pro2Gen {
 
     private void convert(List<VariantInput> proteinInputs, TreeMap<String, List<String>> refseqIdMap) {
         // 1. get all the accessions and positions
-        List<Object[]> accPosList = new ArrayList<>();
+        Set<AccessionPosition> uniqueAccPos = new HashSet<>();
         for (VariantInput input : proteinInputs) {
 
             if (input.getFormat() == VariantFormat.HGVS_PROTEIN) {
@@ -50,7 +51,7 @@ public class Pro2Gen {
                     List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());
 
                     hgvsProt.setAccession(head.get(0));
-                    accPosList.add(new Object[]{head.get(0), hgvsProt.getPosition()});
+                    uniqueAccPos.add(new AccessionPosition(head.get(0), hgvsProt.getPosition()));
 
                     if (tail != null) {
                         /*
@@ -77,7 +78,7 @@ public class Pro2Gen {
 
             } else if(input instanceof ProteinInput) { // internal Protein
                 ProteinInput internalProt = (ProteinInput) input;
-                accPosList.add(new Object[]{internalProt.getAccession(), internalProt.getPosition()});
+                uniqueAccPos.add(new AccessionPosition(internalProt.getAccession(), internalProt.getPosition()));
 
                 if (!uniprotEntryCache.isValidEntry(internalProt.getAccession())) {
                     internalProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), internalProt.getAccession()));
@@ -95,13 +96,17 @@ public class Pro2Gen {
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
                                         , codingInput.getRefseqId(), codingInput.getDerivedUniprotAcc()));
                     if (codingInput.getDerivedProtPos() != null)
-                        accPosList.add(new Object[]{codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos()});
+                        uniqueAccPos.add(new AccessionPosition(codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos()));
                 }
             }
         }
 
+        // Convert to aligned arrays from Set
+        String[] accessions = uniqueAccPos.stream().map(AccessionPosition::accession).toArray(String[]::new);
+        Integer[] ppositions = uniqueAccPos.stream().map(AccessionPosition::position).toArray(Integer[]::new);
+
         // 2. get all the relevant db records by accessions and positions
-        Map<String, List<GenomeToProteinMapping>> gCoords = mappingRepo.getMappingsByAccPos(accPosList)
+        Map<String, List<GenomeToProteinMapping>> gCoords = mappingRepo.getMappingsByAccPos(accessions, ppositions)
                 .stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getVariantKeyProtein));
 
         // 3. we expect each protein input to have 3 genomic coordinates (in normal cases),
