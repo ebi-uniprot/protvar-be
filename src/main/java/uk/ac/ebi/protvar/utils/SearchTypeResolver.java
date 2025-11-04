@@ -4,10 +4,11 @@ import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.parser.protein.ProteinParser;
-import uk.ac.ebi.protvar.types.InputType;
+import uk.ac.ebi.protvar.types.SearchType;
+
 import java.util.regex.Pattern;
 
-public class InputTypeResolver {
+public class SearchTypeResolver {
     // Matches input IDs (exact 32-character lowercase hex string)
     public static final Pattern INPUT_ID_REGEX =
             Pattern.compile("^[a-f0-9]{32}$", Pattern.CASE_INSENSITIVE);
@@ -47,13 +48,13 @@ public class InputTypeResolver {
             // genomic variant start chromosome; protein variant start UniProt accession
             Pattern.compile("^(rs|RCV|VCV|COS[VMN]|NC_|NM_|NP_|NG_|LRG_|NR_|chr|([1-9]|1[0-9]|2[0-2]|MT|mit|mtDNA|mitochondria|mitochondrion)(?=\\s|-)|" + ProteinParser.VALID_UNIPROT + "(?=\\s)).*", Pattern.CASE_INSENSITIVE);
 
-    public static InputType resolve(String input) {
-        // If input is null or empty, return null
-        if (input == null || input.trim().isEmpty()) {
+    public static SearchType resolve(String term) {
+        // If term is null or empty, return null
+        if (term == null || term.trim().isEmpty()) {
             return null;
         }
 
-        String trimmed = input.trim();
+        String trimmed = term.trim();
 
         // Early exit for multi-line input
         if (!isSingleLine(trimmed)) return null;
@@ -62,22 +63,22 @@ public class InputTypeResolver {
 
         // INPUT_ID - Very specific 32-char hex pattern
         if (INPUT_ID_REGEX.matcher(trimmed).matches()) {
-            return InputType.INPUT_ID;
+            return SearchType.INPUT_ID;
         }
 
         // ENSEMBL - Specific prefix + number pattern
         if (ENSEMBL_REGEX.matcher(trimmed).matches()) {
-            return InputType.ENSEMBL;
+            return SearchType.ENSEMBL;
         }
 
         // PDB - Very specific 4-char pattern
         if (PDB_REGEX.matcher(trimmed).matches()) {
-            return InputType.PDB;
+            return SearchType.PDB;
         }
 
         // UNIPROT - Specific accession format
         if (UNIPROT_REGEX.matcher(trimmed).matches()) {
-            return InputType.UNIPROT;
+            return SearchType.UNIPROT;
         }
 
         // Level 2: Check for VARIANT patterns (aligned with VariantParser logic)
@@ -85,24 +86,24 @@ public class InputTypeResolver {
         // Check if it looks like a variant using VariantParser's logic
         VariantInput parsed = VariantParser.parse(trimmed);
         if (parsed != null && parsed.getFormat() != VariantFormat.INVALID) {
-                return InputType.VARIANT;
+                return SearchType.VARIANT;
         }
 
         // Level 3: Check standalone RefSeq IDs (not part of HGVS)
         // Only match if it doesn't contain HGVS scheme indicators
         if (REFSEQ_REGEX.matcher(trimmed).matches()) {
-            return InputType.REFSEQ;
+            return SearchType.REFSEQ;
         }
 
         // Level 4: GENE - Most permissive, check last to avoid false positives
         if (GENE_REGEX.matcher(trimmed).matches() && !VARIANT_PREFIX_REGEX.matcher(trimmed).matches()) {
-            return InputType.GENE;
+            return SearchType.GENE;
         }
 
         return null;
     }
 
-    public static boolean isSingleLine(String input) {
-        return input != null && !input.contains("\n") && !input.contains("\r");
+    public static boolean isSingleLine(String term) {
+        return term != null && !term.contains("\n") && !term.contains("\r");
     }
 }

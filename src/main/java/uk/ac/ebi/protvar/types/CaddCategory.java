@@ -20,18 +20,31 @@ public enum CaddCategory {
     private final double max;
 
     /**
+     * Safe parsing that returns null on invalid input
+     */
+    public static CaddCategory parseOrNull(Object input) {
+        try {
+            return parse(input);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+
+    /**
      * Parses a CaddCategory from a string (case-insensitive).
      * Shared by both JSON deserialization and Spring's Converter.
      */
-    public static CaddCategory parse(String value) {
-        if (value == null) return null;
-        String trimmed = value.trim();
+    public static CaddCategory parse(Object input) {
+        if (input == null) return null;
+
+        String value = input.toString().trim();
         for (CaddCategory c : values()) {
-            if (c.name().equalsIgnoreCase(trimmed)) {
+            if (c.name().equalsIgnoreCase(value)) {
                 return c;
             }
         }
-        throw new IllegalArgumentException("Invalid CADD category: " + value);
+        throw new IllegalArgumentException("Invalid CADD category: " + input);
     }
 
     /**
@@ -40,7 +53,7 @@ public enum CaddCategory {
      * For query params (@RequestParam), see the Converter.
      */
     @JsonCreator
-    public static CaddCategory fromString(String value) {
-        return parse(value);
+    public static CaddCategory fromJson(Object input) {
+        return parse(input);
     }
 }

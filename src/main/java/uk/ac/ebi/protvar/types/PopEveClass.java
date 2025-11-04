@@ -64,7 +64,7 @@ public enum PopEveClass {
                 // fall through
             }
         }
-        throw new IllegalArgumentException("Invalid popEVE class: " + input);
+        throw new IllegalArgumentException("Invalid PopEVE class: " + input);
     }
 
     @JsonCreator

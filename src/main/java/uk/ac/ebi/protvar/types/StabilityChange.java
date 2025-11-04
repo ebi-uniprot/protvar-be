@@ -10,24 +10,39 @@ public enum StabilityChange {
     LIKELY_DESTABILISING,
     UNLIKELY_DESTABILISING;
 
-    public static StabilityChange parse(String value) {
-        if (value == null) return null;
-        String trimmed = value.trim();
+    /**
+     * Safe parsing that returns null on invalid input
+     */
+    public static StabilityChange parseOrNull(Object input) {
+        try {
+            return parse(input);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Parses a StabilityChange from string (case-insensitive).
+     * Shared by both JSON deserialization and Spring's Converter.
+     */
+    public static StabilityChange parse(Object input) {
+        if (input == null) return null;
+
+        String value = input.toString().trim();
         for (StabilityChange c : values()) {
-            if (c.name().equalsIgnoreCase(trimmed)) {
+            if (c.name().equalsIgnoreCase(value)) {
                 return c;
             }
         }
-        throw new IllegalArgumentException("Invalid StabilityChange category: " + value);
+        throw new IllegalArgumentException("Invalid stability change: " + input);
     }
 
     /**
      * Enables case-insensitive deserialization from JSON.
      * Used only for JSON (@RequestBody) via Jackson.
-     * For query params (@RequestParam), see the Converter.
      */
     @JsonCreator
-    public static StabilityChange fromString(String value) {
-        return parse(value);
+    public static StabilityChange fromJson(Object input) {
+        return parse(input);
     }
 }
