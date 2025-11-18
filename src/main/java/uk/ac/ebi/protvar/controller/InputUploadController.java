@@ -18,6 +18,16 @@ import uk.ac.ebi.protvar.service.InputService;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
+/*
+Possible redesign to allow filtering/sorting in user-submitted variants
+1. Keep Redis as the source of truth for user-submitted variant inputs.
+2. For large inputs, also persist in a PostgreSQL table to enable complex filtering, sorting, and joining.
+3. Database is not durable across refresh/restarts, so Redis must retain all inputs for recovery/reprocessing.
+4. Need to maintain isolation per submission, with possibility of:
+ - Filtering and sorting variants
+ - Merging with annotation data (scores/mapping)
+
+ */
 @Tag(
     name = "Input Upload",
     description = "Upload variant data via text or file and receive an input ID for downstream queries."
