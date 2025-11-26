@@ -11,7 +11,7 @@ stages:
   - build
   - build_docker_image
   - deploy
-  - integration_test
+#  - integration_test
 
 .mvn:
   image: maven:3.9.9-eclipse-temurin-21-alpine
@@ -42,10 +42,7 @@ test:
 
 build:
   only:
-    refs:
-      - main
-      - dev
-      - beta
+    refs: [main, dev, int]
   extends: .mvn
   stage: build
   script:
@@ -58,49 +55,41 @@ build:
 
 build_docker_image:
   only:
-    refs:
-      - main
-      - dev
-      - beta
+    refs: [main, dev, int]
   extends: .build_docker
   stage: build_docker_image
 
 dev-deploy:
   only:
-    refs:
-      - dev
+    refs: [dev]
   extends: .deploy
   stage: deploy
   script:
     - ./protvar-deploy/scripts/deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-dev imageTag="${CI_COMMIT_SHORT_SHA}"
 
-beta-deploy:
+int-deploy:
   only:
-    refs:
-      - beta
+    refs: [int]
   extends: .deploy
   stage: deploy
   script:
-    - ./protvar-deploy/scripts/deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-beta imageTag="${CI_COMMIT_SHORT_SHA}"
+    - ./protvar-deploy/scripts/deploy.sh ENV=DV APP_NAME=protvar-be K8S_NAMESPACE=protvar-int imageTag="${CI_COMMIT_SHORT_SHA}"
 
 main-deploy:
   only:
-    refs:
-      - main
+    refs: [main]
   extends: .deploy
   stage: deploy
   script:
     - ./protvar-deploy/scripts/deploy.sh ENV=FB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
     - ./protvar-deploy/scripts/deploy.sh ENV=PB APP_NAME=protvar-be K8S_NAMESPACE=protvar imageTag="${CI_COMMIT_SHORT_SHA}"
 
-trigger_integration_tests:
-  only:
-    refs:
-      - main
-      - dev
-  stage: integration_test
-  trigger:
-    project: uniprot/framework/protvar-integration-tests
-  inherit: # only allow propagating the declared vars
-    variables:
-      - UPSTREAM_CI_COMMIT_BRANCH
+#trigger_integration_tests:
+#  only:
+#    refs: [main, dev]
+#  stage: integration_test
+#  trigger:
+#    project: uniprot/framework/protvar-integration-tests
+#  inherit: # only allow propagating the declared vars
+#    variables:
+#      - UPSTREAM_CI_COMMIT_BRANCH
