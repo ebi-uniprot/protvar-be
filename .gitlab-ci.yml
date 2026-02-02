@@ -1,6 +1,6 @@
 include:
   - project: uniprot/variation/protvar-deploy
-    ref: master
+    ref: main
     file: /ci-templates/gitlab-ci-template.yml
 
 variables:
