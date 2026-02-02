@@ -47,6 +47,7 @@ public class FunctionalInfoEnricher {
             String eveScoreKey = VariantKey.protein(ScoreType.EVE, accession, position, variantAA);
             String esmScoreKey = VariantKey.protein(ScoreType.ESM, accession, position, variantAA);
             String popeveScoreKey = VariantKey.protein(ScoreType.POPEVE, accession, position, variantAA);
+            String m3dPredKey = VariantKey.protein(ScoreType.M3D, accession, position, variantAA);
 
             annData.getScoreMap().getOrDefault(conservScoreKey, Collections.emptyList()).stream().findFirst()
                     .map(s -> ((ConservScore) s).copySubclassFields()).ifPresent(functionalInfo::setConservScore);
@@ -59,6 +60,9 @@ public class FunctionalInfoEnricher {
 
             annData.getScoreMap().getOrDefault(popeveScoreKey, Collections.emptyList()).stream().findFirst()
                     .map(s -> ((PopEveScore) s).copySubclassFields()).ifPresent(functionalInfo::setPopEveScore);
+
+            annData.getScoreMap().getOrDefault(m3dPredKey, Collections.emptyList()).stream().findFirst()
+                    .map(s -> ((M3DPred) s).copySubclassFields()).ifPresent(functionalInfo::setM3dPred);
         }
     }
 

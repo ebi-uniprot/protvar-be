@@ -10,6 +10,7 @@ public enum ScoreType {
     EVE("EVE"),                     // EVE_score and EVE_class
     ESM("ESM1b"),                   // ESM1b_score
     AM("AlphaMissense"),            // AM_pathogenicity and AM_class,
-    POPEVE("PopEVE");  // New
+    POPEVE("PopEVE"),
+    M3D("Missense3D");
     private final String name;
 }

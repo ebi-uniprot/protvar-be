@@ -5,10 +5,7 @@ import java.util.List;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import uk.ac.ebi.protvar.model.score.ConservScore;
-import uk.ac.ebi.protvar.model.score.EsmScore;
-import uk.ac.ebi.protvar.model.score.EveScore;
-import uk.ac.ebi.protvar.model.score.PopEveScore;
+import uk.ac.ebi.protvar.model.score.*;
 import uk.ac.ebi.uniprot.domain.entry.DbReference;
 import uk.ac.ebi.uniprot.domain.entry.Gene;
 import uk.ac.ebi.uniprot.domain.entry.Sequence;
@@ -49,5 +46,6 @@ public class FunctionalInfo {
 	private EveScore eveScore;
     private EsmScore esmScore;
     private PopEveScore popEveScore;
+    private M3DPred m3dPred;
 
 }

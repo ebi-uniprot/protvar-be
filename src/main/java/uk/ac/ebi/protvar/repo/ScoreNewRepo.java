@@ -40,6 +40,9 @@ public class ScoreNewRepo {
     @Value("${tbl.uprefseq}")
     private String uniprotRefseqTableName;
 
+    @Value("${tbl.m3d}")
+    private String m3dTableName;
+
     // ============================================================================
     // SINGLE VARIANT QUERIES (acc, pos, mt)
     // ============================================================================
@@ -145,6 +148,25 @@ public class ScoreNewRepo {
         return jdbcTemplate.query(sql.toString(), params, popEveScoreMapper);
     }
 
+    private List<M3DPred> getM3DPred(String acc, Integer pos, String mt) {
+        StringBuilder sql = new StringBuilder(String.format("""
+            SELECT uniprot_id, pos, mut, prediction, damaging_feature
+            FROM %s
+            WHERE uniprot_id = :acc AND pos = :pos
+            """, m3dTableName));
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("acc", acc)
+                .addValue("pos", pos);
+
+        if (mt != null && !mt.isBlank()) {
+            sql.append(" AND mut = :mt");
+            params.addValue("mt", mt);
+        }
+
+        return jdbcTemplate.query(sql.toString(), params, m3DPredMapper);
+    }
+
     // ============================================================================
     // BATCH QUERIES (multiple acc/pos pairs)
     // ============================================================================
@@ -244,6 +266,23 @@ public class ScoreNewRepo {
         return jdbcTemplate.query(sql, params, popEveScoreMapper);
     }
 
+    private List<M3DPred> getM3DPredBatch(String[] accs, Integer[] positions) {
+        String sql = String.format("""
+            WITH input(acc, pos) AS (
+                SELECT * FROM unnest(:accs::VARCHAR[], :positions::INT[])
+            )
+            SELECT s.uniprot_id, s.pos, s.mut, s.prediction, s.damaging_feature
+            FROM %s s
+            JOIN input i ON s.uniprot_id = i.acc AND s.pos = i.pos
+            """, m3dTableName);
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("accs", accs)
+                .addValue("positions", positions);
+
+        return jdbcTemplate.query(sql, params, m3DPredMapper);
+    }
+
     // ============================================================================
     // BY ACCESSION QUERIES (all positions for one accession)
     // ============================================================================
@@ -295,6 +334,13 @@ public class ScoreNewRepo {
         return jdbcTemplate.query(sql, Map.of("acc", acc), popEveScoreMapper);
     }
 
+    private List<M3DPred> getM3DPredByAccession(String acc) {
+        String sql = String.format(
+                "SELECT uniprot_id, pos, mut, prediction, damaging_feature FROM %s WHERE uniprot_id = :acc",
+                m3dTableName);
+        return jdbcTemplate.query(sql, Map.of("acc", acc), m3DPredMapper);
+    }
+
     // ============================================================================
     // PUBLIC API METHODS
     // ============================================================================
@@ -329,6 +375,9 @@ public class ScoreNewRepo {
                 case POPEVE -> getPopEveScores(acc, pos, mt).stream()
                         .map(Score::copySubclassFields)
                         .toList();
+                case M3D -> getM3DPred(acc, pos, mt).stream()
+                        .map(Score::copySubclassFields)
+                        .toList();
             };
         }
 
@@ -355,6 +404,10 @@ public class ScoreNewRepo {
                 .map(Score::copySubclassFields)
                 .toList());
 
+        results.addAll(getM3DPred(acc, pos, mt).stream()
+                .map(Score::copySubclassFields)
+                .toList());
+
         return results;
     }
 
@@ -378,6 +431,7 @@ public class ScoreNewRepo {
         results.addAll(getEsmScoresByAccession(accession));
         results.addAll(getAmScoresByAccession(accession));
         results.addAll(getPopEveScoresByAccession(accession));
+        results.addAll(getM3DPredByAccession(accession));
 
         return results;
     }
@@ -418,6 +472,9 @@ public class ScoreNewRepo {
         if (typesToQuery.contains(ScoreType.POPEVE)) {
             results.addAll(getPopEveScoresBatch(accessions, positions));
         }
+        if (typesToQuery.contains(ScoreType.M3D)) {
+            results.addAll(getM3DPredBatch(accessions, positions));
+        }
 
         return results;
     }
@@ -436,7 +493,7 @@ public class ScoreNewRepo {
      */
     public List<Score> getAnnotationScores(String[] accessions, Integer[] positions) {
         return getScores(accessions, positions,
-                Set.of(ScoreType.CONSERV, ScoreType.EVE, ScoreType.ESM, ScoreType.POPEVE));
+                Set.of(ScoreType.CONSERV, ScoreType.EVE, ScoreType.ESM, ScoreType.POPEVE, ScoreType.M3D));
     }
 
     // ============================================================================
@@ -489,6 +546,17 @@ public class ScoreNewRepo {
                     getDoubleOrNull(rs, "eve"),
                     getDoubleOrNull(rs, "esm_1v")
             );
+
+    private final RowMapper<M3DPred> m3DPredMapper = (rs, rowNum) ->
+
+            M3DPred.builder()
+                    .type(ScoreType.M3D)
+                    .acc(rs.getString("uniprot_id"))
+                    .pos(rs.getInt("pos"))
+                    .mt(rs.getString("mut"))
+                    .prediction(rs.getString("prediction"))
+                    .damagingFeature(rs.getString("damaging_feature"))
+                    .build();
 
     // ============================================================================
     // PRIVATE HELPER METHODS
