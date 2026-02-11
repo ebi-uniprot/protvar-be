@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.repo;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -22,21 +23,27 @@ import java.util.*;
 public class InteractionRepo {
     private static final Logger LOGGER = LoggerFactory.getLogger(InteractionRepo.class);
 
-    private static final String SELECT_INTERACTIONS_BY_ACC_AND_RESID = """
+    private static final String SELECT_INTERFACES_BY_ACC_AND_RESID = """
 		   SELECT a, a_residues, b, b_residues, pdockq
-            FROM af2complexes_interaction 
+            FROM %s 
             WHERE (a = :accession AND :resid = ANY(a_residues))
                OR (b = :accession AND :resid = ANY(b_residues))
 		   """;
-    private static final String SELECT_INTERACTIONS_BY_ACC_AND_RESID_NEW = """
+    private static final String SELECT_INTERFACES_BY_ACC_AND_RESID_NEW = """
 		   SELECT a, ("a_residues_5A" || "a_residues_8A") as a_residues, 
 		   b, ("b_residues_5A" || "b_residues_8A") as b_residues, pdockq 
-		   FROM interaction_v2 
+		   FROM %s 
 		   WHERE (a=:accession AND (:resid)=ANY("a_residues_5A" || "a_residues_8A")) 
 		   OR (b=:accession AND (:resid)=ANY("b_residues_5A" || "b_residues_8A"))
 		   """;
-    private static final String SELECT_INTERACTION_MODEL = "SELECT pdb_model FROM af2complexes_interaction WHERE a=:a AND b=:b";
-    private static final String SELECT_INTERACTION_MODEL_NEW = "SELECT pdb_model FROM interaction_v2 WHERE a=:a AND b=:b";
+    private static final String SELECT_INTERFACES_MODEL = "SELECT pdb_model FROM %s WHERE a=:a AND b=:b";
+    private static final String SELECT_INTERFACES_MODEL_NEW = "SELECT pdb_model FROM %s WHERE a=:a AND b=:b";
+
+
+    @Value("${tbl.interfaces}")
+    private String interfacesTable;
+    @Value("${tbl.interfaces.v2}")
+    private String interfacesV2Table;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -44,8 +51,9 @@ public class InteractionRepo {
     public Map<String, List<Interaction>> getInteractions(String accession, Integer resid) {
         SqlParameterSource params = new MapSqlParameterSource("accession", accession)
                 .addValue("resid", resid);
+        String sql = SELECT_INTERFACES_BY_ACC_AND_RESID.formatted(interfacesTable);
 
-        List<Interaction> results = jdbcTemplate.query(SELECT_INTERACTIONS_BY_ACC_AND_RESID, params, (rs, rowNum) -> createInteraction(rs));
+        List<Interaction> results = jdbcTemplate.query(sql, params, (rs, rowNum) -> createInteraction(rs));
         if (results != null && !results.isEmpty())
             return Map.of(VariantKey.protein(accession, resid), results);
         return Map.of();
@@ -57,14 +65,14 @@ public class InteractionRepo {
 
         String sql = """
             SELECT t.accession, t.resid, i.a, i.a_residues, i.b, i.b_residues, i.pdockq
-            FROM af2complexes_interaction i
+            FROM %s i
             JOIN (
                      SELECT unnest(:accessions) AS accession, unnest(:residues) AS resid
              ) t
               ON (i.a = t.accession AND t.resid = ANY(i.a_residues))
               OR (i.b = t.accession AND t.resid = ANY(i.b_residues))
             ORDER BY pdockq DESC
-            """;
+            """.formatted(interfacesTable);
 
         SqlParameterSource params = new MapSqlParameterSource()
                 .addValue("accessions", accessions)
@@ -94,10 +102,10 @@ public class InteractionRepo {
     public Map<String, List<Interaction>> getInteractions(String accession) {
         String sql = """
             SELECT a, a_residues, b, b_residues, pdockq
-            FROM af2complexes_interaction
+            FROM %s
             WHERE a = :accession OR b = :accession
             ORDER BY pdockq DESC
-            """;
+            """.formatted(interfacesTable);
 
         SqlParameterSource params = new MapSqlParameterSource("accession", accession);
 
@@ -131,7 +139,7 @@ public class InteractionRepo {
         SqlParameterSource parameters = new MapSqlParameterSource("a", a)
                 .addValue("b", b);
         try {
-            return jdbcTemplate.queryForObject(SELECT_INTERACTION_MODEL, parameters, (rs, rowNum) ->
+            return jdbcTemplate.queryForObject(SELECT_INTERFACES_MODEL.formatted(interfacesTable), parameters, (rs, rowNum) ->
                     rs.getString("pdb_model"));
         }
         catch (EmptyResultDataAccessException e) {

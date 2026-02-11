@@ -87,8 +87,8 @@ public class MappingRepo {
 	@Value("${tbl.pocket.v2}")
 	private String pocketTable;
 
-	@Value("${tbl.interaction}")
-	private String interactionTable;
+	@Value("${tbl.interfaces}")
+	private String interfacesTable;
 
 	@Value("${tbl.foldx}")
 	private String foldxTable;
@@ -640,7 +640,7 @@ public class MappingRepo {
 				INNER JOIN %s i ON
 					(i.a = m.accession AND m.protein_position = ANY(i.a_residues)) OR 
 					(i.b = m.accession AND m.protein_position = ANY(i.b_residues))
-			""", interactionTable));
+			""", interfacesTable));
 		}
 
 		if (filterStability) {
