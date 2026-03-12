@@ -24,6 +24,8 @@ public class InputTypeResolver {
 
     // Matches PDB structure IDs (4 characters: digit + 3 alphanumeric)
     // 1ABC, 2XYZ, 7A1B
+    // New accession codes: 12 alphanumeric characters with prefix pdb_
+    // e.g. pdb_00001abc
     public static final Pattern PDB_REGEX =
             Pattern.compile("^[0-9][A-Za-z0-9]{3}$");
 
