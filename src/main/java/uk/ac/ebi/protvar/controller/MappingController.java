@@ -3,22 +3,20 @@ package uk.ac.ebi.protvar.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Valid;
-import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.service.MappingService;
-import uk.ac.ebi.protvar.types.InputType;
+import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static uk.ac.ebi.protvar.constants.PageUtils.*;
@@ -29,50 +27,36 @@ import static uk.ac.ebi.protvar.constants.PageUtils.*;
 @CrossOrigin
 @RequiredArgsConstructor
 public class MappingController {
-    private final static String SUMMARY = """
-            Retrieve mappings for the specified input and type (UniProt accession, gene symbol, Ensembl, PDB or RefSeq ID).
-            If `type` is not specified, the system will try to infer it automatically.
-            """;
-    private final Validator validator;
+
     private final MappingService mappingService;
 
     /**
-     * Example URLs
-     * 1. With both parameters:
-     * /mapping?input=19-1010539-G-C&assembly=GRCh38
-     * 2. With only the required parameter (uses default assembly = AUTO):
-     * /mapping?input=19-1010539-G-C
-     *
-     * vs. using @GetMapping("/{input}") with @PathVariable String input:
-     * /mapping/19-1010539-G-C
-     *
-     * @param input
-     * @param assembly
-     * @return
+     * Direct variant query: GET /mapping?q=19-1010539-G-C[&assembly=GRCh38]
      */
-    @Operation(summary = "Retrieve mappings for a single variant input - used for direct query.")
+    @Operation(summary = "Retrieve mappings for a single variant query string.")
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PagedMappingResponse> singleInput(
-            @Parameter(description = "Single variant query in a supported format.", example = "19-1010539-G-C")
-            @RequestParam String input,
+    public ResponseEntity<PagedMappingResponse> queryVariant(
+            @Parameter(description = "Variant query in any supported format.", example = "19-1010539-G-C")
+            @RequestParam String q,
             @Parameter(description = MappingRequest.ASSEMBLY_DESC)
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
         MappingRequest request = MappingRequest.builder()
-                .input(input)
-                .type(InputType.VARIANT)
+                .q(q)
                 .assembly(assembly)
                 .page(1)
                 .pageSize(1)
                 .build();
-        PagedMappingResponse response = mappingService.get(request);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return new ResponseEntity<>(mappingService.get(request), HttpStatus.OK);
     }
 
-    @Operation(summary = "Retrieve mappings for a given input ID")
-    @GetMapping(value = "/{inputId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> getInputIdMapping(
-            @Parameter(description = "The unique ID of the input to retrieve mappings for.", example = "id")
-            @PathVariable("inputId") String inputId,
+    /**
+     * Uploaded result lookup: GET /mapping/{resultId}
+     */
+    @Operation(summary = "Retrieve mappings for an uploaded result by ID.")
+    @GetMapping(value = "/{resultId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PagedMappingResponse> queryResult(
+            @Parameter(description = "Uploaded result ID (32-character hex).", example = "abc123...")
+            @PathVariable("resultId") String resultId,
             @Parameter(description = MappingRequest.PAGE_DESC, example = PAGE)
             @RequestParam(value = "page", defaultValue = PAGE, required = false) Integer page,
             @Parameter(description = MappingRequest.PAGE_SIZE_DESC, example = PAGE_SIZE)
@@ -80,94 +64,51 @@ public class MappingController {
             @Parameter(description = MappingRequest.ASSEMBLY_DESC)
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
 
-        // we may not need to do these checks
         if (page < 1) page = DEFAULT_PAGE;
         if (pageSize < PAGE_SIZE_MIN || pageSize > PAGE_SIZE_MAX) pageSize = DEFAULT_PAGE_SIZE;
 
         MappingRequest request = MappingRequest.builder()
-                .input(inputId)
-                .type(InputType.INPUT_ID)
+                .resultId(resultId)
                 .page(page)
                 .pageSize(pageSize)
                 .assembly(assembly)
                 .build();
-
-        Set<ConstraintViolation<MappingRequest>> violations = validator.validate(request);
-
-        if (!violations.isEmpty()) {
-            List<String> errors = violations.stream()
-                    .map(v -> v.getPropertyPath() + ": " + v.getMessage())
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.badRequest().body(errors);
-        }
-
-        return handleRequest(request);
+        return new ResponseEntity<>(mappingService.get(request), HttpStatus.OK);
     }
 
-    @Operation(summary = SUMMARY)
+    @Operation(summary = "Retrieve mappings for identifiers or apply filters (POST, JSON body).")
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> mappingJson(@Valid @RequestBody MappingRequest request) {
         return handleRequest(request);
     }
 
-    @Operation(summary = SUMMARY)
+    @Operation(summary = "Retrieve mappings for identifiers or apply filters (POST, form body).")
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> mappingForm(@Valid @RequestBody @ModelAttribute MappingRequest request) {
         return handleRequest(request);
     }
 
     /**
-     * Central dispatch for all mapping requests.
-     *
-     * <p><b>Type resolution contract:</b>
-     * <ul>
-     *   <li><b>Multi-identifier browse</b> ({@code ids} is non-empty): each {@code IdInput} with a
-     *       null {@code type} is auto-detected via {@link InputTypeResolver#resolve}; falls back to
-     *       {@code GENE} for ambiguous values. {@code input} and {@code type} fields are ignored.
-     *       The resolved list is written back into the request before calling the service.</li>
-     *   <li><b>Single-input with explicit type</b> ({@code type} provided): type is trusted as-is.</li>
-     *   <li><b>Single-input without type</b>: type is auto-detected from {@code input} via
-     *       {@link InputTypeResolver#resolve}. Returns 400 if detection fails.</li>
-     * </ul>
-     *
-     * <p>This mirrors the frontend convention: the UI pre-resolves types before building browse URLs,
-     * but direct API callers (e.g. via Swagger) may omit {@code type} and rely on backend detection.
+     * Central dispatch for POST /mapping requests.
+     * Routing priority: resultId → ids[] → q → filter-only.
+     * Identifier types with null type are auto-detected; ambiguous values fall back to GENE.
      */
     public ResponseEntity<?> handleRequest(MappingRequest request) {
-        if (request.getIds() != null && !request.getIds().isEmpty()) {
-            // Multi-identifier browse: resolve any ids with null type, then skip single-input logic.
-            List<uk.ac.ebi.protvar.model.IdInput> resolvedIds = request.getIds().stream()
-                    .map(id -> {
-                        if (id.type() != null) return id;
-                        InputType detected = InputTypeResolver.resolve(id.value());
-                        // Fall back to GENE for ambiguous short symbols (e.g. "BRCA2")
-                        if (detected == null) detected = InputType.GENE;
-                        return new uk.ac.ebi.protvar.model.IdInput(detected, id.value());
-                    })
-                    .collect(Collectors.toList());
-            request.setIds(resolvedIds);
+        // resultId and q route directly — no pre-processing needed
+        if (request.getResultId() != null || request.getQ() != null) {
             return new ResponseEntity<>(mappingService.get(request), HttpStatus.OK);
         }
 
-        if (request.getType() != null) {
-            // User provided type - trust them and use it; no further resolution needed.
-        } else {
-            // Single input without explicit type: auto-detect from input value.
-            InputType resolved = InputTypeResolver.resolve(request.getInput());
-            if (resolved == null) {
-                return ResponseEntity.badRequest().body(
-                        "Unable to resolve input type from provided input."
-                );
-            }
-            request.setType(resolved);
-        }
-
-        // Normalize case (exclude PDB and INPUT_ID which are case-sensitive)
-        if (request.getInput() != null &&
-                request.getType() != InputType.PDB &&
-                request.getType() != InputType.INPUT_ID) {
-            request.setInput(request.getInput().toUpperCase());
+        // ids[]: auto-detect missing types
+        if (request.getIds() != null && !request.getIds().isEmpty()) {
+            List<Identifier> resolvedIds = request.getIds().stream()
+                    .map(id -> {
+                        if (id.type() != null) return id;
+                        IdentifierType detected = InputTypeResolver.resolveIdentifier(id.value());
+                        return new Identifier(detected != null ? detected : IdentifierType.GENE, id.value());
+                    })
+                    .collect(Collectors.toList());
+            request.setIds(resolvedIds);
         }
 
         return new ResponseEntity<>(mappingService.get(request), HttpStatus.OK);

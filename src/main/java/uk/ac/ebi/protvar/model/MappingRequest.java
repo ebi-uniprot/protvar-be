@@ -6,10 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import uk.ac.ebi.protvar.constants.PageUtils;
-import uk.ac.ebi.protvar.types.*;
-
+import uk.ac.ebi.protvar.types.AlleleFreqCategory;
+import uk.ac.ebi.protvar.types.AmClass;
+import uk.ac.ebi.protvar.types.CaddCategory;
+import uk.ac.ebi.protvar.types.PopEveClass;
+import uk.ac.ebi.protvar.types.StabilityChange;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 
 import java.util.List;
 
@@ -17,7 +19,6 @@ import java.util.List;
 @SuperBuilder
 @Schema(description = "Base request used for mapping")
 @NoArgsConstructor
-// TODO decapitalise all params like CADD, ASC, DESC and other enums
 public class MappingRequest {
 
     public final static String PAGE_DESC = """
@@ -38,26 +39,25 @@ public class MappingRequest {
             Defaults to 'AUTO' if not specified.
             """;
 
-    @Schema(description = "The input. Single identifier or variant string (UniProt accession, gene symbol, Ensembl, PDB, RefSeq ID, or genomic/protein variant). Ignored when 'ids' is provided.")
-    // @NotBlank intentionally removed — empty input is valid for filter-only queries
-    protected String input;
-
-    @Schema(
-            description = "Input type. If null, the system will try to infer it automatically. Ignored when 'ids' is provided.",
-            example = "UNIPROT"
-    )
-    protected InputType type;
+    @Schema(description = "Variant query string in any supported format (genomic, protein, HGVS, dbSNP, etc.). Mutually exclusive with resultId and ids.")
+    protected String q;
 
     @Schema(description = """
-            Multiple typed identifiers for multi-identifier browse.
-            When provided, 'input' and 'type' fields are ignored.
+            Uploaded result ID (32-character hex string returned by POST /input/text or /input/file).
+            When provided, the backend retrieves the cached input associated with this ID.
+            Mutually exclusive with 'ids' — if both are provided, 'resultId' takes precedence.
+            """)
+    protected String resultId;
+
+    @Schema(description = """
+            Biological identifiers for browse queries (UniProt, Gene, PDB, Ensembl, RefSeq).
             Each entry has a 'type' and 'value'. 'type' is optional — if omitted, the backend
             auto-detects it from 'value' using InputTypeResolver. Callers that know the type
             should always supply it to avoid misdetection of ambiguous values (e.g. short gene
             symbols). Falls back to GENE if detection fails.
             Example: [{"type": "UNIPROT", "value": "P22304"}, {"value": "BRCA2"}]
             """)
-    protected List<IdInput> ids;
+    protected List<Identifier> ids;
 
     @Schema(
             description = PAGE_DESC,

@@ -16,6 +16,7 @@ import uk.ac.ebi.protvar.constants.PageUtils;
 import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
+import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.types.*;
@@ -517,7 +518,7 @@ public class MappingRepo {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		String inputCondition = (request.getIds() != null && !request.getIds().isEmpty())
 				? buildMultiInputCondition(request.getIds(), parameters)
-				: buildInputCondition(request.getInput(), request.getType(), parameters);
+				: "WHERE alt.alt_allele <> m.allele"; // filter-only browse (no identifier constraint)
 
 		String baseQuery = """
 					WITH mapping_with_variants AS (
@@ -824,14 +825,14 @@ public class MappingRepo {
 	 * using IN clauses (or type-specific JOINs for PDB/RefSeq/Ensembl).
 	 * Conditions across groups are combined with OR.
 	 */
-	private String buildMultiInputCondition(List<uk.ac.ebi.protvar.model.IdInput> ids, MapSqlParameterSource parameters) {
+	private String buildMultiInputCondition(List<Identifier> ids, MapSqlParameterSource parameters) {
 		if (ids == null || ids.isEmpty()) {
 			return "WHERE alt.alt_allele <> m.allele";
 		}
 
 		// Group values by type
-		java.util.Map<InputType, List<String>> byType = new java.util.LinkedHashMap<>();
-		for (uk.ac.ebi.protvar.model.IdInput id : ids) {
+		java.util.Map<IdentifierType, List<String>> byType = new java.util.LinkedHashMap<>();
+		for (Identifier id : ids) {
 			if (id.type() != null && id.value() != null && !id.value().isBlank()) {
 				byType.computeIfAbsent(id.type(), k -> new java.util.ArrayList<>()).add(id.value().trim());
 			}
@@ -845,7 +846,7 @@ public class MappingRepo {
 		if (byType.size() == 1) {
 			var entry = byType.entrySet().iterator().next();
 			if (entry.getValue().size() == 1) {
-				return buildInputCondition(entry.getValue().get(0), entry.getKey(), parameters);
+				return buildInputCondition(entry.getValue().get(0), entry.getKey(), parameters); // IdentifierType overload
 			}
 		}
 
@@ -893,7 +894,7 @@ public class MappingRepo {
 					MapSqlParameterSource tempParams = new MapSqlParameterSource();
 					// refseq uses a JOIN — include as subquery existence check
 					// For now, single-value fallback
-					String refseqCond = buildInputCondition(values.get(0), InputType.REFSEQ, tempParams);
+					String refseqCond = buildInputCondition(values.get(0), IdentifierType.REFSEQ, tempParams);
 					tempParams.getValues().forEach(parameters::addValue);
 					conditions.add("(" + refseqCond.replace("WHERE ", "") + ")");
 				}
@@ -908,13 +909,12 @@ public class MappingRepo {
 		return "WHERE (" + String.join(" OR ", conditions) + ") AND alt.alt_allele <> m.allele";
 	}
 
-	private String buildInputCondition(String input, InputType inputType, MapSqlParameterSource parameters) {
-		if (input == null || input.isBlank() || inputType == null) {
-			// No input provided - this is valid, return all variants
+	private String buildInputCondition(String input, IdentifierType identifierType, MapSqlParameterSource parameters) {
+		if (input == null || input.isBlank() || identifierType == null) {
 			return "WHERE alt.alt_allele <> m.allele";
 		}
 
-		return switch (inputType) {
+		return switch (identifierType) {
 			case ENSEMBL -> buildEnsemblCondition(input, parameters);
 			case UNIPROT -> {
 				parameters.addValue("input", input);
@@ -922,7 +922,6 @@ public class MappingRepo {
 			}
 			case PDB -> {
 				// PDB is stored in lowercase in the db table
-				// Using LOWER on the right side only to ensure index on pdb_id is used
 				parameters.addValue("input", input);
 				yield String.format("""
                 INNER JOIN (
@@ -939,8 +938,6 @@ public class MappingRepo {
 				parameters.addValue("input", input);
 				yield "WHERE m.gene_name = :input AND alt.alt_allele <> m.allele";
 			}
-			default -> // Unknown input type - treat as no input
-					"WHERE alt.alt_allele <> m.allele";
 		};
 	}
 

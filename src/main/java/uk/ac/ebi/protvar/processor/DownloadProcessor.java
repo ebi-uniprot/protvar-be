@@ -39,7 +39,6 @@ import uk.ac.ebi.protvar.model.InputRequest;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.service.InputCacheService;
 import uk.ac.ebi.protvar.service.InputService;
-import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
 
@@ -80,8 +79,8 @@ public class DownloadProcessor {
 	private final CsvStructureDataBuilder csvStructureDataBuilder;
 	private final InputService inputService;
 	private final InputCacheService inputCacheService;
-	private final CachedInputHandler cachedInputHandler;
-	private final SearchInputHandler searchInputHandler;
+	private final ResultCacheHandler resultCacheHandler;
+	private final IdentifierBrowseHandler identifierBrowseHandler;
 	private final InputMapper inputMapper;
 	private final AnnotationFetcher annotationFetcher;
 	private final StructureService structureService;
@@ -106,35 +105,19 @@ public class DownloadProcessor {
 
 			InputHandler handler = null;
 
-			switch (request.getType()) {
-
-				case VARIANT -> {
-					LOGGER.info("Single variant download request: {}", request.getFname());
-					// no handler needed for single input
-				}
-				case INPUT_ID -> {
-					handler = cachedInputHandler;
-					// ensure that the build is detected and cached
-					inputService.detectBuild(InputRequest.builder()
-							.inputId(request.getInput())
-							.assembly(request.getAssembly())
-							.build());
-				}
-				case UNIPROT, ENSEMBL, GENE, PDB, REFSEQ -> {
-					handler = searchInputHandler;
-
-					// preload stuff here!!
-					if (request.getFull() != null && Boolean.TRUE.equals(request.getFull())
-							&& request.getType() == InputType.UNIPROT) {
-						String accession = request.getInput();
-
-						// preload full accession data
-					}
-
-
-				}
-				default -> throw new IllegalArgumentException("Unsupported type: " + request.getType());
-
+			if (request.getQ() != null && !request.getQ().isBlank()) {
+				LOGGER.info("Single variant download request: {}", request.getFname());
+				// no handler needed for single variant query
+			} else if (request.getResultId() != null && !request.getResultId().isBlank()) {
+				handler = resultCacheHandler;
+				// ensure that the build is detected and cached
+				inputService.detectBuild(InputRequest.builder()
+						.inputId(request.getResultId())
+						.assembly(request.getAssembly())
+						.build());
+			} else {
+				// identifier browse or filter-only browse
+				handler = identifierBrowseHandler;
 			}
 
 			handleDownload(handler, request, zipPath);
@@ -157,14 +140,14 @@ public class DownloadProcessor {
 
 		List<VariantInput> inputs;
 
-		if (request.getType() == InputType.VARIANT) {
-			inputs = List.of(VariantParser.parse(request.getInput()));
+		if (request.getQ() != null && !request.getQ().isBlank()) {
+			inputs = List.of(VariantParser.parse(request.getQ()));
 			processAndWriteCsv(inputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
 			return;
 		}
 
-		InputBuild build = request.getType() != null && request.getType() == InputType.INPUT_ID ?
-				inputCacheService.getBuild(request.getInput()) : null; // use cached build
+		InputBuild build = (request.getResultId() != null && !request.getResultId().isBlank())
+				? inputCacheService.getBuild(request.getResultId()) : null; // use cached build
 
 		if (!Boolean.TRUE.equals(request.getFull())) { // paged download: process in main thread
 			LOGGER.info("Page download request: {}", request.getFname());

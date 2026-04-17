@@ -17,14 +17,13 @@ import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
-import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.utils.DownloadFileUtil;
-import uk.ac.ebi.protvar.utils.InputTypeResolver;
 
 import java.io.FileInputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+
 
 @Tag(name = "Download")
 @RestController
@@ -33,9 +32,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DownloadController implements WebMvcConfigurer {
 
-    private final static String SUMMARY = """
-            Submit a download request. If no type is specified, the input is treated as a single variant.
-            """;
+    private final static String SUMMARY = "Submit a download request.";
     private final DownloadService downloadService;
 
     @Operation(summary = SUMMARY)
@@ -56,37 +53,12 @@ public class DownloadController implements WebMvcConfigurer {
     }
 
     /**
-     * Handle download request, setting timestamp and filename.
-     * Builds the URL for status or download.
-     *
-     * @param request DownloadRequest containing parameters
-     * @param http    HttpServletRequest to build the URL
-     * @return ResponseEntity with DownloadResponse or error
+     * Handle download request: set timestamp, derive filename, build status URL, and queue.
      */
     public ResponseEntity<?> handleDownload(DownloadRequest request, HttpServletRequest http) {
-        InputType providedType = request.getType(); // user-provided, may be null
-        InputType resolved = InputTypeResolver.resolve(request.getInput());
-
-        if (providedType != null && !providedType.equals(resolved)) {
-            return ResponseEntity.badRequest().body(
-                    String.format("Input type '%s' does not match resolved type '%s'.", providedType, resolved)
-            );
-        }
-        if (resolved == null) {
-            return ResponseEntity.badRequest().body("Unable to resolve input type from provided input.");
-        }
-
-        request.setType(resolved);
-
-        if (request.getInput() != null &&
-                (resolved != InputType.PDB && resolved != InputType.INPUT_ID)) { // todo: move normalizing case in SQL query for consistency
-            request.setInput(request.getInput().toUpperCase());
-        }
-
         request.setTimestamp(LocalDateTime.now());
         request.setFname(DownloadFileUtil.buildFilename(request));
 
-        // Build URL for status or download
         String url = http.getRequestURL()
                 .append("/")
                 .append(request.getFname())
