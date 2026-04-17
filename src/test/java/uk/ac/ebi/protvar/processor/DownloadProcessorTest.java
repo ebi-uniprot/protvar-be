@@ -3,10 +3,10 @@ package uk.ac.ebi.protvar.processor;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import uk.ac.ebi.protvar.fetcher.CachedInputHandler;
+import uk.ac.ebi.protvar.fetcher.IdentifierBrowseHandler;
+import uk.ac.ebi.protvar.fetcher.ResultCacheHandler;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
 import uk.ac.ebi.protvar.mapper.InputMapper;
-import uk.ac.ebi.protvar.fetcher.SearchInputHandler;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
@@ -28,8 +28,8 @@ class DownloadProcessorTest {
           mock(CsvStructureDataBuilder.class),
           mock(InputService.class),
           mock(InputCacheService.class),
-          mock(CachedInputHandler.class),
-          mock(SearchInputHandler.class),
+          mock(ResultCacheHandler.class),
+          mock(IdentifierBrowseHandler.class),
           mock(InputMapper.class),
           mock(AnnotationFetcher.class),
           mock(StructureService.class));
