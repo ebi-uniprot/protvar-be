@@ -38,17 +38,26 @@ public class MappingRequest {
             Defaults to 'AUTO' if not specified.
             """;
 
-    @Schema(description = "The input. This can be inputId, single variant or one of the other input types (UniProt accession, gene symbol, Ensembl, PDB, or RefSeq ID).")
-    @NotBlank(message = "Input must not be null or empty")
-    // todo: actually we should allow empty so only filters will apply
-    protected String input; // rename to searchTerm? (search=?&type=?)
+    @Schema(description = "The input. Single identifier or variant string (UniProt accession, gene symbol, Ensembl, PDB, RefSeq ID, or genomic/protein variant). Ignored when 'ids' is provided.")
+    // @NotBlank intentionally removed — empty input is valid for filter-only queries
+    protected String input;
 
     @Schema(
-            description = "Input type. If null, the system will try to infer it automatically.",
+            description = "Input type. If null, the system will try to infer it automatically. Ignored when 'ids' is provided.",
             example = "UNIPROT"
     )
-    //@NotNull(message = "Input type must not be null")
-    protected InputType type; // searchTermType? expand to FREE_TEXT (to allow similarity?)
+    protected InputType type;
+
+    @Schema(description = """
+            Multiple typed identifiers for multi-identifier browse.
+            When provided, 'input' and 'type' fields are ignored.
+            Each entry has a 'type' and 'value'. 'type' is optional — if omitted, the backend
+            auto-detects it from 'value' using InputTypeResolver. Callers that know the type
+            should always supply it to avoid misdetection of ambiguous values (e.g. short gene
+            symbols). Falls back to GENE if detection fails.
+            Example: [{"type": "UNIPROT", "value": "P22304"}, {"value": "BRCA2"}]
+            """)
+    protected List<IdInput> ids;
 
     @Schema(
             description = PAGE_DESC,

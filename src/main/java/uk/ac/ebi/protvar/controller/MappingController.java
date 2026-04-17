@@ -117,24 +117,53 @@ public class MappingController {
         return handleRequest(request);
     }
 
+    /**
+     * Central dispatch for all mapping requests.
+     *
+     * <p><b>Type resolution contract:</b>
+     * <ul>
+     *   <li><b>Multi-identifier browse</b> ({@code ids} is non-empty): each {@code IdInput} with a
+     *       null {@code type} is auto-detected via {@link InputTypeResolver#resolve}; falls back to
+     *       {@code GENE} for ambiguous values. {@code input} and {@code type} fields are ignored.
+     *       The resolved list is written back into the request before calling the service.</li>
+     *   <li><b>Single-input with explicit type</b> ({@code type} provided): type is trusted as-is.</li>
+     *   <li><b>Single-input without type</b>: type is auto-detected from {@code input} via
+     *       {@link InputTypeResolver#resolve}. Returns 400 if detection fails.</li>
+     * </ul>
+     *
+     * <p>This mirrors the frontend convention: the UI pre-resolves types before building browse URLs,
+     * but direct API callers (e.g. via Swagger) may omit {@code type} and rely on backend detection.
+     */
     public ResponseEntity<?> handleRequest(MappingRequest request) {
-        if (request.getType() != null) {
-            // User provided type - trust them and use it
-            // No validation, no resolution needed
-        } else {
-            // Resolve type
-            InputType resolved = InputTypeResolver.resolve(request.getInput());
+        if (request.getIds() != null && !request.getIds().isEmpty()) {
+            // Multi-identifier browse: resolve any ids with null type, then skip single-input logic.
+            List<uk.ac.ebi.protvar.model.IdInput> resolvedIds = request.getIds().stream()
+                    .map(id -> {
+                        if (id.type() != null) return id;
+                        InputType detected = InputTypeResolver.resolve(id.value());
+                        // Fall back to GENE for ambiguous short symbols (e.g. "BRCA2")
+                        if (detected == null) detected = InputType.GENE;
+                        return new uk.ac.ebi.protvar.model.IdInput(detected, id.value());
+                    })
+                    .collect(Collectors.toList());
+            request.setIds(resolvedIds);
+            return new ResponseEntity<>(mappingService.get(request), HttpStatus.OK);
+        }
 
+        if (request.getType() != null) {
+            // User provided type - trust them and use it; no further resolution needed.
+        } else {
+            // Single input without explicit type: auto-detect from input value.
+            InputType resolved = InputTypeResolver.resolve(request.getInput());
             if (resolved == null) {
                 return ResponseEntity.badRequest().body(
                         "Unable to resolve input type from provided input."
                 );
             }
-
             request.setType(resolved);
         }
 
-        // Normalize case (exclude PDB and INPUT_ID)
+        // Normalize case (exclude PDB and INPUT_ID which are case-sensitive)
         if (request.getInput() != null &&
                 request.getType() != InputType.PDB &&
                 request.getType() != InputType.INPUT_ID) {

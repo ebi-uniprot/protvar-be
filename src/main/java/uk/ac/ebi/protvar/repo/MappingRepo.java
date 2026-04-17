@@ -515,7 +515,9 @@ public class MappingRepo {
 		// Build the base query
 		String dbsnpJoin = buildDbsnpJoin(filterKnown);
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		String inputCondition = buildInputCondition(request.getInput(), request.getType(), parameters);
+		String inputCondition = (request.getIds() != null && !request.getIds().isEmpty())
+				? buildMultiInputCondition(request.getIds(), parameters)
+				: buildInputCondition(request.getInput(), request.getType(), parameters);
 
 		String baseQuery = """
 					WITH mapping_with_variants AS (
@@ -814,6 +816,96 @@ public class MappingRepo {
         """, dbsnpTable);
 		}
 		return "";
+	}
+
+	/**
+	 * Build a WHERE/JOIN condition for a list of typed identifiers.
+	 * Identifiers are grouped by type; each group produces its own condition
+	 * using IN clauses (or type-specific JOINs for PDB/RefSeq/Ensembl).
+	 * Conditions across groups are combined with OR.
+	 */
+	private String buildMultiInputCondition(List<uk.ac.ebi.protvar.model.IdInput> ids, MapSqlParameterSource parameters) {
+		if (ids == null || ids.isEmpty()) {
+			return "WHERE alt.alt_allele <> m.allele";
+		}
+
+		// Group values by type
+		java.util.Map<InputType, List<String>> byType = new java.util.LinkedHashMap<>();
+		for (uk.ac.ebi.protvar.model.IdInput id : ids) {
+			if (id.type() != null && id.value() != null && !id.value().isBlank()) {
+				byType.computeIfAbsent(id.type(), k -> new java.util.ArrayList<>()).add(id.value().trim());
+			}
+		}
+
+		if (byType.isEmpty()) {
+			return "WHERE alt.alt_allele <> m.allele";
+		}
+
+		// For a single type with a single value, delegate to the existing single-input method
+		if (byType.size() == 1) {
+			var entry = byType.entrySet().iterator().next();
+			if (entry.getValue().size() == 1) {
+				return buildInputCondition(entry.getValue().get(0), entry.getKey(), parameters);
+			}
+		}
+
+		// Build per-type conditions and OR them together.
+		// Note: PDB, Ensembl, and RefSeq use JOINs, so they cannot be combined with simple OR.
+		// For now, simple types (UNIPROT, GENE) use IN clauses; complex types fall back to
+		// individual conditions unioned at application level (future enhancement).
+		// The WHERE clause covers the final cross-group filter.
+		List<String> conditions = new java.util.ArrayList<>();
+
+		byType.forEach((type, values) -> {
+			switch (type) {
+				case UNIPROT -> {
+					parameters.addValue("uniprot_ids", values);
+					conditions.add("m.accession IN (:uniprot_ids)");
+				}
+				case GENE -> {
+					parameters.addValue("gene_ids", values);
+					conditions.add("m.gene_name IN (:gene_ids)");
+				}
+				case PDB -> {
+					// PDB requires a JOIN — handle the first value only for now
+					// Full multi-PDB support requires UNION queries (future work)
+					parameters.addValue("pdb_id_multi", values.get(0).toLowerCase());
+					conditions.add(String.format("""
+						EXISTS (
+							SELECT 1 FROM %s s
+							WHERE s.accession = m.accession
+							AND s.pdb_id = :pdb_id_multi
+							AND m.protein_position BETWEEN s.unp_start AND s.unp_end
+						)
+					""", structureTable));
+				}
+				case ENSEMBL -> {
+					// Delegate to single-value ensembl for the first entry (future: extend)
+					MapSqlParameterSource tempParams = new MapSqlParameterSource();
+					String ensemblCond = buildEnsemblCondition(values.get(0), tempParams);
+					// Extract the WHERE clause body (strip "WHERE " prefix) for embedding in OR
+					String body = ensemblCond.startsWith("WHERE ") ? ensemblCond.substring(6) : ensemblCond;
+					tempParams.getValues().forEach(parameters::addValue);
+					conditions.add("(" + body + ")");
+				}
+				case REFSEQ -> {
+					// Delegate to single-value refseq for the first entry (future: extend)
+					MapSqlParameterSource tempParams = new MapSqlParameterSource();
+					// refseq uses a JOIN — include as subquery existence check
+					// For now, single-value fallback
+					String refseqCond = buildInputCondition(values.get(0), InputType.REFSEQ, tempParams);
+					tempParams.getValues().forEach(parameters::addValue);
+					conditions.add("(" + refseqCond.replace("WHERE ", "") + ")");
+				}
+				default -> {} // ignore unknown types
+			}
+		});
+
+		if (conditions.isEmpty()) {
+			return "WHERE alt.alt_allele <> m.allele";
+		}
+
+		return "WHERE (" + String.join(" OR ", conditions) + ") AND alt.alt_allele <> m.allele";
 	}
 
 	private String buildInputCondition(String input, InputType inputType, MapSqlParameterSource parameters) {

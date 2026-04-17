@@ -42,12 +42,22 @@ public class MappingService {
     }
 
     public PagedMappingResponse get(MappingRequest request) {
-        // type will be set to resolved by now
-        Page<VariantInput> page = switch (request.getType()) {
-            case VARIANT -> singleInputPage(request.getInput());
-            case INPUT_ID -> cachedInputHandler.pagedInput(request);
-            case UNIPROT, ENSEMBL, GENE, PDB, REFSEQ -> searchInputHandler.pagedInput(request);
-        };
+        Page<VariantInput> page;
+        boolean multiFormat;
+
+        if (request.getIds() != null && !request.getIds().isEmpty()) {
+            // Multi-identifier browse: type is not set; MappingRepo dispatches on the ids list directly.
+            page = searchInputHandler.pagedInput(request);
+            multiFormat = false;
+        } else {
+            // Single-input path: type is always resolved before reaching here.
+            page = switch (request.getType()) {
+                case VARIANT -> singleInputPage(request.getInput());
+                case INPUT_ID -> cachedInputHandler.pagedInput(request);
+                case UNIPROT, ENSEMBL, GENE, PDB, REFSEQ -> searchInputHandler.pagedInput(request);
+            };
+            multiFormat = request.getType() == InputType.VARIANT || request.getType() == InputType.INPUT_ID;
+        }
 
         List<VariantInput> inputs = page.getContent();
 
@@ -61,7 +71,6 @@ public class MappingService {
             build = inputCacheService.getBuild(request.getInput());
         }
 
-        boolean multiFormat = request.getType() == InputType.VARIANT || request.getType() == InputType.INPUT_ID;
         MappingResponse mapping = inputMapper.getMapping(inputs, request.getAssembly(), build, multiFormat);
 
         if (mapping !=null && request.getType() == InputType.INPUT_ID) {
