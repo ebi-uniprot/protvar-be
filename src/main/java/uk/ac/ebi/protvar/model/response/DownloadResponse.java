@@ -8,10 +8,9 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 public class DownloadResponse {
-    //String inputType;
-    LocalDateTime requested; // "requested": "2024-06-20T22:02:31.157133154" in json
-    String downloadId; // corresponds to the download file name (without ext): <id>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
+    String id;           // download file name stem (no extension)
     String jobName;
-    String url;
-    int status;
+    String fileUrl;      // full URL to the generated file
+    DownloadJobStatus status;
+    LocalDateTime requestedAt;
 }

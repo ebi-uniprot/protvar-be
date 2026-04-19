@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.messaging.RabbitMQConfig;
 import uk.ac.ebi.protvar.model.DownloadRequest;
+import uk.ac.ebi.protvar.model.response.DownloadJobStatus;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 
@@ -41,11 +42,11 @@ public class DownloadService {
         }
 
         DownloadResponse response = new DownloadResponse();
-        response.setRequested(downloadRequest.getTimestamp());
-        response.setDownloadId(downloadRequest.getFname());
-        response.setStatus(-1);
+        response.setRequestedAt(downloadRequest.getTimestamp());
+        response.setId(downloadRequest.getFname());
+        response.setStatus(DownloadJobStatus.PENDING);
         response.setJobName(downloadRequest.getJobName());
-        response.setUrl(downloadRequest.getUrl());
+        response.setFileUrl(downloadRequest.getUrl());
         return response;
     }
 
@@ -71,12 +72,12 @@ public class DownloadService {
                 } catch (IOException e) {
                     LOGGER.error("Error getting file size for: {}", zipFilePath, e);
                 }
-                resultMap.put(filename, new DownloadStatus(1, size));
+                resultMap.put(filename, new DownloadStatus(DownloadJobStatus.READY, size));
             }
             else if (Files.exists(csvFilePath))
-                resultMap.put(filename, new DownloadStatus(0));
+                resultMap.put(filename, new DownloadStatus(DownloadJobStatus.PROCESSING));
             else
-                resultMap.put(filename, new DownloadStatus(-1));
+                resultMap.put(filename, new DownloadStatus(DownloadJobStatus.PENDING));
         });
         return resultMap;
     }

@@ -6,9 +6,10 @@ import lombok.Data;
 @AllArgsConstructor
 @Data
 public class DownloadStatus {
-    int status;
+    DownloadJobStatus status;
     long size;
-    public DownloadStatus(int status) {
+
+    public DownloadStatus(DownloadJobStatus status) {
         this.status = status;
     }
 }
