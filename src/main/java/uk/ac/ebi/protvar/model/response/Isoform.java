@@ -40,6 +40,9 @@ public class Isoform implements Comparable<Isoform> {
 	@JsonInclude(Include.NON_NULL)
 	private AmScore amScore;
 
+	@JsonInclude(Include.NON_NULL)
+	private PopEveScore popEveScore;
+
 	public String getCodonChange(){
 		return refCodon + "/" + variantCodon;
 	}

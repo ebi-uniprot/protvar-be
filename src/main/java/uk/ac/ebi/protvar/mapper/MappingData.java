@@ -19,5 +19,5 @@ public class MappingData {
     private final Map<String, List<CaddPrediction>> caddMap;
     private final ArrayPair<String, Integer> accPosArrays;
     private final Set<String> canonicalAccessions;
-    private final Map<String, List<Score>> amScoreMap;
+    private final Map<String, List<Score>> scoreMap;
 }

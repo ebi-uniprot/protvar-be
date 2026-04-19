@@ -163,10 +163,10 @@ public class InputMapper {
 
 		var accPosArrays = new ArrayPair<>(accessions, ppositions);
 
-		var amScoreMap = scoreRepo.getMappingScores(accessions, ppositions)
+		var scoreMap = scoreRepo.getMappingScores(accessions, ppositions)
 				.stream().collect(Collectors.groupingBy(Score::getVariantKey));
 
-		return new MappingData(chrPosArrays, g2pMap, caddPredictionMap, accPosArrays, canonicalAccessions, amScoreMap);
+		return new MappingData(chrPosArrays, g2pMap, caddPredictionMap, accPosArrays, canonicalAccessions, scoreMap);
 	}
 
 	public void processInput(VariantInput input, MappingData core) {
@@ -187,7 +187,7 @@ public class InputMapper {
 							.map(mappingList.get(0)::getAltCodon)
 							.collect(Collectors.toSet());*/
 
-					ensgMappingList = geneConverter.createGenes(altBases, mappingList, caddScores, core.getAmScoreMap());
+					ensgMappingList = geneConverter.createGenes(altBases, mappingList, caddScores, core.getScoreMap());
 				}
 
 				genomicVariant.getGenes().addAll(ensgMappingList);

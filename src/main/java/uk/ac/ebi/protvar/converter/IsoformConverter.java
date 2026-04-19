@@ -6,6 +6,7 @@ import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Isoform;
 import uk.ac.ebi.protvar.model.response.Transcript;
 import uk.ac.ebi.protvar.model.score.AmScore;
+import uk.ac.ebi.protvar.model.score.PopEveScore;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.model.score.ScoreType;
 import uk.ac.ebi.protvar.types.AminoAcid;
@@ -22,7 +23,7 @@ import java.util.stream.Collectors;
 public class IsoformConverter {
 	public List<Isoform> createIsoforms(String altBase,
 			List<GenomeToProteinMapping> mappingList,
-			Map<String, List<Score>>  amScores) {
+			Map<String, List<Score>>  scoreMap) {
 		String canonicalAccession = mappingList.stream().filter(GenomeToProteinMapping::isCanonical)
 				.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
 
@@ -30,13 +31,13 @@ public class IsoformConverter {
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getAccession))
 				.entrySet().stream()
 				.map(entry -> createIsoform(altBase, canonicalAccession, entry.getKey(), entry.getValue(),
-						amScores))
+						scoreMap))
 				.sorted().collect(Collectors.toList());
 	}
 
 	private Isoform createIsoform(String altBase, String canonicalAccession, String accession,
 								  List<GenomeToProteinMapping> g2pAccessionMapping,
-								  Map<String, List<Score>>  amScores) {
+								  Map<String, List<Score>>  scoreMap) {
 		GenomeToProteinMapping mapping = g2pAccessionMapping.get(0);
 		AminoAcid refAA = AminoAcid.fromOneLetter(mapping.getAa());
 		String altCodon = mapping.getAltCodon(altBase);
@@ -61,8 +62,13 @@ public class IsoformConverter {
 		if (accession.equals(canonicalAccession)) {
 			// Add AlphaMissense score
 			String amScoreKey = VariantKey.protein(ScoreType.AM, accession, mapping.getIsoformPosition(), altAA.getOneLetter());
-			amScores.getOrDefault(amScoreKey, Collections.emptyList()).stream().findFirst()
+			scoreMap.getOrDefault(amScoreKey, Collections.emptyList()).stream().findFirst()
 					.map(s -> ((AmScore) s).copySubclassFields()).ifPresent(builder::amScore);
+
+			// Add popEVE score
+			String popEveKey = VariantKey.protein(ScoreType.POPEVE, accession, mapping.getIsoformPosition(), altAA.getOneLetter());
+			scoreMap.getOrDefault(popEveKey, Collections.emptyList()).stream().findFirst()
+					.map(s -> ((PopEveScore) s).copySubclassFields()).ifPresent(builder::popEveScore);
 
 			// Annotation URIs
 			builder.referenceFunctionUri("/function/" + accession + "/" + mapping.getIsoformPosition()
