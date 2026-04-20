@@ -34,7 +34,6 @@ public class VectorSearchResponse {
         return new VectorSearchResponse(
                 null,
                 null,
-                0,
                 null,
                 null,
                 null,
