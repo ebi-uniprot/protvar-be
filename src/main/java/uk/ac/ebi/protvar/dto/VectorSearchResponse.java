@@ -12,7 +12,6 @@ import java.util.List;
 public class VectorSearchResponse {
     private String query;
     private List<VectorSearchResult> results;
-    private Integer count;
     private Integer limit;
     private Integer offset;
     private String model;
@@ -23,7 +22,6 @@ public class VectorSearchResponse {
         return new VectorSearchResponse(
                 query,
                 results,
-                results.size(),
                 limit,
                 offset,
                 model,
