@@ -20,16 +20,11 @@ public class FunctionVectorRepository {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    @Value("${vector.table.name:rel_2025_01_function_vector}")
-    private String tableName;
+    @Value("${vector.table.prefix:rel_2025_01_function_vector_}")
+    private String tableNamePrefix;
 
-    /**
-     * Find vectors similar to the query vector using cosine distance.
-     * @param queryVector Query embedding vector
-     * @param limit Maximum number of results
-     * @return List of similar vectors with metadata
-     */
-    public List<VectorSearchResult> findSimilarVectors(List<Number> queryVector, int limit) {
+    public List<VectorSearchResult> findSimilarVectors(List<Number> queryVector, int limit, int offset, String model) {
+        String tableName = tableNamePrefix + model;
         String sql = String.format("""
             SELECT
                 accession, source_type, source_text,
@@ -43,12 +38,13 @@ public class FunctionVectorRepository {
                 %s
             ORDER BY
                 distance ASC
-            LIMIT :limit
+            LIMIT :limit OFFSET :offset
             """, tableName);
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("queryVector", new PGvector(queryVector))
-                .addValue("limit", limit);
+                .addValue("limit", limit)
+                .addValue("offset", offset);
 
         return namedParameterJdbcTemplate.query(
                 sql,

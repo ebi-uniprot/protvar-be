@@ -43,9 +43,6 @@ public class ApplicationConfig {
     @Value(("${pdbe.best-structures.api.url}"))
     private String pdbeUrl;
 
-    @Value("${embedding.service.url:http://localhost:8000}")
-    private String embeddingServiceUrl;
-
     private final ObjectMapper objectMapper;
 
     @Bean
@@ -114,7 +111,6 @@ public class ApplicationConfig {
 
         RestTemplate restTemplate = new RestTemplate(factory);
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(embeddingServiceUrl));
         restTemplate.setMessageConverters(Collections.singletonList(converter));
 
         // Add retry interceptor

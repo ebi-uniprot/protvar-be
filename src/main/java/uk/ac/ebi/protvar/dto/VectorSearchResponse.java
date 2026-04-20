@@ -14,15 +14,19 @@ public class VectorSearchResponse {
     private List<VectorSearchResult> results;
     private Integer count;
     private Integer limit;
+    private Integer offset;
+    private String model;
     private boolean success;
     private String error;
 
-    public static VectorSearchResponse success(String query, List<VectorSearchResult> results, int limit) {
+    public static VectorSearchResponse success(String query, List<VectorSearchResult> results, int limit, int offset, String model) {
         return new VectorSearchResponse(
                 query,
                 results,
                 results.size(),
                 limit,
+                offset,
+                model,
                 true,
                 null
         );
@@ -33,6 +37,8 @@ public class VectorSearchResponse {
                 null,
                 null,
                 0,
+                null,
+                null,
                 null,
                 false,
                 error
