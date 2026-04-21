@@ -2,8 +2,8 @@ package uk.ac.ebi.protvar.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.config.ModelRegistryProperties;
 import uk.ac.ebi.protvar.dto.VectorSearchResult;
 import uk.ac.ebi.protvar.client.EmbeddingClient;
 import uk.ac.ebi.protvar.repo.FunctionVectorRepository;
@@ -19,9 +19,7 @@ public class VectorSearchService {
 
     private final EmbeddingClient embeddingClient;
     private final FunctionVectorRepository vectorRepository;
-
-    @Value("${embedding.model:biobert}")
-    private String defaultModel;
+    private final ModelRegistryProperties modelRegistry;
 
     public List<VectorSearchResult> searchByText(String queryText, int limit, int offset, String model) {
         log.debug("Performing vector search for query: {}, model: {}", queryText, model);
@@ -43,6 +41,10 @@ public class VectorSearchService {
             log.error("Error performing vector search", e);
             return Collections.emptyList();
         }
+    }
+
+    public String getDefaultModel() {
+        return modelRegistry.getDefaultModel();
     }
 
     public boolean isEmbeddingServiceAvailable() {

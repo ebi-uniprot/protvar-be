@@ -2,11 +2,10 @@ package uk.ac.ebi.protvar.client;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import uk.ac.ebi.protvar.config.ModelRegistryProperties;
 
 import java.util.List;
 import java.util.Map;
@@ -17,26 +16,16 @@ import java.util.Optional;
 public class EmbeddingClient {
 
     private final RestTemplate restTemplate;
-    private final Environment environment;
-
-    @Value("${embedding.model:biobert}")
-    private String defaultModel;
+    private final ModelRegistryProperties modelRegistry;
 
     public EmbeddingClient(@Qualifier("embeddingRestTemplate") RestTemplate restTemplate,
-                           Environment environment) {
+                           ModelRegistryProperties modelRegistry) {
         this.restTemplate = restTemplate;
-        this.environment = environment;
-    }
-
-    private String resolveServiceUrl(String model) {
-        return environment.getProperty(
-            "embedding.service.url." + model,
-            environment.getProperty("embedding.service.url", "http://embedding-service-" + model + ":8000")
-        );
+        this.modelRegistry = modelRegistry;
     }
 
     public Optional<List<Number>> getEmbedding(String queryText, String model) {
-        String serviceUrl = resolveServiceUrl(model);
+        String serviceUrl = modelRegistry.resolveServiceUrl(model);
         try {
             Map<String, String> requestBody = Map.of("text", queryText);
 
@@ -64,7 +53,7 @@ public class EmbeddingClient {
     }
 
     public boolean isHealthy(String model) {
-        String serviceUrl = resolveServiceUrl(model);
+        String serviceUrl = modelRegistry.resolveServiceUrl(model);
         try {
             restTemplate.getForObject(serviceUrl + "/health", Map.class);
             return true;
@@ -75,6 +64,6 @@ public class EmbeddingClient {
     }
 
     public boolean isHealthy() {
-        return isHealthy(defaultModel);
+        return isHealthy(modelRegistry.getDefaultModel());
     }
 }
