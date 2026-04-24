@@ -12,8 +12,10 @@ import uk.ac.ebi.protvar.fetcher.ResultCacheHandler;
 import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.mapper.InputMapper;
+import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
+import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
@@ -71,6 +73,11 @@ public class MappingService {
 
         MappingResponse mapping = inputMapper.getMapping(inputs, request.getAssembly(), build, multiFormat);
 
+        if (mapping != null && posRangeIgnored(request)) {
+            mapping.getMessages().add(new Message(Message.MessageType.WARN,
+                    "startPos/endPos position range filter applies to single UniProt accession browse only and has been ignored."));
+        }
+
         if (mapping != null && build != null) {
             List<Message> messages = Optional.ofNullable(mapping.getMessages()).orElseGet(ArrayList::new);
             mapping.setMessages(messages);
@@ -96,5 +103,14 @@ public class MappingService {
                     .assembly(request.getAssembly())
                     .content(mapping)
                     .build();
+    }
+
+    /** True when posFrom/posTo is set but the request is NOT a single-UniProt browse. */
+    private boolean posRangeIgnored(MappingRequest request) {
+        if (request.getStartPos() == null && request.getEndPos() == null) return false;
+        List<Identifier> ids = request.getIds();
+        if (ids == null || ids.size() != 1) return true;
+        Identifier id = ids.get(0);
+        return id.type() != IdentifierType.UNIPROT;
     }
 }

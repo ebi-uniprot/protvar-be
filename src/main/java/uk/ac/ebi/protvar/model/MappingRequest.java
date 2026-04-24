@@ -141,6 +141,15 @@ public class MappingRequest {
     @Max(value = 0, message = "ESM1b maximum must not exceed 0")
     private Double esm1bMax;
 
+    // Position range filter (single UniProt accession browse only; ignored otherwise with a warning)
+    @Schema(description = "Start of protein position range (inclusive, 1-based). Only applies to single UniProt accession browse.", example = "558")
+    @Min(value = 1, message = "startPos must be at least 1")
+    private Integer startPos;
+
+    @Schema(description = "End of protein position range (inclusive, 1-based). Must be used with startPos. Values are normalised if startPos > endPos.", example = "600")
+    @Min(value = 1, message = "endPos must be at least 1")
+    private Integer endPos;
+
     // Sorting
     @Schema(description = "Sort field: 'cadd', 'am', 'popeve', or 'esm1b'", example = "cadd")
     private String sort;

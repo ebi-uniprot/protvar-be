@@ -657,6 +657,14 @@ public class MappingRepo {
 
 		sql.append(" WHERE 1=1");
 
+		if (isSingleUniprotBrowse(request) && request.getStartPos() != null && request.getEndPos() != null) {
+			int from = Math.min(request.getStartPos(), request.getEndPos());
+			int to   = Math.max(request.getStartPos(), request.getEndPos());
+			sql.append(" AND m.protein_position BETWEEN :startPos AND :endPos");
+			parameters.addValue("startPos", from);
+			parameters.addValue("endPos",   to);
+		}
+
 		// Add filters
 		if (filterByCadd) {
 			List<String> caddClauses = new ArrayList<>();
@@ -986,6 +994,11 @@ public class MappingRepo {
 
 		condition.append(" AND alt.alt_allele <> m.allele");
 		return condition.toString();
+	}
+
+	private boolean isSingleUniprotBrowse(MappingRequest request) {
+		List<Identifier> ids = request.getIds();
+		return ids != null && ids.size() == 1 && ids.get(0).type() == IdentifierType.UNIPROT;
 	}
 
 	private String buildRefseqCondition(String input, MapSqlParameterSource parameters) {
