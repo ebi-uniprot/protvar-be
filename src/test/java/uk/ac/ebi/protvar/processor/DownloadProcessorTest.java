@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.processor;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import uk.ac.ebi.protvar.fetcher.FilterOnlyHandler;
 import uk.ac.ebi.protvar.fetcher.IdentifierBrowseHandler;
 import uk.ac.ebi.protvar.fetcher.ResultCacheHandler;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
@@ -30,6 +31,7 @@ class DownloadProcessorTest {
           mock(InputCacheService.class),
           mock(ResultCacheHandler.class),
           mock(IdentifierBrowseHandler.class),
+          mock(FilterOnlyHandler.class),
           mock(InputMapper.class),
           mock(AnnotationFetcher.class),
           mock(StructureService.class));
