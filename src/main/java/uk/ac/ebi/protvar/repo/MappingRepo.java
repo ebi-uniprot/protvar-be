@@ -511,7 +511,7 @@ public class MappingRepo {
         boolean joinCodonTable = joinAm || joinPopEve || joinEsm1b || filterStability;
 
 		String sortOrder = "asc".equalsIgnoreCase(request.getOrder()) ? "asc" : "desc";
-		String fields = "m.chromosome, m.genomic_position, m.allele, m.alt_allele, m.protein_position, m.codon_position";
+		String fields = "m.chromosome, m.genomic_position, m.allele, m.alt_allele, m.accession, m.protein_position, m.codon_position";
 
 		// Build the base query
 		String dbsnpJoin = buildDbsnpJoin(filterKnown);
@@ -782,11 +782,7 @@ public class MappingRepo {
             fields += ", esm.score ";
             sql.append("esm.score ").append(sortOrder).append(", ");
         }
-		// SELECT DISTINCT collapses isoforms to one row per (chr, pos, allele,
-		// alt_allele, protein_position, codon_position) — accession is not in
-		// the projection, so it can't appear in ORDER BY here without
-		// PG erroring "ORDER BY expressions must appear in select list".
-		sql.append("m.protein_position, m.codon_position, m.alt_allele"); // consider removing alt_allele?
+		sql.append("m.accession, m.protein_position, m.codon_position, m.alt_allele");
 
 		// Pagination
 		sql.append(" LIMIT :pageSize OFFSET :offset");
