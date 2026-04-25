@@ -81,6 +81,7 @@ public class DownloadProcessor {
 	private final InputCacheService inputCacheService;
 	private final ResultCacheHandler resultCacheHandler;
 	private final IdentifierBrowseHandler identifierBrowseHandler;
+	private final FilterOnlyHandler filterOnlyHandler;
 	private final InputMapper inputMapper;
 	private final AnnotationFetcher annotationFetcher;
 	private final StructureService structureService;
@@ -115,9 +116,12 @@ public class DownloadProcessor {
 						.inputId(request.getResultId())
 						.assembly(request.getAssembly())
 						.build());
-			} else {
-				// identifier browse or filter-only browse
+			} else if (request.getIds() != null && !request.getIds().isEmpty()) {
 				handler = identifierBrowseHandler;
+			} else {
+				// Filter-only browse — routed through GenomicVariantRepo
+				// for query optimisation, matching the mapping API path.
+				handler = filterOnlyHandler;
 			}
 
 			handleDownload(handler, request, zipPath);

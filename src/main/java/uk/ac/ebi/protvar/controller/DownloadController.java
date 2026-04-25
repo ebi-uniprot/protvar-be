@@ -18,11 +18,13 @@ import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.utils.DownloadFileUtil;
+import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
 import java.io.FileInputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 
 @Tag(name = "Download")
@@ -53,9 +55,14 @@ public class DownloadController implements WebMvcConfigurer {
     }
 
     /**
-     * Handle download request: set timestamp, derive filename, build status URL, and queue.
+     * Handle download request: validate, set timestamp, derive filename, build status URL, and queue.
      */
     public ResponseEntity<?> handleDownload(DownloadRequest request, HttpServletRequest http) {
+        Optional<String> validationError = MappingRequestValidator.validate(request);
+        if (validationError.isPresent()) {
+            return ResponseEntity.badRequest().body(Map.of("error", validationError.get()));
+        }
+
         request.setTimestamp(LocalDateTime.now());
         request.setFname(DownloadFileUtil.buildFilename(request));
 
