@@ -15,6 +15,7 @@ import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
+import uk.ac.ebi.protvar.repo.GenomicVariantRepo;
 import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
@@ -32,6 +33,7 @@ public class MappingService {
     private final InputCacheService inputCacheService;
     private final ResultCacheHandler resultCacheHandler;
     private final IdentifierBrowseHandler identifierBrowseHandler;
+    private final GenomicVariantRepo genomicVariantRepo;
     private final InputMapper inputMapper;
 
     public PagedMappingResponse get(MappingRequest request) {
@@ -55,8 +57,11 @@ public class MappingService {
             );
             multiFormat = true;
         } else {
-            // Filter-only browse (no identifier constraint)
-            page = identifierBrowseHandler.pagedInput(request);
+            // Filter-only browse — routed through GenomicVariantRepo for query optimisation.
+            // To revert to the old unbounded path, comment the two lines below and uncomment the one after.
+            PageRequest pageable = PageRequest.of(request.getPage() - 1, request.getPageSize());
+            page = genomicVariantRepo.get(request, pageable);
+            // page = identifierBrowseHandler.pagedInput(request); // old path — full table scan, no safety check
             multiFormat = false;
         }
 
