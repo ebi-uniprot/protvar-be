@@ -182,14 +182,42 @@ public class GenomicVariantRepo {
             }
         }
 
-        // ORDER BY is emitted only when the user explicitly requested a sort.
-        // For unsorted requests we rely on the leading-table iteration order
-        // (deterministic for a given query plan); adding an explicit ORDER BY
-        // would block LIMIT pushdown and force a full intermediate sort.
-        // Sort-by-score paths are still slow until score-leading strategies
-        // land — see follow-up.
+        // ORDER BY emission, by strategy:
+        //  - Strategy 1 (identifiers) and Strategy 2 (feature filters) iterate
+        //    via (accession, protein_position) in their leading scan, so a
+        //    default sort by accession + position aligns with the natural plan
+        //    and groups results per protein. Always emit.
+        //  - Strategy 3 (dbSNP) and Strategy 4 (AF / conservation) lead by
+        //    (chr, pos) — adding ORDER BY here forces a full materialisation
+        //    and breaks LIMIT pushdown. Only emit when the user explicitly
+        //    asks for a score sort.
+        //
+        // The alt-allele expression in the sort tail must match the strategy's
+        // alias (bases / dbsnp_alts / af.alt) — same parameterisation as
+        // addRemainingJoins, otherwise SQL fails with missing-FROM.
         boolean userRequestedSort = sortByCadd || sortByAm || sortByPopEve || sortByEsm1b;
-        if (userRequestedSort) {
+
+        String altAlleleExpr;
+        boolean strategySupportsDefaultSort;
+        if (hasIdentifiers) {
+            altAlleleExpr = "bases.alt_allele";
+            strategySupportsDefaultSort = true;   // Strategy 1
+        } else if (filterPocket || filterInteract || filterExperimentalModel) {
+            altAlleleExpr = "bases.alt_allele";
+            strategySupportsDefaultSort = true;   // Strategy 2
+        } else if (filterKnown) {
+            altAlleleExpr = "dbsnp_alts.alt_allele";
+            strategySupportsDefaultSort = false;  // Strategy 3
+        } else if (filterByAlleleFreq) {
+            altAlleleExpr = "af.alt";
+            strategySupportsDefaultSort = false;  // Strategy 4a
+        } else {
+            altAlleleExpr = "bases.alt_allele";
+            strategySupportsDefaultSort = false;  // Strategy 4b (conservation)
+        }
+
+        boolean shouldEmitOrderBy = userRequestedSort || strategySupportsDefaultSort;
+        if (shouldEmitOrderBy) {
             String sortOrder = "asc".equalsIgnoreCase(request.getOrder()) ? "ASC" : "DESC";
             query.append("\nORDER BY ");
             if (sortByCadd) {
@@ -201,7 +229,7 @@ public class GenomicVariantRepo {
             } else if (sortByEsm1b) {
                 query.append("esm.score ").append(sortOrder).append(", ");
             }
-            query.append("m.protein_position, m.codon_position, bases.alt_allele\n");
+            query.append("m.accession, m.protein_position, m.codon_position, ").append(altAlleleExpr).append("\n");
         }
 
         query.append("LIMIT :pageSize OFFSET :offset");

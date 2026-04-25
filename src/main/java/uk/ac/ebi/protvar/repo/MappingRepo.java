@@ -782,7 +782,8 @@ public class MappingRepo {
             fields += ", esm.score ";
             sql.append("esm.score ").append(sortOrder).append(", ");
         }
-		sql.append("m.protein_position, m.codon_position, m.alt_allele"); // consider removing alt_allele?
+		// Default sort tail: accession first so multi-protein browse groups results per protein.
+		sql.append("m.accession, m.protein_position, m.codon_position, m.alt_allele"); // consider removing alt_allele?
 
 		// Pagination
 		sql.append(" LIMIT :pageSize OFFSET :offset");
