@@ -32,6 +32,15 @@ public class GenomicVariantRepo {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GenomicVariantRepo.class);
 
+    /**
+     * Upper bound on the COUNT(*) for paginated filter-only browse. Counting
+     * the full result set (potentially tens of millions of rows) would
+     * dominate every request — so we cap with an inner LIMIT and report at
+     * most CAP+1 as the total. Values >= CAP+1 should be displayed as "CAP+"
+     * by the client. CAP+1 also caps the reachable page count via OFFSET.
+     */
+    private static final int COUNT_CAP = 10000;
+
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Value("${tbl.mapping}") private String mappingTable;
@@ -138,7 +147,11 @@ public class GenomicVariantRepo {
 
         long total = -1;
         if (!isDownload) {
-            String countSql = "SELECT COUNT(*) FROM (\n" + query + "\n) cnt";
+            // Cap the COUNT to avoid scanning the full filter-only result set,
+            // which can be tens of millions of rows. Inner LIMIT lets Postgres
+            // short-circuit once CAP+1 rows are seen. A returned total of
+            // CAP+1 means "more than CAP" — clients should treat it as such.
+            String countSql = "SELECT COUNT(*) FROM (\n" + query + "\nLIMIT " + (COUNT_CAP + 1) + "\n) cnt";
             total = jdbcTemplate.queryForObject(countSql, parameters, Long.class);
 
             if (total == 0) {
@@ -146,19 +159,27 @@ public class GenomicVariantRepo {
             }
         }
 
-        String sortOrder = "asc".equalsIgnoreCase(request.getOrder()) ? "ASC" : "DESC";
-        query.append("\nORDER BY ");
-
-        if (sortByCadd) {
-            query.append("cadd.score ").append(sortOrder).append(", ");
-        } else if (sortByAm) {
-            query.append("am.am_pathogenicity ").append(sortOrder).append(", ");
-        } else if (sortByPopEve) {
-            query.append("popeve.popeve ").append(sortOrder).append(", ");
-        } else if (sortByEsm1b) {
-            query.append("esm.score ").append(sortOrder).append(", ");
+        // ORDER BY is emitted only when the user explicitly requested a sort.
+        // For unsorted requests we rely on the leading-table iteration order
+        // (deterministic for a given query plan); adding an explicit ORDER BY
+        // would block LIMIT pushdown and force a full intermediate sort.
+        // Sort-by-score paths are still slow until score-leading strategies
+        // land — see follow-up.
+        boolean userRequestedSort = sortByCadd || sortByAm || sortByPopEve || sortByEsm1b;
+        if (userRequestedSort) {
+            String sortOrder = "asc".equalsIgnoreCase(request.getOrder()) ? "ASC" : "DESC";
+            query.append("\nORDER BY ");
+            if (sortByCadd) {
+                query.append("cadd.score ").append(sortOrder).append(", ");
+            } else if (sortByAm) {
+                query.append("am.am_pathogenicity ").append(sortOrder).append(", ");
+            } else if (sortByPopEve) {
+                query.append("popeve.popeve ").append(sortOrder).append(", ");
+            } else if (sortByEsm1b) {
+                query.append("esm.score ").append(sortOrder).append(", ");
+            }
+            query.append("m.protein_position, m.codon_position, alleles.alt_allele\n");
         }
-        query.append("m.protein_position, m.codon_position, alleles.alt_allele\n");
 
         query.append("LIMIT :pageSize OFFSET :offset");
         parameters.addValue("pageSize", pageable.getPageSize());
@@ -330,7 +351,13 @@ public class GenomicVariantRepo {
         query.append(String.join("\n  UNION\n", featureUnions));
         query.append("\n)\n");
 
-        query.append("SELECT DISTINCT\n");
+        // Lead FROM feature_positions (≤547K) and join mapping inner with
+        // is_canonical pushed into the JOIN — lets the planner use the
+        // (accession, protein_position) index and avoids a full scan of the
+        // 169M-row mapping table. is_canonical also makes rows naturally
+        // unique per (chr, pos, allele, alt_allele) so SELECT DISTINCT is
+        // unnecessary, and dropping it lets LIMIT pushdown work.
+        query.append("SELECT\n");
         query.append("  m.chromosome, m.genomic_position, m.allele, alleles.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
@@ -339,10 +366,11 @@ public class GenomicVariantRepo {
         if (joinPopEve) query.append(",\n  popeve.popeve");
         if (joinEsm1b) query.append(",\n  esm.score");
 
-        query.append("\nFROM ").append(mappingTable).append(" m\n");
-        query.append("INNER JOIN feature_positions fp\n");
-        query.append("  ON fp.accession = m.accession\n");
-        query.append("  AND fp.position = m.protein_position\n");
+        query.append("\nFROM feature_positions fp\n");
+        query.append("INNER JOIN ").append(mappingTable).append(" m\n");
+        query.append("  ON m.accession = fp.accession\n");
+        query.append("  AND m.protein_position = fp.position\n");
+        query.append("  AND m.is_canonical = true\n");
         query.append("JOIN (VALUES ('A'), ('T'), ('G'), ('C')) AS alleles(alt_allele)\n");
         query.append("  ON alleles.alt_allele <> m.allele\n");
 
@@ -379,7 +407,11 @@ public class GenomicVariantRepo {
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve, boolean filterByEsm1b,
             MappingRequest request) {
 
-        query.append("SELECT DISTINCT\n");
+        // Lead FROM dbsnp_lookup (~15M) ordered by (chr, pos), then expand
+        // alts and join mapping inner. is_canonical pushed into the JOIN ON
+        // makes rows unique per (chr, pos, ref, alt) so SELECT DISTINCT is
+        // unnecessary; dropping it enables LIMIT pushdown.
+        query.append("SELECT\n");
         query.append("  m.chromosome, m.genomic_position, m.allele, alt_alleles.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
@@ -394,6 +426,7 @@ public class GenomicVariantRepo {
         query.append("  ON m.chromosome = d.chr\n");
         query.append("  AND m.genomic_position = d.pos\n");
         query.append("  AND m.allele = d.ref\n");
+        query.append("  AND m.is_canonical = true\n");
 
         if (joinCodonTable) {
             query.append("""
@@ -464,7 +497,11 @@ public class GenomicVariantRepo {
             parameters.addValue(maxParam, category.getMax());
         }
 
-        query.append("SELECT DISTINCT\n");
+        // Lead FROM gnomad_allele_freq, then join mapping inner with
+        // is_canonical pushed into the JOIN ON. SELECT DISTINCT is dropped
+        // because canonical-only rows are unique per (chr, pos, ref, alt);
+        // this also enables LIMIT pushdown.
+        query.append("SELECT\n");
         query.append("  m.chromosome, m.genomic_position, m.allele, af.alt as alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
@@ -478,6 +515,7 @@ public class GenomicVariantRepo {
         query.append("  ON m.chromosome = af.chr\n");
         query.append("  AND m.genomic_position = af.pos\n");
         query.append("  AND m.allele = af.ref\n");
+        query.append("  AND m.is_canonical = true\n");
 
         if (joinCodonTable) {
             query.append("""
@@ -515,7 +553,11 @@ public class GenomicVariantRepo {
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve, boolean filterByEsm1b,
             MappingRequest request) {
 
-        query.append("SELECT DISTINCT\n");
+        // Lead FROM conserv_score (~14M), then join mapping inner with
+        // is_canonical pushed into the JOIN ON. SELECT DISTINCT dropped for
+        // LIMIT pushdown; canonical rows are unique per (chr, pos, allele,
+        // alt_allele) after the alleles cross join.
+        query.append("SELECT\n");
         query.append("  m.chromosome, m.genomic_position, m.allele, alleles.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
@@ -529,6 +571,7 @@ public class GenomicVariantRepo {
         query.append("  ON m.accession = cons.accession\n");
         query.append("  AND m.protein_position = cons.position\n");
         query.append("  AND m.protein_seq = cons.aa\n");
+        query.append("  AND m.is_canonical = true\n");
         query.append("JOIN (VALUES ('A'), ('T'), ('G'), ('C')) AS alleles(alt_allele)\n");
         query.append("  ON alleles.alt_allele <> m.allele\n");
 
