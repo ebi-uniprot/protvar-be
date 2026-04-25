@@ -39,6 +39,7 @@ public class MappingService {
     public PagedMappingResponse get(MappingRequest request) {
         Page<VariantInput> page;
         boolean multiFormat;
+        boolean filterOnly = false;
 
         if (request.getResultId() != null && !request.getResultId().isBlank()) {
             // Uploaded result: retrieve from Redis cache
@@ -63,6 +64,7 @@ public class MappingService {
             page = genomicVariantRepo.get(request, pageable);
             // page = identifierBrowseHandler.pagedInput(request); // old path — full table scan, no safety check
             multiFormat = false;
+            filterOnly = true;
         }
 
         List<VariantInput> inputs = page.getContent();
@@ -104,6 +106,7 @@ public class MappingService {
                     .pageSize(page.getSize())
                     .totalItems(page.getTotalElements())
                     .totalPages(page.getTotalPages())
+                    .totalCap(filterOnly ? (long) GenomicVariantRepo.COUNT_CAP : null)
                     .last(page.isLast())
                     .assembly(request.getAssembly())
                     .content(mapping)

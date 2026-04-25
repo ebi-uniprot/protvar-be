@@ -19,6 +19,16 @@ public class PagedMappingResponse {
 
 	private int totalPages;
 
+	/**
+	 * Upper bound on totalItems. Set on filter-only browse where the
+	 * underlying COUNT(*) is capped to bound query cost; null on paths that
+	 * return an exact total (identifier / variant / uploaded result).
+	 *
+	 * Convention: if totalItems > totalCap, the actual count is "more than
+	 * totalCap" — clients should display it accordingly (e.g. "10,000+").
+	 */
+	private Long totalCap;
+
 	private boolean last;
 	//private long ttl;
 }

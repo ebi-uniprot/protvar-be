@@ -36,10 +36,11 @@ public class GenomicVariantRepo {
      * Upper bound on the COUNT(*) for paginated filter-only browse. Counting
      * the full result set (potentially tens of millions of rows) would
      * dominate every request — so we cap with an inner LIMIT and report at
-     * most CAP+1 as the total. Values >= CAP+1 should be displayed as "CAP+"
-     * by the client. CAP+1 also caps the reachable page count via OFFSET.
+     * most CAP+1 as the total. Clients receive this same value via the
+     * {@code totalCap} field on PagedMappingResponse, so they don't need to
+     * hard-code it.
      */
-    private static final int COUNT_CAP = 10000;
+    public static final int COUNT_CAP = 10000;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
