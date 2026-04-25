@@ -36,6 +36,34 @@ public class MappingService {
     private final GenomicVariantRepo genomicVariantRepo;
     private final InputMapper inputMapper;
 
+    /**
+     * Dispatches a MappingRequest to one of four handlers and assembles the
+     * PagedMappingResponse. The handler choice also determines what kind of
+     * "total" the client gets back:
+     *
+     * <pre>
+     *   Request shape         Handler                       Counting
+     *   ─────────────────     ────────────────────────      ──────────────────────
+     *   q=…                   InputMapper                   exact (always 1)
+     *   resultId=…            ResultCacheHandler            exact (cached input size)
+     *   ids[]=…               IdentifierBrowseHandler →     exact
+     *                         MappingRepo
+     *   (none — filter-only)  GenomicVariantRepo            best-effort:
+     *                                                       • exact when result count
+     *                                                         is small
+     *                                                       • capped (totalCap) when
+     *                                                         > COUNT_CAP rows
+     *                                                       • totalItems = -1 when
+     *                                                         the bounded COUNT
+     *                                                         exceeds its query
+     *                                                         timeout (sparse multi-
+     *                                                         filter intersections)
+     * </pre>
+     *
+     * Only the filter-only path can return totalItems = -1 or a non-null
+     * totalCap; identifier / variant / uploaded-result paths always return
+     * an exact totalItems and totalCap = null.
+     */
     public PagedMappingResponse get(MappingRequest request) {
         Page<VariantInput> page;
         boolean multiFormat;

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +42,17 @@ public class GenomicVariantRepo {
      * hard-code it.
      */
     public static final int COUNT_CAP = 10000;
+
+    /**
+     * Per-query timeout (seconds) for the bounded COUNT. Even with the
+     * inner LIMIT, sparse multi-filter intersections (e.g. pocket=true +
+     * known=true) force Postgres to scan a large portion of the input to
+     * confirm "no more rows", and counting can run for many minutes. When
+     * the timeout fires we abandon the count, return totalItems = -1 (the
+     * "unknown" sentinel) and let the FE render "Many results" with
+     * Prev/Next-only pagination. The data fetch itself is unaffected.
+     */
+    private static final int COUNT_TIMEOUT_SECONDS = 3;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -152,8 +164,18 @@ public class GenomicVariantRepo {
             // which can be tens of millions of rows. Inner LIMIT lets Postgres
             // short-circuit once CAP+1 rows are seen. A returned total of
             // CAP+1 means "more than CAP" — clients should treat it as such.
+            //
+            // For sparse multi-filter intersections the bounded COUNT can
+            // still be slow, so it runs under a per-query timeout. On
+            // timeout we leave total = -1 (the "unknown" sentinel) and
+            // the data fetch below proceeds normally.
             String countSql = "SELECT COUNT(*) FROM (\n" + query + "\nLIMIT " + (COUNT_CAP + 1) + "\n) cnt";
-            total = jdbcTemplate.queryForObject(countSql, parameters, Long.class);
+            try {
+                total = countWithTimeout(countSql, parameters, COUNT_TIMEOUT_SECONDS);
+            } catch (DataAccessException e) {
+                LOGGER.info("Filter-only COUNT exceeded {}s timeout; reporting unknown total", COUNT_TIMEOUT_SECONDS);
+                total = -1;
+            }
 
             if (total == 0) {
                 return Page.empty(pageable);
@@ -198,7 +220,41 @@ public class GenomicVariantRepo {
                     );
                 });
 
-        return isDownload ? new PageImpl<>(variants) : new PageImpl<>(variants, pageable, total);
+        if (isDownload) {
+            return new PageImpl<>(variants);
+        }
+
+        if (total < 0) {
+            // COUNT timed out: total is unknown. Spring's PageImpl computes
+            // isLast() / totalPages() from total, which would be wrong here.
+            // We derive isLast from the number of rows returned: if we got
+            // fewer than the requested page size, we're on the last page.
+            final boolean isLast = variants.size() < pageable.getPageSize();
+            final boolean hasPrevious = pageable.getPageNumber() > 0;
+            return new PageImpl<VariantInput>(variants, pageable, 0) {
+                @Override public long getTotalElements() { return -1L; }
+                @Override public int  getTotalPages()    { return 0; }
+                @Override public boolean isLast()        { return isLast; }
+                @Override public boolean hasNext()       { return !isLast; }
+                @Override public boolean hasPrevious()   { return hasPrevious; }
+            };
+        }
+
+        return new PageImpl<>(variants, pageable, total);
+    }
+
+    /**
+     * Run a COUNT(*) query with a per-statement timeout. Wraps the shared
+     * NamedParameterJdbcTemplate's underlying DataSource in a fresh
+     * JdbcTemplate so the timeout is local to this call and doesn't leak
+     * into other queries. Throws QueryTimeoutException (subclass of
+     * DataAccessException) when the timeout fires.
+     */
+    private long countWithTimeout(String sql, MapSqlParameterSource params, int timeoutSeconds) {
+        org.springframework.jdbc.core.JdbcTemplate scoped =
+                new org.springframework.jdbc.core.JdbcTemplate(jdbcTemplate.getJdbcTemplate().getDataSource());
+        scoped.setQueryTimeout(timeoutSeconds);
+        return new NamedParameterJdbcTemplate(scoped).queryForObject(sql, params, Long.class);
     }
 
     // ========================================================================
