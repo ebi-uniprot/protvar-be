@@ -782,8 +782,11 @@ public class MappingRepo {
             fields += ", esm.score ";
             sql.append("esm.score ").append(sortOrder).append(", ");
         }
-		// Default sort tail: accession first so multi-protein browse groups results per protein.
-		sql.append("m.accession, m.protein_position, m.codon_position, m.alt_allele"); // consider removing alt_allele?
+		// SELECT DISTINCT collapses isoforms to one row per (chr, pos, allele,
+		// alt_allele, protein_position, codon_position) — accession is not in
+		// the projection, so it can't appear in ORDER BY here without
+		// PG erroring "ORDER BY expressions must appear in select list".
+		sql.append("m.protein_position, m.codon_position, m.alt_allele"); // consider removing alt_allele?
 
 		// Pagination
 		sql.append(" LIMIT :pageSize OFFSET :offset");
