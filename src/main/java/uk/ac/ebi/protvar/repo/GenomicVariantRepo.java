@@ -19,6 +19,7 @@ import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.types.*;
+import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -101,11 +102,12 @@ public class GenomicVariantRepo {
                     || filterByAlleleFreq || filterByConservation || filterByEsm1b
                     || filterExperimentalModel || filterPocket || filterInteract || filterStability;
 
+            // Defence in depth: MappingRequestValidator should have rejected this
+            // request at the controller layer with a clean 400. If we reach here
+            // without a driver filter (pocket/interact/experimentalModel/known),
+            // a downstream caller bypassed validation.
             if (!hasAnyFilter) {
-                throw new IllegalArgumentException(
-                        "Database-wide queries without any filters are not supported. " +
-                                "Please specify at least one filter or provide search terms."
-                );
+                throw new IllegalArgumentException(MappingRequestValidator.NO_DRIVER_MESSAGE);
             }
 
             if (filterPocket || filterInteract || filterExperimentalModel) {

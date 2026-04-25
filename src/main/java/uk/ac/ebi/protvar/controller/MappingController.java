@@ -15,8 +15,11 @@ import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
 import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
+import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static uk.ac.ebi.protvar.constants.PageUtils.*;
@@ -94,6 +97,11 @@ public class MappingController {
      * Identifier types with null type are auto-detected; ambiguous values fall back to GENE.
      */
     public ResponseEntity<?> handleRequest(MappingRequest request) {
+        Optional<String> validationError = MappingRequestValidator.validate(request);
+        if (validationError.isPresent()) {
+            return ResponseEntity.badRequest().body(Map.of("error", validationError.get()));
+        }
+
         // resultId and q route directly — no pre-processing needed
         if (request.getResultId() != null || request.getQ() != null) {
             return new ResponseEntity<>(mappingService.get(request), HttpStatus.OK);
