@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import lombok.Data;
@@ -19,6 +20,7 @@ import java.util.List;
 @SuperBuilder
 @Schema(description = "Base request used for mapping")
 @NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class MappingRequest {
 
     public final static String PAGE_DESC = """
@@ -57,6 +59,7 @@ public class MappingRequest {
             symbols). Falls back to GENE if detection fails.
             Example: [{"type": "UNIPROT", "value": "P22304"}, {"value": "BRCA2"}]
             """)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     protected List<Identifier> ids;
 
     @Schema(
@@ -106,6 +109,7 @@ public class MappingRequest {
     private Boolean diseaseAssociation; // Not yet implemented
 
     @Schema(description = "Allele frequency categories", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<AlleleFreqCategory> alleleFreq;
 
     // Structural
@@ -119,16 +123,20 @@ public class MappingRequest {
     private Boolean pocket;
 
     @Schema(description = "Stability change filter", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<StabilityChange> stability;
 
     // Consequence
     @Schema(description = "CADD score filter categories", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<CaddCategory> cadd;
 
     @Schema(description = "AlphaMissense pathogenicity class filter", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<AmClass> am;
 
     @Schema(description = "popEVE score filter categories", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<PopEveClass> popeve;
 
     @Schema(description = "Minimum ESM1b score (-25 to 0, inclusive)", example = "-25.0")
