@@ -201,7 +201,7 @@ public class GenomicVariantRepo {
             } else if (sortByEsm1b) {
                 query.append("esm.score ").append(sortOrder).append(", ");
             }
-            query.append("m.protein_position, m.codon_position, alleles.alt_allele\n");
+            query.append("m.protein_position, m.codon_position, bases.alt_allele\n");
         }
 
         query.append("LIMIT :pageSize OFFSET :offset");
@@ -328,7 +328,7 @@ public class GenomicVariantRepo {
         }
 
         query.append("\nSELECT DISTINCT\n");
-        query.append("  m.chromosome, m.genomic_position, m.allele, alleles.alt_allele,\n");
+        query.append("  m.chromosome, m.genomic_position, m.allele, bases.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
         if (joinCadd) query.append(", cadd.score");
@@ -339,15 +339,15 @@ public class GenomicVariantRepo {
         String sourceTable = hasFeatureFilters ? "feature_filtered" : "filtered_mapping";
 
         query.append("\nFROM ").append(sourceTable).append(" m\n");
-        query.append("JOIN (VALUES ('A'), ('T'), ('G'), ('C')) AS alleles(alt_allele)\n");
-        query.append("  ON alleles.alt_allele <> m.allele\n");
+        query.append("JOIN (VALUES ('A'), ('T'), ('G'), ('C')) AS bases(alt_allele)\n");
+        query.append("  ON bases.alt_allele <> m.allele\n");
 
         if (joinCodonTable) {
             query.append("""
                     LEFT JOIN codon_table c ON c.codon = UPPER(CASE
-                      WHEN m.codon_position = 1 THEN rna_base_for_strand(alleles.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
-                      WHEN m.codon_position = 2 THEN substring(m.codon, 1, 1) || rna_base_for_strand(alleles.alt_allele, m.reverse_strand) || substring(m.codon, 3, 1)
-                      WHEN m.codon_position = 3 THEN substring(m.codon, 1, 2) || rna_base_for_strand(alleles.alt_allele, m.reverse_strand)
+                      WHEN m.codon_position = 1 THEN rna_base_for_strand(bases.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
+                      WHEN m.codon_position = 2 THEN substring(m.codon, 1, 1) || rna_base_for_strand(bases.alt_allele, m.reverse_strand) || substring(m.codon, 3, 1)
+                      WHEN m.codon_position = 3 THEN substring(m.codon, 1, 2) || rna_base_for_strand(bases.alt_allele, m.reverse_strand)
                       ELSE m.codon
                     END)
                     """);
@@ -355,7 +355,8 @@ public class GenomicVariantRepo {
 
         addRemainingJoins(query, filterKnown, filterByAlleleFreq, filterByConservation,
                 joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
-                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b);
+                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
+                "bases.alt_allele");
 
         query.append("WHERE 1=1\n");
         addFilters(query, parameters, request,
@@ -415,7 +416,7 @@ public class GenomicVariantRepo {
         // unique per (chr, pos, allele, alt_allele) so SELECT DISTINCT is
         // unnecessary, and dropping it lets LIMIT pushdown work.
         query.append("SELECT\n");
-        query.append("  m.chromosome, m.genomic_position, m.allele, alleles.alt_allele,\n");
+        query.append("  m.chromosome, m.genomic_position, m.allele, bases.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
         if (joinCadd) query.append(",\n  cadd.score");
@@ -428,15 +429,15 @@ public class GenomicVariantRepo {
         query.append("  ON m.accession = fp.accession\n");
         query.append("  AND m.protein_position = fp.position\n");
         query.append("  AND m.is_canonical = true\n");
-        query.append("JOIN (VALUES ('A'), ('T'), ('G'), ('C')) AS alleles(alt_allele)\n");
-        query.append("  ON alleles.alt_allele <> m.allele\n");
+        query.append("JOIN (VALUES ('A'), ('T'), ('G'), ('C')) AS bases(alt_allele)\n");
+        query.append("  ON bases.alt_allele <> m.allele\n");
 
         if (joinCodonTable) {
             query.append("""
           LEFT JOIN codon_table c ON c.codon = UPPER(CASE
-              WHEN m.codon_position = 1 THEN rna_base_for_strand(alleles.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
-              WHEN m.codon_position = 2 THEN substring(m.codon, 1, 1) || rna_base_for_strand(alleles.alt_allele, m.reverse_strand) || substring(m.codon, 3, 1)
-              WHEN m.codon_position = 3 THEN substring(m.codon, 1, 2) || rna_base_for_strand(alleles.alt_allele, m.reverse_strand)
+              WHEN m.codon_position = 1 THEN rna_base_for_strand(bases.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
+              WHEN m.codon_position = 2 THEN substring(m.codon, 1, 1) || rna_base_for_strand(bases.alt_allele, m.reverse_strand) || substring(m.codon, 3, 1)
+              WHEN m.codon_position = 3 THEN substring(m.codon, 1, 2) || rna_base_for_strand(bases.alt_allele, m.reverse_strand)
               ELSE m.codon
           END)
         """);
@@ -444,7 +445,8 @@ public class GenomicVariantRepo {
 
         addRemainingJoins(query, filterKnown, filterByAlleleFreq, filterByConservation,
                 joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
-                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b);
+                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
+                "bases.alt_allele");
 
         query.append("WHERE 1=1\n");
         addFilters(query, parameters, request,
@@ -469,7 +471,7 @@ public class GenomicVariantRepo {
         // makes rows unique per (chr, pos, ref, alt) so SELECT DISTINCT is
         // unnecessary; dropping it enables LIMIT pushdown.
         query.append("SELECT\n");
-        query.append("  m.chromosome, m.genomic_position, m.allele, alt_alleles.alt_allele,\n");
+        query.append("  m.chromosome, m.genomic_position, m.allele, dbsnp_alts.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
         if (joinCadd) query.append(",\n  cadd.score");
@@ -478,7 +480,7 @@ public class GenomicVariantRepo {
         if (joinEsm1b) query.append(",\n  esm.score");
 
         query.append("\nFROM ").append(dbsnpLookupTable).append(" d\n");
-        query.append("CROSS JOIN LATERAL unnest(d.known_alts) AS alt_alleles(alt_allele)\n");
+        query.append("CROSS JOIN LATERAL unnest(d.known_alts) AS dbsnp_alts(alt_allele)\n");
         query.append("INNER JOIN ").append(mappingTable).append(" m\n");
         query.append("  ON m.chromosome = d.chr\n");
         query.append("  AND m.genomic_position = d.pos\n");
@@ -488,18 +490,22 @@ public class GenomicVariantRepo {
         if (joinCodonTable) {
             query.append("""
           LEFT JOIN codon_table c ON c.codon = UPPER(CASE
-              WHEN m.codon_position = 1 THEN rna_base_for_strand(alt_alleles.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
-              WHEN m.codon_position = 2 THEN substring(m.codon, 1, 1) || rna_base_for_strand(alt_alleles.alt_allele, m.reverse_strand) || substring(m.codon, 3, 1)
-              WHEN m.codon_position = 3 THEN substring(m.codon, 1, 2) || rna_base_for_strand(alt_alleles.alt_allele, m.reverse_strand)
+              WHEN m.codon_position = 1 THEN rna_base_for_strand(dbsnp_alts.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
+              WHEN m.codon_position = 2 THEN substring(m.codon, 1, 1) || rna_base_for_strand(dbsnp_alts.alt_allele, m.reverse_strand) || substring(m.codon, 3, 1)
+              WHEN m.codon_position = 3 THEN substring(m.codon, 1, 2) || rna_base_for_strand(dbsnp_alts.alt_allele, m.reverse_strand)
               ELSE m.codon
           END)
         """);
         }
 
-        // filterKnown=false: already starting from dbSNP table
+        // filterKnown=false: already starting from dbSNP table.
+        // dbsnp_alts.alt_allele comes from the LATERAL unnest of d.known_alts
+        // — Strategy 3 has no plain `bases` VALUES cross-join, so any
+        // downstream join referencing the alt allele must use this name.
         addRemainingJoins(query, false, filterByAlleleFreq, filterByConservation,
                 joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
-                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b);
+                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
+                "dbsnp_alts.alt_allele");
 
         query.append("WHERE 1=1\n");
         addFilters(query, parameters, request,
@@ -613,9 +619,9 @@ public class GenomicVariantRepo {
         // Lead FROM conserv_score (~14M), then join mapping inner with
         // is_canonical pushed into the JOIN ON. SELECT DISTINCT dropped for
         // LIMIT pushdown; canonical rows are unique per (chr, pos, allele,
-        // alt_allele) after the alleles cross join.
+        // alt_allele) after the bases cross join.
         query.append("SELECT\n");
-        query.append("  m.chromosome, m.genomic_position, m.allele, alleles.alt_allele,\n");
+        query.append("  m.chromosome, m.genomic_position, m.allele, bases.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
         if (joinCadd) query.append(",\n  cadd.score");
@@ -629,22 +635,22 @@ public class GenomicVariantRepo {
         query.append("  AND m.protein_position = cons.position\n");
         query.append("  AND m.protein_seq = cons.aa\n");
         query.append("  AND m.is_canonical = true\n");
-        query.append("JOIN (VALUES ('A'), ('T'), ('G'), ('C')) AS alleles(alt_allele)\n");
-        query.append("  ON alleles.alt_allele <> m.allele\n");
+        query.append("JOIN (VALUES ('A'), ('T'), ('G'), ('C')) AS bases(alt_allele)\n");
+        query.append("  ON bases.alt_allele <> m.allele\n");
 
         if (joinCodonTable) {
             query.append("""
           LEFT JOIN codon_table c ON c.codon = UPPER(CASE
-              WHEN m.codon_position = 1 THEN rna_base_for_strand(alleles.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
-              WHEN m.codon_position = 2 THEN substring(m.codon, 1, 1) || rna_base_for_strand(alleles.alt_allele, m.reverse_strand) || substring(m.codon, 3, 1)
-              WHEN m.codon_position = 3 THEN substring(m.codon, 1, 2) || rna_base_for_strand(alleles.alt_allele, m.reverse_strand)
+              WHEN m.codon_position = 1 THEN rna_base_for_strand(bases.alt_allele, m.reverse_strand) || substring(m.codon, 2, 2)
+              WHEN m.codon_position = 2 THEN substring(m.codon, 1, 1) || rna_base_for_strand(bases.alt_allele, m.reverse_strand) || substring(m.codon, 3, 1)
+              WHEN m.codon_position = 3 THEN substring(m.codon, 1, 2) || rna_base_for_strand(bases.alt_allele, m.reverse_strand)
               ELSE m.codon
           END)
         """);
         }
 
         addScoreTableJoins(query, joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
-                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b, "alleles.alt_allele");
+                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b, "bases.alt_allele");
 
         query.append("WHERE 1=1\n");
         if (request.getConservationMin() != null) {
@@ -806,6 +812,14 @@ public class GenomicVariantRepo {
     // SHARED JOIN / FILTER HELPERS
     // ========================================================================
 
+    /**
+     * @param altAlleleExpr  SQL expression that yields the alternate allele
+     *                       in the strategy's join scope. Strategies 1 and 2
+     *                       pass {@code "bases.alt_allele"} (from the
+     *                       VALUES bases cross-join). Strategy 3 (dbSNP)
+     *                       passes {@code "dbsnp_alts.alt_allele"} (from
+     *                       its LATERAL unnest of d.known_alts).
+     */
     private void addRemainingJoins(
             StringBuilder query,
             boolean filterKnown,
@@ -813,15 +827,16 @@ public class GenomicVariantRepo {
             boolean joinCadd, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
             boolean filterStability,
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve,
-            boolean filterByEsm1b) {
+            boolean filterByEsm1b,
+            String altAlleleExpr) {
 
         if (filterKnown) {
             query.append("""
                     INNER JOIN %s d ON d.chr = m.chromosome
                       AND d.pos = m.genomic_position
                       AND d.ref = m.allele
-                      AND alleles.alt_allele = ANY(d.known_alts)
-                    """.formatted(dbsnpLookupTable));
+                      AND %s = ANY(d.known_alts)
+                    """.formatted(dbsnpLookupTable, altAlleleExpr));
         }
 
         if (filterByConservation) {
@@ -837,12 +852,12 @@ public class GenomicVariantRepo {
                     INNER JOIN %s af ON af.chr = m.chromosome
                       AND af.pos = m.genomic_position
                       AND af.ref = m.allele
-                      AND af.alt = alleles.alt_allele
-                    """.formatted(alleleFreqTable));
+                      AND af.alt = %s
+                    """.formatted(alleleFreqTable, altAlleleExpr));
         }
 
         addScoreTableJoins(query, joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
-                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b, "alleles.alt_allele");
+                filterByCadd, filterByAm, filterByPopEve, filterByEsm1b, altAlleleExpr);
     }
 
     private void addScoreTableJoins(
