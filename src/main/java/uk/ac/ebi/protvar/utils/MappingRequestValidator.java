@@ -28,10 +28,8 @@ import java.util.Optional;
 public class MappingRequestValidator {
 
     public static final String NO_DRIVER_MESSAGE =
-            "Please provide at least one of: a variant query (q), an uploaded result ID (resultId), " +
-            "an identifier (ids), or a primary filter (pocket, interact, experimentalModel, known). " +
-            "Other filters (CADD, AM, popEVE, ESM1b, stability, allele frequency, conservation) refine " +
-            "these but cannot stand alone.";
+            "Please provide an identifier or select at least one primary filter " +
+            "(Pocket, Interaction, Experimental Model, or Known variants) to begin browsing.";
 
     private MappingRequestValidator() {}
 
