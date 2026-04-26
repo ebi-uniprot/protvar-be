@@ -28,7 +28,7 @@ public class DownloadRequest extends MappingRequest {
     @Schema(description = "Optional email address for status updates", example = "user@example.com")
     //@Email(message = "Must be a valid email address") // default jakarta validation is lenient, allows abc@xyz (without domain)
     @Pattern(
-            regexp = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            regexp = "^\\s*$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
             message = "Must be a valid email address"
     )
     private String email;
