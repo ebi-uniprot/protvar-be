@@ -379,7 +379,11 @@ public class DownloadProcessor {
 		if (gene.getCaddScore() != null)
 			cadd = gene.getCaddScore().toString();
 		String strand = "+";
-		Isoform isoform = gene.getIsoforms().get(0);
+		List<Isoform> isoforms = gene.getIsoforms();
+		if (isoforms == null || isoforms.isEmpty()) {
+			return getCsvDataMappingNotFound(input, genomicVariant);
+		}
+		Isoform isoform = isoforms.get(0);
 
 		if (gene.isReverseStrand()) {
 			strand = "-";
