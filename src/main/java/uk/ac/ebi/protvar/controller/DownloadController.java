@@ -17,6 +17,8 @@ import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
+import uk.ac.ebi.protvar.service.DownloadStatusService;
+import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
 import java.io.FileInputStream;
@@ -35,7 +37,16 @@ import java.util.UUID;
 public class DownloadController implements WebMvcConfigurer {
 
     private final static String SUMMARY = "Submit a download request.";
+
+    /**
+     * Hard cap on rows for full downloads. Larger requests are rejected at
+     * submit time with {@link DownloadStatusService#MSG_TOO_LARGE}; users are
+     * directed to the FTP site for bulk pre-computed datasets.
+     */
+    public static final long MAX_FULL_DOWNLOAD_ROWS = 100_000L;
+
     private final DownloadService downloadService;
+    private final MappingService mappingService;
 
     @Operation(summary = SUMMARY)
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -54,12 +65,22 @@ public class DownloadController implements WebMvcConfigurer {
     }
 
     /**
-     * Handle download request: validate, allocate UUID job ID, write PENDING status, queue.
+     * Handle download request: validate, enforce row cap on full downloads,
+     * allocate UUID job ID, queue.
      */
     public ResponseEntity<?> handleDownload(DownloadRequest request, HttpServletRequest http) {
         Optional<String> validationError = MappingRequestValidator.validate(request);
         if (validationError.isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("error", validationError.get()));
+        }
+
+        if (Boolean.TRUE.equals(request.getFull())) {
+            long total = mappingService.countInputs(request);
+            // total = -1 means COUNT timed out (filter-only) — too risky to queue.
+            // total > MAX or capped to a known-too-many sentinel — reject.
+            if (total < 0 || total > MAX_FULL_DOWNLOAD_ROWS) {
+                return ResponseEntity.badRequest().body(Map.of("error", DownloadStatusService.MSG_TOO_LARGE));
+            }
         }
 
         request.setTimestamp(LocalDateTime.now());

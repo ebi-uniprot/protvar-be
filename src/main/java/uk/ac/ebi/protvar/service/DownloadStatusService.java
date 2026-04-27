@@ -27,6 +27,8 @@ public class DownloadStatusService {
             "Could not submit your download. Please try again.";
     public static final String MSG_PROCESSING_FAILED =
             "Download failed. Please try again, or contact protvar@ebi.ac.uk if the issue persists.";
+    public static final String MSG_TOO_LARGE =
+            "Your download is too large. Please refine your filters.";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadStatusService.class);
     private static final String KEY_PREFIX = "download:status:";

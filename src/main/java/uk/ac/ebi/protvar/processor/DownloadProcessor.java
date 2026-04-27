@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import com.opencsv.CSVWriter;
 
 import uk.ac.ebi.protvar.cache.InputBuild;
+import uk.ac.ebi.protvar.controller.DownloadController;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
@@ -91,10 +92,12 @@ public class DownloadProcessor {
 	@Value("${csv.partition.size:4000}")
 	private int chunkSize;
 
-	// Note:
-	// moved @Transactional from process() to a deeper method that actually hits the DB.
-	// Each task (partition) still gets its own DB connection (via Hikari).
-	// So 20 parallel partitions == 20 connections.
+	// Each partition (chunk) holds at most 1 Hikari connection at a time:
+	// loadCoreMappingAndScores is @Transactional(readOnly), so its multi-query
+	// burst shares one connection. The remaining DB calls in the partition
+	// (preprocess, optional annotations, structure lookup) happen sequentially
+	// and each borrows + returns. Semaphore=10 caps in-flight partitions per
+	// job, keeping overall connection count below the Hikari pool max.
 	public void process(DownloadRequest request) {
 		String id = request.getFname();
 		LOGGER.info("[{}] Download request started", id);
@@ -120,6 +123,9 @@ public class DownloadProcessor {
 			handleDownload(request, zipPath);
 			downloadStatusService.markReady(id, fileSize(zipPath));
 			Email.notifyUser(request);
+		} catch (DownloadTooLargeException e) {
+			LOGGER.warn("Download {} exceeded the row cap during processing", id);
+			downloadStatusService.markFailed(id, DownloadStatusService.MSG_TOO_LARGE);
 		} catch (Exception e) {
 			downloadStatusService.markFailed(id, DownloadStatusService.MSG_PROCESSING_FAILED);
 			handleException(e, request, List.of());
@@ -183,37 +189,58 @@ public class DownloadProcessor {
 									 InputBuild build, boolean fun, boolean pop, boolean str) throws Exception {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
 		List<Future<Path>> futures = new ArrayList<>();
-
-		try (Stream<List<VariantInput>> chunkStream = mappingService.streamChunkedInputs(request, chunkSize)) {
-			for (List<VariantInput> chunk : (Iterable<List<VariantInput>>) chunkStream::iterator) {
-				int chunkNum = chunkIndex.getAndIncrement();
-				// Limit concurrent DB/file-processing
-				dbTaskSemaphore.acquire(); // blocks if limit reached
-
-				futures.add(partitionProcessingExecutor.submit(() -> {
-					try {
-						LOGGER.info("[{}] Processing chunk #{}", request.getFname(), chunkNum);
-						Path partPath = Path.of(tmpFolder, request.getFname() + "_" + chunkNum + ".csv");
-						processAndWriteCsv(chunk, partPath, request.getAssembly(), build, fun, pop, str, false);
-						return partPath;
-					} finally {
-						dbTaskSemaphore.release();
+		List<Path> partPaths = new ArrayList<>();   // tracked here so we can clean up on failure
+		long totalStreamed = 0;
+		boolean success = false;
+		try {
+			try (Stream<List<VariantInput>> chunkStream = mappingService.streamChunkedInputs(request, chunkSize)) {
+				for (List<VariantInput> chunk : (Iterable<List<VariantInput>>) chunkStream::iterator) {
+					totalStreamed += chunk.size();
+					if (totalStreamed > DownloadController.MAX_FULL_DOWNLOAD_ROWS) {
+						throw new DownloadTooLargeException();
 					}
-				}));
+					int chunkNum = chunkIndex.getAndIncrement();
+					Path partPath = Path.of(tmpFolder, request.getFname() + "_" + chunkNum + ".csv");
+					partPaths.add(partPath);
+					// Limit concurrent DB/file-processing
+					dbTaskSemaphore.acquire(); // blocks if limit reached
+
+					futures.add(partitionProcessingExecutor.submit(() -> {
+						try {
+							LOGGER.info("[{}] Processing chunk #{}", request.getFname(), chunkNum);
+							processAndWriteCsv(chunk, partPath, request.getAssembly(), build, fun, pop, str, false);
+							return partPath;
+						} finally {
+							dbTaskSemaphore.release();
+						}
+					}));
+				}
+			}
+
+			// Wait for all CSV parts to be written
+			List<Path> csvParts = new ArrayList<>();
+			for (Future<Path> future : futures) {
+				csvParts.add(future.get()); // blocking wait
+			}
+
+			// Merge all parts
+			mergeCsvFiles(csvParts, csvPath);
+			success = true;
+		} finally {
+			if (!success) {
+				// Drain any in-flight futures so workers can release the semaphore
+				// and finish writing their part files before we delete them.
+				for (Future<Path> future : futures) {
+					if (!future.isDone()) {
+						try { future.get(); } catch (Exception ignored) {}
+					}
+				}
+				for (Path part : partPaths) {
+					try { Files.deleteIfExists(part); }
+					catch (IOException e) { LOGGER.warn("Could not delete part file {}: {}", part, e.getMessage()); }
+				}
 			}
 		}
-
-		// Wait for all CSV parts to be written
-		List<Path> csvParts = new ArrayList<>();
-		for (Future<Path> future : futures) {
-			csvParts.add(future.get()); // blocking wait
-		}
-
-		// Merge all parts
-		mergeCsvFiles(csvParts, csvPath);
-
-		// uncomment to clean up
-		// for (Path part : csvParts) Files.deleteIfExists(part);
 	}
 
 	private void handleException(Exception e, DownloadRequest request, List<String> inputs) {

@@ -111,6 +111,11 @@ public class InputMapper {
 		return response;
 	}
 
+	// @Transactional holds one Hikari connection for the multi-query mapping
+	// load instead of borrowing/returning per call. Under heavy partition
+	// concurrency this reduces connection churn against the Hikari pool —
+	// each partition's core load uses 1 connection rather than 5–9.
+	@org.springframework.transaction.annotation.Transactional(readOnly = true)
 	public MappingData loadCoreMappingAndScores(List<VariantInput> inputs) {
 		// Collect unique ChromosomePosition objects
 		Set<ChromosomePosition> uniqueChrPos = inputs.stream()

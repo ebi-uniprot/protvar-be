@@ -89,6 +89,35 @@ public class MappingService {
     }
 
     /**
+     * Returns a row count for the request without fetching the full page.
+     * Used by the download controller to enforce a hard cap before queueing.
+     *
+     * <p>Return values:
+     * <ul>
+     *   <li>{@code 1} for {@code q} (always a single variant)</li>
+     *   <li>cached upload size for {@code resultId} — exact, O(1)</li>
+     *   <li>exact count from {@link MappingRepo} for {@code ids[]}</li>
+     *   <li>For filter-only: exact when ≤ {@link GenomicVariantRepo#COUNT_CAP},
+     *       {@code COUNT_CAP+1} when the bounded COUNT short-circuits (i.e.
+     *       result set exceeds the cap), {@code -1} when COUNT timed out</li>
+     * </ul>
+     */
+    public long countInputs(MappingRequest request) {
+        if (hasQ(request)) {
+            return 1L;
+        }
+        if (isResultId(request)) {
+            List<String> cached = uploadCacheService.getInput(request.getResultId());
+            return cached == null ? 0L : cached.size();
+        }
+        if (hasIds(request)) {
+            return mappingRepo.getGenomicVariantsForInput(request, PageRequest.of(0, 1)).getTotalElements();
+        }
+        // filter-only
+        return genomicVariantRepo.get(request, PageRequest.of(0, 1)).getTotalElements();
+    }
+
+    /**
      * Streams {@link VariantInput}s in chunks for full-data downloads. Same
      * dispatch as {@link #getInputs} but yields the entire result set in
      * fixed-size chunks rather than one page.
