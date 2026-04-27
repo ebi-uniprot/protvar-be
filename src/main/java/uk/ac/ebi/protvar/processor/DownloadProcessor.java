@@ -36,6 +36,7 @@ import uk.ac.ebi.protvar.mapper.MappingData;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
+import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.service.InputCacheService;
 import uk.ac.ebi.protvar.service.InputService;
@@ -85,6 +86,7 @@ public class DownloadProcessor {
 	private final InputMapper inputMapper;
 	private final AnnotationFetcher annotationFetcher;
 	private final StructureService structureService;
+	private final DownloadStatusService downloadStatusService;
 	@Value("${app.data.folder}")
 	private String dataFolder;
 	@Value("${app.tmp.folder}")
@@ -95,19 +97,22 @@ public class DownloadProcessor {
 	// Each task (partition) still gets its own DB connection (via Hikari).
 	// So 20 parallel partitions == 20 connections.
 	public void process(DownloadRequest request) {
-		LOGGER.info("[{}] Download request started", request.getFname());
+		String id = request.getFname();
+		LOGGER.info("[{}] Download request started", id);
 		long start = System.currentTimeMillis();
+		downloadStatusService.markProcessing(id);
 		try {
-			Path zipPath = Path.of(dataFolder, request.getFname() + ".csv.zip");
+			Path zipPath = Path.of(dataFolder, id + ".csv.zip");
 			if (Files.exists(zipPath)) {
 				LOGGER.warn("Download file already exists: {}", zipPath);
-				return; // Skip processing if file already exists
+				downloadStatusService.markReady(id, fileSize(zipPath));
+				return;
 			}
 
 			InputHandler handler = null;
 
 			if (request.getQ() != null && !request.getQ().isBlank()) {
-				LOGGER.info("Single variant download request: {}", request.getFname());
+				LOGGER.info("Single variant download request: {}", id);
 				// no handler needed for single variant query
 			} else if (request.getResultId() != null && !request.getResultId().isBlank()) {
 				handler = resultCacheHandler;
@@ -125,15 +130,25 @@ public class DownloadProcessor {
 			}
 
 			handleDownload(handler, request, zipPath);
-			// Notify User
+			downloadStatusService.markReady(id, fileSize(zipPath));
 			Email.notifyUser(request);
 		} catch (Exception e) {
-			handleException(e, request, List.of()/*inputs*/); // pass input first N lines
+			downloadStatusService.markFailed(id, e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+			handleException(e, request, List.of());
 		}
 		long end = System.currentTimeMillis();
 		long durationMs = end - start;
 
-		LOGGER.info("[{}] Download request completed in {}", request.getFname(), formatDuration(durationMs));
+		LOGGER.info("[{}] Download request completed in {}", id, formatDuration(durationMs));
+	}
+
+	private long fileSize(Path path) {
+		try {
+			return Files.exists(path) ? Files.size(path) : 0L;
+		} catch (IOException e) {
+			LOGGER.warn("Failed to read size of {}: {}", path, e.getMessage());
+			return 0L;
+		}
 	}
 
 	private void handleDownload(InputHandler inputHandler, DownloadRequest request, Path zipPath) throws Exception {

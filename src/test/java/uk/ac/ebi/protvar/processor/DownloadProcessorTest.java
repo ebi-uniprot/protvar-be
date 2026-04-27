@@ -11,6 +11,7 @@ import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
+import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.service.InputCacheService;
 import uk.ac.ebi.protvar.service.InputService;
@@ -34,7 +35,8 @@ class DownloadProcessorTest {
           mock(FilterOnlyHandler.class),
           mock(InputMapper.class),
           mock(AnnotationFetcher.class),
-          mock(StructureService.class));
+          mock(StructureService.class),
+          mock(DownloadStatusService.class));
 
   @Nested
   class Header {

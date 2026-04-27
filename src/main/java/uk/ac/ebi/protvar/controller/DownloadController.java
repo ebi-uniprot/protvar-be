@@ -17,7 +17,6 @@ import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
-import uk.ac.ebi.protvar.utils.DownloadFileUtil;
 import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
 import java.io.FileInputStream;
@@ -25,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 
 @Tag(name = "Download")
@@ -42,7 +42,6 @@ public class DownloadController implements WebMvcConfigurer {
     public ResponseEntity<?> downloadGet(@Valid @RequestBody
                                          DownloadRequest request,
                                          HttpServletRequest http) {
-        // Valid takes care of null or empty, no manual check needed?
         return handleDownload(request, http);
     }
 
@@ -55,7 +54,7 @@ public class DownloadController implements WebMvcConfigurer {
     }
 
     /**
-     * Handle download request: validate, set timestamp, derive filename, build status URL, and queue.
+     * Handle download request: validate, allocate UUID job ID, write PENDING status, queue.
      */
     public ResponseEntity<?> handleDownload(DownloadRequest request, HttpServletRequest http) {
         Optional<String> validationError = MappingRequestValidator.validate(request);
@@ -64,7 +63,7 @@ public class DownloadController implements WebMvcConfigurer {
         }
 
         request.setTimestamp(LocalDateTime.now());
-        request.setFname(DownloadFileUtil.buildFilename(request));
+        request.setFname(UUID.randomUUID().toString());
 
         String url = http.getRequestURL()
                 .append("/")
@@ -80,7 +79,7 @@ public class DownloadController implements WebMvcConfigurer {
     @GetMapping(value = "/{filename}")
     @ResponseBody
     public ResponseEntity<?> downloadFile(
-            @Parameter(example = "cc3b5e1a21fd") @PathVariable("filename") String filename) {
+            @Parameter(example = "550e8400-e29b-41d4-a716-446655440000") @PathVariable("filename") String filename) {
 
         FileInputStream fileInputStream = downloadService.getFileResource(filename);
         if (fileInputStream == null)
@@ -97,17 +96,10 @@ public class DownloadController implements WebMvcConfigurer {
                 .body(resource);
     }
 
-    /**
-     * Check download status.
-     *
-     * @param fs List of download files. The file name follows the pattern:
-     *           <prefix>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY][-filterHash]
-     * @return
-     */
     @Operation(summary = "Check status of a list of download requests")
     @PostMapping(value = "/status", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, DownloadStatus>> downloadStatus(@RequestBody List<String> fs) {
-        return new ResponseEntity<>(downloadService.getDownloadStatus(fs), HttpStatus.OK);
+    public ResponseEntity<Map<String, DownloadStatus>> downloadStatus(@RequestBody List<String> ids) {
+        return new ResponseEntity<>(downloadService.getDownloadStatus(ids), HttpStatus.OK);
     }
 
 }

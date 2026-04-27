@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.messaging.RabbitMQConfig;
 import uk.ac.ebi.protvar.model.DownloadRequest;
-import uk.ac.ebi.protvar.model.response.DownloadJobStatus;
+import uk.ac.ebi.protvar.model.response.DownloadState;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 
@@ -28,25 +28,28 @@ public class DownloadService {
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadService.class);
 
     private final RabbitTemplate rabbitTemplate;
+    private final DownloadStatusService downloadStatusService;
 
     @Value("${app.data.folder}")
     private String dataFolder;
 
     public DownloadResponse queueRequest(DownloadRequest downloadRequest) {
-        LOGGER.info("Queuing request: {}", downloadRequest.getFname());
+        String id = downloadRequest.getFname();
+
         try {
             rabbitTemplate.convertAndSend("", RabbitMQConfig.DOWNLOAD_QUEUE, downloadRequest);
-            LOGGER.info("Successfully queued request: {}", downloadRequest.getFname());
+            downloadStatusService.markQueued(id);
+            LOGGER.info("Queued request: {}", id);
         } catch (Exception e) {
-            LOGGER.error("Error queuing request", e);
+            LOGGER.error("Error queuing request {}", id, e);
+            downloadStatusService.markFailed(id, "Failed to enqueue: " + e.getMessage());
         }
 
         DownloadResponse response = new DownloadResponse();
-        response.setRequestedAt(downloadRequest.getTimestamp());
-        response.setId(downloadRequest.getFname());
-        response.setStatus(DownloadJobStatus.PENDING);
+        response.setId(id);
         response.setJobName(downloadRequest.getJobName());
         response.setFileUrl(downloadRequest.getUrl());
+        response.setStatus(downloadStatusService.get(id));
         return response;
     }
 
@@ -60,25 +63,43 @@ public class DownloadService {
         }
     }
 
-    public Map<String, DownloadStatus> getDownloadStatus(List<String> filenames) {
+    /**
+     * Returns the lifecycle status for each id. Reads from Redis as the primary
+     * source; falls back to filesystem inspection only when Redis has no entry
+     * (TTL expired but file may still exist).
+     */
+    public Map<String, DownloadStatus> getDownloadStatus(List<String> ids) {
         Map<String, DownloadStatus> resultMap = new LinkedHashMap<>();
-        filenames.stream().forEach(filename -> {
-            Path csvFilePath = Path.of(dataFolder, filename + ".csv");
-            Path zipFilePath = csvFilePath.resolveSibling(csvFilePath.getFileName() + ".zip");
-            if (Files.exists(zipFilePath)) {
-                long size = 0;
-                try {
-                    size = Files.size(zipFilePath);
-                } catch (IOException e) {
-                    LOGGER.error("Error getting file size for: {}", zipFilePath, e);
-                }
-                resultMap.put(filename, new DownloadStatus(DownloadJobStatus.READY, size));
+        for (String id : ids) {
+            DownloadStatus status = downloadStatusService.get(id);
+            if (status == null) {
+                status = filesystemFallback(id);
             }
-            else if (Files.exists(csvFilePath))
-                resultMap.put(filename, new DownloadStatus(DownloadJobStatus.PROCESSING));
-            else
-                resultMap.put(filename, new DownloadStatus(DownloadJobStatus.PENDING));
-        });
+            resultMap.put(id, status);
+        }
         return resultMap;
+    }
+
+    private DownloadStatus filesystemFallback(String id) {
+        Path csvFilePath = Path.of(dataFolder, id + ".csv");
+        Path zipFilePath = csvFilePath.resolveSibling(csvFilePath.getFileName() + ".zip");
+
+        if (Files.exists(zipFilePath)) {
+            long size = 0;
+            try {
+                size = Files.size(zipFilePath);
+            } catch (IOException e) {
+                LOGGER.error("Error getting file size for: {}", zipFilePath, e);
+            }
+            return DownloadStatus.builder()
+                    .state(DownloadState.READY)
+                    .bytes(size)
+                    .build();
+        }
+        if (Files.exists(csvFilePath)) {
+            return DownloadStatus.builder().state(DownloadState.PROCESSING).build();
+        }
+        // No Redis entry, no files — id is unknown to the BE.
+        return DownloadStatus.builder().state(DownloadState.EXPIRED).build();
     }
 }
