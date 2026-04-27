@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class InputService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
-    private final InputCacheService cacheService;
+    private final UploadCacheService cacheService;
     private final BuildProcessor buildProcessor;
 
     private String checksumFromLines(List<String> lines) {

@@ -20,35 +20,29 @@ public class FunctionVectorRepository {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    @Value("${vector.table.name:rel_2025_01_function_vector}")
-    private String tableName;
+    @Value("${vector.table.prefix:rel_2025_01_function_vector_}")
+    private String tableNamePrefix;
 
-    /**
-     * Find vectors similar to the query vector using cosine distance.
-     * @param queryVector Query embedding vector
-     * @param limit Maximum number of results
-     * @return List of similar vectors with metadata
-     */
-    public List<VectorSearchResult> findSimilarVectors(List<Number> queryVector, int limit) {
+    @Value("${vector.text.table:rel_2025_01_function_text}")
+    private String functionTextTable;
+
+    public List<VectorSearchResult> findSimilarVectors(List<Number> queryVector, int limit, int offset, String model) {
+        String embeddingTable = tableNamePrefix + model;
         String sql = String.format("""
             SELECT
-                accession, source_type, source_text,
-                (embedding <=> :queryVector::vector) AS distance
-                -- Get similarity score (1 - distance = similarity)
-                --1 - (embedding <=> :queryVector::vector) AS similarity
-                -- Additional useful context:
-                --array_length(embedding::float8[], 1) AS embedding_dimension,
-                --char_length(source_text) AS text_length
-            FROM
-                %s
-            ORDER BY
-                distance ASC
-            LIMIT :limit
-            """, tableName);
+                ft.accession, ft.source_type, ft.source_text,
+                ft.begin_pos, ft.end_pos,
+                (fv.embedding <=> :queryVector::vector) AS distance
+            FROM %s fv
+            JOIN %s ft ON ft.id = fv.text_id
+            ORDER BY distance ASC
+            LIMIT :limit OFFSET :offset
+            """, embeddingTable, functionTextTable);
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("queryVector", new PGvector(queryVector))
-                .addValue("limit", limit);
+                .addValue("limit", limit)
+                .addValue("offset", offset);
 
         return namedParameterJdbcTemplate.query(
                 sql,
@@ -57,7 +51,9 @@ public class FunctionVectorRepository {
                         rs.getString("accession"),
                         rs.getString("source_type"),
                         rs.getString("source_text"),
-                        rs.getDouble("distance")
+                        rs.getDouble("distance"),
+                        (Integer) rs.getObject("begin_pos"),
+                        (Integer) rs.getObject("end_pos")
                 )
         );
     }

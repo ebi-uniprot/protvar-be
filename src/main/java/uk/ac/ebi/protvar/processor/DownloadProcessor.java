@@ -24,22 +24,22 @@ import org.springframework.stereotype.Service;
 import com.opencsv.CSVWriter;
 
 import uk.ac.ebi.protvar.cache.InputBuild;
-import uk.ac.ebi.protvar.fetcher.*;
+import uk.ac.ebi.protvar.controller.DownloadController;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
 import uk.ac.ebi.protvar.input.*;
-import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
 import uk.ac.ebi.protvar.mapper.MappingData;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
+import uk.ac.ebi.protvar.service.DownloadStatusService;
+import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.service.StructureService;
-import uk.ac.ebi.protvar.service.InputCacheService;
+import uk.ac.ebi.protvar.service.UploadCacheService;
 import uk.ac.ebi.protvar.service.InputService;
-import uk.ac.ebi.protvar.types.InputType;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
 
@@ -79,103 +79,90 @@ public class DownloadProcessor {
 	private final CsvPopulationDataBuilder csvPopulationDataBuilder;
 	private final CsvStructureDataBuilder csvStructureDataBuilder;
 	private final InputService inputService;
-	private final InputCacheService inputCacheService;
-	private final CachedInputHandler cachedInputHandler;
-	private final SearchInputHandler searchInputHandler;
+	private final UploadCacheService uploadCacheService;
+	private final MappingService mappingService;
 	private final InputMapper inputMapper;
 	private final AnnotationFetcher annotationFetcher;
 	private final StructureService structureService;
+	private final DownloadStatusService downloadStatusService;
 	@Value("${app.data.folder}")
 	private String dataFolder;
 	@Value("${app.tmp.folder}")
 	private String tmpFolder;
+	@Value("${csv.partition.size:4000}")
+	private int chunkSize;
 
-	// Note:
-	// moved @Transactional from process() to a deeper method that actually hits the DB.
-	// Each task (partition) still gets its own DB connection (via Hikari).
-	// So 20 parallel partitions == 20 connections.
+	// Each partition (chunk) holds at most 1 Hikari connection at a time:
+	// loadCoreMappingAndScores is @Transactional(readOnly), so its multi-query
+	// burst shares one connection. The remaining DB calls in the partition
+	// (preprocess, optional annotations, structure lookup) happen sequentially
+	// and each borrows + returns. Semaphore=10 caps in-flight partitions per
+	// job, keeping overall connection count below the Hikari pool max.
 	public void process(DownloadRequest request) {
-		LOGGER.info("[{}] Download request started", request.getFname());
+		String id = request.getFname();
+		LOGGER.info("[{}] Download request started", id);
 		long start = System.currentTimeMillis();
+		downloadStatusService.markProcessing(id);
 		try {
-			Path zipPath = Path.of(dataFolder, request.getFname() + ".csv.zip");
+			Path zipPath = Path.of(dataFolder, id + ".csv.zip");
 			if (Files.exists(zipPath)) {
 				LOGGER.warn("Download file already exists: {}", zipPath);
-				return; // Skip processing if file already exists
+				downloadStatusService.markReady(id, fileSize(zipPath));
+				return;
 			}
 
-			InputHandler handler = null;
-
-			switch (request.getType()) {
-
-				case VARIANT -> {
-					LOGGER.info("Single variant download request: {}", request.getFname());
-					// no handler needed for single input
-				}
-				case INPUT_ID -> {
-					handler = cachedInputHandler;
-					// ensure that the build is detected and cached
-					inputService.detectBuild(InputRequest.builder()
-							.inputId(request.getInput())
-							.assembly(request.getAssembly())
-							.build());
-				}
-				case UNIPROT, ENSEMBL, GENE, PDB, REFSEQ -> {
-					handler = searchInputHandler;
-
-					// preload stuff here!!
-					if (request.getFull() != null && Boolean.TRUE.equals(request.getFull())
-							&& request.getType() == InputType.UNIPROT) {
-						String accession = request.getInput();
-
-						// preload full accession data
-					}
-
-
-				}
-				default -> throw new IllegalArgumentException("Unsupported type: " + request.getType());
-
+			// detectBuild must run before mapping for resultId requests so
+			// that the cached InputBuild is populated when we read it below.
+			if (request.getResultId() != null && !request.getResultId().isBlank()) {
+				inputService.detectBuild(InputRequest.builder()
+						.inputId(request.getResultId())
+						.assembly(request.getAssembly())
+						.build());
 			}
 
-			handleDownload(handler, request, zipPath);
-			// Notify User
+			handleDownload(request, zipPath);
+			downloadStatusService.markReady(id, fileSize(zipPath));
 			Email.notifyUser(request);
+		} catch (DownloadTooLargeException e) {
+			LOGGER.warn("Download {} exceeded the row cap during processing", id);
+			downloadStatusService.markFailed(id, DownloadStatusService.MSG_TOO_LARGE);
 		} catch (Exception e) {
-			handleException(e, request, List.of()/*inputs*/); // pass input first N lines
+			downloadStatusService.markFailed(id, DownloadStatusService.MSG_PROCESSING_FAILED);
+			handleException(e, request, List.of());
 		}
 		long end = System.currentTimeMillis();
 		long durationMs = end - start;
 
-		LOGGER.info("[{}] Download request completed in {}", request.getFname(), formatDuration(durationMs));
+		LOGGER.info("[{}] Download request completed in {}", id, formatDuration(durationMs));
 	}
 
-	private void handleDownload(InputHandler inputHandler, DownloadRequest request, Path zipPath) throws Exception {
+	private long fileSize(Path path) {
+		try {
+			return Files.exists(path) ? Files.size(path) : 0L;
+		} catch (IOException e) {
+			LOGGER.warn("Failed to read size of {}: {}", path, e.getMessage());
+			return 0L;
+		}
+	}
+
+	private void handleDownload(DownloadRequest request, Path zipPath) throws Exception {
 		Path csvPath = Path.of(tmpFolder, request.getFname() + ".csv");
 		boolean fun = Boolean.TRUE.equals(request.getFunction());
 		boolean pop = Boolean.TRUE.equals(request.getPopulation());
 		boolean str = Boolean.TRUE.equals(request.getStructure());
 
-		List<VariantInput> inputs;
+		InputBuild build = (request.getResultId() != null && !request.getResultId().isBlank())
+				? uploadCacheService.getBuild(request.getResultId()) : null;
 
-		if (request.getType() == InputType.VARIANT) {
-			inputs = List.of(VariantParser.parse(request.getInput()));
-			processAndWriteCsv(inputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
-			return;
-		}
-
-		InputBuild build = request.getType() != null && request.getType() == InputType.INPUT_ID ?
-				inputCacheService.getBuild(request.getInput()) : null; // use cached build
-
-		if (!Boolean.TRUE.equals(request.getFull())) { // paged download: process in main thread
+		if (!Boolean.TRUE.equals(request.getFull())) {
 			LOGGER.info("Page download request: {}", request.getFname());
-			inputs = inputHandler.pagedInput(request).getContent();
+			List<VariantInput> inputs = mappingService.getInputs(request).getContent();
 			processAndWriteCsv(inputs, csvPath, request.getAssembly(), build, fun, pop, str, true);
-		} else { // full download: partition and process in parallel, if large
+		} else {
 			LOGGER.info("Full download request: {}", request.getFname());
-			processFullDownload(inputHandler, request, csvPath, build, fun, pop, str);
+			processFullDownload(request, csvPath, build, fun, pop, str);
 		}
 
-		// Zip final CSV
 		FileUtils.zipFile(csvPath, zipPath);
 		Files.deleteIfExists(csvPath);
 	}
@@ -198,41 +185,62 @@ public class DownloadProcessor {
 	private final Semaphore dbTaskSemaphore = new Semaphore(10); // limit to 10 concurrent DB-hitting tasks
 
 	// Process in parallel, partitioning the input into chunks
-	private void processFullDownload(InputHandler inputHandler, DownloadRequest request, Path csvPath,
+	private void processFullDownload(DownloadRequest request, Path csvPath,
 									 InputBuild build, boolean fun, boolean pop, boolean str) throws Exception {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
 		List<Future<Path>> futures = new ArrayList<>();
-
-		try (Stream<List<VariantInput>> chunkStream = inputHandler.streamChunkedInput(request)) {
-			for (List<VariantInput> chunk : (Iterable<List<VariantInput>>) chunkStream::iterator) {
-				int chunkNum = chunkIndex.getAndIncrement();
-				// Limit concurrent DB/file-processing
-				dbTaskSemaphore.acquire(); // blocks if limit reached
-
-				futures.add(partitionProcessingExecutor.submit(() -> {
-					try {
-						LOGGER.info("[{}] Processing chunk #{}", request.getFname(), chunkNum);
-						Path partPath = Path.of(tmpFolder, request.getFname() + "_" + chunkNum + ".csv");
-						processAndWriteCsv(chunk, partPath, request.getAssembly(), build, fun, pop, str, false);
-						return partPath;
-					} finally {
-						dbTaskSemaphore.release();
+		List<Path> partPaths = new ArrayList<>();   // tracked here so we can clean up on failure
+		long totalStreamed = 0;
+		boolean success = false;
+		try {
+			try (Stream<List<VariantInput>> chunkStream = mappingService.streamChunkedInputs(request, chunkSize)) {
+				for (List<VariantInput> chunk : (Iterable<List<VariantInput>>) chunkStream::iterator) {
+					totalStreamed += chunk.size();
+					if (totalStreamed > DownloadController.MAX_FULL_DOWNLOAD_ROWS) {
+						throw new DownloadTooLargeException();
 					}
-				}));
+					int chunkNum = chunkIndex.getAndIncrement();
+					Path partPath = Path.of(tmpFolder, request.getFname() + "_" + chunkNum + ".csv");
+					partPaths.add(partPath);
+					// Limit concurrent DB/file-processing
+					dbTaskSemaphore.acquire(); // blocks if limit reached
+
+					futures.add(partitionProcessingExecutor.submit(() -> {
+						try {
+							LOGGER.info("[{}] Processing chunk #{}", request.getFname(), chunkNum);
+							processAndWriteCsv(chunk, partPath, request.getAssembly(), build, fun, pop, str, false);
+							return partPath;
+						} finally {
+							dbTaskSemaphore.release();
+						}
+					}));
+				}
+			}
+
+			// Wait for all CSV parts to be written
+			List<Path> csvParts = new ArrayList<>();
+			for (Future<Path> future : futures) {
+				csvParts.add(future.get()); // blocking wait
+			}
+
+			// Merge all parts
+			mergeCsvFiles(csvParts, csvPath);
+			success = true;
+		} finally {
+			if (!success) {
+				// Drain any in-flight futures so workers can release the semaphore
+				// and finish writing their part files before we delete them.
+				for (Future<Path> future : futures) {
+					if (!future.isDone()) {
+						try { future.get(); } catch (Exception ignored) {}
+					}
+				}
+				for (Path part : partPaths) {
+					try { Files.deleteIfExists(part); }
+					catch (IOException e) { LOGGER.warn("Could not delete part file {}: {}", part, e.getMessage()); }
+				}
 			}
 		}
-
-		// Wait for all CSV parts to be written
-		List<Path> csvParts = new ArrayList<>();
-		for (Future<Path> future : futures) {
-			csvParts.add(future.get()); // blocking wait
-		}
-
-		// Merge all parts
-		mergeCsvFiles(csvParts, csvPath);
-
-		// uncomment to clean up
-		// for (Path part : csvParts) Files.deleteIfExists(part);
 	}
 
 	private void handleException(Exception e, DownloadRequest request, List<String> inputs) {
@@ -371,7 +379,11 @@ public class DownloadProcessor {
 		if (gene.getCaddScore() != null)
 			cadd = gene.getCaddScore().toString();
 		String strand = "+";
-		Isoform isoform = gene.getIsoforms().get(0);
+		List<Isoform> isoforms = gene.getIsoforms();
+		if (isoforms == null || isoforms.isEmpty()) {
+			return getCsvDataMappingNotFound(input, genomicVariant);
+		}
+		Isoform isoform = isoforms.get(0);
 
 		if (gene.isReverseStrand()) {
 			strand = "-";

@@ -4,12 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
 @Data
 @SuperBuilder
+@NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 @Schema(description = "Request payload for initiating a download")
 public class DownloadRequest extends MappingRequest {
@@ -26,7 +28,7 @@ public class DownloadRequest extends MappingRequest {
     @Schema(description = "Optional email address for status updates", example = "user@example.com")
     //@Email(message = "Must be a valid email address") // default jakarta validation is lenient, allows abc@xyz (without domain)
     @Pattern(
-            regexp = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+            regexp = "^\\s*$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
             message = "Must be a valid email address"
     )
     private String email;

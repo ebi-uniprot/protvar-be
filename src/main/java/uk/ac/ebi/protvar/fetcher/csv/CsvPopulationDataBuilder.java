@@ -45,7 +45,7 @@ public class CsvPopulationDataBuilder {
 		Map<String, AlleleFreq> freqMap = populationObservations.getFreqMap();
 		AlleleFreq alleleFreq = (freqMap != null) ? freqMap.get(altBase) : null;
 		if (alleleFreq != null) {
-			csv.add(String.format("%d;%d;%d",
+			csv.add(String.format("%s;%s;%s",
 					getValOrNA(alleleFreq.getAc()),
 					getValOrNA(alleleFreq.getAn()),
 					getValOrNA(alleleFreq.getAf())

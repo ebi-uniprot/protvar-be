@@ -1,7 +1,9 @@
 package uk.ac.ebi.protvar;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +37,9 @@ public class RedisConfig {
     public GenericJackson2JsonRedisSerializer redisJsonSerializer() {
         // Create and configure ObjectMapper with polymorphic typing
         ObjectMapper mapper = new ObjectMapper();
+        // java.time.Instant etc. — without this Jackson throws on serialization
+        mapper.registerModule(new JavaTimeModule());
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         mapper.activateDefaultTyping(
                 BasicPolymorphicTypeValidator.builder()
                         .allowIfBaseType(Object.class)

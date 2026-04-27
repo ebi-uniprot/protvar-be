@@ -23,7 +23,7 @@ public class GeneConverter {
 	public List<Gene> createGenes(Set<String> altBases,
 								List<GenomeToProteinMapping> mappings,
 								List<CaddPrediction> caddScores,
-								Map<String, List<Score>>  amScores) {
+								Map<String, List<Score>>  scoreMap) {
 		if (mappings == null || mappings.isEmpty()) return Collections.emptyList();
 		return filterEnsgMappings(mappings.stream()
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getEnsg)))
@@ -35,7 +35,7 @@ public class GeneConverter {
 					GenomeToProteinMapping representative = mappingList.get(0);
 
 					return altBases.stream().map(altBase -> {
-						var isoforms = isoformConverter.createIsoforms(altBase, mappingList, amScores);
+						var isoforms = isoformConverter.createIsoforms(altBase, mappingList, scoreMap);
 						return Gene.builder()
 								.ensg(ensg)
 								.reverseStrand(representative.isReverseStrand())

@@ -17,14 +17,17 @@ import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.service.DownloadService;
-import uk.ac.ebi.protvar.types.InputType;
-import uk.ac.ebi.protvar.utils.DownloadFileUtil;
-import uk.ac.ebi.protvar.utils.InputTypeResolver;
+import uk.ac.ebi.protvar.service.DownloadStatusService;
+import uk.ac.ebi.protvar.service.MappingService;
+import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
 import java.io.FileInputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
 
 @Tag(name = "Download")
 @RestController
@@ -33,17 +36,24 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DownloadController implements WebMvcConfigurer {
 
-    private final static String SUMMARY = """
-            Submit a download request. If no type is specified, the input is treated as a single variant.
-            """;
+    private final static String SUMMARY = "Submit a download request.";
+
+    /**
+     * Hard cap on rows for full downloads. Larger requests are rejected at
+     * submit time with {@link DownloadStatusService#MSG_TOO_LARGE}; users are
+     * directed to the FTP site for bulk pre-computed datasets.
+     */
+    public static final long MAX_FULL_DOWNLOAD_ROWS = 100_000L;
+
     private final DownloadService downloadService;
+    private final DownloadStatusService downloadStatusService;
+    private final MappingService mappingService;
 
     @Operation(summary = SUMMARY)
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> downloadGet(@Valid @RequestBody
                                          DownloadRequest request,
                                          HttpServletRequest http) {
-        // Valid takes care of null or empty, no manual check needed?
         return handleDownload(request, http);
     }
 
@@ -56,37 +66,28 @@ public class DownloadController implements WebMvcConfigurer {
     }
 
     /**
-     * Handle download request, setting timestamp and filename.
-     * Builds the URL for status or download.
-     *
-     * @param request DownloadRequest containing parameters
-     * @param http    HttpServletRequest to build the URL
-     * @return ResponseEntity with DownloadResponse or error
+     * Handle download request: validate, enforce row cap on full downloads,
+     * allocate UUID job ID, queue.
      */
     public ResponseEntity<?> handleDownload(DownloadRequest request, HttpServletRequest http) {
-        InputType providedType = request.getType(); // user-provided, may be null
-        InputType resolved = InputTypeResolver.resolve(request.getInput());
-
-        if (providedType != null && !providedType.equals(resolved)) {
-            return ResponseEntity.badRequest().body(
-                    String.format("Input type '%s' does not match resolved type '%s'.", providedType, resolved)
-            );
-        }
-        if (resolved == null) {
-            return ResponseEntity.badRequest().body("Unable to resolve input type from provided input.");
+        Optional<String> validationError = MappingRequestValidator.validate(request);
+        if (validationError.isPresent()) {
+            return ResponseEntity.badRequest().body(Map.of("error", validationError.get()));
         }
 
-        request.setType(resolved);
-
-        if (request.getInput() != null &&
-                (resolved != InputType.PDB && resolved != InputType.INPUT_ID)) { // todo: move normalizing case in SQL query for consistency
-            request.setInput(request.getInput().toUpperCase());
+        if (Boolean.TRUE.equals(request.getFull())) {
+            long total = mappingService.countInputs(request);
+            // total = -1 means COUNT timed out (filter-only) — too risky to queue.
+            // total > MAX or capped to a known-too-many sentinel — reject.
+            if (total < 0 || total > MAX_FULL_DOWNLOAD_ROWS) {
+                downloadStatusService.increment("rejected");
+                return ResponseEntity.badRequest().body(Map.of("error", DownloadStatusService.MSG_TOO_LARGE));
+            }
         }
 
         request.setTimestamp(LocalDateTime.now());
-        request.setFname(DownloadFileUtil.buildFilename(request));
+        request.setFname(UUID.randomUUID().toString());
 
-        // Build URL for status or download
         String url = http.getRequestURL()
                 .append("/")
                 .append(request.getFname())
@@ -101,7 +102,7 @@ public class DownloadController implements WebMvcConfigurer {
     @GetMapping(value = "/{filename}")
     @ResponseBody
     public ResponseEntity<?> downloadFile(
-            @Parameter(example = "cc3b5e1a21fd") @PathVariable("filename") String filename) {
+            @Parameter(example = "550e8400-e29b-41d4-a716-446655440000") @PathVariable("filename") String filename) {
 
         FileInputStream fileInputStream = downloadService.getFileResource(filename);
         if (fileInputStream == null)
@@ -118,17 +119,16 @@ public class DownloadController implements WebMvcConfigurer {
                 .body(resource);
     }
 
-    /**
-     * Check download status.
-     *
-     * @param fs List of download files. The file name follows the pattern:
-     *           <prefix>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY][-filterHash]
-     * @return
-     */
     @Operation(summary = "Check status of a list of download requests")
     @PostMapping(value = "/status", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, DownloadStatus>> downloadStatus(@RequestBody List<String> fs) {
-        return new ResponseEntity<>(downloadService.getDownloadStatus(fs), HttpStatus.OK);
+    public ResponseEntity<Map<String, DownloadStatus>> downloadStatus(@RequestBody List<String> ids) {
+        return new ResponseEntity<>(downloadService.getDownloadStatus(ids), HttpStatus.OK);
+    }
+
+    @Operation(hidden = true)
+    @GetMapping(value = "/stats", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Long>> downloadStats() {
+        return ResponseEntity.ok(downloadStatusService.getCounters());
     }
 
 }

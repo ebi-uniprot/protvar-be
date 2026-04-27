@@ -111,6 +111,11 @@ public class InputMapper {
 		return response;
 	}
 
+	// @Transactional holds one Hikari connection for the multi-query mapping
+	// load instead of borrowing/returning per call. Under heavy partition
+	// concurrency this reduces connection churn against the Hikari pool —
+	// each partition's core load uses 1 connection rather than 5–9.
+	@org.springframework.transaction.annotation.Transactional(readOnly = true)
 	public MappingData loadCoreMappingAndScores(List<VariantInput> inputs) {
 		// Collect unique ChromosomePosition objects
 		Set<ChromosomePosition> uniqueChrPos = inputs.stream()
@@ -163,10 +168,10 @@ public class InputMapper {
 
 		var accPosArrays = new ArrayPair<>(accessions, ppositions);
 
-		var amScoreMap = scoreRepo.getMappingScores(accessions, ppositions)
+		var scoreMap = scoreRepo.getMappingScores(accessions, ppositions)
 				.stream().collect(Collectors.groupingBy(Score::getVariantKey));
 
-		return new MappingData(chrPosArrays, g2pMap, caddPredictionMap, accPosArrays, canonicalAccessions, amScoreMap);
+		return new MappingData(chrPosArrays, g2pMap, caddPredictionMap, accPosArrays, canonicalAccessions, scoreMap);
 	}
 
 	public void processInput(VariantInput input, MappingData core) {
@@ -187,7 +192,7 @@ public class InputMapper {
 							.map(mappingList.get(0)::getAltCodon)
 							.collect(Collectors.toSet());*/
 
-					ensgMappingList = geneConverter.createGenes(altBases, mappingList, caddScores, core.getAmScoreMap());
+					ensgMappingList = geneConverter.createGenes(altBases, mappingList, caddScores, core.getScoreMap());
 				}
 
 				genomicVariant.getGenes().addAll(ensgMappingList);

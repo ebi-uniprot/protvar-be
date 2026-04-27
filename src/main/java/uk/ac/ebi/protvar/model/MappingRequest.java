@@ -1,15 +1,18 @@
 package uk.ac.ebi.protvar.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import uk.ac.ebi.protvar.constants.PageUtils;
-import uk.ac.ebi.protvar.types.*;
-
+import uk.ac.ebi.protvar.types.AlleleFreqCategory;
+import uk.ac.ebi.protvar.types.AmClass;
+import uk.ac.ebi.protvar.types.CaddCategory;
+import uk.ac.ebi.protvar.types.PopEveClass;
+import uk.ac.ebi.protvar.types.StabilityChange;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 
 import java.util.List;
 
@@ -17,7 +20,7 @@ import java.util.List;
 @SuperBuilder
 @Schema(description = "Base request used for mapping")
 @NoArgsConstructor
-// TODO decapitalise all params like CADD, ASC, DESC and other enums
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class MappingRequest {
 
     public final static String PAGE_DESC = """
@@ -38,17 +41,26 @@ public class MappingRequest {
             Defaults to 'AUTO' if not specified.
             """;
 
-    @Schema(description = "The input. This can be inputId, single variant or one of the other input types (UniProt accession, gene symbol, Ensembl, PDB, or RefSeq ID).")
-    @NotBlank(message = "Input must not be null or empty")
-    // todo: actually we should allow empty so only filters will apply
-    protected String input; // rename to searchTerm? (search=?&type=?)
+    @Schema(description = "Variant query string in any supported format (genomic, protein, HGVS, dbSNP, etc.). Mutually exclusive with resultId and ids.")
+    protected String q;
 
-    @Schema(
-            description = "Input type. If null, the system will try to infer it automatically.",
-            example = "UNIPROT"
-    )
-    //@NotNull(message = "Input type must not be null")
-    protected InputType type; // searchTermType? expand to FREE_TEXT (to allow similarity?)
+    @Schema(description = """
+            Uploaded result ID (32-character hex string returned by POST /input/text or /input/file).
+            When provided, the backend retrieves the cached input associated with this ID.
+            Mutually exclusive with 'ids' — if both are provided, 'resultId' takes precedence.
+            """)
+    protected String resultId;
+
+    @Schema(description = """
+            Biological identifiers for browse queries (UniProt, Gene, PDB, Ensembl, RefSeq).
+            Each entry has a 'type' and 'value'. 'type' is optional — if omitted, the backend
+            auto-detects it from 'value' using InputTypeResolver. Callers that know the type
+            should always supply it to avoid misdetection of ambiguous values (e.g. short gene
+            symbols). Falls back to GENE if detection fails.
+            Example: [{"type": "UNIPROT", "value": "P22304"}, {"value": "BRCA2"}]
+            """)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    protected List<Identifier> ids;
 
     @Schema(
             description = PAGE_DESC,
@@ -97,6 +109,7 @@ public class MappingRequest {
     private Boolean diseaseAssociation; // Not yet implemented
 
     @Schema(description = "Allele frequency categories", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<AlleleFreqCategory> alleleFreq;
 
     // Structural
@@ -110,16 +123,20 @@ public class MappingRequest {
     private Boolean pocket;
 
     @Schema(description = "Stability change filter", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<StabilityChange> stability;
 
     // Consequence
     @Schema(description = "CADD score filter categories", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<CaddCategory> cadd;
 
     @Schema(description = "AlphaMissense pathogenicity class filter", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<AmClass> am;
 
     @Schema(description = "popEVE score filter categories", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<PopEveClass> popeve;
 
     @Schema(description = "Minimum ESM1b score (-25 to 0, inclusive)", example = "-25.0")
@@ -131,6 +148,15 @@ public class MappingRequest {
     @Min(value = -25, message = "ESM1b maximum must be at least -25")
     @Max(value = 0, message = "ESM1b maximum must not exceed 0")
     private Double esm1bMax;
+
+    // Position range filter (single UniProt accession browse only; ignored otherwise with a warning)
+    @Schema(description = "Start of protein position range (inclusive, 1-based). Only applies to single UniProt accession browse.", example = "558")
+    @Min(value = 1, message = "startPos must be at least 1")
+    private Integer startPos;
+
+    @Schema(description = "End of protein position range (inclusive, 1-based). Must be used with startPos. Values are normalised if startPos > endPos.", example = "600")
+    @Min(value = 1, message = "endPos must be at least 1")
+    private Integer endPos;
 
     // Sorting
     @Schema(description = "Sort field: 'cadd', 'am', 'popeve', or 'esm1b'", example = "cadd")

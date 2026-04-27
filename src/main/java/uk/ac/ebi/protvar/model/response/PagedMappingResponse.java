@@ -1,19 +1,13 @@
 package uk.ac.ebi.protvar.model.response;
 
 import lombok.*;
-import uk.ac.ebi.protvar.types.InputType;
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class PagedMappingResponse { // todo: consider using Page<MappingResponse> and moving
-	// non-page fields (e.g. id, assembly) to MappingResponse, or better have the response contain
-	// the original mapping request object
+public class PagedMappingResponse {
 	private MappingResponse content;
-
-	private String input; // e.g. inputId, proteinAcc, etc.
-	private InputType type;
 
 	private int page;
 
@@ -24,6 +18,16 @@ public class PagedMappingResponse { // todo: consider using Page<MappingResponse
 	private long totalItems;
 
 	private int totalPages;
+
+	/**
+	 * Upper bound on totalItems. Set on filter-only browse where the
+	 * underlying COUNT(*) is capped to bound query cost; null on paths that
+	 * return an exact total (identifier / variant / uploaded result).
+	 *
+	 * Convention: if totalItems > totalCap, the actual count is "more than
+	 * totalCap" — clients should display it accordingly (e.g. "10,000+").
+	 */
+	private Long totalCap;
 
 	private boolean last;
 	//private long ttl;

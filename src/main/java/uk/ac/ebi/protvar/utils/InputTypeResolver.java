@@ -4,7 +4,7 @@ import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.parser.protein.ProteinParser;
-import uk.ac.ebi.protvar.types.InputType;
+import uk.ac.ebi.protvar.types.IdentifierType;
 import java.util.regex.Pattern;
 
 public class InputTypeResolver {
@@ -49,58 +49,34 @@ public class InputTypeResolver {
             // genomic variant start chromosome; protein variant start UniProt accession
             Pattern.compile("^(rs|RCV|VCV|COS[VMN]|NC_|NM_|NP_|NG_|LRG_|NR_|chr|([1-9]|1[0-9]|2[0-2]|MT|mit|mtDNA|mitochondria|mitochondrion)(?=\\s|-)|" + ProteinParser.VALID_UNIPROT + "(?=\\s)).*", Pattern.CASE_INSENSITIVE);
 
-    public static InputType resolve(String input) {
-        // If input is null or empty, return null
-        if (input == null || input.trim().isEmpty()) {
-            return null;
-        }
-
+    /**
+     * Resolve a string to its biological {@link IdentifierType}, skipping variant and result-ID patterns.
+     * Returns null if the input looks like a variant query, an uploaded result ID, or is unrecognisable.
+     * Falls back to GENE for values that match the gene pattern.
+     *
+     * <p>Use this method when resolving identifiers for browse queries (POST /mapping with ids[]).
+     */
+    public static IdentifierType resolveIdentifier(String input) {
+        if (input == null || input.trim().isEmpty()) return null;
         String trimmed = input.trim();
-
-        // Early exit for multi-line input
         if (!isSingleLine(trimmed)) return null;
 
-        // Level 1: Most specific patterns (exact format matches)
+        // Skip INPUT_ID (32-char hex) — those go via resultId, not ids[]
+        if (INPUT_ID_REGEX.matcher(trimmed).matches()) return null;
 
-        // INPUT_ID - Very specific 32-char hex pattern
-        if (INPUT_ID_REGEX.matcher(trimmed).matches()) {
-            return InputType.INPUT_ID;
-        }
+        if (ENSEMBL_REGEX.matcher(trimmed).matches()) return IdentifierType.ENSEMBL;
+        if (PDB_REGEX.matcher(trimmed).matches()) return IdentifierType.PDB;
+        if (UNIPROT_REGEX.matcher(trimmed).matches()) return IdentifierType.UNIPROT;
 
-        // ENSEMBL - Specific prefix + number pattern
-        if (ENSEMBL_REGEX.matcher(trimmed).matches()) {
-            return InputType.ENSEMBL;
-        }
-
-        // PDB - Very specific 4-char pattern
-        if (PDB_REGEX.matcher(trimmed).matches()) {
-            return InputType.PDB;
-        }
-
-        // UNIPROT - Specific accession format
-        if (UNIPROT_REGEX.matcher(trimmed).matches()) {
-            return InputType.UNIPROT;
-        }
-
-        // Level 2: Check for VARIANT patterns (aligned with VariantParser logic)
-
-        // Check if it looks like a variant using VariantParser's logic
+        // Skip inputs that parse as variants
         VariantInput parsed = VariantParser.parse(trimmed);
-        if (parsed != null && parsed.getFormat() != VariantFormat.INVALID) {
-                return InputType.VARIANT;
-        }
+        if (parsed != null && parsed.getFormat() != VariantFormat.INVALID) return null;
 
-        // Level 3: Check standalone RefSeq IDs (not part of HGVS)
-        // Only match if it doesn't contain HGVS scheme indicators
-        if (REFSEQ_REGEX.matcher(trimmed).matches()) {
-            return InputType.REFSEQ;
-        }
+        if (REFSEQ_REGEX.matcher(trimmed).matches()) return IdentifierType.REFSEQ;
 
-        // Level 4: GENE - Most permissive, check last to avoid false positives
         if (GENE_REGEX.matcher(trimmed).matches() && !VARIANT_PREFIX_REGEX.matcher(trimmed).matches()) {
-            return InputType.GENE;
+            return IdentifierType.GENE;
         }
-
         return null;
     }
 

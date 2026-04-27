@@ -43,9 +43,6 @@ public class ApplicationConfig {
     @Value(("${pdbe.best-structures.api.url}"))
     private String pdbeUrl;
 
-    @Value("${embedding.service.url:http://localhost:8000}")
-    private String embeddingServiceUrl;
-
     private final ObjectMapper objectMapper;
 
     @Bean
@@ -69,7 +66,10 @@ public class ApplicationConfig {
     @Qualifier("variationRestTemplate")
     //@RequestScope
     public RestTemplate variationRestTemplate() {
-        RestTemplate restTemplate = new RestTemplate();// new RestTemplateCache();
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(15000);
+        RestTemplate restTemplate = new RestTemplate(factory);
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(variationUrl));
         return restTemplate;
@@ -78,12 +78,15 @@ public class ApplicationConfig {
     @Bean
     @Qualifier("proteinsRestTemplate")
     public RestTemplate restTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(15000);
+
         // Register the ObjectMapper with a custom message converter
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
         converter.setObjectMapper(objectMapper); // use shared one
 
-        // Create a RestTemplate with the custom converter
-        RestTemplate restTemplate = new RestTemplate();
+        RestTemplate restTemplate = new RestTemplate(factory);
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinsUrl));
         restTemplate.setMessageConverters(Collections.singletonList(converter));
@@ -114,7 +117,6 @@ public class ApplicationConfig {
 
         RestTemplate restTemplate = new RestTemplate(factory);
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(embeddingServiceUrl));
         restTemplate.setMessageConverters(Collections.singletonList(converter));
 
         // Add retry interceptor

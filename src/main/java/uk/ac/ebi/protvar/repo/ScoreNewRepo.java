@@ -484,7 +484,7 @@ public class ScoreNewRepo {
      * No @Transactional needed - delegates to getScores() which is already transactional
      */
     public List<Score> getMappingScores(String[] accessions, Integer[] positions) {
-        return getScores(accessions, positions, Set.of(ScoreType.AM));
+        return getScores(accessions, positions, Set.of(ScoreType.AM, ScoreType.POPEVE));
     }
 
     /**

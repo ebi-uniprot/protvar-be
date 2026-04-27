@@ -50,7 +50,7 @@ public class CsvFunctionDataBuilder {
 
 		// functional info would have been preloaded in the cache
 		FunctionalInfo functionalInfo = functionalAnnService.get(isoform.getAccession(), isoform.getIsoformPosition());
-		if (functionalInfo == null) Collections.emptyList();
+		if (functionalInfo == null) return Collections.emptyList();
 
 		functionalInfoEnricher.enrich(functionalInfo, annData, isoform.getVariantAA());
 
@@ -169,8 +169,10 @@ public class CsvFunctionDataBuilder {
 						Object complex = textList.get(0);
 						if (complex instanceof Map) {
 							Map<?, ?> complexMap = (Map<?, ?>) complex;
-							String textValue = complexMap.get("value").toString();
-							return (textValue != null && textValue.contains(".")) ? textValue.split("\\.")[0] : textValue;
+							Object rawValue = complexMap.get("value");
+							if (rawValue == null) return null;
+							String textValue = rawValue.toString();
+							return textValue.contains(".") ? textValue.split("\\.")[0] : textValue;
 						}
 					}
 				}
@@ -331,10 +333,11 @@ public class CsvFunctionDataBuilder {
 
 	private List<String> buildProteinDetails(FunctionalInfo proteinFunction) {
 		List<String> proteinDetails = new ArrayList<>();
+		var sequence = proteinFunction.getSequence();
 		proteinDetails.add(CsvUtils.getValOrNA(proteinFunction.getProteinExistence()));
-		proteinDetails.add(CsvUtils.getValOrNA(String.valueOf(proteinFunction.getSequence().getLength())));
+		proteinDetails.add(CsvUtils.getValOrNA(sequence == null ? null : String.valueOf(sequence.getLength())));
 		proteinDetails.add(CsvUtils.getValOrNA(proteinFunction.getLastUpdated()));
-		proteinDetails.add(CsvUtils.getValOrNA(proteinFunction.getSequence().getModified()));
+		proteinDetails.add(CsvUtils.getValOrNA(sequence == null ? null : sequence.getModified()));
 		return proteinDetails;
 	}
 }

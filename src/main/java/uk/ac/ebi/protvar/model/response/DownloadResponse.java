@@ -3,15 +3,16 @@ package uk.ac.ebi.protvar.model.response;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
+/**
+ * Submit response for POST /download. Carries job identity (id, jobName,
+ * fileUrl) plus the initial lifecycle status. Lifecycle is the same shape
+ * returned by POST /download/status — see {@link DownloadStatus}.
+ */
 @Getter
 @Setter
 public class DownloadResponse {
-    //String inputType;
-    LocalDateTime requested; // "requested": "2024-06-20T22:02:31.157133154" in json
-    String downloadId; // corresponds to the download file name (without ext): <id>[-fun][-pop][-str][-PAGE][-PAGE_SIZE][-ASSEMBLY]
-    String jobName;
-    String url;
-    int status;
+    private String id;          // server-allocated UUID; also the file name stem
+    private String jobName;
+    private String fileUrl;     // full URL to the generated file
+    private DownloadStatus status;
 }

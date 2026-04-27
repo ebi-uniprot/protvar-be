@@ -10,4 +10,6 @@ import lombok.NoArgsConstructor;
 public class VectorSearchRequest {
     private String text;
     private Integer limit;
+    private Integer offset;
+    private String model;
 }
