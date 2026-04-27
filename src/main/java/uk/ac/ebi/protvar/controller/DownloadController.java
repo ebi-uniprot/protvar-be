@@ -46,6 +46,7 @@ public class DownloadController implements WebMvcConfigurer {
     public static final long MAX_FULL_DOWNLOAD_ROWS = 100_000L;
 
     private final DownloadService downloadService;
+    private final DownloadStatusService downloadStatusService;
     private final MappingService mappingService;
 
     @Operation(summary = SUMMARY)
@@ -79,6 +80,7 @@ public class DownloadController implements WebMvcConfigurer {
             // total = -1 means COUNT timed out (filter-only) — too risky to queue.
             // total > MAX or capped to a known-too-many sentinel — reject.
             if (total < 0 || total > MAX_FULL_DOWNLOAD_ROWS) {
+                downloadStatusService.increment("rejected");
                 return ResponseEntity.badRequest().body(Map.of("error", DownloadStatusService.MSG_TOO_LARGE));
             }
         }
@@ -121,6 +123,12 @@ public class DownloadController implements WebMvcConfigurer {
     @PostMapping(value = "/status", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, DownloadStatus>> downloadStatus(@RequestBody List<String> ids) {
         return new ResponseEntity<>(downloadService.getDownloadStatus(ids), HttpStatus.OK);
+    }
+
+    @Operation(hidden = true)
+    @GetMapping(value = "/stats", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Long>> downloadStats() {
+        return ResponseEntity.ok(downloadStatusService.getCounters());
     }
 
 }

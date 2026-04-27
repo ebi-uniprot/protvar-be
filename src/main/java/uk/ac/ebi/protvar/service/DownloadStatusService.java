@@ -13,11 +13,17 @@ import java.time.Instant;
 
 /**
  * Reads/writes download lifecycle status in Redis. The Redis entry is the
- * source of truth; the on-disk ZIP is the file artifact. Entry TTL is 7 days.
+ * source of truth; the on-disk ZIP is the file artifact. Entry TTL is 14 days,
+ * matching the scheduled file cleanup window.
  *
  * <p>Failure messages stored on the {@link DownloadStatus#getMessage()} field
  * are user-facing — keep them short and free of technical detail. Stack traces
  * and exception messages still go to logs and the dev notification email.
+ *
+ * <p>Counters under the {@code download:counts:*} key space are incremented at
+ * lifecycle transitions for monitoring (BE writes, prod DB is read-only). Both
+ * a running total and a per-day count are tracked. Read via
+ * {@link #getCounters()}.
  */
 @Service
 @RequiredArgsConstructor
@@ -32,7 +38,8 @@ public class DownloadStatusService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadStatusService.class);
     private static final String KEY_PREFIX = "download:status:";
-    private static final Duration TTL = Duration.ofDays(7);
+    private static final String COUNTER_PREFIX = "download:counts:";
+    static final Duration TTL = Duration.ofDays(14);
 
     private final RedisTemplate<String, Object> redisTemplate;
 
@@ -63,6 +70,7 @@ public class DownloadStatusService {
                 .state(DownloadState.QUEUED)
                 .queuedAt(Instant.now())
                 .build());
+        increment("queued");
     }
 
     public void markProcessing(String id) {
@@ -86,6 +94,7 @@ public class DownloadStatusService {
                 .size(size)
                 .finishedAt(Instant.now())
                 .build());
+        increment("ready");
     }
 
     public void markFailed(String id, String message) {
@@ -98,5 +107,39 @@ public class DownloadStatusService {
                 .message(message)
                 .finishedAt(Instant.now())
                 .build());
+        increment("failed");
+    }
+
+    /** Bumps both the running total and a per-day counter. */
+    public void increment(String name) {
+        try {
+            String today = java.time.LocalDate.now().toString();
+            redisTemplate.opsForValue().increment(COUNTER_PREFIX + name + ":total");
+            redisTemplate.opsForValue().increment(COUNTER_PREFIX + name + ":by-day:" + today);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to increment counter '{}': {}", name, e.getMessage());
+        }
+    }
+
+    /**
+     * Snapshot of all download counters (totals and recent per-day).
+     * Returns a map keyed by the bare counter name (after the
+     * {@code download:counts:} prefix).
+     */
+    public java.util.Map<String, Long> getCounters() {
+        java.util.Map<String, Long> out = new java.util.LinkedHashMap<>();
+        try {
+            java.util.Set<String> keys = redisTemplate.keys(COUNTER_PREFIX + "*");
+            if (keys == null) return out;
+            for (String key : new java.util.TreeSet<>(keys)) {
+                Object v = redisTemplate.opsForValue().get(key);
+                long n = v instanceof Number ? ((Number) v).longValue()
+                        : v != null ? Long.parseLong(v.toString()) : 0L;
+                out.put(key.substring(COUNTER_PREFIX.length()), n);
+            }
+        } catch (Exception e) {
+            LOGGER.warn("Failed to read counters: {}", e.getMessage());
+        }
+        return out;
     }
 }
