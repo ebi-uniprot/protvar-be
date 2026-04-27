@@ -133,7 +133,7 @@ public class DownloadProcessor {
 			downloadStatusService.markReady(id, fileSize(zipPath));
 			Email.notifyUser(request);
 		} catch (Exception e) {
-			downloadStatusService.markFailed(id, e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+			downloadStatusService.markFailed(id, DownloadStatusService.MSG_PROCESSING_FAILED);
 			handleException(e, request, List.of());
 		}
 		long end = System.currentTimeMillis();

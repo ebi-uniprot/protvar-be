@@ -14,10 +14,19 @@ import java.time.Instant;
 /**
  * Reads/writes download lifecycle status in Redis. The Redis entry is the
  * source of truth; the on-disk ZIP is the file artifact. Entry TTL is 7 days.
+ *
+ * <p>Failure messages stored on the {@link DownloadStatus#getMessage()} field
+ * are user-facing — keep them short and free of technical detail. Stack traces
+ * and exception messages still go to logs and the dev notification email.
  */
 @Service
 @RequiredArgsConstructor
 public class DownloadStatusService {
+
+    public static final String MSG_QUEUE_FAILED =
+            "Could not submit your download. Please try again.";
+    public static final String MSG_PROCESSING_FAILED =
+            "Download failed. Please try again, or contact protvar@ebi.ac.uk if the issue persists.";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadStatusService.class);
     private static final String KEY_PREFIX = "download:status:";
@@ -65,14 +74,14 @@ public class DownloadStatusService {
                 .build());
     }
 
-    public void markReady(String id, long bytes) {
+    public void markReady(String id, long size) {
         DownloadStatus current = get(id);
         DownloadStatus.DownloadStatusBuilder builder = current != null
                 ? current.toBuilder()
                 : DownloadStatus.builder();
         put(id, builder
                 .state(DownloadState.READY)
-                .bytes(bytes)
+                .size(size)
                 .finishedAt(Instant.now())
                 .build());
     }

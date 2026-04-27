@@ -42,7 +42,7 @@ public class DownloadService {
             LOGGER.info("Queued request: {}", id);
         } catch (Exception e) {
             LOGGER.error("Error queuing request {}", id, e);
-            downloadStatusService.markFailed(id, "Failed to enqueue: " + e.getMessage());
+            downloadStatusService.markFailed(id, DownloadStatusService.MSG_QUEUE_FAILED);
         }
 
         DownloadResponse response = new DownloadResponse();
@@ -93,7 +93,7 @@ public class DownloadService {
             }
             return DownloadStatus.builder()
                     .state(DownloadState.READY)
-                    .bytes(size)
+                    .size(size)
                     .build();
         }
         if (Files.exists(csvFilePath)) {

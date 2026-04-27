@@ -17,7 +17,7 @@ import java.time.Instant;
  *   <li>{@code state} is always populated</li>
  *   <li>{@code message} carries the failure reason when state=FAILED, or
  *       optional info on success</li>
- *   <li>{@code bytes} is set only when state=READY</li>
+ *   <li>{@code size} is set only when state=READY (file size in bytes)</li>
  *   <li>{@code queuedAt} is set at submission, {@code startedAt} when a
  *       worker picks up the job, {@code finishedAt} on terminal state</li>
  * </ul>
@@ -30,7 +30,7 @@ import java.time.Instant;
 public class DownloadStatus {
     private DownloadState state;
     private String message;
-    private Long bytes;
+    private Long size;
     private Instant queuedAt;
     private Instant startedAt;
     private Instant finishedAt;
