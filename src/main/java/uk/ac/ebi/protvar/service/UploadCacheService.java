@@ -22,7 +22,7 @@ import java.util.List;
  *       ]
  */
 @Service
-public class InputCacheService {
+public class UploadCacheService {
     @Cacheable(value = "inputs", key = "#inputId")
     //public List<VariantInput> getInput(String inputId) { return null; }
     public List<String> getInput(String inputId) { return null; }

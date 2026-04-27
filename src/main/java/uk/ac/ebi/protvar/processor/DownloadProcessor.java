@@ -24,12 +24,10 @@ import org.springframework.stereotype.Service;
 import com.opencsv.CSVWriter;
 
 import uk.ac.ebi.protvar.cache.InputBuild;
-import uk.ac.ebi.protvar.fetcher.*;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
 import uk.ac.ebi.protvar.input.*;
-import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
 import uk.ac.ebi.protvar.mapper.MappingData;
@@ -37,8 +35,9 @@ import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
 import uk.ac.ebi.protvar.service.DownloadStatusService;
+import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.service.StructureService;
-import uk.ac.ebi.protvar.service.InputCacheService;
+import uk.ac.ebi.protvar.service.UploadCacheService;
 import uk.ac.ebi.protvar.service.InputService;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
@@ -79,10 +78,8 @@ public class DownloadProcessor {
 	private final CsvPopulationDataBuilder csvPopulationDataBuilder;
 	private final CsvStructureDataBuilder csvStructureDataBuilder;
 	private final InputService inputService;
-	private final InputCacheService inputCacheService;
-	private final ResultCacheHandler resultCacheHandler;
-	private final IdentifierBrowseHandler identifierBrowseHandler;
-	private final FilterOnlyHandler filterOnlyHandler;
+	private final UploadCacheService uploadCacheService;
+	private final MappingService mappingService;
 	private final InputMapper inputMapper;
 	private final AnnotationFetcher annotationFetcher;
 	private final StructureService structureService;
@@ -91,6 +88,8 @@ public class DownloadProcessor {
 	private String dataFolder;
 	@Value("${app.tmp.folder}")
 	private String tmpFolder;
+	@Value("${csv.partition.size:4000}")
+	private int chunkSize;
 
 	// Note:
 	// moved @Transactional from process() to a deeper method that actually hits the DB.
@@ -109,27 +108,16 @@ public class DownloadProcessor {
 				return;
 			}
 
-			InputHandler handler = null;
-
-			if (request.getQ() != null && !request.getQ().isBlank()) {
-				LOGGER.info("Single variant download request: {}", id);
-				// no handler needed for single variant query
-			} else if (request.getResultId() != null && !request.getResultId().isBlank()) {
-				handler = resultCacheHandler;
-				// ensure that the build is detected and cached
+			// detectBuild must run before mapping for resultId requests so
+			// that the cached InputBuild is populated when we read it below.
+			if (request.getResultId() != null && !request.getResultId().isBlank()) {
 				inputService.detectBuild(InputRequest.builder()
 						.inputId(request.getResultId())
 						.assembly(request.getAssembly())
 						.build());
-			} else if (request.getIds() != null && !request.getIds().isEmpty()) {
-				handler = identifierBrowseHandler;
-			} else {
-				// Filter-only browse — routed through GenomicVariantRepo
-				// for query optimisation, matching the mapping API path.
-				handler = filterOnlyHandler;
 			}
 
-			handleDownload(handler, request, zipPath);
+			handleDownload(request, zipPath);
 			downloadStatusService.markReady(id, fileSize(zipPath));
 			Email.notifyUser(request);
 		} catch (Exception e) {
@@ -151,33 +139,24 @@ public class DownloadProcessor {
 		}
 	}
 
-	private void handleDownload(InputHandler inputHandler, DownloadRequest request, Path zipPath) throws Exception {
+	private void handleDownload(DownloadRequest request, Path zipPath) throws Exception {
 		Path csvPath = Path.of(tmpFolder, request.getFname() + ".csv");
 		boolean fun = Boolean.TRUE.equals(request.getFunction());
 		boolean pop = Boolean.TRUE.equals(request.getPopulation());
 		boolean str = Boolean.TRUE.equals(request.getStructure());
 
-		List<VariantInput> inputs;
-
-		if (request.getQ() != null && !request.getQ().isBlank()) {
-			inputs = List.of(VariantParser.parse(request.getQ()));
-			processAndWriteCsv(inputs, csvPath, request.getAssembly(), null, fun, pop, str, true);
-			return;
-		}
-
 		InputBuild build = (request.getResultId() != null && !request.getResultId().isBlank())
-				? inputCacheService.getBuild(request.getResultId()) : null; // use cached build
+				? uploadCacheService.getBuild(request.getResultId()) : null;
 
-		if (!Boolean.TRUE.equals(request.getFull())) { // paged download: process in main thread
+		if (!Boolean.TRUE.equals(request.getFull())) {
 			LOGGER.info("Page download request: {}", request.getFname());
-			inputs = inputHandler.pagedInput(request).getContent();
+			List<VariantInput> inputs = mappingService.getInputs(request).getContent();
 			processAndWriteCsv(inputs, csvPath, request.getAssembly(), build, fun, pop, str, true);
-		} else { // full download: partition and process in parallel, if large
+		} else {
 			LOGGER.info("Full download request: {}", request.getFname());
-			processFullDownload(inputHandler, request, csvPath, build, fun, pop, str);
+			processFullDownload(request, csvPath, build, fun, pop, str);
 		}
 
-		// Zip final CSV
 		FileUtils.zipFile(csvPath, zipPath);
 		Files.deleteIfExists(csvPath);
 	}
@@ -200,12 +179,12 @@ public class DownloadProcessor {
 	private final Semaphore dbTaskSemaphore = new Semaphore(10); // limit to 10 concurrent DB-hitting tasks
 
 	// Process in parallel, partitioning the input into chunks
-	private void processFullDownload(InputHandler inputHandler, DownloadRequest request, Path csvPath,
+	private void processFullDownload(DownloadRequest request, Path csvPath,
 									 InputBuild build, boolean fun, boolean pop, boolean str) throws Exception {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
 		List<Future<Path>> futures = new ArrayList<>();
 
-		try (Stream<List<VariantInput>> chunkStream = inputHandler.streamChunkedInput(request)) {
+		try (Stream<List<VariantInput>> chunkStream = mappingService.streamChunkedInputs(request, chunkSize)) {
 			for (List<VariantInput> chunk : (Iterable<List<VariantInput>>) chunkStream::iterator) {
 				int chunkNum = chunkIndex.getAndIncrement();
 				// Limit concurrent DB/file-processing

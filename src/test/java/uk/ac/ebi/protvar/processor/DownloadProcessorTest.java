@@ -3,17 +3,15 @@ package uk.ac.ebi.protvar.processor;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import uk.ac.ebi.protvar.fetcher.FilterOnlyHandler;
-import uk.ac.ebi.protvar.fetcher.IdentifierBrowseHandler;
-import uk.ac.ebi.protvar.fetcher.ResultCacheHandler;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
 import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
 import uk.ac.ebi.protvar.service.DownloadStatusService;
+import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.service.StructureService;
-import uk.ac.ebi.protvar.service.InputCacheService;
+import uk.ac.ebi.protvar.service.UploadCacheService;
 import uk.ac.ebi.protvar.service.InputService;
 import uk.ac.ebi.protvar.utils.Constants;
 
@@ -29,10 +27,8 @@ class DownloadProcessorTest {
           mock(CsvPopulationDataBuilder.class),
           mock(CsvStructureDataBuilder.class),
           mock(InputService.class),
-          mock(InputCacheService.class),
-          mock(ResultCacheHandler.class),
-          mock(IdentifierBrowseHandler.class),
-          mock(FilterOnlyHandler.class),
+          mock(UploadCacheService.class),
+          mock(MappingService.class),
           mock(InputMapper.class),
           mock(AnnotationFetcher.class),
           mock(StructureService.class),
