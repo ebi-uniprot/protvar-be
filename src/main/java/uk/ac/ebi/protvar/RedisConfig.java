@@ -17,6 +17,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import uk.ac.ebi.protvar.config.RetentionProperties;
+
+import java.util.Map;
 
 @Configuration
 public class RedisConfig {
@@ -65,19 +68,28 @@ public class RedisConfig {
 
     /**
      * This ensures that Spring's @Cacheable mechanism will use Jackson (JSON) serialization, not the default JDK one.
-     * @param connectionFactory
-     * @param redisJsonSerializer
-     * @return
+     * Caches that hold user-submitted data ({@code inputs}, {@code inputBuilds}, {@code inputSummaries})
+     * get a finite TTL from {@link RetentionProperties#getSubmissions()} so old submissions auto-expire;
+     * everything else inherits the default config (no TTL, bounded by redis maxmemory + LRU at the cluster).
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory,
-                                     GenericJackson2JsonRedisSerializer redisJsonSerializer) {
+                                     GenericJackson2JsonRedisSerializer redisJsonSerializer,
+                                     RetentionProperties retention) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(redisJsonSerializer));
 
+        RedisCacheConfiguration submissionConfig = config.entryTtl(retention.getSubmissions());
+        Map<String, RedisCacheConfiguration> perCache = Map.of(
+                "inputs", submissionConfig,
+                "inputBuilds", submissionConfig,
+                "inputSummaries", submissionConfig
+        );
+
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
+                .withInitialCacheConfigurations(perCache)
                 .build();
     }
 }

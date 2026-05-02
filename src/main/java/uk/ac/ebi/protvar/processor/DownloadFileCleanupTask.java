@@ -6,20 +6,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import uk.ac.ebi.protvar.config.RetentionProperties;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 /**
  * Daily sweep of {@code app.data.folder} that deletes generated download
- * archives older than {@link #MAX_AGE}. Runs at 03:00 server time. Aligns the
- * disk lifecycle with the Redis status TTL — anything past the cutoff is
- * already reported as EXPIRED to clients via the status endpoint.
+ * archives older than {@link RetentionProperties#getDownloads()}. Runs at 03:00
+ * server time. Aligns the disk lifecycle with the Redis status TTL — anything
+ * past the cutoff is already reported as EXPIRED to clients via the status
+ * endpoint.
  *
  * <p>Only files matching {@code *.csv.zip} are removed. Anything else in the
  * data folder (logs, configs, manually placed artifacts) is left alone.
@@ -29,10 +30,11 @@ import java.util.stream.Stream;
 public class DownloadFileCleanupTask {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadFileCleanupTask.class);
-    private static final Duration MAX_AGE = Duration.ofDays(14);
 
     @Value("${app.data.folder}")
     private String dataFolder;
+
+    private final RetentionProperties retention;
 
     @Scheduled(cron = "0 0 3 * * *")
     public void sweep() {
@@ -41,7 +43,7 @@ public class DownloadFileCleanupTask {
             LOGGER.warn("Cleanup skipped — data folder not present: {}", root);
             return;
         }
-        Instant cutoff = Instant.now().minus(MAX_AGE);
+        Instant cutoff = Instant.now().minus(retention.getDownloads());
         AtomicLong deletedFiles = new AtomicLong();
         AtomicLong freedBytes = new AtomicLong();
 
