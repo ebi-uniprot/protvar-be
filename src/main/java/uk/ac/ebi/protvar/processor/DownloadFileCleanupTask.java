@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.processor;
 
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +37,12 @@ public class DownloadFileCleanupTask {
 
     private final RetentionProperties retention;
 
+    /** Last-sweep summary, surfaced via /status. {@code null} until the first sweep runs. */
+    @Getter
+    private volatile LastSweep lastSweep;
+
+    public record LastSweep(Instant ranAt, long filesDeleted, long bytesFreed) {}
+
     @Scheduled(cron = "0 0 3 * * *")
     public void sweep() {
         Path root = Path.of(dataFolder);
@@ -57,6 +64,7 @@ public class DownloadFileCleanupTask {
             return;
         }
 
+        lastSweep = new LastSweep(Instant.now(), deletedFiles.get(), freedBytes.get());
         if (deletedFiles.get() > 0) {
             LOGGER.info("Cleanup deleted {} download files ({} bytes freed)",
                     deletedFiles.get(), freedBytes.get());
