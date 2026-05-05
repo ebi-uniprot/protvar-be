@@ -76,46 +76,34 @@ public class AnnotationFetcher {
 		Map<String, List<Interaction>> interactMap = Map.of();
 		Map<String, List<Foldx>> foldxMap = Map.of();
 
-		boolean fullProtein = true;  // UniProt accession + isfull download, load all for accession
-		String accession = "";
+		// TODO(revisit): for single-accession + whole-protein downloads we
+		// could collapse the per-(accession,position) array queries below
+		// into one `WHERE accession=?` query per repo. Detection requires
+		// knowing the download is single-accession at this point — left as
+		// a follow-up; for now the array path is the universal default.
+
+		String[] accessions = core.getAccPosArrays().first();
+		Integer[] positions = core.getAccPosArrays().second();
 
 		if (fun) {
 			LOGGER.info("Preloading protein function annotation for {} canonical accessions", core.getCanonicalAccessions().size());
 			functionalAnnService.preloadFunctionCache(core.getCanonicalAccessions());
 
-			if (fullProtein) {
-				scoreMap = scoreRepo.getScores(accession) // non-AM scores
-						.stream().collect(Collectors.groupingBy(Score::getVariantKey));
-				pocketMap = pocketRepo.getPockets(accession);
-				interactMap = interactionRepo.getInteractions(accession);
-				foldxMap = foldxRepo.getFoldxs(accession);
-			} else {
-				scoreMap = scoreRepo.getAnnotationScores(core.getAccPosArrays().first(), core.getAccPosArrays().second()) // non-AM scores
-						.stream().collect(Collectors.groupingBy(Score::getVariantKey));
-				pocketMap = pocketRepo.getPockets(core.getAccPosArrays().first(), core.getAccPosArrays().second());
-				interactMap = interactionRepo.getInteractions(core.getAccPosArrays().first(), core.getAccPosArrays().second());
-				foldxMap = foldxRepo.getFoldxs(core.getAccPosArrays().first(), core.getAccPosArrays().second());
-			}
+			scoreMap = scoreRepo.getAnnotationScores(accessions, positions) // non-AM scores
+					.stream().collect(Collectors.groupingBy(Score::getVariantKey));
+			pocketMap = pocketRepo.getPockets(accessions, positions);
+			interactMap = interactionRepo.getInteractions(accessions, positions);
+			foldxMap = foldxRepo.getFoldxs(accessions, positions);
 		}
 
-
 		if (pop) {
-			if (fullProtein) {
-				variantMap = variantFetcher.getVariantMap(accession);
-			} else {
-				variantMap = variantFetcher.getVariantMap(core.getAccPosArrays().first(), core.getAccPosArrays().second());
-			}
+			variantMap = variantFetcher.getVariantMap(accessions, positions);
 			freqMap = alleleFreqRepo.getAlleleFreqs(core.getChrPosArrays().first(), core.getChrPosArrays().second())
 					.stream().collect(Collectors.groupingBy(AlleleFreq::getVariantKey));
 		}
 
-
 		if (str) {
-			if (fullProtein) {
-				structureService.preloadStructureCache(List.of(accession));
-			} else {
-				structureService.preloadStructureCache(new ArrayList<>(core.getCanonicalAccessions()));
-			}
+			structureService.preloadStructureCache(new ArrayList<>(core.getCanonicalAccessions()));
 		}
 
 		return AnnotationData.builder()
