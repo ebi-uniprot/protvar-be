@@ -216,6 +216,14 @@ public class DownloadProcessor {
 	private final Semaphore dbTaskSemaphore = new Semaphore(10); // limit to 10 concurrent DB-hitting tasks
 
 	// Process in parallel, partitioning the input into chunks
+	//
+	// TODO(redesign): full download flattens to CSV, so the per-chunk
+	// MappingData hierarchy built by inputMapper.loadCoreMappingAndScores
+	// (g2pMap + caddMap + scoreMap + canonical/accPos sets) is overhead.
+	// Mirror GenomicVariantRepo: SQL-side codon expansion + LEFT JOINs to
+	// score tables, stream rows straight to CSVWriter via RowCallbackHandler.
+	// The API page path keeps loadCoreMappingAndScores (page-bounded JSON
+	// output genuinely benefits from the in-memory hierarchy).
 	private void processFullDownload(DownloadRequest request, Path csvPath,
 									 InputBuild build, boolean fun, boolean pop, boolean str) throws Exception {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
