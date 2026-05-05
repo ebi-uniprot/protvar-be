@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
+import uk.ac.ebi.protvar.model.response.DownloadStatsResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
+import uk.ac.ebi.protvar.processor.DownloadFileCleanupTask;
 import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.MappingService;
@@ -47,6 +49,7 @@ public class DownloadController implements WebMvcConfigurer {
 
     private final DownloadService downloadService;
     private final DownloadStatusService downloadStatusService;
+    private final DownloadFileCleanupTask cleanupTask;
     private final MappingService mappingService;
 
     @Operation(summary = SUMMARY)
@@ -127,8 +130,13 @@ public class DownloadController implements WebMvcConfigurer {
 
     @Operation(hidden = true)
     @GetMapping(value = "/stats", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Map<String, Long>> downloadStats() {
-        return ResponseEntity.ok(downloadStatusService.getCounters());
+    public ResponseEntity<DownloadStatsResponse> downloadStats() {
+        DownloadStatsResponse.Cleanup cleanup = null;
+        DownloadFileCleanupTask.LastSweep last = cleanupTask.getLastSweep();
+        if (last != null) {
+            cleanup = new DownloadStatsResponse.Cleanup(last.ranAt(), last.filesDeleted(), last.bytesFreed());
+        }
+        return ResponseEntity.ok(new DownloadStatsResponse(downloadStatusService.getCounters(), cleanup));
     }
 
 }

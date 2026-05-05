@@ -46,13 +46,13 @@ import uk.ac.ebi.protvar.utils.*;
 /**
  * Handles CSV download requests received from RabbitMQ.
  *
- * - Requests are processed asynchronously using `downloadJobExecutor` (5 parallel jobs max).
+ * - Requests run inline on the RabbitMQ listener thread (concurrency=5, prefetch=1).
  * - Large jobs are split into ~1000-input partitions, processed via `partitionProcessingExecutor`.
  * - A semaphore (10 permits) limits concurrent DB-heavy partition tasks to avoid overload.
  * - Each partition streams results to CSV, merged and zipped after all parts complete.
  *
  * Limits:
- * - Max concurrent jobs: 5 (RabbitMQ concurrency & job executor)
+ * - Max concurrent jobs: 5 (RabbitMQ listener concurrency)
  * - Max concurrent DB-hitting partitions: 10 (via semaphore)
  * - Small job (≤1000 inputs): 1 task, 1 DB call group (5–9 queries).
  * - Large job (~30,000 inputs): ~30 partitions, up to 10 parallel at a time.
@@ -91,6 +91,12 @@ public class DownloadProcessor {
 	private String tmpFolder;
 	@Value("${csv.partition.size:4000}")
 	private int chunkSize;
+	// Cap on processing attempts per job. When the listener uses manual ack,
+	// a JVM crash mid-job leaves the message unacked and Rabbit redelivers it.
+	// Without a cap, a poison payload that reliably crashes the BE would loop
+	// forever and brick the queue.
+	@Value("${app.download.max-attempts:3}")
+	private int maxAttempts;
 
 	// Each partition (chunk) holds at most 1 Hikari connection at a time:
 	// loadCoreMappingAndScores is @Transactional(readOnly), so its multi-query
@@ -100,9 +106,34 @@ public class DownloadProcessor {
 	// job, keeping overall connection count below the Hikari pool max.
 	public void process(DownloadRequest request) {
 		String id = request.getFname();
-		LOGGER.info("[{}] Download request started", id);
 		long start = System.currentTimeMillis();
-		downloadStatusService.markProcessing(id);
+
+		DownloadStatus current = downloadStatusService.get(id);
+		DownloadState currentState = current != null ? current.getState() : null;
+
+		// Idempotency guard: a redelivery after a terminal state shouldn't redo work.
+		if (currentState == DownloadState.READY || currentState == DownloadState.FAILED) {
+			LOGGER.info("[{}] Skipping redelivery; already {}", id, currentState);
+			return;
+		}
+
+		// Redelivery from a crashed prior attempt: the previous worker set
+		// state=PROCESSING but never reached a terminal state, so manual ack
+		// didn't fire and Rabbit re-handed us the message.
+		int previousAttempts = (currentState == DownloadState.PROCESSING && current.getAttempts() != null)
+				? current.getAttempts() : 0;
+		int attempts = previousAttempts + 1;
+
+		if (attempts > maxAttempts) {
+			LOGGER.error("[{}] Aborting after {} crashed attempts", id, previousAttempts);
+			downloadStatusService.markFailed(id, DownloadStatusService.MSG_RETRIES_EXHAUSTED);
+			Email.notifyDevErr(request, List.of(), new RuntimeException(
+					"Download " + id + " gave up after " + previousAttempts + " crashed attempts"));
+			return;
+		}
+
+		LOGGER.info("[{}] Download request started (attempt {}/{})", id, attempts, maxAttempts);
+		downloadStatusService.markProcessing(id, attempts);
 		try {
 			Path zipPath = Path.of(dataFolder, id + ".csv.zip");
 			if (Files.exists(zipPath)) {
@@ -185,6 +216,14 @@ public class DownloadProcessor {
 	private final Semaphore dbTaskSemaphore = new Semaphore(10); // limit to 10 concurrent DB-hitting tasks
 
 	// Process in parallel, partitioning the input into chunks
+	//
+	// TODO(redesign): full download flattens to CSV, so the per-chunk
+	// MappingData hierarchy built by inputMapper.loadCoreMappingAndScores
+	// (g2pMap + caddMap + scoreMap + canonical/accPos sets) is overhead.
+	// Mirror GenomicVariantRepo: SQL-side codon expansion + LEFT JOINs to
+	// score tables, stream rows straight to CSVWriter via RowCallbackHandler.
+	// The API page path keeps loadCoreMappingAndScores (page-bounded JSON
+	// output genuinely benefits from the in-memory hierarchy).
 	private void processFullDownload(DownloadRequest request, Path csvPath,
 									 InputBuild build, boolean fun, boolean pop, boolean str) throws Exception {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
@@ -413,14 +452,19 @@ public class DownloadProcessor {
 			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_POPULATION);
 		}
 
-		// protein structures would have been preloaded in the cache
-		List<StructureResidue> proteinStructure = structureService.getStr(isoform.getAccession(),
-				isoform.getIsoformPosition());
-
-		if (annData.isStr() && proteinStructure != null)
-			output.add(csvStructureDataBuilder.build(proteinStructure));
-		else
+		// protein structures would have been preloaded in the cache when str=true.
+		// Skip the lookup entirely otherwise — preloadStructureCache isn't called,
+		// so each per-row getStr would be a cold cache miss against rel_*_structure.
+		if (annData.isStr()) {
+			List<StructureResidue> proteinStructure = structureService.getStr(isoform.getAccession(),
+					isoform.getIsoformPosition());
+			if (proteinStructure != null)
+				output.add(csvStructureDataBuilder.build(proteinStructure));
+			else
+				addNaForNonRequestedData(output, CsvHeaders.OUTPUT_STRUCTURE);
+		} else {
 			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_STRUCTURE);
+		}
 
 		return output.toArray(String[]::new);
 	}

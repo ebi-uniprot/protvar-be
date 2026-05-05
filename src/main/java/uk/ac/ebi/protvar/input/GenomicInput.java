@@ -57,6 +57,7 @@ public class GenomicInput extends VariantInput {
     );
 
     public static Set<String> getAlternateBases(String refBase) {
+        if (refBase == null) return Set.of();
         return ALTERNATE_ALLELES_MAP.getOrDefault(refBase.toUpperCase(), Set.of());
     }
 

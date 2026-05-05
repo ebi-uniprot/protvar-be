@@ -5,16 +5,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.config.RetentionProperties;
 import uk.ac.ebi.protvar.model.response.DownloadState;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 
-import java.time.Duration;
 import java.time.Instant;
 
 /**
  * Reads/writes download lifecycle status in Redis. The Redis entry is the
- * source of truth; the on-disk ZIP is the file artifact. Entry TTL is 14 days,
- * matching the scheduled file cleanup window.
+ * source of truth; the on-disk ZIP is the file artifact. Entry TTL comes from
+ * {@link RetentionProperties#getDownloads()} (default 30 days) and is shared
+ * with the on-disk file cleanup so the two stay in lockstep.
  *
  * <p>Failure messages stored on the {@link DownloadStatus#getMessage()} field
  * are user-facing — keep them short and free of technical detail. Stack traces
@@ -35,13 +36,15 @@ public class DownloadStatusService {
             "Download failed. Please try again, or contact protvar@ebi.ac.uk if the issue persists.";
     public static final String MSG_TOO_LARGE =
             "Your download is too large. Please refine your filters.";
+    public static final String MSG_RETRIES_EXHAUSTED =
+            "Download failed repeatedly. Please contact protvar@ebi.ac.uk.";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadStatusService.class);
     private static final String KEY_PREFIX = "download:status:";
     private static final String COUNTER_PREFIX = "download:counts:";
-    static final Duration TTL = Duration.ofDays(14);
 
     private final RedisTemplate<String, Object> redisTemplate;
+    private final RetentionProperties retention;
 
     private static String key(String id) {
         return KEY_PREFIX + id;
@@ -59,7 +62,7 @@ public class DownloadStatusService {
 
     public void put(String id, DownloadStatus status) {
         try {
-            redisTemplate.opsForValue().set(key(id), status, TTL);
+            redisTemplate.opsForValue().set(key(id), status, retention.getDownloads());
         } catch (Exception e) {
             LOGGER.warn("Failed to write status for {}: {}", id, e.getMessage());
         }
@@ -73,7 +76,7 @@ public class DownloadStatusService {
         increment("queued");
     }
 
-    public void markProcessing(String id) {
+    public void markProcessing(String id, int attempts) {
         DownloadStatus current = get(id);
         DownloadStatus.DownloadStatusBuilder builder = current != null
                 ? current.toBuilder()
@@ -81,6 +84,7 @@ public class DownloadStatusService {
         put(id, builder
                 .state(DownloadState.PROCESSING)
                 .startedAt(Instant.now())
+                .attempts(attempts)
                 .build());
     }
 

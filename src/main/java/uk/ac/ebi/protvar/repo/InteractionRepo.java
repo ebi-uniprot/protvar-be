@@ -83,7 +83,7 @@ public class InteractionRepo {
 
             while (rs.next()) {
                 Interaction interaction = createInteraction(rs);
-                result.computeIfAbsent(VariantKey.protein(rs.getString("acc"), rs.getInt("resid")),
+                result.computeIfAbsent(VariantKey.protein(rs.getString("accession"), rs.getInt("resid")),
                         k -> new ArrayList<>()).add(interaction);
             }
 

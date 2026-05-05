@@ -25,23 +25,23 @@ public class FunctionalInfoEnricher {
         // Add novel predictions
         String variantKey = VariantKey.protein(accession, position);
         String variantKeyWithAlt = VariantKey.protein(accession, position, variantAA);
-        if (annData.getPocketMap() != null || !annData.getPocketMap().isEmpty()) {
+        if (annData.getPocketMap() != null && !annData.getPocketMap().isEmpty()) {
             List<Pocket> pockets = annData.getPocketMap().getOrDefault(variantKey, Collections.emptyList());
             functionalInfo.setPockets(pockets);
         }
 
-        if (annData.getInteractMap() != null || !annData.getInteractMap().isEmpty()) {
+        if (annData.getInteractMap() != null && !annData.getInteractMap().isEmpty()) {
             List<Interaction> interactions = annData.getInteractMap().get(variantKey);
             functionalInfo.setInteractions(interactions);
         }
 
-        if (annData.getFoldxMap() != null || !annData.getFoldxMap().isEmpty()) {
+        if (annData.getFoldxMap() != null && !annData.getFoldxMap().isEmpty()) {
             List<Foldx> foldxs = annData.getFoldxMap().get(variantKeyWithAlt);
             functionalInfo.setFoldxs(foldxs);
         }
 
         // Add annotation (Conserv, Eve, Esm, PopEve) scores
-        if (annData.getScoreMap() != null || !annData.getScoreMap().isEmpty()) {
+        if (annData.getScoreMap() != null && !annData.getScoreMap().isEmpty()) {
 
             String conservScoreKey = VariantKey.protein(ScoreType.CONSERV, accession, position, null);
             String eveScoreKey = VariantKey.protein(ScoreType.EVE, accession, position, variantAA);

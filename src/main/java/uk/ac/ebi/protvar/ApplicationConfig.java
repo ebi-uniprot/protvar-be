@@ -116,8 +116,12 @@ public class ApplicationConfig {
         converter.setObjectMapper(objectMapper);
 
         RestTemplate restTemplate = new RestTemplate(factory);
+        // Keep the default converter set (incl. StringHttpMessageConverter so callers
+        // can ask for String.class), but swap in our customised Jackson at the end so
+        // it — and its shared ObjectMapper — is what actually handles JSON DTOs.
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setMessageConverters(Collections.singletonList(converter));
+        restTemplate.getMessageConverters().removeIf(c -> c instanceof MappingJackson2HttpMessageConverter);
+        restTemplate.getMessageConverters().add(converter);
 
         // Add retry interceptor
         restTemplate.getInterceptors().add((request, body, execution) -> {

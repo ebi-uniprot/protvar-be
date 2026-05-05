@@ -1,6 +1,8 @@
 package uk.ac.ebi.protvar.input.mapper;
 
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.UniprotEntryCache;
@@ -21,6 +23,8 @@ import static uk.ac.ebi.protvar.input.ErrorConstants.*;
 @Service
 @AllArgsConstructor
 public class Pro2Gen {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Pro2Gen.class);
 
     private MappingRepo mappingRepo;
 
@@ -154,6 +158,19 @@ public class Pro2Gen {
 
                 if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
                     gCoordsForProtein.forEach(gCoord -> {
+                        // Guard against incomplete g2p_mapping rows. The DB columns
+                        // base_nucleotide / aa / codon can be null for some accessions
+                        // (data-pipeline issue tracked separately) and an unguarded
+                        // toUpperCase below would NPE the whole download. codonPosition
+                        // is a primitive int — SQL NULL becomes 0 silently, no NPE.
+                        if (gCoord.getBaseNucleotide() == null || gCoord.getAa() == null
+                                || gCoord.getCodon() == null) {
+                            LOGGER.warn("Skipping incomplete g2p mapping for {} pos {}: ref={}, aa={}, codon={}",
+                                    input.getAccession(), input.getPosition(),
+                                    gCoord.getBaseNucleotide(), gCoord.getAa(), gCoord.getCodon());
+                            return;
+                        }
+
                         String gCoordChr = gCoord.getChromosome();
                         Integer gCoordPos = gCoord.getGenomeLocation();
                         String gCoordRefAllele = gCoord.getBaseNucleotide();
@@ -269,6 +286,12 @@ public class Pro2Gen {
 
                 if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
                     gCoordsForProtein.forEach(gCoord -> {
+                        if (gCoord.getBaseNucleotide() == null) {
+                            LOGGER.warn("Skipping incomplete g2p mapping for HGVS coding {} pos {}: null baseNucleotide",
+                                    codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos());
+                            return;
+                        }
+
                         String gCoordChr = gCoord.getChromosome();
                         Integer gCoordPos = gCoord.getGenomeLocation();
                         String gCoordRefAllele = gCoord.getBaseNucleotide();
