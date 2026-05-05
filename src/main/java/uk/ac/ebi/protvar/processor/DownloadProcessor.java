@@ -413,14 +413,19 @@ public class DownloadProcessor {
 			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_POPULATION);
 		}
 
-		// protein structures would have been preloaded in the cache
-		List<StructureResidue> proteinStructure = structureService.getStr(isoform.getAccession(),
-				isoform.getIsoformPosition());
-
-		if (annData.isStr() && proteinStructure != null)
-			output.add(csvStructureDataBuilder.build(proteinStructure));
-		else
+		// protein structures would have been preloaded in the cache when str=true.
+		// Skip the lookup entirely otherwise — preloadStructureCache isn't called,
+		// so each per-row getStr would be a cold cache miss against rel_*_structure.
+		if (annData.isStr()) {
+			List<StructureResidue> proteinStructure = structureService.getStr(isoform.getAccession(),
+					isoform.getIsoformPosition());
+			if (proteinStructure != null)
+				output.add(csvStructureDataBuilder.build(proteinStructure));
+			else
+				addNaForNonRequestedData(output, CsvHeaders.OUTPUT_STRUCTURE);
+		} else {
 			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_STRUCTURE);
+		}
 
 		return output.toArray(String[]::new);
 	}
