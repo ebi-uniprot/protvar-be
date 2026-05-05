@@ -18,6 +18,9 @@ import java.time.Instant;
  *   <li>{@code message} carries the failure reason when state=FAILED, or
  *       optional info on success</li>
  *   <li>{@code size} is set only when state=READY (file size in bytes)</li>
+ *   <li>{@code attempts} counts how many times the processor picked up this
+ *       job. Bumped each time {@link DownloadState#PROCESSING} is entered;
+ *       used to cap redeliveries after a JVM crash mid-job</li>
  *   <li>{@code queuedAt} is set at submission, {@code startedAt} when a
  *       worker picks up the job, {@code finishedAt} on terminal state</li>
  * </ul>
@@ -31,6 +34,7 @@ public class DownloadStatus {
     private DownloadState state;
     private String message;
     private Long size;
+    private Integer attempts;
     private Instant queuedAt;
     private Instant startedAt;
     private Instant finishedAt;
