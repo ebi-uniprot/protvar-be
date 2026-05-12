@@ -16,7 +16,7 @@ import uk.ac.ebi.protvar.mapper.FunctionalInfoEnricher;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.StructureResidue;
-import uk.ac.ebi.protvar.service.FunctionalAnnService;
+import uk.ac.ebi.protvar.service.FunctionService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import java.util.List;
@@ -28,7 +28,7 @@ import java.util.List;
 public class AnnotationController {
 
 
-  private final FunctionalAnnService functionalAnnService; // todo: rename to FunctionalInfoService?
+  private final FunctionService functionService;
   private final AnnotationFetcher annotationFetcher;
   private final FunctionalInfoEnricher functionalInfoEnricher;
   private final StructureService structureService;
@@ -46,7 +46,7 @@ public class AnnotationController {
     @Parameter(example = "493") @PathVariable("position") int position,
     @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
 
-    FunctionalInfo functionalInfo = functionalAnnService.get(accession, position);
+    FunctionalInfo functionalInfo = functionService.get(accession, position);
     if (functionalInfo != null) {
       if (variantAA != null) {
         try {

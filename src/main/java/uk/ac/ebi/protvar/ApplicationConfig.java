@@ -34,9 +34,6 @@ public class ApplicationConfig {
     @Value(("${uniprot.proteins.api.url}"))
     private String proteinsUrl;
 
-    @Value(("${uniprot.variation.api.url}"))
-    private String variationUrl;
-
     @Value(("${uniprot.coordinates.api.url}"))
     private String coordinatesUrl;
 
@@ -60,19 +57,6 @@ public class ApplicationConfig {
     @Bean
     public NamedParameterJdbcTemplate namedParameterJdbcTemplate(@Qualifier("dataSource") DataSource dataSource) {
         return new NamedParameterJdbcTemplate(dataSource);
-    }
-
-    @Bean
-    @Qualifier("variationRestTemplate")
-    //@RequestScope
-    public RestTemplate variationRestTemplate() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000);
-        factory.setReadTimeout(15000);
-        RestTemplate restTemplate = new RestTemplate(factory);
-        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(variationUrl));
-        return restTemplate;
     }
 
     @Bean

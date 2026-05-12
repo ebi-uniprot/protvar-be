@@ -11,7 +11,7 @@ import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.model.response.Isoform;
 import uk.ac.ebi.protvar.model.score.EveScore;
-import uk.ac.ebi.protvar.service.FunctionalAnnService;
+import uk.ac.ebi.protvar.service.FunctionService;
 import uk.ac.ebi.protvar.utils.CsvUtils;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
@@ -43,13 +43,13 @@ public class CsvFunctionDataBuilder {
 	// EVE
 	// ESM
 
-	private final FunctionalAnnService functionalAnnService;
+	private final FunctionService functionService;
 	private final FunctionalInfoEnricher functionalInfoEnricher;
 	public List<String> build(Isoform isoform, AnnotationData annData) {
 		if (!annData.isFun()) return Collections.emptyList();
 
 		// functional info would have been preloaded in the cache
-		FunctionalInfo functionalInfo = functionalAnnService.get(isoform.getAccession(), isoform.getIsoformPosition());
+		FunctionalInfo functionalInfo = functionService.get(isoform.getAccession(), isoform.getIsoformPosition());
 		if (functionalInfo == null) return Collections.emptyList();
 
 		functionalInfoEnricher.enrich(functionalInfo, annData, isoform.getVariantAA());
