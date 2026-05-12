@@ -30,7 +30,7 @@ public class AnnotationData {
 
     // fun (Proteins API+ProtVar scores and preds)
     // functional info is loaded from preloaded data in cache
-    //FunctionalInfo funInfo FunctionalAnnService.get(String accession, int position)
+    //FunctionalInfo funInfo FunctionService.get(String accession, int position)
 
 
     Map<String, List<Score>> scoreMap; // key: ?

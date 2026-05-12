@@ -25,20 +25,20 @@ import java.util.*;
 
 @Repository
 @RequiredArgsConstructor
-public class VariationRepo {
-    private static final Logger LOGGER = LoggerFactory.getLogger(VariationRepo.class);
+public class PopulationRepo {
+    private static final Logger LOGGER = LoggerFactory.getLogger(PopulationRepo.class);
     private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    @Value("${tbl.variation}")
-    private String variationTable;
+    @Value("${tbl.ann.pop}")
+    private String populationTable;
 
     public List<Feature> getFeatures(String accession, int position) {
         List<Object[]> params = new ArrayList<>();
         params.add(new Object[] {accession, position});
         String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosList)",
-                variationTable);
+                populationTable);
         SqlParameterSource parameters = new MapSqlParameterSource("accPosList", params);
 
 
@@ -77,7 +77,7 @@ public class VariationRepo {
         SELECT * FROM %s
         INNER JOIN coord_list ON accession = coord_list.acc
           AND position = coord_list.pos
-        """, variationTable);
+        """, populationTable);
         MapSqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("accessions", accessions)
                 .addValue("positions", positions);
@@ -90,7 +90,7 @@ public class VariationRepo {
         if (accession == null || accession.isEmpty())
             return new HashedMap();
 
-        String sql = String.format("SELECT * FROM %s WHERE accession = :accession", variationTable);
+        String sql = String.format("SELECT * FROM %s WHERE accession = :accession", populationTable);
         SqlParameterSource parameters = new MapSqlParameterSource("accession", accession);
 
         return getFeatureMapFromQuery(sql, parameters);

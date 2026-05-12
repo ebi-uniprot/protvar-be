@@ -17,7 +17,7 @@ import java.util.Map;
 
 @Repository
 @RequiredArgsConstructor
-public class FunctionalAnnRepo {
+public class FunctionRepo {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
@@ -27,7 +27,7 @@ public class FunctionalAnnRepo {
 
 
     // Caching is managed at the service layer after UPEntry is converted to FunctionalInfo
-    // using CacheManager as caching a list of accessions is tricky (see FunctionalAnnService)
+    // using CacheManager as caching a list of accessions is tricky (see FunctionService)
     //@Cacheable(value = "UPEntry", key = "#accession")
     public UPEntry getEntry(String accession) {
         if (accession == null) return null;

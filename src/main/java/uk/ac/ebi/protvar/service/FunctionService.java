@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.api.ProteinsAPI;
 import uk.ac.ebi.protvar.converter.FunctionalInfoConverter;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
-import uk.ac.ebi.protvar.repo.FunctionalAnnRepo;
+import uk.ac.ebi.protvar.repo.FunctionRepo;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.domain.entry.UPEntry;
 import uk.ac.ebi.uniprot.domain.features.Feature;
@@ -27,10 +27,10 @@ import java.util.stream.Collectors;
  */
 @Service
 @RequiredArgsConstructor
-public class FunctionalAnnService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(FunctionalAnnService.class);
+public class FunctionService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(FunctionService.class);
     private static final String CACHE_NAME = "FUN";
-    private final FunctionalAnnRepo functionalAnnRepo;
+    private final FunctionRepo functionRepo;
     private final ProteinsAPI proteinsAPI;
     private final CacheManager cacheManager;
     private final FunctionalInfoConverter converter;
@@ -68,7 +68,7 @@ public class FunctionalAnnService {
         LOGGER.info("Preloading {} accessions: checking DB first", toFetch.size());
 
         // Step 2: Fetch from DB
-        Map<String, UPEntry> dbEntries = functionalAnnRepo.getEntries(toFetch);
+        Map<String, UPEntry> dbEntries = functionRepo.getEntries(toFetch);
         List<String> stillMissing = new ArrayList<>();
         int dbHits = 0;
 
@@ -131,7 +131,7 @@ public class FunctionalAnnService {
         }
 
         // Not in cache → try DB
-        UPEntry entry = functionalAnnRepo.getEntry(accession);
+        UPEntry entry = functionRepo.getEntry(accession);
 
         if (entry != null) {
             FunctionalInfo info = converter.convert(entry); // <-- new Java object
