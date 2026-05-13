@@ -15,6 +15,13 @@ import uk.ac.ebi.uniprot.domain.features.Feature;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Cache evolved from Map<String, DataServiceProtein> cache = new ConcurrentHashMap<>()
+ * to Guava cache (offered automatic eviction when cache reaches specified max)
+ * Cache<String, DataServiceProtein> cache = CacheBuilder.newBuilder().build()
+ * then to disk-based MapDB, and finally to Spring Redis cache (through redisTemplate,
+ * now cacheManager and Cacheable annotation).
+ */
 @Service
 @RequiredArgsConstructor
 public class FunctionService {

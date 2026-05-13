@@ -19,23 +19,14 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriBuilderFactory;
-import uk.ac.ebi.protvar.cache.RestTemplateCache;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class ApplicationConfig {
-
-    @Value(("${uniprot.coordinates.api.url}"))
-    private String coordinatesUrl;
-
-    @Value(("${pdbe.best-structures.api.url}"))
-    private String pdbeUrl;
 
     private final ObjectMapper objectMapper;
 
@@ -56,16 +47,6 @@ public class ApplicationConfig {
         return new NamedParameterJdbcTemplate(dataSource);
     }
 
-
-    @Bean
-    @Qualifier("pdbeRestTemplate")
-    //@RequestScope
-    public RestTemplate pdbeRestTemplate() {
-        RestTemplate restTemplate = new RestTemplateCache();
-        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeUrl));
-        return restTemplate;
-    }
 
     @Bean
     @Qualifier("embeddingRestTemplate")
