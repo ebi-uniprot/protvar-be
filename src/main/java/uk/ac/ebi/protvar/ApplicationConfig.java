@@ -31,9 +31,6 @@ import java.util.Collections;
 @RequiredArgsConstructor
 public class ApplicationConfig {
 
-    @Value(("${uniprot.proteins.api.url}"))
-    private String proteinsUrl;
-
     @Value(("${uniprot.coordinates.api.url}"))
     private String coordinatesUrl;
 
@@ -59,24 +56,6 @@ public class ApplicationConfig {
         return new NamedParameterJdbcTemplate(dataSource);
     }
 
-    @Bean
-    @Qualifier("proteinsRestTemplate")
-    public RestTemplate restTemplate() {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(5000);
-        factory.setReadTimeout(15000);
-
-        // Register the ObjectMapper with a custom message converter
-        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-        converter.setObjectMapper(objectMapper); // use shared one
-
-        RestTemplate restTemplate = new RestTemplate(factory);
-        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinsUrl));
-        restTemplate.setMessageConverters(Collections.singletonList(converter));
-
-        return restTemplate;
-    }
 
     @Bean
     @Qualifier("pdbeRestTemplate")

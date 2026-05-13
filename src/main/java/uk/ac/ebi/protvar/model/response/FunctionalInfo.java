@@ -29,7 +29,7 @@ public class FunctionalInfo {
 	private List<DbReference> dbReferences; // filtered - refType in "InterPro", "Pfam", "CATH"
 	private Sequence sequence;
 
-	// ProteinsAPI2FunctionalInfo processed fields
+	// FunctionalInfoConverter processed fields
 	private int position;
 	private String type;
 	private String name;
