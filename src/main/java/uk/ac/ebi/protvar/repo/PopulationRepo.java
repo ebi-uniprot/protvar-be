@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.collections.map.HashedMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,39 +20,107 @@ import uk.ac.ebi.uniprot.domain.variation.Variant;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+/**
+ * Reads variants from rel_{release}_population. raw_json holds the full
+ * UniProt variation feature object — mapVariant just deserialises it into a
+ * Variant and applies the 1→3-letter AA convention used by the FE.
+ *
+ * The structured columns on the table (wild_type, alt, consequence,
+ * source_type, clin_sig) exist for SQL-side filtering by advanced search
+ * (indexed on accession, (accession, position), source_type, consequence,
+ * GIN clin_sig). They aren't read here — raw_json is the single source of
+ * truth on the read path.
+ */
 @Repository
 @RequiredArgsConstructor
 public class PopulationRepo {
     private static final Logger LOGGER = LoggerFactory.getLogger(PopulationRepo.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    private static final String VARIANT_COLS = "accession, position, raw_json";
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Value("${tbl.ann.pop}")
     private String populationTable;
 
+    /** Variants at a single (accession, position). */
     public List<Feature> getFeatures(String accession, int position) {
-        List<Object[]> params = new ArrayList<>();
-        params.add(new Object[] {accession, position});
-        String sql = String.format("SELECT * FROM %s WHERE (accession,position) in (:accPosList)",
-                populationTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("accPosList", params);
+        if (accession == null) return List.of();
 
-
-        return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) -> createVariant(rs));
+        String sql = String.format("""
+            SELECT %s FROM %s
+            WHERE accession = :accession AND position = :position
+            """, VARIANT_COLS, populationTable);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("accession", accession)
+                .addValue("position", position);
+        return namedParameterJdbcTemplate.query(sql, params, (rs, rowNum) -> mapVariant(rs));
     }
 
-    private Feature createVariant(ResultSet rs) throws SQLException {
-        String variantsJson = rs.getString("features");
+    /** Variants for many (accession, position) pairs, grouped by VariantKey. */
+    public Map<String, List<Feature>> getFeatureMap(String[] accessions, Integer[] positions) {
+        if (accessions == null || accessions.length == 0) return Map.of();
+
+        String sql = String.format("""
+            WITH coord_list (acc, pos) AS (
+              SELECT * FROM unnest(:accessions::VARCHAR[], :positions::INT[])
+            )
+            SELECT %s FROM %s
+            INNER JOIN coord_list ON accession = coord_list.acc
+              AND position = coord_list.pos
+            """, VARIANT_COLS, populationTable);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("accessions", accessions)
+                .addValue("positions", positions);
+        return queryFeatureMap(sql, params);
+    }
+
+    /** All variants for an accession, grouped by VariantKey. */
+    public Map<String, List<Feature>> getFeatureMap(String accession) {
+        if (accession == null || accession.isEmpty()) return Map.of();
+
+        String sql = String.format("SELECT %s FROM %s WHERE accession = :accession",
+                VARIANT_COLS, populationTable);
+        MapSqlParameterSource params = new MapSqlParameterSource("accession", accession);
+        return queryFeatureMap(sql, params);
+    }
+
+    private Map<String, List<Feature>> queryFeatureMap(String sql, SqlParameterSource params) {
+        return namedParameterJdbcTemplate.query(sql, params, new ResultSetExtractor<Map<String, List<Feature>>>() {
+            @Override
+            public Map<String, List<Feature>> extractData(ResultSet rs) throws SQLException, DataAccessException {
+                Map<String, List<Feature>> featureMap = new HashMap<>();
+                while (rs.next()) {
+                    String acc = rs.getString("accession");
+                    int pos = rs.getInt("position");
+                    Feature v = mapVariant(rs);
+                    if (v != null) {
+                        String key = VariantKey.protein(acc, pos);
+                        featureMap.computeIfAbsent(key, k -> new ArrayList<>()).add(v);
+                    }
+                }
+                return featureMap;
+            }
+        });
+    }
+
+    private Feature mapVariant(ResultSet rs) throws SQLException {
+        String rawJson = rs.getString("raw_json");
+        if (rawJson == null) return null;
         try {
-            Variant f = objectMapper.readValue(variantsJson, Variant.class);
-            f.setWildType(toThreeLetterAminoAcid(f.getWildType()));
-            f.setAlternativeSequence(toThreeLetterAminoAcid(f.getAlternativeSequence()));
-            return f;
-        }catch (JsonProcessingException ex) {
-            LOGGER.error("Error mapping UniProt feature into domain model class: " + ex.getMessage());
+            Variant v = objectMapper.readValue(rawJson, Variant.class);
+            v.setWildType(toThreeLetterAminoAcid(v.getWildType()));
+            v.setAlternativeSequence(toThreeLetterAminoAcid(v.getAlternativeSequence()));
+            return v;
+        } catch (JsonProcessingException e) {
+            LOGGER.error("Error mapping variant raw_json: {}", e.getMessage());
             return null;
         }
     }
@@ -62,69 +129,6 @@ public class PopulationRepo {
         try {
             return AminoAcid.fromOneLetter(letter).getThreeLetter();
         } catch (Exception e) {
-            return null;
-        }
-    }
-
-    // Method for handling a list of accession-position pairs
-    public Map<String, List<Feature>> getFeatureMap(String[] accessions, Integer[] positions) {
-        if (accessions == null || accessions.length == 0)  return Map.of();
-
-        String sql = String.format("""
-        WITH coord_list (acc, pos) AS (
-          SELECT * FROM unnest(:accessions::VARCHAR[], :positions::INT[])
-        )
-        SELECT * FROM %s
-        INNER JOIN coord_list ON accession = coord_list.acc
-          AND position = coord_list.pos
-        """, populationTable);
-        MapSqlParameterSource parameters = new MapSqlParameterSource()
-                .addValue("accessions", accessions)
-                .addValue("positions", positions);
-
-        return getFeatureMapFromQuery(sql, parameters);
-    }
-
-    // Method for handling a single accession
-    public Map<String, List<Feature>> getFeatureMap(String accession) {
-        if (accession == null || accession.isEmpty())
-            return new HashedMap();
-
-        String sql = String.format("SELECT * FROM %s WHERE accession = :accession", populationTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("accession", accession);
-
-        return getFeatureMapFromQuery(sql, parameters);
-    }
-
-    // Shared helper method for querying features from the database
-    private Map<String, List<Feature>> getFeatureMapFromQuery(String sql, SqlParameterSource parameters) {
-        return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<Map>() {
-            @Override
-            public Map extractData(ResultSet rs) throws SQLException, DataAccessException {
-                Map<String, List<Feature>> featureMap = new HashMap();
-                while (rs.next()) {
-                    String acc = rs.getString("accession");
-                    int pos = rs.getInt("position");
-                    Feature f = createVariant(rs);
-                    if (f != null) {
-                        String variantKey = VariantKey.protein(acc, pos);
-                        if (!featureMap.containsKey(variantKey))
-                            featureMap.put(variantKey, new ArrayList<>());
-                        featureMap.get(variantKey).add(f);
-                    }
-                }
-                return featureMap;
-            }
-        });
-    }
-
-    private Feature createFeature(ResultSet rs) throws SQLException {
-        String featuresJsonStr = rs.getString("features");
-        try {
-            Feature f = objectMapper.readValue(featuresJsonStr, Feature.class);
-            return f;
-        }catch (JsonProcessingException ex) {
-            LOGGER.error("Error mapping UniProt feature into domain model class: " + ex.getMessage());
             return null;
         }
     }
