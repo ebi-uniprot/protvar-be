@@ -70,8 +70,8 @@ public class StructureRepo {
                 rs.getString("pdb_id"),
                 rs.getString("chain_id"),
                 get2DIntArray(rs, "observed_regions"),
-                rs.getInt("start"),
-                rs.getInt("end"),
+                rs.getInt("pdb_start"),
+                rs.getInt("pdb_end"),
                 rs.getInt("unp_start"),
                 rs.getInt("unp_end")
         );

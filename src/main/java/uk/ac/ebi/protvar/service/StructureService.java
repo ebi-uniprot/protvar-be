@@ -73,7 +73,7 @@ public class StructureService {
         residue.setExperimentalMethod(structure.getExperimentalMethod());
         residue.setPdbId(structure.getPdbId());
         residue.setResolution(structure.getResolution());
-        int offset = structure.getStart() - structure.getUnpStart();
+        int offset = structure.getPdbStart() - structure.getUnpStart();
         residue.setStart(position + offset);
         return residue;
     }
