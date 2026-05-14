@@ -8,11 +8,12 @@ import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.utils.Commons;
 import uk.ac.ebi.uniprot.domain.entry.*;
+import uk.ac.ebi.uniprot.domain.features.Feature;
 
 @Service
 public class FunctionalInfoConverter {
 
-	public FunctionalInfo convert(UPEntry entry) {
+	public FunctionalInfo convert(UPEntry entry, List<Feature> features) {
 		FunctionalInfo functionalInfo = new FunctionalInfo();
 		// direct UPEntry to FunctionalInfo fields mapping
 		functionalInfo.setAccession(entry.getAccession());
@@ -20,7 +21,7 @@ public class FunctionalInfoConverter {
 		functionalInfo.setProteinExistence(entry.getProteinExistence());
 		functionalInfo.setGene(Commons.emptyOrList(entry.getGene()));
 		functionalInfo.setComments(Commons.emptyOrList(entry.getComments()));
-		functionalInfo.setFeatures(Commons.emptyOrList(entry.getFeatures()));
+		functionalInfo.setFeatures(Commons.emptyOrList(features));
 		functionalInfo.setDbReferences(filterDbReferences(entry.getDbReferences()));
 		functionalInfo.setSequence(entry.getSequence());
 

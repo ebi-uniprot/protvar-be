@@ -13,7 +13,6 @@ import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.StructureResidue;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.repo.*;
-import uk.ac.ebi.protvar.service.FunctionService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
@@ -36,7 +35,6 @@ public class AnnotationFetcher {
 	private static final Logger LOGGER = LoggerFactory.getLogger(AnnotationFetcher.class);
 
 	// functional info sources
-	private final FunctionService functionService;
 	private final PocketRepo pocketRepo;
 	private final InteractionRepo interactionRepo;
 	private final FoldxRepo foldxRepo;
@@ -86,9 +84,6 @@ public class AnnotationFetcher {
 		Integer[] positions = core.getAccPosArrays().second();
 
 		if (fun) {
-			LOGGER.info("Preloading protein function annotation for {} canonical accessions", core.getCanonicalAccessions().size());
-			functionService.preloadFunctionCache(core.getCanonicalAccessions());
-
 			scoreMap = scoreRepo.getAnnotationScores(accessions, positions) // non-AM scores
 					.stream().collect(Collectors.groupingBy(Score::getVariantKey));
 			pocketMap = pocketRepo.getPockets(accessions, positions);
