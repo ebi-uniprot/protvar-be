@@ -94,6 +94,9 @@ public class MappingRepo {
 	@Value("${tbl.foldx}")
 	private String foldxTable;
 
+	@Value("${tbl.ann.fun.feature}")
+	private String functionFeatureTable;
+
 	// TODO: all SQL FROM SHOULD USE TABLE NAME FROM APP PROPERTIES
 	//   NO TABLE NAME SHOULD BE HARDCODED
 
@@ -496,6 +499,11 @@ public class MappingRepo {
 		boolean filterInteract = Boolean.TRUE.equals(request.getInteract());
 		boolean filterStability = request.getStability() != null && !request.getStability().isEmpty();
 
+		boolean filterByPtm = Boolean.TRUE.equals(request.getPtm());
+		boolean filterByMutagen = Boolean.TRUE.equals(request.getMutagen());
+		boolean filterByDomain = Boolean.TRUE.equals(request.getDomain());
+		boolean filterByFeature = filterByPtm || filterByMutagen || filterByDomain;
+
         boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
         boolean sortByAm = "am".equalsIgnoreCase(request.getSort());
         boolean sortByPopEve = "popeve".equalsIgnoreCase(request.getSort());
@@ -754,6 +762,30 @@ public class MappingRepo {
 					sql.append(" AND f.foldx_ddg < 2");
 				}
 			}
+		}
+
+		// Function-side feature filters — exclude variants whose residue isn't
+		// covered by any feature in the requested groups. OR within the
+		// feature-type set; AND with the other filter groups above.
+		// DISULFID is special-cased: begin/end are the two linked cysteines
+		// (not a range), so we match only the endpoints.
+		if (filterByFeature) {
+			Set<String> featureTypes = new LinkedHashSet<>();
+			if (filterByPtm) featureTypes.addAll(FeatureGroup.PTM.getFeatureTypeNames());
+			if (filterByMutagen) featureTypes.addAll(FeatureGroup.MUTAGENESIS.getFeatureTypeNames());
+			if (filterByDomain) featureTypes.addAll(FeatureGroup.DOMAIN.getFeatureTypeNames());
+			sql.append(String.format("""
+				 AND EXISTS (
+					SELECT 1 FROM %s ff
+					WHERE ff.accession = m.accession
+					  AND ff.type IN (:featureTypes)
+					  AND (
+							(ff.type <> 'DISULFID' AND m.protein_position BETWEEN ff.begin_pos AND ff.end_pos)
+						 OR (ff.type =  'DISULFID' AND m.protein_position IN (ff.begin_pos, ff.end_pos))
+					  )
+				 )
+				""", functionFeatureTable));
+			parameters.addValue("featureTypes", featureTypes);
 		}
 
 		long total = -1;

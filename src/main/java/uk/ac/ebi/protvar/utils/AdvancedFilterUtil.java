@@ -26,6 +26,11 @@ public class AdvancedFilterUtil {
             return true;
         }
 
+        // Function-side feature filters
+        if (Boolean.TRUE.equals(request.getPtm())) return true;
+        if (Boolean.TRUE.equals(request.getMutagen())) return true;
+        if (Boolean.TRUE.equals(request.getDomain())) return true;
+
         // Check sort field first
         if (request.getSort() != null && !request.getSort().isEmpty()) {
             return true; // sort set -> filters active
@@ -63,10 +68,18 @@ public class AdvancedFilterUtil {
             orderStr = (request.getOrder() == null || request.getOrder().isEmpty()) ? "null" : request.getOrder();
         }
 
+        // Function-side feature filters
+        String ptmStr = Boolean.TRUE.equals(request.getPtm()) ? "true" : "false";
+        String mutagenStr = Boolean.TRUE.equals(request.getMutagen()) ? "true" : "false";
+        String domainStr = Boolean.TRUE.equals(request.getDomain()) ? "true" : "false";
+
         return "AdvancedFilter(" +
                 "cadd=" + caddStr +
                 ", am=" + amStr +
                 ", known=" + knownStr +
+                ", ptm=" + ptmStr +
+                ", mutagen=" + mutagenStr +
+                ", domain=" + domainStr +
                 ", sort=" + sortStr +
                 ", order=" + orderStr +
                 ")";
