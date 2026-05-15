@@ -99,6 +99,15 @@ public class MappingRequest {
     @Schema(description = "Restrict to variants overlapping a domain, region, or notable site", example = "false")
     private Boolean domain;
 
+    @Schema(description = "Restrict to variants overlapping a binding site", example = "false")
+    private Boolean binding;
+
+    @Schema(description = "Restrict to variants overlapping an active site", example = "false")
+    private Boolean actsite;
+
+    @Schema(description = "Restrict to variants overlapping a transmembrane region", example = "false")
+    private Boolean transmem;
+
     @Schema(description = "Minimum conservation score (0-1, inclusive)", example = "0.0")
     @Min(value = 0, message = "Conservation minimum must be at least 0")
     @Max(value = 1, message = "Conservation minimum must not exceed 1")

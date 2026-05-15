@@ -30,6 +30,9 @@ public class AdvancedFilterUtil {
         if (Boolean.TRUE.equals(request.getPtm())) return true;
         if (Boolean.TRUE.equals(request.getMutagen())) return true;
         if (Boolean.TRUE.equals(request.getDomain())) return true;
+        if (Boolean.TRUE.equals(request.getBinding())) return true;
+        if (Boolean.TRUE.equals(request.getActsite())) return true;
+        if (Boolean.TRUE.equals(request.getTransmem())) return true;
 
         // Check sort field first
         if (request.getSort() != null && !request.getSort().isEmpty()) {
@@ -72,6 +75,9 @@ public class AdvancedFilterUtil {
         String ptmStr = Boolean.TRUE.equals(request.getPtm()) ? "true" : "false";
         String mutagenStr = Boolean.TRUE.equals(request.getMutagen()) ? "true" : "false";
         String domainStr = Boolean.TRUE.equals(request.getDomain()) ? "true" : "false";
+        String bindingStr = Boolean.TRUE.equals(request.getBinding()) ? "true" : "false";
+        String actsiteStr = Boolean.TRUE.equals(request.getActsite()) ? "true" : "false";
+        String transmemStr = Boolean.TRUE.equals(request.getTransmem()) ? "true" : "false";
 
         return "AdvancedFilter(" +
                 "cadd=" + caddStr +
@@ -80,6 +86,9 @@ public class AdvancedFilterUtil {
                 ", ptm=" + ptmStr +
                 ", mutagen=" + mutagenStr +
                 ", domain=" + domainStr +
+                ", binding=" + bindingStr +
+                ", actsite=" + actsiteStr +
+                ", transmem=" + transmemStr +
                 ", sort=" + sortStr +
                 ", order=" + orderStr +
                 ")";

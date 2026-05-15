@@ -47,7 +47,10 @@ public enum FeatureGroup {
             FeatureType.BINDING),
 
     ACTIVE_SITE("Active sites",
-            FeatureType.ACT_SITE);
+            FeatureType.ACT_SITE),
+
+    TRANSMEMBRANE("Transmembrane regions",
+            FeatureType.TRANSMEM);
 
     private final String description;
     private final List<FeatureType> featureTypes;

@@ -502,7 +502,9 @@ public class MappingRepo {
 		boolean filterByPtm = Boolean.TRUE.equals(request.getPtm());
 		boolean filterByMutagen = Boolean.TRUE.equals(request.getMutagen());
 		boolean filterByDomain = Boolean.TRUE.equals(request.getDomain());
-		boolean filterByFeature = filterByPtm || filterByMutagen || filterByDomain;
+		boolean filterByBinding = Boolean.TRUE.equals(request.getBinding());
+		boolean filterByActsite = Boolean.TRUE.equals(request.getActsite());
+		boolean filterByTransmem = Boolean.TRUE.equals(request.getTransmem());
 
         boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
         boolean sortByAm = "am".equalsIgnoreCase(request.getSort());
@@ -764,28 +766,33 @@ public class MappingRepo {
 			}
 		}
 
-		// Function-side feature filters — exclude variants whose residue isn't
-		// covered by any feature in the requested groups. OR within the
-		// feature-type set; AND with the other filter groups above.
+		// Function-side feature filters — one EXISTS per selected group, so
+		// ticking PTM + DOMAIN means the variant's residue must be covered by
+		// a PTM feature AND by a domain feature (AND across groups, consistent
+		// with the other boolean filters). OR still applies *within* a group
+		// (e.g. DOMAIN spans DOMAIN, REGION, MOTIF, … — any one matches).
 		// DISULFID is special-cased: begin/end are the two linked cysteines
 		// (not a range), so we match only the endpoints.
-		if (filterByFeature) {
-			Set<String> featureTypes = new LinkedHashSet<>();
-			if (filterByPtm) featureTypes.addAll(FeatureGroup.PTM.getFeatureTypeNames());
-			if (filterByMutagen) featureTypes.addAll(FeatureGroup.MUTAGENESIS.getFeatureTypeNames());
-			if (filterByDomain) featureTypes.addAll(FeatureGroup.DOMAIN.getFeatureTypeNames());
+		Map<String, FeatureGroup> selectedFeatureGroups = new LinkedHashMap<>();
+		if (filterByPtm)      selectedFeatureGroups.put("ptmTypes", FeatureGroup.PTM);
+		if (filterByMutagen)  selectedFeatureGroups.put("mutagenTypes", FeatureGroup.MUTAGENESIS);
+		if (filterByDomain)   selectedFeatureGroups.put("domainTypes", FeatureGroup.DOMAIN);
+		if (filterByBinding)  selectedFeatureGroups.put("bindingTypes", FeatureGroup.BINDING_SITE);
+		if (filterByActsite)  selectedFeatureGroups.put("actsiteTypes", FeatureGroup.ACTIVE_SITE);
+		if (filterByTransmem) selectedFeatureGroups.put("transmemTypes", FeatureGroup.TRANSMEMBRANE);
+		for (Map.Entry<String, FeatureGroup> e : selectedFeatureGroups.entrySet()) {
 			sql.append(String.format("""
 				 AND EXISTS (
 					SELECT 1 FROM %s ff
 					WHERE ff.accession = m.accession
-					  AND ff.type IN (:featureTypes)
+					  AND ff.type IN (:%s)
 					  AND (
 							(ff.type <> 'DISULFID' AND m.protein_position BETWEEN ff.begin_pos AND ff.end_pos)
 						 OR (ff.type =  'DISULFID' AND m.protein_position IN (ff.begin_pos, ff.end_pos))
 					  )
 				 )
-				""", functionFeatureTable));
-			parameters.addValue("featureTypes", featureTypes);
+				""", functionFeatureTable, e.getKey()));
+			parameters.addValue(e.getKey(), e.getValue().getFeatureTypeNames());
 		}
 
 		long total = -1;
