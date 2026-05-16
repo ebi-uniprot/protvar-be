@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Reads variants from rel_{release}_population. raw_json holds the full
+ * Reads variants from rel_{R}_population. raw_json holds the full
  * UniProt variation feature object — mapVariant just deserialises it into a
  * Variant and applies the 1→3-letter AA convention used by the FE.
  *

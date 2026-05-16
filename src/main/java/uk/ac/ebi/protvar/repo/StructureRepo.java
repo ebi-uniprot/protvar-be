@@ -42,9 +42,9 @@ public class StructureRepo {
     SELECT
         array_length(observed_regions, 1) AS num_regions,
         COUNT(*) AS num_rows
-    FROM rel_2025_01_structure
+    FROM rel_{R}_structure
     GROUP BY num_regions
-    ORDER BY num_regions; --<null> 397 (SELECT * FROM rel_2025_01_structure WHERE observed_regions = '{}';)
+    ORDER BY num_regions; --<null> 397 (SELECT * FROM rel_{R}_structure WHERE observed_regions = '{}';)
      */
     public List<Structure> getStr(String accession, Integer position) {
         String sql = String.format("""

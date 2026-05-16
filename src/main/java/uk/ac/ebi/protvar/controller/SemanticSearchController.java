@@ -67,12 +67,20 @@ public class SemanticSearchController {
         String resolvedModel = model != null ? model : vectorSearchService.getDefaultModel();
         log.debug("semantic search - text: {}, limit: {}, offset: {}, model: {}", text, limit, offset, resolvedModel);
 
-        List<VectorSearchResult> results = vectorSearchService.searchByText(text, limit, offset, resolvedModel);
-        if (results.isEmpty() && !vectorSearchService.isEmbeddingServiceAvailable(resolvedModel)) {
+        // Embed the query once, then run kNN against both corpora with that vector.
+        Optional<List<Number>> queryVector = embeddingService.generateEmbedding(text, resolvedModel);
+        if (queryVector.isEmpty()) {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(VectorSearchResponse.failure("Embedding service unavailable for model: " + resolvedModel));
         }
-        return ResponseEntity.ok(VectorSearchResponse.success(text, results, limit, offset, resolvedModel));
+
+        List<VectorSearchResult> functionResults =
+                vectorSearchService.searchByVector(queryVector.get(), limit, offset, resolvedModel);
+        List<PopulationVectorSearchResult> populationResults =
+                vectorSearchService.searchPopulationByVector(queryVector.get(), limit, offset, resolvedModel);
+
+        return ResponseEntity.ok(VectorSearchResponse.success(
+                text, functionResults, populationResults, limit, offset, resolvedModel));
     }
 
     // ── Embedding ─────────────────────────────────────────────────────────────

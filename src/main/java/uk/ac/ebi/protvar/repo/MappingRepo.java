@@ -323,34 +323,6 @@ public class MappingRepo {
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
-	String CTE_BASED_QUERY = """
-			WITH base_alleles AS (
-			    SELECT ARRAY['A', 'T', 'G', 'C'] AS alleles
-			),
-			mapping_with_variants AS (
-			    SELECT
-			        m.chromosome, m.genomic_position, m.allele AS ref, alt.alt_allele
-			    FROM rel_2025_01_genomic_protein_mapping m,
-			        base_alleles b,
-			        LATERAL unnest(ARRAY_REMOVE(b.alleles, m.allele::text)) AS alt(alt_allele)
-			    WHERE m.accession = 'P22304'
-			)
-			SELECT count(*)
-			FROM mapping_with_variants m;
-			""";
-
-	String CROSS_JOIN_QUERY = """
-			SELECT chromosome, genomic_position, allele AS ref, alt
-			FROM rel_2025_01_genomic_protein_mapping,
-				 (VALUES ('A'), ('T'), ('G'), ('C')) AS alts(alt)
-			WHERE accession = 'P22304'
-			  AND alt <> allele
-			""";
-
-	// The above two queries are functionally equivalent, but the CTE-based query is more readable and maintainable.
-	// Recommendation:
-	// If performance is critical and this query runs often or on large datasets, go with the simpler VALUES + CROSS JOIN version.
-
 	public Page<VariantInput> getGenInputsByAccession_CTE(String accession,
 														  List<CaddCategory> caddCategories, List<AmClass> amClasses,
 														  String sort, String order, Pageable pageable) {
@@ -475,7 +447,7 @@ public class MappingRepo {
 	}
 
 	// TODO If not already in place, create indexes on:
-	//	rel_2025_01_genomic_protein_mapping(accession, protein_position)
+	//	rel_{R}_genomic_protein_mapping(accession, protein_position)
 	//	cadd_table(chromosome, position, ref, alt)
 	//	alphamissense_table(accession, position, ref, alt)
 

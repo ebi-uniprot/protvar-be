@@ -25,9 +25,9 @@ import java.util.stream.Collectors;
  * Reads function annotation data from the two-table layout produced by the
  * protvar-import-py pipeline:
  *
- *   rel_{release}_function           — one row per accession, header_json holds
+ *   rel_{R}_function           — one row per accession, header_json holds
  *                                      everything except features[].
- *   rel_{release}_function_feature   — one row per UniProt feature, with type,
+ *   rel_{R}_function_feature   — one row per UniProt feature, with type,
  *                                      category, begin_pos, end_pos, raw_json.
  *
  * Header lookups are cached per-accession (replaces the old explicit preload).
