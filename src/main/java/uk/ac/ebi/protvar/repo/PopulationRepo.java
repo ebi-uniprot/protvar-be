@@ -26,15 +26,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Reads variants from rel_{R}_population. raw_json holds the full
- * UniProt variation feature object — mapVariant just deserialises it into a
- * Variant and applies the 1→3-letter AA convention used by the FE.
+ * Reads variants from rel_{R}_population. raw_json holds the UniProt
+ * variation feature object, but NOT the residue identity/position —
+ * wildType, alternativeSequence, begin and end are taken from the
+ * structured wild_type/alt/position columns and set onto the Variant in
+ * mapVariant (applying the 1→3-letter AA convention used by the FE).
  *
- * The structured columns on the table (wild_type, alt, consequence,
- * source_type, clin_sig) exist for SQL-side filtering by advanced search
- * (indexed on accession, (accession, position), source_type, consequence,
- * GIN clin_sig). They aren't read here — raw_json is the single source of
- * truth on the read path.
+ * The remaining structured columns (consequence, source_type, clin_sig)
+ * support SQL-side filtering by advanced search. Indexes: (accession,
+ * position) for the lookups here, plus source_type, consequence and GIN
+ * clin_sig for advanced search.
  */
 @Repository
 @RequiredArgsConstructor
@@ -43,7 +44,7 @@ public class PopulationRepo {
     private static final ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-    private static final String VARIANT_COLS = "accession, position, raw_json";
+    private static final String VARIANT_COLS = "accession, position, wild_type, alt, raw_json";
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
@@ -116,8 +117,15 @@ public class PopulationRepo {
         if (rawJson == null) return null;
         try {
             Variant v = objectMapper.readValue(rawJson, Variant.class);
-            v.setWildType(toThreeLetterAminoAcid(v.getWildType()));
-            v.setAlternativeSequence(toThreeLetterAminoAcid(v.getAlternativeSequence()));
+            // Residue identity and position come from the structured columns —
+            // raw_json carries mutatedType/locations but not wildType/
+            // alternativeSequence/begin/end. Columns are 1-letter; the FE
+            // expects the 3-letter convention.
+            String position = String.valueOf(rs.getInt("position"));
+            v.setWildType(toThreeLetterAminoAcid(rs.getString("wild_type")));
+            v.setAlternativeSequence(toThreeLetterAminoAcid(rs.getString("alt")));
+            v.setBegin(position);
+            v.setEnd(position);
             return v;
         } catch (JsonProcessingException e) {
             LOGGER.error("Error mapping variant raw_json: {}", e.getMessage());
