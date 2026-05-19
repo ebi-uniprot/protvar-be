@@ -143,14 +143,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Gatling (test scope) -->
-    <dependency>
-      <groupId>io.gatling.highcharts</groupId>
-      <artifactId>gatling-charts-highcharts</artifactId>
-      <version>3.9.2</version>
-      <scope>test</scope>
-    </dependency>
-
     <!-- Guava -->
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -191,16 +183,6 @@
           <compilerArgs>
             <arg>-parameters</arg>
           </compilerArgs>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>io.gatling</groupId>
-        <artifactId>gatling-maven-plugin</artifactId>
-        <version>4.3.0</version>
-        <configuration>
-          <includes>
-            <include>uk.ac.ebi.protvar.gatling.*</include>
-          </includes>
         </configuration>
       </plugin>
     </plugins>
