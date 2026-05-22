@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -29,6 +30,14 @@ public class RedisConfig {
     @Value(("${spring.data.redis.port}"))
     private int redisPort;
 
+    // Versions every cache key namespace. Bump on a deploy whose @Cacheable
+    // model classes have changed shape (renamed/removed fields) — old entries
+    // sit on the previous namespace and are naturally invisible to the new BE,
+    // so no manual Redis flush is needed. Acceptable cold-cache period on the
+    // first startup after a bump (~minutes as caches warm back up).
+    @Value("${cache.version:v1}")
+    private String cacheVersion;
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration config = new RedisStandaloneConfiguration(redisHost, redisPort);
@@ -43,6 +52,11 @@ public class RedisConfig {
         // java.time.Instant etc. — without this Jackson throws on serialization
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // Tolerate unknown JSON fields on read — safety net for cached entries
+        // whose model class has since dropped a field (the primary fix is the
+        // cache-version key prefix; this stops the residual 500 if a flush is
+        // missed). NB: a *renamed* field will silently null on the new shape.
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.activateDefaultTyping(
                 BasicPolymorphicTypeValidator.builder()
                         .allowIfBaseType(Object.class)
@@ -77,6 +91,11 @@ public class RedisConfig {
                                      GenericJackson2JsonRedisSerializer redisJsonSerializer,
                                      RetentionProperties retention) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                // Prefix every key with the cache version so a deploy with a
+                // bumped cache.version moves to a fresh namespace (old keys
+                // become orphan, no manual flush needed). Default Spring
+                // prefix is "{cacheName}::" — we wrap it to "{version}::{cacheName}::".
+                .computePrefixWith(name -> cacheVersion + "::" + name + "::")
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(redisJsonSerializer));
 
