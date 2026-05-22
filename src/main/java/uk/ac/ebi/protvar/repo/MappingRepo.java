@@ -94,6 +94,9 @@ public class MappingRepo {
 	@Value("${tbl.foldx}")
 	private String foldxTable;
 
+	@Value("${tbl.ann.pop}")
+	private String populationTable;
+
 	@Value("${tbl.ann.fun.feature}")
 	private String functionFeatureTable;
 
@@ -477,6 +480,7 @@ public class MappingRepo {
 		boolean filterByBinding = Boolean.TRUE.equals(request.getBinding());
 		boolean filterByActsite = Boolean.TRUE.equals(request.getActsite());
 		boolean filterByTransmem = Boolean.TRUE.equals(request.getTransmem());
+		boolean filterByDiseaseAssoc = Boolean.TRUE.equals(request.getDiseaseAssociation());
 
         boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
         boolean sortByAm = "am".equalsIgnoreCase(request.getSort());
@@ -635,6 +639,19 @@ public class MappingRepo {
 						f.position = m.protein_position AND
 						f.mutated_type = c.amino_acid
 					""", foldxTable));
+		}
+
+		// "Has disease-associated variant" — residue-level: keep mappings whose
+		// (accession, position) has at least one population row with disease=true.
+		// DISTINCT-subquery avoids row multiplication when several disease=true
+		// variants share a residue. Backed by the partial index
+		// idx_rel_{R}_population_disease ON (accession, position) WHERE disease IS TRUE.
+		if (filterByDiseaseAssoc) {
+			sql.append(String.format("""
+					INNER JOIN (
+						SELECT DISTINCT accession, position FROM %s WHERE disease IS TRUE
+					) pop_da ON pop_da.accession = m.accession AND pop_da.position = m.protein_position
+					""", populationTable));
 		}
 
 		sql.append(" WHERE 1=1");

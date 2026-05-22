@@ -34,6 +34,9 @@ public class AdvancedFilterUtil {
         if (Boolean.TRUE.equals(request.getActsite())) return true;
         if (Boolean.TRUE.equals(request.getTransmem())) return true;
 
+        // Population-side filter
+        if (Boolean.TRUE.equals(request.getDiseaseAssociation())) return true;
+
         // Check sort field first
         if (request.getSort() != null && !request.getSort().isEmpty()) {
             return true; // sort set -> filters active
@@ -78,6 +81,8 @@ public class AdvancedFilterUtil {
         String bindingStr = Boolean.TRUE.equals(request.getBinding()) ? "true" : "false";
         String actsiteStr = Boolean.TRUE.equals(request.getActsite()) ? "true" : "false";
         String transmemStr = Boolean.TRUE.equals(request.getTransmem()) ? "true" : "false";
+        // Population-side filter
+        String diseaseStr = Boolean.TRUE.equals(request.getDiseaseAssociation()) ? "true" : "false";
 
         return "AdvancedFilter(" +
                 "cadd=" + caddStr +
@@ -89,6 +94,7 @@ public class AdvancedFilterUtil {
                 ", binding=" + bindingStr +
                 ", actsite=" + actsiteStr +
                 ", transmem=" + transmemStr +
+                ", diseaseAssoc=" + diseaseStr +
                 ", sort=" + sortStr +
                 ", order=" + orderStr +
                 ")";

@@ -119,7 +119,8 @@ public class MappingRequest {
     private Double conservationMax;
 
     // Population
-    private Boolean diseaseAssociation; // Not yet implemented
+    @Schema(description = "Restrict to variants at a residue with at least one disease-associated population entry", example = "false")
+    private Boolean diseaseAssociation;
 
     @Schema(description = "Allele frequency categories", example = "[]")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
