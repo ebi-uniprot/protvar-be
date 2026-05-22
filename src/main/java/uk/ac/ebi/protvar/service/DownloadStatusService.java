@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.service;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.config.RetentionProperties;
@@ -46,8 +47,18 @@ public class DownloadStatusService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final RetentionProperties retention;
 
-    private static String key(String id) {
-        return KEY_PREFIX + id;
+    // Versioned namespace — mirrors the RedisCacheManager prefix applied to
+    // @Cacheable keys (see RedisConfig). Bumping cache.version invalidates
+    // these manual keys in lockstep with the @Cacheable namespace.
+    @Value("${cache.version:v1}")
+    private String cacheVersion;
+
+    private String key(String id) {
+        return cacheVersion + ":" + KEY_PREFIX + id;
+    }
+
+    private String counterPrefix() {
+        return cacheVersion + ":" + COUNTER_PREFIX;
     }
 
     public DownloadStatus get(String id) {
@@ -118,8 +129,8 @@ public class DownloadStatusService {
     public void increment(String name) {
         try {
             String today = java.time.LocalDate.now().toString();
-            redisTemplate.opsForValue().increment(COUNTER_PREFIX + name + ":total");
-            redisTemplate.opsForValue().increment(COUNTER_PREFIX + name + ":by-day:" + today);
+            redisTemplate.opsForValue().increment(counterPrefix() + name + ":total");
+            redisTemplate.opsForValue().increment(counterPrefix() + name + ":by-day:" + today);
         } catch (Exception e) {
             LOGGER.warn("Failed to increment counter '{}': {}", name, e.getMessage());
         }
@@ -133,13 +144,14 @@ public class DownloadStatusService {
     public java.util.Map<String, Long> getCounters() {
         java.util.Map<String, Long> out = new java.util.LinkedHashMap<>();
         try {
-            java.util.Set<String> keys = redisTemplate.keys(COUNTER_PREFIX + "*");
+            String prefix = counterPrefix();
+            java.util.Set<String> keys = redisTemplate.keys(prefix + "*");
             if (keys == null) return out;
             for (String key : new java.util.TreeSet<>(keys)) {
                 Object v = redisTemplate.opsForValue().get(key);
                 long n = v instanceof Number ? ((Number) v).longValue()
                         : v != null ? Long.parseLong(v.toString()) : 0L;
-                out.put(key.substring(COUNTER_PREFIX.length()), n);
+                out.put(key.substring(prefix.length()), n);
             }
         } catch (Exception e) {
             LOGGER.warn("Failed to read counters: {}", e.getMessage());

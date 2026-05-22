@@ -30,11 +30,15 @@ public class RedisConfig {
     @Value(("${spring.data.redis.port}"))
     private int redisPort;
 
-    // Versions every cache key namespace. Bump on a deploy whose @Cacheable
-    // model classes have changed shape (renamed/removed fields) — old entries
-    // sit on the previous namespace and are naturally invisible to the new BE,
-    // so no manual Redis flush is needed. Acceptable cold-cache period on the
-    // first startup after a bump (~minutes as caches warm back up).
+    // Versions every cache key namespace. Bump on a deploy whose cached model
+    // classes have changed shape (renamed/removed fields) — old entries sit on
+    // the previous namespace and are naturally invisible to the new BE, so no
+    // manual Redis flush is needed. Acceptable cold-cache period on the first
+    // startup after a bump (~minutes as caches warm back up).
+    //
+    // Coverage: @Cacheable methods get the prefix automatically via
+    // computePrefixWith() below; manual writers (e.g. DownloadStatusService)
+    // read the same property and prepend it themselves.
     @Value("${cache.version:v1}")
     private String cacheVersion;
 
