@@ -8,10 +8,9 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.repo.UniprotEntryRepo;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.LinkedHashSet;
 
 @Repository
 public class UniprotEntryCache {
@@ -20,15 +19,23 @@ public class UniprotEntryCache {
     @Autowired
     private UniprotEntryRepo uniprotEntryRepo;
 
-    private List<String> uniprotEntries = new ArrayList<>();
+    // LinkedHashSet: accessions are unique by definition, so a set models
+    // the data correctly and gives O(1) isValidEntry() (called per input
+    // variant by Pro2Gen). The "linked" variant preserves the SQL-side
+    // ORDER BY accession order so getEntries() iterates in sorted order.
+    private LinkedHashSet<String> uniprotEntries = new LinkedHashSet<>();
 
     /**
-     * Load all UniProt accessions for current release
+     * Load all UniProt accessions for current release. Repo returns them
+     * sorted by accession (ORDER BY in SQL), so iteration order is
+     * deterministic and aligns with the /mapping/accessions/* endpoints.
      */
     @EventListener(classes = ApplicationStartedEvent.class )
     public void loadEntries() {
         LOGGER.info("Loading UniProt accessions into cache");
-        uniprotEntries.addAll(uniprotEntryRepo.findAll().stream().map(entry -> entry.getAccession()).collect(Collectors.toList()));
+        uniprotEntryRepo.findAll().stream()
+                .map(entry -> entry.getAccession())
+                .forEach(uniprotEntries::add);
 
         LOGGER.info("{} entries loaded in cache", uniprotEntries.size());
     }
@@ -37,8 +44,8 @@ public class UniprotEntryCache {
         return uniprotEntries.contains(entry);
     }
 
-    public List<String> getEntries() {
-        return Collections.unmodifiableList(uniprotEntries);
+    public Collection<String> getEntries() {
+        return Collections.unmodifiableSet(uniprotEntries);
     }
 
 }

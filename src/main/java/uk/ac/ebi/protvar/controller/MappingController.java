@@ -19,6 +19,7 @@ import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
 import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +82,7 @@ public class MappingController {
     public ResponseEntity<String> accessions(
             @Parameter(description = "Which list to return: all, mapped, or unmapped.", example = "mapped")
             @PathVariable("kind") String kind) {
-        List<String> list = switch (kind.toLowerCase()) {
+        Collection<String> list = switch (kind.toLowerCase()) {
             case "all" -> uniprotEntryCache.getEntries();
             case "mapped" -> mappingRepo.getMappedAccessions();
             case "unmapped" -> {
