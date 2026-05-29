@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -254,6 +255,23 @@ public class MappingRepo {
 						(rs, rowNum) -> String.format("%s %d %s", rs.getString("chromosome"), rs.getInt("genomic_position"), rs.getString("allele"))
 				);
 		return genomicInputs;
+	}
+
+	/**
+	 * Distinct canonical accessions actually present in the mapping table for
+	 * the current release. Filtered via {@code is_canonical = true} so the set
+	 * is directly comparable to the {@code uniprot_entry} table (canonicals
+	 * only) — that makes {@code unmapped = all − mapped} a clean canonical-vs-
+	 * canonical diff. The query is a full scan of a very large table; cached
+	 * with no TTL and invalidated by the cache.version bump that accompanies
+	 * each release deploy.
+	 */
+	@Cacheable(value = "mappedAccessions", key = "'all'")
+	public List<String> getMappedAccessions() {
+		String sql = String.format(
+				"SELECT DISTINCT accession FROM %s WHERE is_canonical = true ORDER BY accession",
+				mappingTable);
+		return jdbcTemplate.queryForList(sql, new MapSqlParameterSource(), String.class);
 	}
 
 	public List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList) {

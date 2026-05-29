@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.repo.UniprotEntryRepo;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,6 +35,10 @@ public class UniprotEntryCache {
 
     public boolean isValidEntry(String entry) {
         return uniprotEntries.contains(entry);
+    }
+
+    public List<String> getEntries() {
+        return Collections.unmodifiableList(uniprotEntries);
     }
 
 }

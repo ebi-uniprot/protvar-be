@@ -9,17 +9,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import uk.ac.ebi.protvar.cache.UniprotEntryCache;
 import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
+import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
 import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static uk.ac.ebi.protvar.constants.PageUtils.*;
@@ -32,6 +36,8 @@ import static uk.ac.ebi.protvar.constants.PageUtils.*;
 public class MappingController {
 
     private final MappingService mappingService;
+    private final MappingRepo mappingRepo;
+    private final UniprotEntryCache uniprotEntryCache;
 
     /**
      * Direct variant query: GET /mapping?q=19-1010539-G-C[&assembly=GRCh38]
@@ -50,6 +56,48 @@ public class MappingController {
                 .pageSize(1)
                 .build();
         return new ResponseEntity<>(mappingService.get(request), HttpStatus.OK);
+    }
+
+    /**
+     * Plain-text accession lists for linking to ProtVar.
+     * <ul>
+     *   <li>{@code all} — every canonical accession in the current release's
+     *       {@code uniprot_entry} table (the intended input to the mapping
+     *       import). Served from the in-memory cache loaded at startup.</li>
+     *   <li>{@code mapped} — canonical accessions with at least one row in the
+     *       mapping table (filtered via {@code is_canonical = true} so the
+     *       set matches the canonical-only {@code uniprot_entry} list).
+     *       {@code @Cacheable} on the repo method; the first request after a
+     *       deploy pays the full-scan cost, subsequent requests are Redis-
+     *       fast.</li>
+     *   <li>{@code unmapped} — {@code all − mapped}: canonicals in the release
+     *       that have no mapping. Reconstructs the {@code notMappedUniprot.txt}
+     *       artifact the import writes. Computed at request time over the two
+     *       cached lists (cheap set diff).</li>
+     * </ul>
+     */
+    @Operation(summary = "Plain-text list of accessions: all | mapped | unmapped (one per line).")
+    @GetMapping(value = "/accessions/{kind}", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> accessions(
+            @Parameter(description = "Which list to return: all, mapped, or unmapped.", example = "mapped")
+            @PathVariable("kind") String kind) {
+        List<String> list = switch (kind.toLowerCase()) {
+            case "all" -> uniprotEntryCache.getEntries();
+            case "mapped" -> mappingRepo.getMappedAccessions();
+            case "unmapped" -> {
+                Set<String> mapped = new HashSet<>(mappingRepo.getMappedAccessions());
+                yield uniprotEntryCache.getEntries().stream()
+                        .filter(acc -> !mapped.contains(acc))
+                        .collect(Collectors.toList());
+            }
+            default -> null;
+        };
+        if (list == null) {
+            return ResponseEntity.badRequest()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("kind must be one of: all, mapped, unmapped");
+        }
+        return ResponseEntity.ok(String.join("\n", list));
     }
 
     /**
