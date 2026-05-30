@@ -49,7 +49,7 @@ public class FunctionalInfoConverterTest {
 		GsonBuilder builder = new GsonBuilder();
 		Gson gson = builder.create();
 		UPEntry[] entries = gson.fromJson(data, UPEntry[].class);
-		FunctionalInfo protein = converter.convert(entries[0]);
+		FunctionalInfo protein = converter.convert(entries[0], entries[0].getFeatures());
 //		assertNull(protein.getCanonicalIsoforms());
 //		assertNull(protein.getCanonicalAccession());
 //
@@ -68,7 +68,7 @@ public class FunctionalInfoConverterTest {
 		UPEntry[] entries = TestUtils.getProtein("src/test/resources/protein_E7EPD8.json");
 		FunctionalInfoConverter converter = new FunctionalInfoConverter();
 
-		FunctionalInfo protein = converter.convert(entries[0]);
+		FunctionalInfo protein = converter.convert(entries[0], entries[0].getFeatures());
 		protein.setType("Swiss-Prot");
 		System.out.println("Protein: " + protein);
 //		assertEquals("E7EPD8", protein.getCanonicalAccession());
@@ -79,7 +79,7 @@ public class FunctionalInfoConverterTest {
 	public void testCanonicalFalse() throws IOException {
 		UPEntry[] entries = TestUtils.getProtein("src/test/resources/protein_E7EPD8.json");
 		FunctionalInfoConverter converter = new FunctionalInfoConverter();
-		FunctionalInfo protein = converter.convert(entries[0]);
+		FunctionalInfo protein = converter.convert(entries[0], entries[0].getFeatures());
 		System.out.println("Protein: " + protein);
 //		assertNull(protein.getCanonicalAccession());
 //		assertFalse(protein.isCanonical());
@@ -89,7 +89,7 @@ public class FunctionalInfoConverterTest {
 	public void testNonSwissProtCanonical() throws IOException {
 		UPEntry[] entries = TestUtils.getProtein("src/test/resources/jsons/protein.json");
 		FunctionalInfoConverter converter = new FunctionalInfoConverter();
-		FunctionalInfo protein = converter.convert(entries[1]);
+		FunctionalInfo protein = converter.convert(entries[1], entries[1].getFeatures());
 //		protein.getDbReferences().get(0).setIsoform("G3V2F4-1");
 //		protein.setCanonicalIsoforms(Arrays.asList("G3V2F4-1"));
 //		protein.setIsoform("G3V2F4-1");

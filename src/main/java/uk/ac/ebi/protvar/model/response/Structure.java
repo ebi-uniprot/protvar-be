@@ -18,8 +18,8 @@ public class Structure {
     private String pdbId;
     private String chainId;
     private List<List<Integer>> observedRegions;
-    private Integer start;
-    private Integer end;
+    private Integer pdbStart;
+    private Integer pdbEnd;
     private Integer unpStart;
     private Integer unpEnd;
 }

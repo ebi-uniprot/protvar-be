@@ -203,6 +203,13 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rel_2025_01_mapping_gene_name_protei
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rel_2025_01_mapping_accession
     ON rel_2025_01_genomic_protein_mapping (accession);
 
+-- For the /mapping/accessions/mapped endpoint: SELECT DISTINCT accession
+--  ... WHERE is_canonical = true ORDER BY accession. Partial + sorted →
+-- index-only scan, no heap fetch, no sort, cheap adjacent-dedup.
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rel_2025_01_mapping_accession_canonical
+    ON rel_2025_01_genomic_protein_mapping (accession)
+    WHERE is_canonical = true;
+
 -- For Ensembl gene lookups
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_rel_2025_01_mapping_ensg
     ON rel_2025_01_genomic_protein_mapping (ensg);

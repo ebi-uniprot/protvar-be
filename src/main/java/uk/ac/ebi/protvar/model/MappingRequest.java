@@ -89,9 +89,24 @@ public class MappingRequest {
     @Schema(description = "Show only known variants (default: potential included)", example = "false")
     private Boolean known;
 
-    // Functional (not yet implemented - placeholders for future)
+    // Function-side feature filters (mapped via FeatureGroup → function_feature.type)
+    @Schema(description = "Restrict to variants overlapping a PTM (post-translational modification) feature", example = "false")
     private Boolean ptm;
-    private Boolean mutagenesis;
+
+    @Schema(description = "Restrict to variants overlapping a mutagenesis site", example = "false")
+    private Boolean mutagen;
+
+    @Schema(description = "Restrict to variants overlapping a domain, region, or notable site", example = "false")
+    private Boolean domain;
+
+    @Schema(description = "Restrict to variants overlapping a binding site", example = "false")
+    private Boolean binding;
+
+    @Schema(description = "Restrict to variants overlapping an active site", example = "false")
+    private Boolean actsite;
+
+    @Schema(description = "Restrict to variants overlapping a transmembrane region", example = "false")
+    private Boolean transmem;
 
     @Schema(description = "Minimum conservation score (0-1, inclusive)", example = "0.0")
     @Min(value = 0, message = "Conservation minimum must be at least 0")
@@ -103,10 +118,9 @@ public class MappingRequest {
     @Max(value = 1, message = "Conservation maximum must not exceed 1")
     private Double conservationMax;
 
-    private Boolean functionalDomain;
-
     // Population
-    private Boolean diseaseAssociation; // Not yet implemented
+    @Schema(description = "Restrict to variants at a residue with at least one disease-associated population entry", example = "false")
+    private Boolean diseaseAssociation;
 
     @Schema(description = "Allele frequency categories", example = "[]")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)

@@ -26,6 +26,17 @@ public class AdvancedFilterUtil {
             return true;
         }
 
+        // Function-side feature filters
+        if (Boolean.TRUE.equals(request.getPtm())) return true;
+        if (Boolean.TRUE.equals(request.getMutagen())) return true;
+        if (Boolean.TRUE.equals(request.getDomain())) return true;
+        if (Boolean.TRUE.equals(request.getBinding())) return true;
+        if (Boolean.TRUE.equals(request.getActsite())) return true;
+        if (Boolean.TRUE.equals(request.getTransmem())) return true;
+
+        // Population-side filter
+        if (Boolean.TRUE.equals(request.getDiseaseAssociation())) return true;
+
         // Check sort field first
         if (request.getSort() != null && !request.getSort().isEmpty()) {
             return true; // sort set -> filters active
@@ -63,10 +74,27 @@ public class AdvancedFilterUtil {
             orderStr = (request.getOrder() == null || request.getOrder().isEmpty()) ? "null" : request.getOrder();
         }
 
+        // Function-side feature filters
+        String ptmStr = Boolean.TRUE.equals(request.getPtm()) ? "true" : "false";
+        String mutagenStr = Boolean.TRUE.equals(request.getMutagen()) ? "true" : "false";
+        String domainStr = Boolean.TRUE.equals(request.getDomain()) ? "true" : "false";
+        String bindingStr = Boolean.TRUE.equals(request.getBinding()) ? "true" : "false";
+        String actsiteStr = Boolean.TRUE.equals(request.getActsite()) ? "true" : "false";
+        String transmemStr = Boolean.TRUE.equals(request.getTransmem()) ? "true" : "false";
+        // Population-side filter
+        String diseaseStr = Boolean.TRUE.equals(request.getDiseaseAssociation()) ? "true" : "false";
+
         return "AdvancedFilter(" +
                 "cadd=" + caddStr +
                 ", am=" + amStr +
                 ", known=" + knownStr +
+                ", ptm=" + ptmStr +
+                ", mutagen=" + mutagenStr +
+                ", domain=" + domainStr +
+                ", binding=" + bindingStr +
+                ", actsite=" + actsiteStr +
+                ", transmem=" + transmemStr +
+                ", diseaseAssoc=" + diseaseStr +
                 ", sort=" + sortStr +
                 ", order=" + orderStr +
                 ")";

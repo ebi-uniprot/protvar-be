@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -93,6 +94,12 @@ public class MappingRepo {
 
 	@Value("${tbl.foldx}")
 	private String foldxTable;
+
+	@Value("${tbl.ann.pop}")
+	private String populationTable;
+
+	@Value("${tbl.ann.fun.feature}")
+	private String functionFeatureTable;
 
 	// TODO: all SQL FROM SHOULD USE TABLE NAME FROM APP PROPERTIES
 	//   NO TABLE NAME SHOULD BE HARDCODED
@@ -250,6 +257,23 @@ public class MappingRepo {
 		return genomicInputs;
 	}
 
+	/**
+	 * Distinct canonical accessions actually present in the mapping table for
+	 * the current release. Filtered via {@code is_canonical = true} so the set
+	 * is directly comparable to the {@code uniprot_entry} table (canonicals
+	 * only) — that makes {@code unmapped = all − mapped} a clean canonical-vs-
+	 * canonical diff. The query is a full scan of a very large table; cached
+	 * with no TTL and invalidated by the cache.version bump that accompanies
+	 * each release deploy.
+	 */
+	@Cacheable(value = "mappedAccessions", key = "'all'")
+	public List<String> getMappedAccessions() {
+		String sql = String.format(
+				"SELECT DISTINCT accession FROM %s WHERE is_canonical = true ORDER BY accession",
+				mappingTable);
+		return jdbcTemplate.queryForList(sql, new MapSqlParameterSource(), String.class);
+	}
+
 	public List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList) {
 		if (chrPosList == null || chrPosList.isEmpty())
 			return List.of();
@@ -319,34 +343,6 @@ public class MappingRepo {
 								.reverseStrand(rs.getBoolean("reverse_strand")).build())
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
-
-	String CTE_BASED_QUERY = """
-			WITH base_alleles AS (
-			    SELECT ARRAY['A', 'T', 'G', 'C'] AS alleles
-			),
-			mapping_with_variants AS (
-			    SELECT
-			        m.chromosome, m.genomic_position, m.allele AS ref, alt.alt_allele
-			    FROM rel_2025_01_genomic_protein_mapping m,
-			        base_alleles b,
-			        LATERAL unnest(ARRAY_REMOVE(b.alleles, m.allele::text)) AS alt(alt_allele)
-			    WHERE m.accession = 'P22304'
-			)
-			SELECT count(*)
-			FROM mapping_with_variants m;
-			""";
-
-	String CROSS_JOIN_QUERY = """
-			SELECT chromosome, genomic_position, allele AS ref, alt
-			FROM rel_2025_01_genomic_protein_mapping,
-				 (VALUES ('A'), ('T'), ('G'), ('C')) AS alts(alt)
-			WHERE accession = 'P22304'
-			  AND alt <> allele
-			""";
-
-	// The above two queries are functionally equivalent, but the CTE-based query is more readable and maintainable.
-	// Recommendation:
-	// If performance is critical and this query runs often or on large datasets, go with the simpler VALUES + CROSS JOIN version.
 
 	public Page<VariantInput> getGenInputsByAccession_CTE(String accession,
 														  List<CaddCategory> caddCategories, List<AmClass> amClasses,
@@ -472,7 +468,7 @@ public class MappingRepo {
 	}
 
 	// TODO If not already in place, create indexes on:
-	//	rel_2025_01_genomic_protein_mapping(accession, protein_position)
+	//	rel_{R}_genomic_protein_mapping(accession, protein_position)
 	//	cadd_table(chromosome, position, ref, alt)
 	//	alphamissense_table(accession, position, ref, alt)
 
@@ -495,6 +491,14 @@ public class MappingRepo {
         boolean filterPocket = Boolean.TRUE.equals(request.getPocket());
 		boolean filterInteract = Boolean.TRUE.equals(request.getInteract());
 		boolean filterStability = request.getStability() != null && !request.getStability().isEmpty();
+
+		boolean filterByPtm = Boolean.TRUE.equals(request.getPtm());
+		boolean filterByMutagen = Boolean.TRUE.equals(request.getMutagen());
+		boolean filterByDomain = Boolean.TRUE.equals(request.getDomain());
+		boolean filterByBinding = Boolean.TRUE.equals(request.getBinding());
+		boolean filterByActsite = Boolean.TRUE.equals(request.getActsite());
+		boolean filterByTransmem = Boolean.TRUE.equals(request.getTransmem());
+		boolean filterByDiseaseAssoc = Boolean.TRUE.equals(request.getDiseaseAssociation());
 
         boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
         boolean sortByAm = "am".equalsIgnoreCase(request.getSort());
@@ -655,6 +659,19 @@ public class MappingRepo {
 					""", foldxTable));
 		}
 
+		// "Has disease-associated variant" — residue-level: keep mappings whose
+		// (accession, position) has at least one population row with disease=true.
+		// DISTINCT-subquery avoids row multiplication when several disease=true
+		// variants share a residue. Backed by the partial index
+		// idx_rel_{R}_population_disease ON (accession, position) WHERE disease IS TRUE.
+		if (filterByDiseaseAssoc) {
+			sql.append(String.format("""
+					INNER JOIN (
+						SELECT DISTINCT accession, position FROM %s WHERE disease IS TRUE
+					) pop_da ON pop_da.accession = m.accession AND pop_da.position = m.protein_position
+					""", populationTable));
+		}
+
 		sql.append(" WHERE 1=1");
 
 		if (isSingleUniprotBrowse(request) && request.getStartPos() != null && request.getEndPos() != null) {
@@ -754,6 +771,35 @@ public class MappingRepo {
 					sql.append(" AND f.foldx_ddg < 2");
 				}
 			}
+		}
+
+		// Function-side feature filters — one EXISTS per selected group, so
+		// ticking PTM + DOMAIN means the variant's residue must be covered by
+		// a PTM feature AND by a domain feature (AND across groups, consistent
+		// with the other boolean filters). OR still applies *within* a group
+		// (e.g. DOMAIN spans DOMAIN, REGION, MOTIF, … — any one matches).
+		// DISULFID is special-cased: begin/end are the two linked cysteines
+		// (not a range), so we match only the endpoints.
+		Map<String, FeatureGroup> selectedFeatureGroups = new LinkedHashMap<>();
+		if (filterByPtm)      selectedFeatureGroups.put("ptmTypes", FeatureGroup.PTM);
+		if (filterByMutagen)  selectedFeatureGroups.put("mutagenTypes", FeatureGroup.MUTAGENESIS);
+		if (filterByDomain)   selectedFeatureGroups.put("domainTypes", FeatureGroup.DOMAIN);
+		if (filterByBinding)  selectedFeatureGroups.put("bindingTypes", FeatureGroup.BINDING_SITE);
+		if (filterByActsite)  selectedFeatureGroups.put("actsiteTypes", FeatureGroup.ACTIVE_SITE);
+		if (filterByTransmem) selectedFeatureGroups.put("transmemTypes", FeatureGroup.TRANSMEMBRANE);
+		for (Map.Entry<String, FeatureGroup> e : selectedFeatureGroups.entrySet()) {
+			sql.append(String.format("""
+				 AND EXISTS (
+					SELECT 1 FROM %s ff
+					WHERE ff.accession = m.accession
+					  AND ff.type IN (:%s)
+					  AND (
+							(ff.type <> 'DISULFID' AND m.protein_position BETWEEN ff.begin_pos AND ff.end_pos)
+						 OR (ff.type =  'DISULFID' AND m.protein_position IN (ff.begin_pos, ff.end_pos))
+					  )
+				 )
+				""", functionFeatureTable, e.getKey()));
+			parameters.addValue(e.getKey(), e.getValue().getFeatureTypeNames());
 		}
 
 		long total = -1;

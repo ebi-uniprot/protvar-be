@@ -4,41 +4,49 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.config.ModelRegistryProperties;
+import uk.ac.ebi.protvar.dto.PopulationVectorSearchResult;
 import uk.ac.ebi.protvar.dto.VectorSearchResult;
 import uk.ac.ebi.protvar.client.EmbeddingClient;
-import uk.ac.ebi.protvar.repo.FunctionVectorRepository;
+import uk.ac.ebi.protvar.repo.FunctionVectorRepo;
+import uk.ac.ebi.protvar.repo.PopulationVectorRepo;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * Vector similarity search over the two corpora — function and population.
+ *
+ * The semantic-search endpoint embeds the query text once (see
+ * SemanticSearchController) and passes the vector to both
+ * {@link #searchByVector} (function) and {@link #searchPopulationByVector}
+ * (population) — avoiding a second round-trip to the embedding service.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class VectorSearchService {
 
     private final EmbeddingClient embeddingClient;
-    private final FunctionVectorRepository vectorRepository;
+    private final FunctionVectorRepo functionVectorRepo;
+    private final PopulationVectorRepo populationVectorRepo;
     private final ModelRegistryProperties modelRegistry;
 
-    public List<VectorSearchResult> searchByText(String queryText, int limit, int offset, String model) {
-        log.debug("Performing vector search for query: {}, model: {}", queryText, model);
-
-        Optional<List<Number>> queryVector = embeddingClient.getEmbedding(queryText, model);
-
-        if (queryVector.isEmpty()) {
-            log.warn("Unable to get embedding for query text, returning empty results: {}", queryText);
-            return Collections.emptyList();
-        }
-
-        return searchByVector(queryVector.get(), limit, offset, model);
-    }
-
+    /** Function-corpus kNN. */
     public List<VectorSearchResult> searchByVector(List<Number> queryVector, int limit, int offset, String model) {
         try {
-            return vectorRepository.findSimilarVectors(queryVector, limit, offset, model);
+            return functionVectorRepo.findSimilarVectors(queryVector, limit, offset, model);
         } catch (Exception e) {
-            log.error("Error performing vector search", e);
+            log.error("Error performing function vector search", e);
+            return Collections.emptyList();
+        }
+    }
+
+    /** Population-corpus kNN. */
+    public List<PopulationVectorSearchResult> searchPopulationByVector(List<Number> queryVector, int limit, int offset, String model) {
+        try {
+            return populationVectorRepo.findSimilarVectors(queryVector, limit, offset, model);
+        } catch (Exception e) {
+            log.error("Error performing population vector search", e);
             return Collections.emptyList();
         }
     }

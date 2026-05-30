@@ -19,7 +19,7 @@ public class UniprotEntryRepo {
     private String uniprotEntryTable;
 
     public List<UniprotEntry> findAll() {
-        String sql = "SELECT * FROM " + uniprotEntryTable;
+        String sql = "SELECT * FROM " + uniprotEntryTable + " ORDER BY accession";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper(UniprotEntry.class));
     }
 }

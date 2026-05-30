@@ -16,18 +16,22 @@ import java.util.List;
  */
 @Repository
 @RequiredArgsConstructor
-public class FunctionVectorRepository {
+public class FunctionVectorRepo {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    @Value("${vector.table.prefix:rel_2025_01_function_vector_}")
-    private String tableNamePrefix;
-
-    @Value("${vector.text.table:rel_2025_01_function_text}")
-    private String functionTextTable;
+    /**
+     * Base function annotation table, e.g. {@code rel_{R}_function}. The
+     * per-model embedding table ({@code _vector_<model>}) and the text table
+     * ({@code _text}) derive from it — those suffixes are a fixed import-pipeline
+     * naming convention, so they live in code, not config.
+     */
+    @Value("${tbl.ann.fun}")
+    private String functionTable;
 
     public List<VectorSearchResult> findSimilarVectors(List<Number> queryVector, int limit, int offset, String model) {
-        String embeddingTable = tableNamePrefix + model;
+        String embeddingTable = functionTable + "_vector_" + model;
+        String textTable = functionTable + "_text";
         String sql = String.format("""
             SELECT
                 ft.accession, ft.source_type, ft.source_text,
@@ -37,7 +41,7 @@ public class FunctionVectorRepository {
             JOIN %s ft ON ft.id = fv.text_id
             ORDER BY distance ASC
             LIMIT :limit OFFSET :offset
-            """, embeddingTable, functionTextTable);
+            """, embeddingTable, textTable);
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("queryVector", new PGvector(queryVector))

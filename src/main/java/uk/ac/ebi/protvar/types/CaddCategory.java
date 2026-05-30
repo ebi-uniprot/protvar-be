@@ -7,7 +7,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum CaddCategory {
-    // select min(score), max(score) from rel_2025_01_coding_cadd;
+    // select min(score), max(score) from rel_{R}_coding_cadd;
     // min	max
     // 0	99
     LIKELY_BENIGN(0.0, 15.0),
