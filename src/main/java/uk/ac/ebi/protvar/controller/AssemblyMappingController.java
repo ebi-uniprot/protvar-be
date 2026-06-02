@@ -5,23 +5,23 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.ac.ebi.protvar.model.grc.Assembly;
+import uk.ac.ebi.protvar.fetcher.AssemblyMappingFetcher;
+import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.model.response.AssemblyMappingResponse;
-import uk.ac.ebi.protvar.service.APIService;
-
 import java.util.List;
 
 @Tag(name = "Assembly Mapping")
 @RestController
 @CrossOrigin
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class AssemblyMappingController {
-    private APIService apiService;
+
+    private final AssemblyMappingFetcher assemblyMappingFetcher;
 
     /**
      * @param inputs List of genomic coordinates
@@ -43,7 +43,7 @@ public class AssemblyMappingController {
 
         if (fromAssembly != null && toAssembly != null
                 && fromAssembly != toAssembly) {
-            AssemblyMappingResponse result = apiService.getAssemblyMapping(inputs, fromAssembly, toAssembly);
+            AssemblyMappingResponse result = assemblyMappingFetcher.getMappings(inputs, fromAssembly, toAssembly);
             return new ResponseEntity<>(result, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);

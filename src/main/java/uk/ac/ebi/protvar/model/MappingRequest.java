@@ -1,0 +1,200 @@
+package uk.ac.ebi.protvar.model;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Max;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+import uk.ac.ebi.protvar.constants.PageUtils;
+import uk.ac.ebi.protvar.types.AlleleFreqCategory;
+import uk.ac.ebi.protvar.types.AmClass;
+import uk.ac.ebi.protvar.types.CaddCategory;
+import uk.ac.ebi.protvar.types.PopEveClass;
+import uk.ac.ebi.protvar.types.StabilityChange;
+import jakarta.validation.constraints.Min;
+
+import java.util.List;
+
+@Data
+@SuperBuilder
+@Schema(description = "Base request used for mapping")
+@NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class MappingRequest {
+
+    public final static String PAGE_DESC = """
+            Page number (1-based) indicating which page of inputs to include in the response or download.
+            Defaults to first page (1) if not specified.
+            Must be greater than 0.
+            """;
+
+    public final static String PAGE_SIZE_DESC = """
+            Number of results per page.
+            Must be between 10 and 1000.
+            Defaults to the system's default page size if not specified.
+            """;
+
+    public final static String ASSEMBLY_DESC = """
+            Genome assembly to use for mapping: 'AUTO', 'GRCh37', or 'GRCh38'.
+            If set to 'AUTO', the system will attempt to detect the appropriate assembly for genomic inputs.
+            Defaults to 'AUTO' if not specified.
+            """;
+
+    @Schema(description = "Variant query string in any supported format (genomic, protein, HGVS, dbSNP, etc.). Mutually exclusive with resultId and ids.")
+    protected String q;
+
+    @Schema(description = """
+            Uploaded result ID (32-character hex string returned by POST /input/text or /input/file).
+            When provided, the backend retrieves the cached input associated with this ID.
+            Mutually exclusive with 'ids' — if both are provided, 'resultId' takes precedence.
+            """)
+    protected String resultId;
+
+    @Schema(description = """
+            Biological identifiers for browse queries (UniProt, Gene, PDB, Ensembl, RefSeq).
+            Each entry has a 'type' and 'value'. 'type' is optional — if omitted, the backend
+            auto-detects it from 'value' using InputTypeResolver. Callers that know the type
+            should always supply it to avoid misdetection of ambiguous values (e.g. short gene
+            symbols). Falls back to GENE if detection fails.
+            Example: [{"type": "UNIPROT", "value": "P22304"}, {"value": "BRCA2"}]
+            """)
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    protected List<Identifier> ids;
+
+    @Schema(
+            description = PAGE_DESC,
+            example = PageUtils.PAGE
+    )
+    @Min(value = 1, message = "Page number must be greater than 0")
+    protected Integer page;
+
+    @Schema(
+            description = PAGE_SIZE_DESC,
+            example = PageUtils.PAGE_SIZE
+    )
+    @Min(value = PageUtils.PAGE_SIZE_MIN, message = "Page size must be at least 10")
+    @Max(value = PageUtils.PAGE_SIZE_MAX, message = "Page size must not exceed 1000")
+    protected Integer pageSize;
+
+    @Schema(
+            description = "Genome assembly version. 'AUTO' lets the system auto-detect the build for genomic inputs.",
+            defaultValue = "AUTO",
+            allowableValues = {"AUTO", "GRCh37", "GRCh38"}
+    )
+    protected String assembly;
+
+    // Advanced filtering criteria
+    // Variant Type
+    @Schema(description = "Show only known variants (default: potential included)", example = "false")
+    private Boolean known;
+
+    // Function-side feature filters (mapped via FeatureGroup → function_feature.type)
+    @Schema(description = "Restrict to variants overlapping a PTM (post-translational modification) feature", example = "false")
+    private Boolean ptm;
+
+    @Schema(description = "Restrict to variants overlapping a mutagenesis site", example = "false")
+    private Boolean mutagen;
+
+    @Schema(description = "Restrict to variants overlapping a domain, region, or notable site", example = "false")
+    private Boolean domain;
+
+    @Schema(description = "Restrict to variants overlapping a binding site", example = "false")
+    private Boolean binding;
+
+    @Schema(description = "Restrict to variants overlapping an active site", example = "false")
+    private Boolean actsite;
+
+    @Schema(description = "Restrict to variants overlapping a transmembrane region", example = "false")
+    private Boolean transmem;
+
+    @Schema(description = "Minimum conservation score (0-1, inclusive)", example = "0.0")
+    @Min(value = 0, message = "Conservation minimum must be at least 0")
+    @Max(value = 1, message = "Conservation minimum must not exceed 1")
+    private Double conservationMin;
+
+    @Schema(description = "Maximum conservation score (0-1, inclusive)", example = "1.0")
+    @Min(value = 0, message = "Conservation maximum must be at least 0")
+    @Max(value = 1, message = "Conservation maximum must not exceed 1")
+    private Double conservationMax;
+
+    // Population
+    @Schema(description = "Restrict to variants at a residue with at least one disease-associated population entry", example = "false")
+    private Boolean diseaseAssociation;
+
+    @Schema(description = "Allele frequency categories", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<AlleleFreqCategory> alleleFreq;
+
+    // Structural
+    @Schema(description = "Show only variants with experimental structural model", example = "false")
+    private Boolean experimentalModel;
+
+    @Schema(description = "Show only variants in P-P interaction", example = "false")
+    private Boolean interact;
+
+    @Schema(description = "Show only variants in predicted pocket", example = "false")
+    private Boolean pocket;
+
+    @Schema(description = "Stability change filter", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<StabilityChange> stability;
+
+    // Consequence
+    @Schema(description = "CADD score filter categories", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<CaddCategory> cadd;
+
+    @Schema(description = "AlphaMissense pathogenicity class filter", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<AmClass> am;
+
+    @Schema(description = "popEVE score filter categories", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<PopEveClass> popeve;
+
+    @Schema(description = "Minimum ESM1b score (-25 to 0, inclusive)", example = "-25.0")
+    @Min(value = -25, message = "ESM1b minimum must be at least -25")
+    @Max(value = 0, message = "ESM1b minimum must not exceed 0")
+    private Double esm1bMin;
+
+    @Schema(description = "Maximum ESM1b score (-25 to 0, inclusive)", example = "0.0")
+    @Min(value = -25, message = "ESM1b maximum must be at least -25")
+    @Max(value = 0, message = "ESM1b maximum must not exceed 0")
+    private Double esm1bMax;
+
+    // Position range filter (single UniProt accession browse only; ignored otherwise with a warning)
+    @Schema(description = "Start of protein position range (inclusive, 1-based). Only applies to single UniProt accession browse.", example = "558")
+    @Min(value = 1, message = "startPos must be at least 1")
+    private Integer startPos;
+
+    @Schema(description = "End of protein position range (inclusive, 1-based). Must be used with startPos. Values are normalised if startPos > endPos.", example = "600")
+    @Min(value = 1, message = "endPos must be at least 1")
+    private Integer endPos;
+
+    // Sorting
+    @Schema(description = "Sort field: 'cadd', 'am', 'popeve', or 'esm1b'", example = "cadd")
+    private String sort;
+
+    @Schema(description = "Sort direction: 'asc' or 'desc'", example = "asc")
+    private String order;
+
+    // override Lombok getter for page
+
+    /**
+     * Returns the effective page number, defaulting to 1 if null.
+     */
+    public int getPage() {
+        return page != null ? page : PageUtils.DEFAULT_PAGE;
+    }
+
+    // override Lombok getter for pageSize
+
+    /**
+     * Returns the effective page size, defaulting to configured default if null.
+     */
+    public int getPageSize() {
+        return pageSize != null ? pageSize : PageUtils.DEFAULT_PAGE_SIZE;
+    }
+
+}

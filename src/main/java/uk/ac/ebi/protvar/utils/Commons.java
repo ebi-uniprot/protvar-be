@@ -1,8 +1,8 @@
 package uk.ac.ebi.protvar.utils;
 
 import java.util.*;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nonnull;
+import jakarta.annotation.Nullable;
 
 public class Commons {
 

@@ -4,6 +4,7 @@ import java.util.List;
 
 import lombok.Builder;
 import lombok.Getter;
+import uk.ac.ebi.protvar.model.data.AlleleFreq;
 
 @Getter
 @Builder
@@ -13,7 +14,6 @@ public class Gene {
 	private String geneName;
 	private String refAllele;
 	private String altAllele;
-	private List<IsoFormMapping> isoforms;
+	private List<Isoform> isoforms;
 	private Double caddScore;
-	private Double alleleFreq;
 }

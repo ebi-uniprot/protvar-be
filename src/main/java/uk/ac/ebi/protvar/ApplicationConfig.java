@@ -1,47 +1,33 @@
 package uk.ac.ebi.protvar;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DataSourceBuilder;
-import org.springframework.boot.web.client.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.DefaultUriBuilderFactory;
-import uk.ac.ebi.pdbe.api.PDBeAPI;
-import uk.ac.ebi.pdbe.api.PDBeAPIImpl;
-import uk.ac.ebi.protvar.cache.RestTemplateCache;
-import uk.ac.ebi.uniprot.coordinates.api.CoordinatesAPI;
-import uk.ac.ebi.uniprot.coordinates.api.CoordinatesAPIImpl;
-import uk.ac.ebi.uniprot.proteins.api.ProteinsAPI;
-import uk.ac.ebi.uniprot.proteins.api.ProteinsAPIImpl;
-import uk.ac.ebi.uniprot.variation.api.VariationAPI;
-import uk.ac.ebi.uniprot.variation.api.VariationAPIImpl;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 
+@Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class ApplicationConfig {
 
-    @Value(("${uniprot.proteins.api.url}"))
-    private String proteinsURL;
-
-    @Value(("${uniprot.variation.api.url}"))
-    private String variationURL;
-
-    @Value(("${uniprot.coordinates.api.url}"))
-    private String coordinatesURL;
-
-    @Value(("${pdbe.best-structures.api.url}"))
-    private String pdbeURL;
+    private final ObjectMapper objectMapper;
 
     @Bean
     @Primary
@@ -60,76 +46,40 @@ public class ApplicationConfig {
         return new NamedParameterJdbcTemplate(dataSource);
     }
 
+
     @Bean
-    //@RequestScope
-    public RestTemplate variantRestTemplate() {
-        RestTemplate restTemplate = new RestTemplate();// new RestTemplateCache();
+    @Qualifier("embeddingRestTemplate")
+    public RestTemplate embeddingRestTemplate() {
+        // Simple factory with timeouts (no external dependency needed)
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);  // 5 seconds
+        factory.setReadTimeout(10000);     // 10 seconds
+
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+        converter.setObjectMapper(objectMapper);
+
+        RestTemplate restTemplate = new RestTemplate(factory);
+        // Keep the default converter set (incl. StringHttpMessageConverter so callers
+        // can ask for String.class), but swap in our customised Jackson at the end so
+        // it — and its shared ObjectMapper — is what actually handles JSON DTOs.
         restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(variationURL));
-        return restTemplate;
-    }
+        restTemplate.getMessageConverters().removeIf(c -> c instanceof MappingJackson2HttpMessageConverter);
+        restTemplate.getMessageConverters().add(converter);
 
-    @Bean
-    //@RequestScope
-    public RestTemplate proteinRestTemplate() {
-        RestTemplate restTemplate = new RestTemplate();//new RestTemplateCache();
-        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(proteinsURL));
-        return restTemplate;
-    }
-
-    @Bean
-    //@RequestScope
-    public RestTemplate coordinateRestTemplate() {
-        RestTemplate restTemplate = new RestTemplateCache();
-        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(coordinatesURL));
-        return restTemplate;
-    }
-
-    @Bean
-    //@RequestScope
-    public RestTemplate pdbeRestTemplate() {
-        RestTemplate restTemplate = new RestTemplateCache();
-        restTemplate.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
-        restTemplate.setUriTemplateHandler(new DefaultUriBuilderFactory(pdbeURL));
-        return restTemplate;
-    }
-
-    @Bean
-    public PDBeAPI pdbeAPI() {
-        PDBeAPI pdbeAPI = new PDBeAPIImpl(pdbeRestTemplate());
-        return pdbeAPI;
-    }
-
-    @Bean
-    public VariationAPI variationAPI() {
-        return new VariationAPIImpl(variantRestTemplate());
-    }
-    @Bean
-    public ProteinsAPI proteinsAPI() {
-        return new ProteinsAPIImpl(proteinRestTemplate());
-    }
-    @Bean
-    public CoordinatesAPI coordinatesAPI() {
-        return new CoordinatesAPIImpl(coordinateRestTemplate());
-    }
-
-    @Bean
-    RestTemplateCustomizer retryRestTemplateCustomizer() {
-        return restTemplate -> restTemplate.getInterceptors().add((request, body, execution) -> {
-
+        // Add retry interceptor
+        restTemplate.getInterceptors().add((request, body, execution) -> {
             RetryTemplate retryTemplate = new RetryTemplate();
             retryTemplate.setRetryPolicy(new SimpleRetryPolicy(3));
             try {
                 return retryTemplate.execute(context -> {
-                    System.out.println("start retrying ....");
+                    log.info("Attempting embedding service call (attempt " + (context.getRetryCount() + 1) + ")");
                     return execution.execute(request, body);
                 });
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
             }
         });
+        return restTemplate;
     }
 
 }

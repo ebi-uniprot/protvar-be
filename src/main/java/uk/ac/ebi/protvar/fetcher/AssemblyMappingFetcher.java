@@ -2,12 +2,13 @@ package uk.ac.ebi.protvar.fetcher;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import uk.ac.ebi.protvar.model.grc.Assembly;
-import uk.ac.ebi.protvar.model.grc.Coordinate;
+import uk.ac.ebi.protvar.types.Assembly;
+import uk.ac.ebi.protvar.model.Coordinate;
 import uk.ac.ebi.protvar.model.data.Crossmap;
 import uk.ac.ebi.protvar.model.response.AssemblyMapping;
 import uk.ac.ebi.protvar.model.response.AssemblyMappingResponse;
 import uk.ac.ebi.protvar.repo.CrossmapRepo;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +46,7 @@ public class AssemblyMappingFetcher {
 
         assemblyMappings.stream().filter(mapping -> mapping.getFrom() != null)
                 .forEach(mapping -> {
-                    String key = mapping.getFrom().getChr() + "-" + mapping.getFrom().getPos();
-                    List<Crossmap> crossmap = groupedCrossmaps.get(key);
+                    List<Crossmap> crossmap = groupedCrossmaps.get(VariantKey.genomic(mapping.getFrom().getChr(), mapping.getFrom().getPos()));
                     if (crossmap == null) {
                         mapping.setError("No mapping found");
                     } else {

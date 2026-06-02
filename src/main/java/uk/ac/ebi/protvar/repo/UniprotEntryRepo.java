@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -10,14 +10,16 @@ import uk.ac.ebi.protvar.model.data.UniprotEntry;
 import java.util.List;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class UniprotEntryRepo {
+
+    private final JdbcTemplate jdbcTemplate;
+
     @Value("${tbl.upentry}")
     private String uniprotEntryTable;
-    private JdbcTemplate jdbcTemplate;
 
     public List<UniprotEntry> findAll() {
-        String sql = "SELECT * FROM " + uniprotEntryTable;
+        String sql = "SELECT * FROM " + uniprotEntryTable + " ORDER BY accession";
         return jdbcTemplate.query(sql, new BeanPropertyRowMapper(UniprotEntry.class));
     }
 }

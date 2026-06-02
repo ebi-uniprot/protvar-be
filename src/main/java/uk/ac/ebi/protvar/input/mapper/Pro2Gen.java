@@ -1,23 +1,20 @@
 package uk.ac.ebi.protvar.input.mapper;
 
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.UniprotEntryCache;
-import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Type;
-import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.format.coding.HGVSc;
-import uk.ac.ebi.protvar.input.format.protein.HGVSp;
-import uk.ac.ebi.protvar.input.type.GenomicInput;
-import uk.ac.ebi.protvar.input.type.ProteinInput;
+import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Message;
+import uk.ac.ebi.protvar.record.AccessionPosition;
 import uk.ac.ebi.protvar.repo.MappingRepo;
-import uk.ac.ebi.protvar.repo.UniprotRefseqRepo;
-import uk.ac.ebi.protvar.utils.AminoAcid;
+import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.protvar.utils.Commons;
-import uk.ac.ebi.protvar.utils.RNACodon;
+import uk.ac.ebi.protvar.types.Codon;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,37 +24,38 @@ import static uk.ac.ebi.protvar.input.ErrorConstants.*;
 @AllArgsConstructor
 public class Pro2Gen {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Pro2Gen.class);
+
     private MappingRepo mappingRepo;
 
     @Autowired
     UniprotEntryCache uniprotEntryCache;
 
-    private UniprotRefseqRepo uniprotRefseqRepo;
-
-    public void convert(Map<Type, List<UserInput>> groupedInputs, TreeMap<String, List<String>> rsAccsMap) {
-        List<UserInput> proteinInputs = new ArrayList<>();
-        if (groupedInputs.get(Type.PROTEIN) != null)
-            proteinInputs.addAll(groupedInputs.get(Type.PROTEIN));
-        if (groupedInputs.get(Type.CODING) != null)
-            proteinInputs.addAll(groupedInputs.get(Type.CODING));
+    public void convert(Map<VariantType, List<VariantInput>> groupedInputs, TreeMap<String, List<String>> refseqIdMap) {
+        List<VariantInput> proteinInputs = new ArrayList<>();
+        if (groupedInputs.get(VariantType.PROTEIN) != null)
+            proteinInputs.addAll(groupedInputs.get(VariantType.PROTEIN));
+        if (groupedInputs.get(VariantType.CODING_DNA) != null)
+            proteinInputs.addAll(groupedInputs.get(VariantType.CODING_DNA));
         if (!proteinInputs.isEmpty())
-            convert(proteinInputs, rsAccsMap);
+            convert(proteinInputs, refseqIdMap);
     }
 
-    private void convert(List<UserInput> proteinInputs, TreeMap<String, List<String>> rsAccsMap) {
-        // 1. get all the accessions and positions
-        List<Object[]> accPosList = new ArrayList<>();
-        for (UserInput input : proteinInputs) {
+    private void convert(List<VariantInput> proteinInputs, TreeMap<String, List<String>> refseqIdMap) {
+        // 1. get all the accessions and positions (deduplicated by AccessionPosition)
+        Set<AccessionPosition> uniqueAccPos = new HashSet<>();
+        for (VariantInput input : proteinInputs) {
 
-            if (input instanceof HGVSp) {
-                HGVSp hgvsProt = (HGVSp) input;
-                List<String> uniprotAccs = Coding2Pro.getUniprotAccs(hgvsProt.getRsAcc(), rsAccsMap, hgvsProt);
+            if (input.getFormat() == VariantFormat.HGVS_PROTEIN) {
+                ProteinInput hgvsProt = (ProteinInput) input;
+
+                List<String> uniprotAccs = Coding2Pro.getUniprotAccs(hgvsProt.getRefseqId(), refseqIdMap, hgvsProt);
                 if (uniprotAccs != null && uniprotAccs.size() > 0){
                     List<String> head =  uniprotAccs.subList(0, 1);
                     List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());
 
-                    hgvsProt.setAcc(head.get(0));
-                    accPosList.add(new Object[]{head.get(0), hgvsProt.getPos()});
+                    hgvsProt.setAccession(head.get(0));
+                    uniqueAccPos.add(new AccessionPosition(head.get(0), hgvsProt.getPosition()));
 
                     if (tail != null) {
                         /*
@@ -73,52 +71,55 @@ public class Pro2Gen {
                                     head.get(0)));
                         }
                     }
-                    if (!uniprotEntryCache.isValidEntry(hgvsProt.getAcc())) {
+                    if (!uniprotEntryCache.isValidEntry(hgvsProt.getAccession())) {
                         hgvsProt.addWarning(
-                                String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
-                                , hgvsProt.getRsAcc(), hgvsProt.getAcc()));
+                                String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage(),
+                                        hgvsProt.getRefseqId(), hgvsProt.getAccession()));
                     }
                 } else {
                     hgvsProt.addWarning(ErrorConstants.HGVS_REFSEQ_NO_PROTEIN);
                 }
 
-            } else if(input instanceof ProteinInput) { // custom Protein
-                ProteinInput customProt = (ProteinInput) input;
-                accPosList.add(new Object[]{customProt.getAcc(), customProt.getPos()});
+            } else if(input instanceof ProteinInput) { // internal Protein
+                ProteinInput internalProt = (ProteinInput) input;
+                uniqueAccPos.add(new AccessionPosition(internalProt.getAccession(), internalProt.getPosition()));
 
-                if (!uniprotEntryCache.isValidEntry(customProt.getAcc())) {
-                    customProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), customProt.getAcc()));
+                if (!uniprotEntryCache.isValidEntry(internalProt.getAccession())) {
+                    internalProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), internalProt.getAccession()));
                 }
 
-            } else if (input instanceof HGVSc) {
-                HGVSc cDNAProt = (HGVSc) input;
-                if (cDNAProt.getDerivedUniprotAcc() != null) {/*
-                    cDNAProt.addInfo(String.format(
+            } else if (input.getFormat() == VariantFormat.HGVS_CODING) {
+                HGVSCodingInput codingInput = (HGVSCodingInput) input;
+                if (codingInput.getDerivedUniprotAcc() != null) {/*
+                    codingInput.addInfo(String.format(
                         ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
-                            cDNAProt.getDerivedUniprotAcc()));*/
+                            codingInput.getDerivedUniprotAcc()));*/
 
-                    if (!uniprotEntryCache.isValidEntry(cDNAProt.getDerivedUniprotAcc()))
-                        cDNAProt.addWarning(
+                    if (!uniprotEntryCache.isValidEntry(codingInput.getDerivedUniprotAcc()))
+                        codingInput.addWarning(
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
-                                        , cDNAProt.getRsAcc(), cDNAProt.getDerivedUniprotAcc()));
-                    if (cDNAProt.getDerivedProtPos() != null)
-                        accPosList.add(new Object[]{cDNAProt.getDerivedUniprotAcc(), cDNAProt.getDerivedProtPos()});
+                                        , codingInput.getRefseqId(), codingInput.getDerivedUniprotAcc()));
+                    if (codingInput.getDerivedProtPos() != null)
+                        uniqueAccPos.add(new AccessionPosition(codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos()));
                 }
             }
         }
 
         // 2. get all the relevant db records by accessions and positions
+        List<Object[]> accPosList = uniqueAccPos.stream()
+                .map(ap -> new Object[]{ap.accession(), ap.position()})
+                .toList();
         Map<String, List<GenomeToProteinMapping>> gCoords = mappingRepo.getMappingsByAccPos(accPosList)
-                .stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getGroupByProteinAccAndPos));
+                .stream().collect(Collectors.groupingBy(GenomeToProteinMapping::getVariantKeyProtein));
 
         // 3. we expect each protein input to have 3 genomic coordinates (in normal cases),
         //	which we will try to pin down to one, if possible, based on the user inputs
         proteinInputs.stream().filter(i -> i.isValid()).forEach(i -> {
 
-            if (i instanceof HGVSp || i instanceof ProteinInput) {
+            if (i.getType() == VariantType.PROTEIN) { // INTERNAL_PROT or HGVS_PROT formats
                 ProteinInput input = (ProteinInput) i;
 
-                String key = Commons.joinWithDash(input.getAcc(), input.getPos());
+                String key = VariantKey.protein(input.getAccession(), input.getPosition());
                 List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
                 // ^ all the genomic coordinates for protein accession and position
 
@@ -152,11 +153,24 @@ public class Pro2Gen {
                 //                                        alt allele 2
                 //                                        alt allele 3
 
-                List<GenomicInput> altGInputs = new ArrayList<>();
+                List<GenomicVariant> altGInputs = new ArrayList<>();
                 List<ErrorConstants> errors = new ArrayList<>();
 
                 if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
                     gCoordsForProtein.forEach(gCoord -> {
+                        // Guard against incomplete g2p_mapping rows. The DB columns
+                        // base_nucleotide / aa / codon can be null for some accessions
+                        // (data-pipeline issue tracked separately) and an unguarded
+                        // toUpperCase below would NPE the whole download. codonPosition
+                        // is a primitive int — SQL NULL becomes 0 silently, no NPE.
+                        if (gCoord.getBaseNucleotide() == null || gCoord.getAa() == null
+                                || gCoord.getCodon() == null) {
+                            LOGGER.warn("Skipping incomplete g2p mapping for {} pos {}: ref={}, aa={}, codon={}",
+                                    input.getAccession(), input.getPosition(),
+                                    gCoord.getBaseNucleotide(), gCoord.getAa(), gCoord.getCodon());
+                            return;
+                        }
+
                         String gCoordChr = gCoord.getChromosome();
                         Integer gCoordPos = gCoord.getGenomeLocation();
                         String gCoordRefAllele = gCoord.getBaseNucleotide();
@@ -170,17 +184,17 @@ public class Pro2Gen {
                         Integer gCoordCodonPos = gCoord.getCodonPosition();
                         Boolean gCoordIsReverse = gCoord.isReverseStrand();
 
-                        Set<String> possibleAltAlleles = GenomicInput.getAlternates(gCoordRefAllele); // allele is in DNA letters -ATCG
+                        Set<String> possibleAltAlleles = GenomicInput.getAlternateBases(gCoordRefAllele); // allele is in DNA letters -ATCG
 
                         AminoAcid gCoordRefAA = AminoAcid.fromOneOrThreeLetter(gCoordAa);
 
                         // both ref and alt not provided
-                        if (input.getRef() == null && input.getAlt() == null) {
+                        if (input.getRefAA() == null && input.getAltAA() == null) {
                             // Ref & var empty
                             if (!errors.contains(ERR_CODE_REF_EMPTY)) {
                                 errors.add(ERR_CODE_REF_EMPTY);
                                 input.getMessages().add(new Message(Message.MessageType.WARN,
-                                        String.format(ERR_CODE_REF_EMPTY.getErrorMessage(), input.getPos(), gCoordRefAA.getThreeLetters())));
+                                        String.format(ERR_CODE_REF_EMPTY.getErrorMessage(), input.getPosition(), gCoordRefAA.getThreeLetter())));
                             }
 
                             if (!errors.contains(ERR_CODE_VAR_EMPTY)) {
@@ -191,28 +205,24 @@ public class Pro2Gen {
 
                             for (String altAllele : possibleAltAlleles) {
                                 //altAllele = gCoordIsReverse ? reverseDNA(altAllele) : altAllele;
-                                GenomicInput gInput = new GenomicInput(input.getInputStr());
-                                gInput.setChr(gCoordChr);
-                                gInput.setPos(gCoordPos);
-                                gInput.setRef(gCoordRefAllele);
-                                gInput.setAlt(altAllele);
-                                input.getDerivedGenomicInputs().add(gInput);
+                                GenomicVariant genomicVariant = new GenomicVariant(gCoordChr, gCoordPos, gCoordRefAllele, altAllele);
+                                input.getDerivedGenomicVariants().add(genomicVariant);
                             }
-                        } else if (input.getRef() != null) { // ref provided
+                        } else if (input.getRefAA() != null) { // ref provided
 
-                            AminoAcid refAA = AminoAcid.fromOneOrThreeLetter(input.getRef());
+                            AminoAcid refAA = AminoAcid.fromOneOrThreeLetter(input.getRefAA());
 
                             // reference mismatch
                             if (!refAA.equals(gCoordRefAA) && !errors.contains(ERR_CODE_REF_MISMATCH)) {
                                 errors.add(ERR_CODE_REF_MISMATCH);
                                 input.getMessages().add(new Message(Message.MessageType.WARN,
                                         String.format(ERR_CODE_REF_MISMATCH.getErrorMessage(),
-                                                refAA.getThreeLetters(), gCoordRefAA.getThreeLetters(), input.getPos(), gCoordRefAA.getThreeLetters())));
-                                input.setRef(gCoordAa);
+                                                refAA.getThreeLetter(), gCoordRefAA.getThreeLetter(), input.getPosition(), gCoordRefAA.getThreeLetter())));
+                                input.setRefAA(gCoordAa);
                             }
 
                             AminoAcid userAltAA = null;
-                            if (input.getAlt() == null) { // alt not provided
+                            if (input.getAltAA() == null) { // alt not provided
                                 if (!errors.contains(ERR_CODE_VAR_EMPTY)) {
                                     errors.add(ERR_CODE_VAR_EMPTY);
                                     input.getMessages().add(new Message(Message.MessageType.WARN,
@@ -220,14 +230,14 @@ public class Pro2Gen {
                                 }
                             }
                             else {
-                                userAltAA = AminoAcid.fromOneOrThreeLetter(input.getAlt());
+                                userAltAA = AminoAcid.fromOneOrThreeLetter(input.getAltAA());
 
                                 // variant non SNV
                                 if (!AminoAcid.isSNV(gCoordRefAA, userAltAA) && !errors.contains(ERR_CODE_VARIANT_NON_SNV)) {
                                     errors.add(ERR_CODE_VARIANT_NON_SNV);
                                     input.getMessages().add(new Message(Message.MessageType.WARN,
                                             String.format(ERR_CODE_VARIANT_NON_SNV.getErrorMessage(),
-                                                    userAltAA.getThreeLetters(), gCoordRefAA.getThreeLetters())));
+                                                    userAltAA.getThreeLetter(), gCoordRefAA.getThreeLetter())));
                                 }
                             }
 
@@ -239,47 +249,49 @@ public class Pro2Gen {
                                         altAlleleIfReverse(altAllele, gCoordIsReverse) +
                                         codonUC.substring(gCoordCodonPos);
 
-                                RNACodon altRnaCodon = RNACodon.valueOf(altCodon);
+                                Codon altRnaCodon = Codon.valueOf(altCodon);
                                 AminoAcid altAA = altRnaCodon.getAa();
 
-                                GenomicInput gInput = new GenomicInput(input.getInputStr());
-                                gInput.setChr(gCoordChr);
-                                gInput.setPos(gCoordPos);
-                                gInput.setRef(gCoordRefAllele);
-                                gInput.setAlt(altAllele);
+                                GenomicVariant genomicVariant = new GenomicVariant(gCoordChr, gCoordPos, gCoordRefAllele, altAllele);
 
                                 // filter out codon that doesn't code for user variant amino acid
                                 if (userAltAA != null && !altAA.equals(userAltAA)) {
-                                    altGInputs.add(gInput);
+                                    altGInputs.add(genomicVariant);
                                     continue; // check the next altAllele
                                 }
-                                input.getDerivedGenomicInputs().add(gInput);
+                                input.getDerivedGenomicVariants().add(genomicVariant);
                             }
                         }
 
                     });
                 }
 
-                if (input.getDerivedGenomicInputs().isEmpty()) {
+                if (input.getDerivedGenomicVariants().isEmpty()) {
                     //if we haven't got a filtered set of genomic coordinates, return all possible combinations
                     if (altGInputs.isEmpty()) {
                         input.addError(PROT_NO_GEN_MAPPING);
                     }
                     else {
-                        input.getDerivedGenomicInputs().addAll(altGInputs);
+                        input.getDerivedGenomicVariants().addAll(altGInputs);
                     }
                 }
 
-            } else if (i instanceof HGVSc) {
-                HGVSc input = (HGVSc) i;
+            } else if (i.getFormat() == VariantFormat.HGVS_CODING) {
+                HGVSCodingInput codingInput = (HGVSCodingInput) i;
 
-                String key = Commons.joinWithDash(input.getDerivedUniprotAcc(), input.getDerivedProtPos());
+                String key = VariantKey.protein(codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos());
                 List<GenomeToProteinMapping> gCoordsForProtein = gCoords.get(key);
 
                 Set<String> seen = new HashSet<>();
 
                 if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
                     gCoordsForProtein.forEach(gCoord -> {
+                        if (gCoord.getBaseNucleotide() == null) {
+                            LOGGER.warn("Skipping incomplete g2p mapping for HGVS coding {} pos {}: null baseNucleotide",
+                                    codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos());
+                            return;
+                        }
+
                         String gCoordChr = gCoord.getChromosome();
                         Integer gCoordPos = gCoord.getGenomeLocation();
                         String gCoordRefAllele = gCoord.getBaseNucleotide();
@@ -289,11 +301,11 @@ public class Pro2Gen {
                         seen.add(curr);
 
                         Integer gCoordCodonPos = gCoord.getCodonPosition();
-                        if (!gCoordCodonPos.equals(input.getDerivedCodonPos()))
+                        if (!gCoordCodonPos.equals(codingInput.getDerivedCodonPos()))
                             return;
 
-                        String cdnaRef = input.getRef();
-                        String cdnaAlt = input.getAlt();
+                        String cdnaRef = codingInput.getRefBase();
+                        String cdnaAlt = codingInput.getAltBase();
 
                         if (gCoord.isReverseStrand()) {
                             cdnaRef = reverseDNA(cdnaRef);
@@ -303,17 +315,13 @@ public class Pro2Gen {
                         if (!gCoordRefAllele.equals(cdnaRef))
                             return;
 
-                        GenomicInput gInput = new GenomicInput(input.getInputStr());
-                        gInput.setChr(gCoordChr);
-                        gInput.setPos(gCoordPos);
-                        gInput.setRef(gCoordRefAllele);
-                        gInput.setAlt(cdnaAlt);
-                        input.getDerivedGenomicInputs().add(gInput);
+                        GenomicVariant genomicVariant = new GenomicVariant(gCoordChr, gCoordPos, gCoordRefAllele, cdnaAlt);
+                        codingInput.getDerivedGenomicVariants().add(genomicVariant);
                     });
                 }
 
-                if (input.getDerivedGenomicInputs().isEmpty()) {
-                    input.addError(CDNA_NO_GEN_MAPPING);
+                if (codingInput.getDerivedGenomicVariants().isEmpty()) {
+                    codingInput.addError(CDNA_NO_GEN_MAPPING);
                 }
             }
         });

@@ -4,10 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import uk.ac.ebi.protvar.input.Type;
+import uk.ac.ebi.protvar.input.VariantType;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 
-import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -15,35 +14,30 @@ import java.util.stream.Collectors;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class InputSummary implements Serializable {
+public class InputSummary {
     int totalCount;
-    EnumMap<Type, Integer> inputCounts = new EnumMap<>(Type.class);
+    @Builder.Default
+    EnumMap<VariantType, Integer> inputCounts = new EnumMap<>(VariantType.class);
 
 
     @Override
     public String toString() {
-        String s = FetcherUtils.pluralise(totalCount);
+        String pluralSuffix = FetcherUtils.pluralise(totalCount);
+        List<Map.Entry<VariantType, Integer>> nonZeroInputs = inputCounts.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0)
+                .toList();
 
-        // Check if only one input type has a non-zero count
-        boolean singleInputType = inputCounts.values().stream()
-                .filter(count -> count > 0)
-                .count() == 1;
-
-        if (singleInputType) {
-            Type singleInputTypeKey = inputCounts.entrySet().stream()
-                    .filter(entry -> entry.getValue() > 0)
-                    .findFirst()
-                    .map(Map.Entry::getKey)
-                    .orElse(Type.INVALID);
-            return String.format("%d %s input%s", totalCount, singleInputTypeKey.getName(), s);
+        if (nonZeroInputs.size() == 1) {
+            // Only one type of input
+            VariantType onlyInputType = nonZeroInputs.get(0).getKey();
+            return String.format("%d %s input%s", totalCount, onlyInputType.getName(), pluralSuffix);
         } else {
-            // Filter out types with zero counts
-            String summary = inputCounts.entrySet().stream()
-                    .filter(entry -> entry.getValue() > 0)
+            // Multiple input types
+            String breakdown = nonZeroInputs.stream()
                     .map(entry -> String.format("%d %s", entry.getValue(), entry.getKey().getName()))
                     .collect(Collectors.joining(", "));
 
-            return String.format("%d user input%s (%s)", totalCount, s, summary);
+            return String.format("%d user input%s (%s)", totalCount, pluralSuffix, breakdown);
         }
     }
 }

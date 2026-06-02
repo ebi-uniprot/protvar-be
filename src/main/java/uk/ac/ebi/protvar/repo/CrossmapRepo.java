@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Repository
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class CrossmapRepo {
     private static final String CROSSMAPS_IN_GRCHX_POS = """
 			SELECT * FROM %s AS cm 
@@ -27,10 +27,10 @@ public class CrossmapRepo {
    			ON t.chr=cm.chr AND t.pos=cm.grch37_pos
    			""";
 
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
     @Value("${tbl.crossmap}")
     private String crossmapTable;
-
-    private NamedParameterJdbcTemplate jdbcTemplate;
 
     public double getPercentageMatch(List<Object[]> chrPosRefList, String ver) {
         String sql = String.format("""

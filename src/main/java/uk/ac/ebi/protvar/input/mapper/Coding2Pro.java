@@ -3,9 +3,9 @@ package uk.ac.ebi.protvar.input.mapper;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Type;
-import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.format.coding.HGVSc;
+import uk.ac.ebi.protvar.input.VariantType;
+import uk.ac.ebi.protvar.input.VariantInput;
+import uk.ac.ebi.protvar.input.HGVSCodingInput;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.*;
@@ -25,14 +25,14 @@ import java.util.*;
 @AllArgsConstructor
 public class Coding2Pro {
 
-    public static List<String> getUniprotAccs(String rsAcc, TreeMap<String, List<String>> rsAccsMap, UserInput input) {
-        if (rsAccsMap.containsKey(rsAcc))
-            return rsAccsMap.get(rsAcc);
+    public static List<String> getUniprotAccs(String refseqId, TreeMap<String, List<String>> refseqIdMap, VariantInput input) {
+        if (refseqIdMap.containsKey(refseqId))
+            return refseqIdMap.get(refseqId);
         else {
-            int dotIdx = rsAcc.lastIndexOf(".");
+            int dotIdx = refseqId.lastIndexOf(".");
             if (dotIdx != -1) {
-                String rsAccNoVer = rsAcc.substring(0, dotIdx);
-                Map<String, List<String>> result = FetcherUtils.getByPrefix(rsAccsMap, rsAccNoVer);
+                String idWithoutVersion = refseqId.substring(0, dotIdx);
+                Map<String, List<String>> result = FetcherUtils.getByPrefix(refseqIdMap, idWithoutVersion);
                 if (!result.isEmpty()) {
                     SortedSet<String> keys = new TreeSet<>(result.keySet());
                     String firstKey = keys.first();
@@ -44,13 +44,14 @@ public class Coding2Pro {
         return List.of();
     }
 
-    public void convert(Map<Type, List<UserInput>> groupedInputs, TreeMap<String, List<String>> rsAccsMap) {
-        if (groupedInputs.containsKey(Type.CODING)) {
-            List<UserInput> codingInputs = groupedInputs.get(Type.CODING);
-            codingInputs.stream().map(i -> (HGVSc) i).forEach(cDNAProt -> {
-                List<String> uniprotAccs = getUniprotAccs(cDNAProt.getRsAcc(), rsAccsMap, cDNAProt);
+    public void convert(Map<VariantType, List<VariantInput>> groupedInputs, TreeMap<String, List<String>> refseqIdMap) {
+        if (groupedInputs.containsKey(VariantType.CODING_DNA)) {
+            List<VariantInput> codingInputs = groupedInputs.get(VariantType.CODING_DNA);
+            codingInputs.stream().map(i -> (HGVSCodingInput) i).forEach(cDNAProt -> {
+                List<String> uniprotAccs = getUniprotAccs(cDNAProt.getRefseqId(),
+                        refseqIdMap, cDNAProt);
                 if (uniprotAccs != null && uniprotAccs.size() > 0) {
-                    int[] protAndCodonPos = coding2ProteinPosition(cDNAProt.getPos());
+                    int[] protAndCodonPos = coding2ProteinPosition(cDNAProt.getPosition());
                     if (protAndCodonPos.length == 2) {
                         List<String> head = uniprotAccs.subList(0, 1);
                         List<String> tail = uniprotAccs.subList(1, uniprotAccs.size());
@@ -58,7 +59,7 @@ public class Coding2Pro {
                         cDNAProt.setDerivedUniprotAcc(head.get(0));
                         cDNAProt.setDerivedProtPos(protAndCodonPos[0]);
                         cDNAProt.setDerivedCodonPos(protAndCodonPos[1]);
-                        if (cDNAProt.getProtPos() != null && cDNAProt.getProtPos() != protAndCodonPos[0]) {
+                        if (cDNAProt.getAaPos() != null && cDNAProt.getAaPos() != protAndCodonPos[0]) {
                             cDNAProt.addWarning(ErrorConstants.HGVS_C_POS_NOT_MATCHED);
                         }
 

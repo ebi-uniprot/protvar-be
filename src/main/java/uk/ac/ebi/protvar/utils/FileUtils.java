@@ -25,21 +25,16 @@ public class FileUtils {
     return fileInTmpDir;
   }
 
-  public static void zipFile(String in, String out) throws Exception {
-    File fileToZip = new File(in);
-
-    try(FileOutputStream fos = new FileOutputStream(out);
-        ZipOutputStream zipOut = new ZipOutputStream(fos);
-        FileInputStream fis = new FileInputStream(fileToZip)) {
-
-      ZipEntry zipEntry = new ZipEntry(fileToZip.getName());
-      zipOut.putNextEntry(zipEntry);
-
-      byte[] bytes = new byte[1024];
-      int length;
-      while ((length = fis.read(bytes)) >= 0) {
-        zipOut.write(bytes, 0, length);
-      }
+  public static void zipFile(Path fileToZip, Path zipFilePath) throws IOException {
+    if (Files.notExists(fileToZip)) {
+      logger.warn("File to zip does not exist: " + fileToZip);
+      return;
+    }
+    try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(zipFilePath))) {
+      ZipEntry zipEntry = new ZipEntry(fileToZip.getFileName().toString());
+      zos.putNextEntry(zipEntry);
+      Files.copy(fileToZip, zos);
+      zos.closeEntry();
     }
   }
 

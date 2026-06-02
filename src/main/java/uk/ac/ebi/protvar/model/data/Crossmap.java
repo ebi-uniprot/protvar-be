@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import uk.ac.ebi.protvar.utils.Commons;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 @Getter
 @Setter
@@ -18,6 +19,6 @@ public class Crossmap {
     String grch37Base;
 
     public String getGroupByChrAnd37Pos() {
-        return Commons.joinWithDash(chr, grch37Pos);
+        return VariantKey.genomic(chr, grch37Pos);
     }
 }

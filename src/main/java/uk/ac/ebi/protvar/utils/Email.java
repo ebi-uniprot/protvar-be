@@ -9,7 +9,7 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMessage;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.file.Path;

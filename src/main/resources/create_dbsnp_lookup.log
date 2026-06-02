@@ -1,0 +1,115 @@
+SELECT 14719869
+ table_size | row_count | chromosomes | avg_alts_per_position
+------------+-----------+-------------+-----------------------
+ 987 MB     |  14719869 |          24 |    1.2250974516145490
+(1 row)
+
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ANALYZE
+           indexname           |                                                  indexdef
+-------------------------------+-------------------------------------------------------------------------------------------------------------
+ idx_mapping_dbsnp_chr         | CREATE INDEX idx_mapping_dbsnp_chr ON protvarwrite.mapping_dbsnp_lookup USING btree (chr)
+ idx_mapping_dbsnp_chr_pos     | CREATE INDEX idx_mapping_dbsnp_chr_pos ON protvarwrite.mapping_dbsnp_lookup USING btree (chr, pos)
+ idx_mapping_dbsnp_chr_pos_ref | CREATE INDEX idx_mapping_dbsnp_chr_pos_ref ON protvarwrite.mapping_dbsnp_lookup USING btree (chr, pos, ref)
+(3 rows)
+
+ chr | positions | array_size
+-----+-----------+------------
+ 1   |   1467510 | 43 MB
+ 10  |    559313 | 16 MB
+ 11  |    897039 | 26 MB
+ 12  |    752403 | 22 MB
+ 13  |    260401 | 7853 kB
+ 14  |    487519 | 14 MB
+ 15  |    502478 | 15 MB
+ 16  |    690478 | 20 MB
+ 17  |    862136 | 25 MB
+ 18  |    226369 | 6765 kB
+ 19  |   1063277 | 31 MB
+ 2   |   1071228 | 31 MB
+ 20  |    358342 | 11 MB
+ 21  |    144665 | 4336 kB
+ 22  |    327797 | 9920 kB
+ 3   |    830276 | 24 MB
+ 4   |    567597 | 17 MB
+ 5   |    665663 | 20 MB
+ 6   |    720745 | 21 MB
+ 7   |    714678 | 21 MB
+ 8   |    524113 | 15 MB
+ 9   |    611214 | 18 MB
+ X   |    398039 | 12 MB
+ Y   |     16589 | 497 kB
+(24 rows)
+
+ chr |   pos    | ref | known_alts
+-----+----------+-----+------------
+ 17  | 43000002 | C   | {T}
+ 17  | 43000003 | G   | {A}
+ 17  | 43000006 | A   | {G,T}
+ 17  | 43000018 | C   | {T}
+ 17  | 43000019 | C   | {T}
+ 17  | 43000020 | A   | {G}
+ 17  | 43000031 | G   | {A,T}
+ 17  | 43000033 | A   | {G,T}
+ 17  | 43000034 | G   | {A,C}
+ 17  | 43000037 | C   | {T}
+(10 rows)
+
+ lookup_count
+--------------
+         5532
+(1 row)
+
+ original_count
+----------------
+          47660
+(1 row)
+
+                                                                                              QUERY PLAN
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=476990.68..476990.69 rows=1 width=8) (actual time=581.908..583.023 rows=1 loops=1)
+   ->  Gather  (cost=476990.46..476990.67 rows=2 width=8) (actual time=581.664..583.018 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         ->  Partial Aggregate  (cost=475990.46..475990.47 rows=1 width=8) (actual time=579.166..579.168 rows=1 loops=3)
+               ->  Nested Loop  (cost=1496.48..475988.77 rows=678 width=0) (actual time=26.148..572.408 rows=115894 loops=3)
+                     Join Filter: (("*VALUES*".column1 <> (m.allele)::text) AND ("*VALUES*".column1 = ANY (string_to_array((d.alt)::text, ','::text))))
+                     Rows Removed by Join Filter: 71810
+                     ->  Nested Loop  (cost=1496.48..475249.73 rows=4619 width=4) (actual time=26.127..485.945 rows=46926 loops=3)
+                           ->  Parallel Bitmap Heap Scan on rel_2025_01_genomic_protein_mapping m  (cost=1495.90..229928.94 rows=68942 width=8) (actual time=22.787..228.569 rows=48843 loops=3)
+                                 Recheck Cond: ((gene_name)::text = 'BRCA1'::text)
+                                 Heap Blocks: exact=1298
+                                 ->  Bitmap Index Scan on rel_2025_01_genomic_protein_mapping_gene_name_idx  (cost=0.00..1454.53 rows=165462 width=0) (actual time=22.267..22.267 rows=146529 loops=1)
+                                       Index Cond: ((gene_name)::text = 'BRCA1'::text)
+                           ->  Index Scan using dbsnp_b156_chr_pos_ref_idx on dbsnp_b156 d  (cost=0.57..3.55 rows=1 width=10) (actual time=0.005..0.005 rows=1 loops=146529)
+                                 Index Cond: (((chr)::text = (m.chromosome)::text) AND (pos = m.genomic_position) AND ((ref)::text = (m.allele)::text))
+                     ->  Values Scan on "*VALUES*"  (cost=0.00..0.05 rows=4 width=32) (actual time=0.000..0.000 rows=4 loops=140778)
+ Planning Time: 2.868 ms
+ Execution Time: 583.087 ms
+(19 rows)
+
+                                                                                             QUERY PLAN
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=413330.98..413330.99 rows=1 width=8) (actual time=182.459..183.755 rows=1 loops=1)
+   ->  Gather  (cost=413330.76..413330.97 rows=2 width=8) (actual time=182.330..183.750 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         ->  Partial Aggregate  (cost=412330.76..412330.77 rows=1 width=8) (actual time=180.136..180.138 rows=1 loops=3)
+               ->  Nested Loop  (cost=1496.34..412330.46 rows=120 width=0) (actual time=1.000..173.957 rows=115894 loops=3)
+                     Join Filter: (("*VALUES*".column1 <> (m.allele)::text) AND ("*VALUES*".column1 = ANY (dbsnp.known_alts)))
+                     Rows Removed by Join Filter: 71810
+                     ->  Nested Loop  (cost=1496.34..412207.61 rows=819 width=32) (actual time=0.997..121.571 rows=46926 loops=3)
+                           ->  Parallel Bitmap Heap Scan on rel_2025_01_genomic_protein_mapping m  (cost=1495.90..229928.94 rows=68942 width=8) (actual time=0.977..6.958 rows=48843 loops=3)
+                                 Recheck Cond: ((gene_name)::text = 'BRCA1'::text)
+                                 Heap Blocks: exact=1288
+                                 ->  Bitmap Index Scan on rel_2025_01_genomic_protein_mapping_gene_name_idx  (cost=0.00..1454.53 rows=165462 width=0) (actual time=2.398..2.399 rows=146529 loops=1)
+                                       Index Cond: ((gene_name)::text = 'BRCA1'::text)
+                           ->  Index Scan using idx_mapping_dbsnp_chr_pos on mapping_dbsnp_lookup dbsnp  (cost=0.43..2.63 rows=1 width=38) (actual time=0.002..0.002 rows=1 loops=146529)
+                                 Index Cond: (((chr)::text = (m.chromosome)::text) AND (pos = m.genomic_position))
+                                 Filter: ((ref)::text = (m.allele)::text)
+                     ->  Values Scan on "*VALUES*"  (cost=0.00..0.05 rows=4 width=32) (actual time=0.000..0.000 rows=4 loops=140778)
+ Planning Time: 0.375 ms
+ Execution Time: 183.795 ms
+(20 rows)

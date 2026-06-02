@@ -1,26 +1,32 @@
 package uk.ac.ebi.protvar.model.data;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
-
-import java.util.Objects;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 @Getter
 @Setter
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AlleleFreq extends Base {
+    Integer ac;
+    Integer an;
     Double af;
+    @JsonIgnore
+    public String getVariantKey() {
+        return VariantKey.genomic(chr, pos);
+    }
 
     @JsonIgnore
-    public String getGroupBy() {
-        return String.format("%s-%s",
-                Objects.toString(chr, "null"),
-                Objects.toString(pos, "null"));
+    public AlleleFreq copySubclassFields() {
+        return AlleleFreq.builder()
+                .ac(ac)
+                .an(an)
+                .af(af)
+                .build();
     }
 }

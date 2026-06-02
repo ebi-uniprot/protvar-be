@@ -3,20 +3,19 @@ package uk.ac.ebi.protvar.input.processor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
-import uk.ac.ebi.protvar.cache.InputCache;
 import uk.ac.ebi.protvar.input.ErrorConstants;
-import uk.ac.ebi.protvar.input.Format;
-import uk.ac.ebi.protvar.input.Type;
-import uk.ac.ebi.protvar.input.UserInput;
-import uk.ac.ebi.protvar.input.format.genomic.Gnomad;
-import uk.ac.ebi.protvar.input.format.genomic.HGVSg;
-import uk.ac.ebi.protvar.input.format.genomic.VCF;
-import uk.ac.ebi.protvar.input.params.InputParams;
-import uk.ac.ebi.protvar.input.type.GenomicInput;
+import uk.ac.ebi.protvar.input.VariantFormat;
+import uk.ac.ebi.protvar.input.VariantType;
+import uk.ac.ebi.protvar.input.VariantInput;
+import uk.ac.ebi.protvar.input.parser.genomic.GenomicParser;
+import uk.ac.ebi.protvar.input.parser.genomic.GnomadParser;
+import uk.ac.ebi.protvar.input.parser.genomic.VCFParser;
+import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.model.data.Crossmap;
-import uk.ac.ebi.protvar.model.grc.Assembly;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.repo.CrossmapRepo;
+import uk.ac.ebi.protvar.types.Assembly;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,48 +27,30 @@ import java.util.stream.Collectors;
 public class BuildProcessor {
     public static final int AUTO_DETECT_MIN_SIZE = 10;
     public static final int AUTO_DETECT_SAMPLE_SIZE = 100;
+
     @Autowired
     private CrossmapRepo crossmapRepo;
-    @Autowired
-    private InputCache inputCache;
 
-
-    public InputBuild determinedBuild(String id, List<String> originalInputList, String assembly) {
-        InputBuild inputBuild = null;
-        if (Assembly.autodetect(assembly)) {
-            inputBuild = inputCache.getInputBuild(id); // if already detected
-            if (inputBuild == null) { // if not
-                List<UserInput> genomicInputs = filterGenomicInputs(originalInputList);
-                if (!genomicInputs.isEmpty()) {
-                    inputBuild = detect(genomicInputs);
-                    inputCache.cacheInputBuild(id, inputBuild);
-                }
-            }
-        }
-        return inputBuild;
-    }
 
     /**
      * Filter out non-genomic inputs (incl. hgvs inputs as the build for these are implicit).
      * @param inputs
      * @return
      */
-    public List<UserInput> filterGenomicInputs(List<String> inputs) {
+    public List<VariantInput> filterGenomicInputs(List<String> inputs) {
         return inputs.stream()
                 .map(inputStr -> {
-                    if (GenomicInput.startsWithChromo(inputStr)) {
-                        if (Gnomad.matchesPattern(inputStr)) // ^chr-pos-ref-alt$
-                            return Gnomad.parse(inputStr);
+                    if (GnomadParser.matchesPattern(inputStr)) // ^chr-pos-ref-alt$
+                        return GnomadParser.parse(inputStr);
 
-                        if (VCF.matchesPattern(inputStr)) // ^chr pos id ref alt...
-                            return VCF.parse(inputStr);
+                    if (VCFParser.matchesPattern(inputStr)) // ^chr pos id ref alt...
+                        return VCFParser.parse(inputStr);
 
-                        if (GenomicInput.matchesPattern(inputStr)) // ^chr pos( ref( alt)?)?$
-                            return GenomicInput.parse(inputStr);
-                    }
+                    if (GenomicParser.matchesPattern(inputStr)) // ^chr pos( ref( alt)?)?$
+                        return GenomicParser.parse(inputStr);
                     return GenomicInput.invalid(inputStr);
                 })
-                .filter(UserInput::isValid)
+                .filter(VariantInput::isValid)
                 .collect(Collectors.toList());
     }
 
@@ -95,8 +76,8 @@ public class BuildProcessor {
      * @param genomicInputs
      * @return
      */
-    public InputBuild detect(List<UserInput> genomicInputs) {
-        List<UserInput> sampleGenomicInputs;
+    public InputBuild detect(List<VariantInput> genomicInputs) {
+        List<VariantInput> sampleGenomicInputs;
         if (genomicInputs.size() < AUTO_DETECT_MIN_SIZE) {
             sampleGenomicInputs = genomicInputs;
         } else {
@@ -123,35 +104,36 @@ public class BuildProcessor {
     }
 
 
-    public void process(Map<Type, List<UserInput>> groupedInputs, InputParams params) {
-        List<UserInput> genomicInputs = groupedInputs.get(Type.GENOMIC);
+    public void process(Map<VariantType, List<VariantInput>> groupedInputs, String requestAssembly, InputBuild detectedBuild) {
+        List<VariantInput> genomicInputs = groupedInputs.get(VariantType.GENOMIC);
         if (genomicInputs == null || genomicInputs.isEmpty()) {
             return;
         }
         boolean is37 = false;
-        if (Assembly.autodetect(params.getAssembly())) {
-            InputBuild detectedBuild = params.getInputBuild();
+        if (Assembly.autodetect(requestAssembly)) {
             is37 = detectedBuild != null && detectedBuild.getAssembly() != null
                     && detectedBuild.getAssembly() == Assembly.GRCH37;
         } else {
-            is37 = Assembly.is37(params.getAssembly());
+            is37 = Assembly.is37(requestAssembly);
         }
 
         // Separate inputs that need to be converted irrespective of user-specified assembly e.g. HGVSg37
-        List<UserInput> hgvsGs37 = new ArrayList<>(); // to convert
-        List<UserInput> nonHgvsGs = new ArrayList<>();
+        List<VariantInput> hgvsGs37 = new ArrayList<>(); // to convert
+        List<VariantInput> nonHgvsGs = new ArrayList<>();
 
         genomicInputs.stream()
-                .filter(UserInput::isValid) // filter out invalid gen inputs
+                .filter(VariantInput::isValid) // filter out invalid gen inputs
                 .forEach(i -> {
-                    if (i.getFormat() == Format.HGVS_GEN && Boolean.TRUE.equals(((HGVSg) i).getRsAcc37())) {
+                    if (i instanceof GenomicInput &&
+                            i.getFormat() == VariantFormat.HGVS_GENOMIC &&
+                            Boolean.TRUE.equals(((GenomicInput)i).getRefseq37())) {
                         hgvsGs37.add(i);
                     } else {
                         nonHgvsGs.add(i);
                     }
             });
 
-        List<UserInput> convertList = new ArrayList<>(hgvsGs37);
+        List<VariantInput> convertList = new ArrayList<>(hgvsGs37);
 
         if (!nonHgvsGs.isEmpty() && is37) {
             convertList.addAll(nonHgvsGs);
@@ -170,29 +152,26 @@ public class BuildProcessor {
      * - the latter is tackled in the main mapping logic.
      * @param genomicInputs
      */
-    private void convert(List<UserInput> genomicInputs) {
+    private void convert(List<VariantInput> genomicInputs) {
 
         List<Object[]> chrPos37 = new ArrayList<>();
         genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
-            chrPos37.add(new Object[]{input.getChr(), input.getPos()});
+            chrPos37.add(new Object[]{input.getChromosome(), input.getPosition()});
         });
 
         Map<String, List<Crossmap>> groupedCrossmaps = crossmapRepo.getCrossmapsByChrPos37(chrPos37)
                 .stream().collect(Collectors.groupingBy(Crossmap::getGroupByChrAnd37Pos));
 
         genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
-
-            String chr = input.getChr();
-            Integer pos = input.getPos();
-            List<Crossmap> crossmaps = groupedCrossmaps.get(chr+"-"+pos);
+            List<Crossmap> crossmaps = groupedCrossmaps.get(VariantKey.genomic(input.getChromosome(), input.getPosition()));
 
             if (crossmaps != null && crossmaps.size() > 0) {
                 // We should expect 1 result, multiple mapping not possible based on
                 // select chr, grch37_pos, count(*) from crossmap
                 // group by chr, grch37_pos
                 // having count(*) > 1 -- no result!
-                input.setPos(crossmaps.get(0).getGrch38Pos());
-                input.setConverted(true);
+                input.setPosition(crossmaps.get(0).getGrch38Pos());
+                input.setIsLiftedFrom37(true);
             } else {
                 input.addError(ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND);
             }
@@ -200,10 +179,10 @@ public class BuildProcessor {
         });
     }
 
-    private double buildPercentageMatch(List<UserInput> nonHgvsGs, String build) {
+    private double buildPercentageMatch(List<VariantInput> nonHgvsGs, String build) {
         List<Object[]> chrPosRefList = new ArrayList<>();
         nonHgvsGs.stream().map(i -> (GenomicInput) i).forEach(input -> {
-            chrPosRefList.add(new Object[]{input.getChr(), input.getPos(), input.getRef()});
+            chrPosRefList.add(new Object[]{input.getChromosome(), input.getPosition(), input.getRefBase()});
         });
         return crossmapRepo.getPercentageMatch(chrPosRefList, build);
     }

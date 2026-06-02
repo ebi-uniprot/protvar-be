@@ -1,0 +1,160 @@
+package uk.ac.ebi.protvar.repo;
+
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.stereotype.Repository;
+import uk.ac.ebi.protvar.model.data.Interaction;
+import uk.ac.ebi.protvar.utils.VariantKey;
+
+import java.sql.Array;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
+
+@Repository
+@RequiredArgsConstructor
+public class InteractionRepo {
+    private static final Logger LOGGER = LoggerFactory.getLogger(InteractionRepo.class);
+
+    private static final String SELECT_INTERFACES_BY_ACC_AND_RESID = """
+		   SELECT a, a_residues, b, b_residues, pdockq
+            FROM %s 
+            WHERE (a = :accession AND :resid = ANY(a_residues))
+               OR (b = :accession AND :resid = ANY(b_residues))
+		   """;
+    private static final String SELECT_INTERFACES_BY_ACC_AND_RESID_NEW = """
+		   SELECT a, ("a_residues_5A" || "a_residues_8A") as a_residues, 
+		   b, ("b_residues_5A" || "b_residues_8A") as b_residues, pdockq 
+		   FROM %s 
+		   WHERE (a=:accession AND (:resid)=ANY("a_residues_5A" || "a_residues_8A")) 
+		   OR (b=:accession AND (:resid)=ANY("b_residues_5A" || "b_residues_8A"))
+		   """;
+    private static final String SELECT_INTERFACES_MODEL = "SELECT pdb_model FROM %s WHERE a=:a AND b=:b";
+    private static final String SELECT_INTERFACES_MODEL_NEW = "SELECT pdb_model FROM %s WHERE a=:a AND b=:b";
+
+
+    @Value("${tbl.interfaces}")
+    private String interfacesTable;
+    @Value("${tbl.interfaces.v2}")
+    private String interfacesV2Table;
+
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    // Query 1: Single accession + single residue
+    public Map<String, List<Interaction>> getInteractions(String accession, Integer resid) {
+        SqlParameterSource params = new MapSqlParameterSource("accession", accession)
+                .addValue("resid", resid);
+        String sql = SELECT_INTERFACES_BY_ACC_AND_RESID.formatted(interfacesTable);
+
+        List<Interaction> results = jdbcTemplate.query(sql, params, (rs, rowNum) -> createInteraction(rs));
+        if (results != null && !results.isEmpty())
+            return Map.of(VariantKey.protein(accession, resid), results);
+        return Map.of();
+    }
+
+    public Map<String, List<Interaction>> getInteractions(String[] accessions, Integer[] residues) {
+        if (accessions == null || accessions.length == 0)
+            return Collections.emptyMap();
+
+        String sql = """
+            SELECT t.accession, t.resid, i.a, i.a_residues, i.b, i.b_residues, i.pdockq
+            FROM %s i
+            JOIN (
+                     SELECT unnest(:accessions) AS accession, unnest(:residues) AS resid
+             ) t
+              ON (i.a = t.accession AND t.resid = ANY(i.a_residues))
+              OR (i.b = t.accession AND t.resid = ANY(i.b_residues))
+            ORDER BY pdockq DESC
+            """.formatted(interfacesTable);
+
+        SqlParameterSource params = new MapSqlParameterSource()
+                .addValue("accessions", accessions)
+                .addValue("residues", residues);
+
+        return jdbcTemplate.query(sql, params, rs -> {
+            Map<String, List<Interaction>> result = new HashMap<>();
+
+            while (rs.next()) {
+                Interaction interaction = createInteraction(rs);
+                result.computeIfAbsent(VariantKey.protein(rs.getString("accession"), rs.getInt("resid")),
+                        k -> new ArrayList<>()).add(interaction);
+            }
+
+            return result;
+        });
+    }
+
+    // All residues for a given accession
+
+    /**
+     *
+     * @param accession
+     * @return accession-residue mapping
+     */
+    @Cacheable(value = "interactionsByAccession", key = "#accession")
+    public Map<String, List<Interaction>> getInteractions(String accession) {
+        String sql = """
+            SELECT a, a_residues, b, b_residues, pdockq
+            FROM %s
+            WHERE a = :accession OR b = :accession
+            ORDER BY pdockq DESC
+            """.formatted(interfacesTable);
+
+        SqlParameterSource params = new MapSqlParameterSource("accession", accession);
+
+        return jdbcTemplate.query(sql, params, rs -> {
+            Map<String, List<Interaction>> result = new HashMap<>();
+            while (rs.next()) {
+                Interaction interaction = createInteraction(rs);
+
+                Array aResidues = rs.getArray("a_residues");
+                Array bResidues = rs.getArray("b_residues");
+
+                if (rs.getString("a").equals(accession) && aResidues != null) {
+                    for (Integer resid : (Integer[]) aResidues.getArray()) {
+                        result.computeIfAbsent(VariantKey.protein(accession, resid),
+                                k -> new ArrayList<>()).add(interaction);
+                    }
+                }
+
+                if (rs.getString("b").equals(accession) && bResidues != null) {
+                    for (Integer resid : (Integer[]) bResidues.getArray()) {
+                        result.computeIfAbsent(VariantKey.protein(accession, resid),
+                                k -> new ArrayList<>()).add(interaction);
+                    }
+                }
+            }
+            return result;
+        });
+    }
+
+    public String getInteractionModel(String a, String b) {
+        SqlParameterSource parameters = new MapSqlParameterSource("a", a)
+                .addValue("b", b);
+        try {
+            return jdbcTemplate.queryForObject(SELECT_INTERFACES_MODEL.formatted(interfacesTable), parameters, (rs, rowNum) ->
+                    rs.getString("pdb_model"));
+        }
+        catch (EmptyResultDataAccessException e) {
+            LOGGER.warn("getInteractionModel returned empty result");
+        }
+        return null;
+    }
+
+    private Interaction createInteraction(ResultSet rs) throws SQLException {
+        return new Interaction(
+                rs.getString("a"),
+                Arrays.asList((Integer[]) rs.getArray("a_residues").getArray()),
+                rs.getString("b"),
+                Arrays.asList((Integer[]) rs.getArray("b_residues").getArray()),
+                rs.getDouble("pdockq")
+        );
+    }
+}
