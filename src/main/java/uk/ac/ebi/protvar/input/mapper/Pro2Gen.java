@@ -222,11 +222,12 @@ public class Pro2Gen {
                             }
 
                             AminoAcid userAltAA = null;
-                            if (input.getAltAA() == null) { // alt not provided
-                                if (!errors.contains(ERR_CODE_VAR_EMPTY)) {
-                                    errors.add(ERR_CODE_VAR_EMPTY);
+                            if (input.getAltAA() == null) { // alt not provided, or "?" (unknown)
+                                ErrorConstants varMsg = input.isAltUnknown() ? ERR_CODE_VAR_UNKNOWN : ERR_CODE_VAR_EMPTY;
+                                if (!errors.contains(varMsg)) {
+                                    errors.add(varMsg);
                                     input.getMessages().add(new Message(Message.MessageType.WARN,
-                                            ERR_CODE_VAR_EMPTY.getErrorMessage()));
+                                            varMsg.getErrorMessage()));
                                 }
                             }
                             else {

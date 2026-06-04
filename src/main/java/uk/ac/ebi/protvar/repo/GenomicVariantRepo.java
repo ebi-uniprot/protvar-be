@@ -752,18 +752,21 @@ public class GenomicVariantRepo {
         if (pdbIds != null && !pdbIds.isEmpty()) {
             ctes.add("""
                 pdb_acc AS (
-                    SELECT DISTINCT p.accession, p.unp_start, p.unp_end
+                    SELECT DISTINCT p.accession, p.observed_regions
                     FROM %s p
                     WHERE p.pdb_id = ANY(:pdbIds)
                 )
                 """.formatted(structureTable));
             parameters.addValue("pdbIds", pdbIds.toArray(new String[0]));
+            // Match the position against observed_regions (residues actually resolved),
+            // not the full unp_start..unp_end span — consistent with the 3D structure tab
+            // (StructureService.filterByPosition) and the identifier path in MappingRepo.
             unionBranches.add("""
                 SELECT m.*
                 FROM %s m
                 JOIN pdb_acc pa ON m.accession = pa.accession
-                    AND m.protein_position BETWEEN pa.unp_start AND pa.unp_end
-                """.formatted(mappingTable));
+                WHERE %s
+                """.formatted(mappingTable, StructureRepo.observedRegionsContain("pa.observed_regions", "m.protein_position")));
         }
 
         if (uniprotIds != null && !uniprotIds.isEmpty()) {

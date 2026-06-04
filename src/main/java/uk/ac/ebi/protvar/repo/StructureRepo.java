@@ -21,6 +21,25 @@ public class StructureRepo {
     @Value("${tbl.ann.str}")
     private String structureTable;
 
+    /**
+     * SQL boolean fragment: true if {@code positionExpr} falls within any [start, end] range of
+     * {@code observedRegionsRef} — a structure's observed_regions, the residues actually resolved.
+     * observed_regions is a 2-D int array {{s1,e1},{s2,e2},...}, iterated via the built-in
+     * {@code generate_subscripts}. Used by the PDB identifier search (MappingRepo / GenomicVariantRepo)
+     * so it stays consistent with the 3D structure tab (StructureService.filterByPosition) — matching
+     * the resolved residues rather than the full unp_start..unp_end span.
+     *
+     * @param observedRegionsRef SQL reference to the observed_regions column (e.g. "s.observed_regions")
+     * @param positionExpr       SQL expression / bind param for the protein position (e.g. "m.protein_position" or ":position")
+     */
+    public static String observedRegionsContain(String observedRegionsRef, String positionExpr) {
+        return String.format("""
+            EXISTS (
+                SELECT 1 FROM generate_subscripts(%1$s, 1) i
+                WHERE %2$s BETWEEN %1$s[i][1] AND %1$s[i][2]
+            )""", observedRegionsRef, positionExpr);
+    }
+
 
     @Cacheable(value = "STR", key = "#accession")
     public List<Structure> getStr(String accession) {
@@ -38,26 +57,20 @@ public class StructureRepo {
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> createStructure(rs));
     }
 
-    /*
-    SELECT
-        array_length(observed_regions, 1) AS num_regions,
-        COUNT(*) AS num_rows
-    FROM rel_{R}_structure
-    GROUP BY num_regions
-    ORDER BY num_regions; --<null> 397 (SELECT * FROM rel_{R}_structure WHERE observed_regions = '{}';)
-     */
+    // NOTE: currently unused — StructureService.getStr(accession, position) fetches all
+    // structures for the accession via getStr(accession) (cached) and filters by position in
+    // Java (filterByPosition). Kept for a possible DB-side position filter; fixed to use
+    // observedRegionsContain (the previous unnest(...)[1] form errored on the 2-D array and
+    // never bound :position).
     public List<Structure> getStr(String accession, Integer position) {
         String sql = String.format("""
- 			SELECT * FROM %s 
- 			WHERE accession=:accession
- 			AND EXISTS (
- 				SELECT 1
- 				FROM unnest(observed_regions) AS range(start_end)
- 				WHERE :position BETWEEN start_end[1] AND start_end[2]
- 			)
- 			ORDER BY coverage DESC, resolution DESC
- 			""", structureTable);
-        MapSqlParameterSource params = new MapSqlParameterSource("accession", accession);
+            SELECT * FROM %s
+            WHERE accession = :accession
+            AND %s
+            ORDER BY coverage DESC, resolution DESC
+        """, structureTable, observedRegionsContain("observed_regions", ":position"));
+        MapSqlParameterSource params = new MapSqlParameterSource("accession", accession)
+                .addValue("position", position);
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> createStructure(rs));
     }
 

@@ -31,6 +31,9 @@ import java.util.regex.Pattern;
  * - UniProt accession pattern validates format but doesn't guarantee existence
  * - "=" notation represents unchanged/silent mutations
  * - "*" represents stop codon (Ter in three-letter format)
+ * - "?" represents an unknown variant amino acid (HGVS unknown consequence, e.g. p.Met1?).
+ *   It is treated as an unspecified ALT — i.e. equivalent to omitting the ALT — so results are
+ *   position- but not variant-specific (normalizeAA("?") returns null; see Pro2Gen var-empty path).
  */
 public class ProteinParser extends VariantParser {
     // UniProt accession pattern - validates format structure only
@@ -39,6 +42,9 @@ public class ProteinParser extends VariantParser {
     // Amino acid patterns derived from AminoAcid enum
     public static final String VALID_AA_SINGLE = "[ACDEFGHIKLMNPQRSTVWY\\*BZUXOJ]";  // Single letter codes + stop codon (*)
     public static final String VALID_AA_THREE = "(Ala|Cys|Asp|Glu|Phe|Gly|His|Ile|Lys|Leu|Met|Asn|Pro|Gln|Arg|Ser|Thr|Val|Trp|Tyr|Ter|Asx|Glx|Sec|Unk|Pyl|Xle)";
+
+    // "?" as the variant AA = unknown consequence (HGVS p.Met1?); accepted as ALT and treated as unspecified.
+    public static final String UNKNOWN_VARIANT_AA = "?";
 
     // Structural pattern - verifies UniProt accession followed by content
     public static final Pattern PROTEIN_STRUCTURE = Pattern.compile("^(" + VALID_UNIPROT + ")\\s+", Pattern.CASE_INSENSITIVE);
@@ -51,14 +57,15 @@ public class ProteinParser extends VariantParser {
     // - ALT can be "=" for unchanged/silent mutations
 
     // Format 1-2: ACC POS [REF [ALT]] - single letter amino acids
+    // ALT can also be "=" (silent) or "?" (unknown variant AA)
     public static final String PATTERN_ACC_POS_SINGLE = String.format(
-            "^(?<acc>%s)\\s+(?<pos>%s)(?:\\s+(?<ref>%s)(?:[\\s/](?<alt>%s|=))?)?$",
+            "^(?<acc>%s)\\s+(?<pos>%s)(?:\\s+(?<ref>%s)(?:[\\s/](?<alt>%s|=|\\?))?)?$",
             VALID_UNIPROT, VALID_POSITION, VALID_AA_SINGLE, VALID_AA_SINGLE);
 
     // Format 3: ACC POS [REF [ALT]] - three letter amino acids
-    // Note: ALT can also be "*" (stop codon) in addition to three-letter codes
+    // Note: ALT can also be "*" (stop codon), "=" (silent) or "?" (unknown variant AA)
     public static final String PATTERN_ACC_POS_THREE = String.format(
-            "^(?<acc>%s)\\s+(?<pos>%s)(?:\\s+(?<ref>%s)(?:[\\s/](?<alt>%s|=|\\*))?)?$",
+            "^(?<acc>%s)\\s+(?<pos>%s)(?:\\s+(?<ref>%s)(?:[\\s/](?<alt>%s|=|\\*|\\?))?)?$",
             VALID_UNIPROT, VALID_POSITION, VALID_AA_THREE, VALID_AA_THREE);
 
     // Compact formats: ACC [p.]REF POS ALT
@@ -67,14 +74,15 @@ public class ProteinParser extends VariantParser {
     // - ALT can be "=" for unchanged/silent mutations
 
     // Format 4: ACC [p.]REF POS ALT - compact single letter
+    // ALT can also be "=" (silent) or "?" (unknown variant AA)
     public static final String PATTERN_COMPACT_SINGLE = String.format(
-            "^(?<acc>%s)\\s+(?:p\\.)?(?<ref>%s)(?<pos>%s)(?<alt>%s|=)$",
+            "^(?<acc>%s)\\s+(?:p\\.)?(?<ref>%s)(?<pos>%s)(?<alt>%s|=|\\?)$",
             VALID_UNIPROT, VALID_AA_SINGLE, VALID_POSITION, VALID_AA_SINGLE);
 
     // Format 5: ACC [p.]REF POS ALT - compact three letter
-    // Note: ALT can also be "*" (stop codon) in addition to three-letter codes
+    // Note: ALT can also be "*" (stop codon), "=" (silent) or "?" (unknown variant AA)
     public static final String PATTERN_COMPACT_THREE = String.format(
-            "^(?<acc>%s)\\s+(?:p\\.)?(?<ref>%s)(?<pos>%s)(?<alt>%s|=|\\*)$",
+            "^(?<acc>%s)\\s+(?:p\\.)?(?<ref>%s)(?<pos>%s)(?<alt>%s|=|\\*|\\?)$",
             VALID_UNIPROT, VALID_AA_THREE, VALID_POSITION, VALID_AA_THREE);
 
     // Compiled patterns
@@ -194,7 +202,10 @@ public class ProteinParser extends VariantParser {
             if (ref != null) {
                 parsedInput.setRefAA(normalizeAA(ref));
 
-                if (alt != null) {
+                if (UNKNOWN_VARIANT_AA.equals(alt)) {
+                    // "?" — unknown variant AA; leave altAA null (position- but not variant-specific)
+                    parsedInput.setAltUnknown(true);
+                } else if (alt != null) {
                     parsedInput.setAltAA(normalizeAA(normalizeEquals(alt, ref)));
                 }
             }
