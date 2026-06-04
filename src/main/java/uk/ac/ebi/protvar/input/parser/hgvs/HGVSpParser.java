@@ -29,6 +29,8 @@ import java.util.regex.Pattern;
  * - All amino acids are normalized to single letter codes in output
  * - "=" represents unchanged/silent mutations
  * - "*" and "Ter" both represent stop codon
+ * - "?" represents an unknown variant amino acid (e.g. p.Met1?); treated as an unspecified
+ *   ALT (position- but not variant-specific results), consistent with the internal protein format
  */
 public class HGVSpParser extends VariantParser {
     // Protein, Associated with an NM_ or NC_ accession e.g. NP_001138917.1
@@ -44,7 +46,10 @@ public class HGVSpParser extends VariantParser {
     public static final String REFSEQ_REGEX = "(NM_|NP_)\\d+(\\.\\d+)?"; // RefSeq part: NM_/NP_ + digits + version
 
     // no anchors (^...$)
-    public static final String VARDESC_REGEX = String.format("\\(?(?<ref>%s|%s)(?<pos>%s)(?<alt>%s|%s|=)\\)?",
+    // ALT: single OR three letter amino acid (includes * and Ter), "=" (silent), or "?"
+    // (unknown variant AA / HGVS unknown consequence, e.g. p.Met1?) — "?" is treated as an
+    // unspecified ALT, consistent with the internal ProteinParser format.
+    public static final String VARDESC_REGEX = String.format("\\(?(?<ref>%s|%s)(?<pos>%s)(?<alt>%s|%s|=|\\?)\\)?",
             ProteinParser.VALID_AA_SINGLE, ProteinParser.VALID_AA_THREE,  // REF: single OR three letter
             VALID_POSITION,                       // Position: digits
             ProteinParser.VALID_AA_SINGLE, ProteinParser.VALID_AA_THREE   // ALT: single OR three letter (includes * and Ter)
@@ -104,10 +109,15 @@ public class HGVSpParser extends VariantParser {
                     String ref = vardescMatcher.group("ref");
                     String alt = vardescMatcher.group("alt");
 
-                    alt = ProteinParser.normalizeEquals(alt, ref);
                     parsedInput.setPosition(Integer.parseInt(pos));
                     parsedInput.setRefAA(ProteinParser.normalizeAA(ref));
-                    parsedInput.setAltAA(ProteinParser.normalizeAA(alt));
+                    if (ProteinParser.UNKNOWN_VARIANT_AA.equals(alt)) {
+                        // "?" — unknown variant AA; leave altAA null (position- but not variant-specific)
+                        parsedInput.setAltUnknown(true);
+                    } else {
+                        alt = ProteinParser.normalizeEquals(alt, ref);
+                        parsedInput.setAltAA(ProteinParser.normalizeAA(alt));
+                    }
                 } else {
                     parsedInput.addError(ErrorConstants.HGVS_P_VARDESC_INVALID);
                 }

@@ -49,6 +49,12 @@ public class HGVSpParserTest {
     }
 
     @Test
+    public void testMatchesPattern_UnknownVariantAA() {
+        assertTrue(HGVSpParser.matchesPattern("NP_123456.1:p.R490?"));
+        assertTrue(HGVSpParser.matchesPattern("NP_123456.1:p.Met1?"));
+    }
+
+    @Test
     public void testMatchesPattern_WithParentheses() {
         assertTrue(HGVSpParser.matchesPattern("NP_123456.1:p.(R490S)"));
         assertTrue(HGVSpParser.matchesPattern("NP_123456.1:p.(Arg490Ser)"));
@@ -97,6 +103,19 @@ public class HGVSpParserTest {
         assertEquals(490, result.getPosition());
         assertEquals("R", result.getRefAA());
         assertEquals("R", result.getAltAA()); // normalized from "=" to ref AA
+        assertTrue(result.getErrors().isEmpty());
+    }
+
+    @Test
+    public void testParse_UnknownVariantAA() {
+        // "?" (HGVS unknown consequence, e.g. p.Met1?) — accepted, alt treated as unspecified (null)
+        ProteinInput result = HGVSpParser.parse("NP_123456.1:p.Met1?");
+
+        assertEquals("NP_123456.1", result.getRefseqId());
+        assertEquals(1, result.getPosition());
+        assertEquals("M", result.getRefAA());
+        assertNull(result.getAltAA()); // "?" → null (position- but not variant-specific)
+        assertTrue(result.isAltUnknown(), "? should set altUnknown");
         assertTrue(result.getErrors().isEmpty());
     }
 

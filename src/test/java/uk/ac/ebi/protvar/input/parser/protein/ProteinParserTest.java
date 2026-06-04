@@ -309,6 +309,34 @@ public class ProteinParserTest {
         assertResult("P22304 p.Ala205=", "P22304", 205, "A", "A");
     }
 
+    @Test
+    @DisplayName("Test Unknown Variant AA (?)")
+    public void testUnknownVariantAA() {
+        // "?" = unknown variant amino acid (e.g. HGVS p.Met1?). It is accepted and treated as an
+        // unspecified ALT (alt becomes null → position- but not variant-specific results).
+        // Spaced single letter
+        assertResult("P22304 205 A ?", "P22304", 205, "A", null);
+        assertResult("P07949 783 N/?", "P07949", 783, "N", null);
+        // Spaced three letter
+        assertResult("P22304 205 Ala ?", "P22304", 205, "A", null);
+        // Compact single letter
+        assertResult("P22304 A205?", "P22304", 205, "A", null);
+        assertResult("Q9BXN1 M1?", "Q9BXN1", 1, "M", null);     // the reported start-codon case
+        // Compact three letter (with/without p.)
+        assertResult("P22304 Ala205?", "P22304", 205, "A", null);
+        assertResult("P07949 p.Asn783?", "P07949", 783, "N", null);
+
+        assertTrue(ProteinParser.matchesPattern("P22304 205 A ?"));
+        assertTrue(ProteinParser.matchesPattern("P22304 A205?"));
+
+        // "?" is flagged as unknown (distinct from an omitted alt)
+        ProteinInput unknown = ProteinParser.parse("Q9BXN1 M1?");
+        assertTrue(unknown.isAltUnknown(), "? should set altUnknown");
+        assertNull(unknown.getAltAA());
+        ProteinInput omitted = ProteinParser.parse("Q9BXN1 1 M");
+        assertFalse(omitted.isAltUnknown(), "omitted alt should not set altUnknown");
+    }
+
     // Helper method to assert valid parsing results
     private void assertResult(String input, String expectedAcc, Integer expectedPos,
                               String expectedRef, String expectedAlt) {
