@@ -11,6 +11,10 @@ public class ProteinInput extends VariantInput {
     Integer position;
     String refAA;
     String altAA;
+    // True when the variant AA was explicitly given as "?" (unknown consequence, e.g. p.Met1?).
+    // altAA stays null (position- but not variant-specific); this distinguishes "unknown" from
+    // "omitted" so a specific message can be shown.
+    boolean altUnknown;
 
     // HGVSp input
     String refseqId;

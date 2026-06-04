@@ -97,8 +97,10 @@ public enum ErrorConstants {
     ERR_CODE_VARIANT_NON_SNV("102", "User input variant amino acid (%s) cannot be caused by an SNV from the reference amino acid (%s), therefore the returned results are position but not variant specific."),
     // variant empty - ACC POS REF
     ERR_CODE_VAR_EMPTY("103", "User input variant amino acid empty, therefore the returned results are position but not variant specific."),
+    // variant unknown ("?") - ACC POS REF ? / HGVS p.Met1?
+    ERR_CODE_VAR_UNKNOWN("104", "User input variant amino acid unknown (?), therefore the returned results are position but not variant specific."),
     // Ref and var empty - ACC POS (not needed, captured with ref & var empty above)
-    //ERR_CODE_REF_AND_VAR_EMPTY("104", "User input reference and variant amino acids empty, therefore the returned results are position but not variant specific."
+    //ERR_CODE_REF_AND_VAR_EMPTY("105", "User input reference and variant amino acids empty, therefore the returned results are position but not variant specific."
 
     ;
 

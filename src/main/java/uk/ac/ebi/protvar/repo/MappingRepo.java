@@ -929,14 +929,18 @@ public class MappingRepo {
 					// PDB requires a JOIN — handle the first value only for now
 					// Full multi-PDB support requires UNION queries (future work)
 					parameters.addValue("pdb_id_multi", values.get(0).toLowerCase());
+					// TODO this EXISTS-correlated shape plans poorly (merge semi-join over the
+					// whole mapping table). Only hit for genuinely multi-value/multi-type browse —
+					// the common single-id case delegates to buildInputCondition's fast INNER JOIN.
+					// Rework to a JOIN/UNION shape when multi-PDB support is properly implemented.
 					conditions.add(String.format("""
 						EXISTS (
 							SELECT 1 FROM %s s
 							WHERE s.accession = m.accession
 							AND s.pdb_id = :pdb_id_multi
-							AND m.protein_position BETWEEN s.unp_start AND s.unp_end
+							AND %s
 						)
-					""", structureTable));
+					""", structureTable, StructureRepo.observedRegionsContain("s.observed_regions", "m.protein_position")));
 				}
 				case ENSEMBL -> {
 					// Delegate to single-value ensembl for the first entry (future: extend)
@@ -979,17 +983,24 @@ public class MappingRepo {
 				yield "WHERE m.accession = :input AND alt.alt_allele <> m.allele";
 			}
 			case PDB -> {
-				// PDB is stored in lowercase in the db table
+				// PDB is stored in lowercase in the db table.
+				// Match the position against the structure's observed_regions (the residues
+				// actually resolved), not the full unp_start..unp_end span. This mirrors
+				// StructureService.filterByPosition so a PDB search only returns rows where
+				// that structure is actually viewable in the 3D structure tab.
+				// The INNER JOIN shape (materialise the tiny per-pdb structure set, then
+				// nested-loop into mapping by accession) is ~300x faster than an
+				// EXISTS-correlated subquery here — keep it.
 				parameters.addValue("input", input);
 				yield String.format("""
                 INNER JOIN (
-                    SELECT DISTINCT accession, unp_start, unp_end
+                    SELECT DISTINCT accession, observed_regions
                     FROM %s
                     WHERE pdb_id = LOWER(:input)
                 ) s ON m.accession = s.accession
-                WHERE m.protein_position BETWEEN s.unp_start AND s.unp_end
+                WHERE %s
                 AND alt.alt_allele <> m.allele
-            """, structureTable);
+            """, structureTable, StructureRepo.observedRegionsContain("s.observed_regions", "m.protein_position"));
 			}
 			case REFSEQ -> buildRefseqCondition(input, parameters);
 			case GENE -> {
