@@ -10,8 +10,10 @@ import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.model.response.Isoform;
-import uk.ac.ebi.protvar.model.score.EveScore;
+import uk.ac.ebi.protvar.model.score.PopEveScore;
 import uk.ac.ebi.protvar.service.FunctionService;
+import uk.ac.ebi.protvar.types.AminoAcid;
+import uk.ac.ebi.protvar.types.PopEveClass;
 import uk.ac.ebi.protvar.utils.CsvUtils;
 import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
@@ -52,7 +54,11 @@ public class CsvFunctionDataBuilder {
 		FunctionalInfo functionalInfo = functionService.get(isoform.getAccession(), isoform.getIsoformPosition());
 		if (functionalInfo == null) return Collections.emptyList();
 
-		functionalInfoEnricher.enrich(functionalInfo, annData, isoform.getVariantAA());
+		// Score/foldx maps are keyed by the 1-letter variant AA (as stored in the DB),
+		// but isoform.getVariantAA() is 3-letter (e.g. "Thr"). Normalise to 1-letter so
+		// the AA-keyed lookups (FoldX, ESM1b, popEVE) hit — matching the API path
+		// (AnnotationFetcher.getAPIFunctionalData). Without this they all come out N/A.
+		functionalInfoEnricher.enrich(functionalInfo, annData, AminoAcid.oneLetter(isoform.getVariantAA()));
 
 		List<String> output = new ArrayList<>();
 
@@ -72,7 +78,7 @@ public class CsvFunctionDataBuilder {
 		output.add(CsvUtils.getValOrNA(buildFoldxPrediction(functionalInfo.getFoldxs())));
 		output.add(CsvUtils.getValOrNA(functionalInfo.getConservScore() == null ? null : functionalInfo.getConservScore().getScore()));
 		output.add(getAMScore(isoform));
-		output.add(getEveScore(functionalInfo.getEveScore()));
+		output.add(getPopEveScore(functionalInfo.getPopEveScore()));
 		output.add(CsvUtils.getValOrNA(functionalInfo.getEsmScore() == null ? null : functionalInfo.getEsmScore().getScore()));
 		return output;
 	}
@@ -86,13 +92,14 @@ public class CsvFunctionDataBuilder {
 				.append(")").toString();
 	}
 
-	private String getEveScore(EveScore eveScore) {
-		if (eveScore == null) return Constants.NA;
-		return new StringBuilder()
-				.append(eveScore.getScore())
-				.append("(")
-				.append(eveScore.getEveClass())
-				.append(")").toString();
+	private String getPopEveScore(PopEveScore popEveScore) {
+		if (popEveScore == null || popEveScore.getPopeve() == null) return Constants.NA;
+		StringBuilder sb = new StringBuilder().append(popEveScore.getPopeve());
+		PopEveClass popEveClass = PopEveClass.fromScore(popEveScore.getPopeve());
+		if (popEveClass != null) {
+			sb.append("(").append(popEveClass.getLabel()).append(")");
+		}
+		return sb.toString();
 	}
 
 	private List<String> buildComments(List<Comment> comments) {
