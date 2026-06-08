@@ -17,6 +17,21 @@ public enum PopEveClass {
     private final double max;
 
     /**
+     * Classify a raw popEVE score into its severity band (min inclusive, max exclusive).
+     * @param score the popEVE score
+     * @return the matching PopEveClass, or null if score is null
+     */
+    public static PopEveClass fromScore(Double score) {
+        if (score == null) return null;
+        for (PopEveClass popEveClass : values()) {
+            if (score >= popEveClass.min && score < popEveClass.max) {
+                return popEveClass;
+            }
+        }
+        return null;
+    }
+
+    /**
      * Parse input to PopEveClass, returning null if invalid
      * @param input the input value to parse
      * @return corresponding PopEveClass enum or null if input is invalid or null

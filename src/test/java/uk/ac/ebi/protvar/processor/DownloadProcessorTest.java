@@ -45,7 +45,7 @@ class DownloadProcessorTest {
         "Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location," +
         "Protein_family,Protein_interactions_PROTEIN(gene),Predicted_pockets(energy;per_vol;score;resids)," +
         "Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ),Foldx_prediction(foldxDdg;plddt),Conservation_score," +
-        "AlphaMissense_pathogenicity(class),EVE_score(class),ESM1b_score," +
+        "AlphaMissense_pathogenicity(class),popEVE_score(class),ESM1b_score," +
         "Gnomad_allele_freq(ac;an;af),Genomic_location,Cytogenetic_band," +
         "Other_identifiers_for_the_variant,Diseases_associated_with_variant,Variants_colocated_at_residue_position," +
         "Position_in_structures";

@@ -43,7 +43,7 @@ public final class CsvHeaders {
             "Foldx_prediction(foldxDdg;plddt)",
             "Conservation_score",
             "AlphaMissense_pathogenicity(class)",
-            "EVE_score(class)",
+            "popEVE_score(class)",
             "ESM1b_score"
     ); // length = 18
 
