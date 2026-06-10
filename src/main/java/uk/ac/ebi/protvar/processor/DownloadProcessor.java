@@ -132,7 +132,7 @@ public class DownloadProcessor {
 			return;
 		}
 
-		LOGGER.info("[{}] Download request started (attempt {}/{})", id, attempts, maxAttempts);
+		LOGGER.info("[{}] Download request started (attempt {}/{}) for {}", id, attempts, maxAttempts, request.inputRef());
 		downloadStatusService.markProcessing(id, attempts);
 		try {
 			Path zipPath = Path.of(dataFolder, id + ".csv.zip");
