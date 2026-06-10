@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,11 @@ import java.time.LocalDateTime;
 @SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+// callSuper so the inherited input identity (resultId / q / ids) and filters
+// from MappingRequest appear in toString — without it the request logged in
+// error emails (Email.notifyDevErr) showed only fname/url/jobName, making it
+// impossible to trace a failed download back to its input.
+@ToString(callSuper = true)
 @Schema(description = "Request payload for initiating a download")
 public class DownloadRequest extends MappingRequest {
 
@@ -57,5 +63,18 @@ public class DownloadRequest extends MappingRequest {
 
     @Schema(accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime timestamp;
+
+    /**
+     * Short human-readable reference to the input this download is for, for
+     * log lines keyed by the (opaque) fname. Surfaces whichever input identity
+     * was supplied — uploaded resultId, a single query, or browse ids.
+     */
+    @Schema(hidden = true)
+    public String inputRef() {
+        if (getResultId() != null && !getResultId().isBlank()) return "resultId=" + getResultId();
+        if (getQ() != null && !getQ().isBlank()) return "q=" + getQ();
+        if (getIds() != null && !getIds().isEmpty()) return "ids=" + getIds();
+        return "no-input-ref";
+    }
 
 }
