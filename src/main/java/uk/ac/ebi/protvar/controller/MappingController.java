@@ -9,7 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.ac.ebi.protvar.cache.UniprotEntryCache;
+import uk.ac.ebi.protvar.cache.UniprotAccessionCache;
 import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
@@ -38,7 +38,7 @@ public class MappingController {
 
     private final MappingService mappingService;
     private final MappingRepo mappingRepo;
-    private final UniprotEntryCache uniprotEntryCache;
+    private final UniprotAccessionCache uniprotAccessionCache;
 
     /**
      * Direct variant query: GET /mapping?q=19-1010539-G-C[&assembly=GRCh38]
@@ -83,11 +83,11 @@ public class MappingController {
             @Parameter(description = "Which list to return: all, mapped, or unmapped.", example = "mapped")
             @PathVariable("kind") String kind) {
         Collection<String> list = switch (kind.toLowerCase()) {
-            case "all" -> uniprotEntryCache.getEntries();
+            case "all" -> uniprotAccessionCache.getCanonicalAccessions();
             case "mapped" -> mappingRepo.getMappedAccessions();
             case "unmapped" -> {
                 Set<String> mapped = new HashSet<>(mappingRepo.getMappedAccessions());
-                yield uniprotEntryCache.getEntries().stream()
+                yield uniprotAccessionCache.getCanonicalAccessions().stream()
                         .filter(acc -> !mapped.contains(acc))
                         .collect(Collectors.toList());
             }
