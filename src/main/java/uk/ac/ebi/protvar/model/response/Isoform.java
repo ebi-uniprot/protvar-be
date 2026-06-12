@@ -58,6 +58,24 @@ public class Isoform implements Comparable<Isoform> {
 	}
 	@Override
 	public int compareTo(Isoform o) {
-		return Boolean.compare(o.canonical, this.canonical);
+		int c = Boolean.compare(o.canonical, this.canonical);   // canonical first
+		if (c != 0) return c;
+		return compareAccession(this.accession, o.accession);   // then natural accession order
+	}
+
+	/** Natural accession order: base accession, then isoform suffix numerically (so -2 sorts before -10). */
+	private static int compareAccession(String a, String b) {
+		if (a == null || b == null) return a == null ? (b == null ? 0 : -1) : 1;
+		String[] pa = a.split("-", 2), pb = b.split("-", 2);
+		int base = pa[0].compareTo(pb[0]);
+		if (base != 0) return base;
+		int na = pa.length > 1 ? safeInt(pa[1]) : 0;
+		int nb = pb.length > 1 ? safeInt(pb[1]) : 0;
+		if (na != nb) return Integer.compare(na, nb);
+		return a.compareTo(b);
+	}
+
+	private static int safeInt(String s) {
+		try { return Integer.parseInt(s); } catch (NumberFormatException e) { return Integer.MAX_VALUE; }
 	}
 }

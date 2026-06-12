@@ -8,6 +8,7 @@ import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.score.Score;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,10 +26,15 @@ public class GeneConverter {
 								List<CaddPrediction> caddScores,
 								Map<String, List<Score>>  scoreMap) {
 		if (mappings == null || mappings.isEmpty()) return Collections.emptyList();
-		return filterEnsgMappings(mappings.stream()
-				.collect(Collectors.groupingBy(GenomeToProteinMapping::getEnsg)))
+		// Round B: return ALL overlapping genes (never drop a real mapping). Order so the gene carrying the
+		// canonical (then MANE) leads; ensg breaks ties deterministically. (Was a dedup-to-one with a
+		// nondeterministic HashMap fallback — canonical/MANE are now ordering signals, not a drop filter.)
+		return mappings.stream()
+				.collect(Collectors.groupingBy(GenomeToProteinMapping::getEnsg))
 				.entrySet()
 				.stream()
+				.sorted(Comparator.comparingInt((Map.Entry<String, List<GenomeToProteinMapping>> e) -> geneRank(e.getValue()))
+						.thenComparing(Map.Entry::getKey))
 				.flatMap(entry -> {
 					String ensg = entry.getKey();
 					List<GenomeToProteinMapping> mappingList = entry.getValue();
@@ -59,46 +65,12 @@ public class GeneConverter {
 						.orElse(null);
 	}
 
-	private Map<String, List<GenomeToProteinMapping>> filterEnsgMappings(Map<String, List<GenomeToProteinMapping>> ensgMappings) {
-		if (ensgMappings.size() > 1) {
-
-			// If we have gene group(s) that contains canonical AND mane select, return 1
-			for (Map.Entry<String, List<GenomeToProteinMapping>> entry : ensgMappings.entrySet()) {
-				String ensg = entry.getKey();
-				List<GenomeToProteinMapping> mappings = entry.getValue();
-				if (hasCanonicalAndMane(mappings)) {
-					return Map.of(ensg, mappings);
-				}
-			}
-			// If we have gene group(s) that contains only canonical, return 1
-			for (Map.Entry<String, List<GenomeToProteinMapping>> entry : ensgMappings.entrySet()) {
-				String ensg = entry.getKey();
-				List<GenomeToProteinMapping> mappings = entry.getValue();
-				if (hasCanonical(mappings)) {
-					return Map.of(ensg, mappings);
-				}
-			}
-
-			// If we have gene group(s) that contains only mane select, return 1
-			for (Map.Entry<String, List<GenomeToProteinMapping>> entry : ensgMappings.entrySet()) {
-				String ensg = entry.getKey();
-				List<GenomeToProteinMapping> mappings = entry.getValue();
-				if (hasMane(mappings)) {
-					return Map.of(ensg, mappings);
-				}
-			}
-
-			for (Map.Entry<String, List<GenomeToProteinMapping>> entry : ensgMappings.entrySet()) {
-				String ensg = entry.getKey();
-				return Map.of(ensg, entry.getValue()); // fallback: return the first remaining
-			}
-		}
-		return ensgMappings;
-	}
-
-	private Map<String, List<GenomeToProteinMapping>> mapOfFirstEnsg(List<String> ensgs, Map<String, List<GenomeToProteinMapping>> mappings) {
-		String ensg = ensgs.get(0);
-		return Map.of(ensg, mappings.get(ensg));
+	/** Gene ordering rank (lower = earlier): canonical+MANE, then canonical, then MANE, then the rest. */
+	private int geneRank(List<GenomeToProteinMapping> mappings) {
+		if (hasCanonicalAndMane(mappings)) return 0;
+		if (hasCanonical(mappings)) return 1;
+		if (hasMane(mappings)) return 2;
+		return 3;
 	}
 
 	private boolean hasCanonicalAndMane(List<GenomeToProteinMapping> mappings) {

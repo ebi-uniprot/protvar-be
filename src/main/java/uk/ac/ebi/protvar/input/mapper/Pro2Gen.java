@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.UniprotAccessionCache;
+import uk.ac.ebi.protvar.cache.ProteinCache;
 import uk.ac.ebi.protvar.input.*;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Message;
@@ -30,6 +31,9 @@ public class Pro2Gen {
 
     @Autowired
     UniprotAccessionCache uniprotAccessionCache;
+
+    @Autowired
+    ProteinCache proteinCache;
 
     public void convert(Map<VariantType, List<VariantInput>> groupedInputs, TreeMap<String, List<String>> refseqIdMap) {
         List<VariantInput> proteinInputs = new ArrayList<>();
@@ -71,7 +75,7 @@ public class Pro2Gen {
                                     head.get(0)));
                         }
                     }
-                    if (!uniprotAccessionCache.isCanonical(hgvsProt.getAccession())) {
+                    if (!proteinCache.isMapped(hgvsProt.getAccession())) {
                         hgvsProt.addWarning(
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage(),
                                         hgvsProt.getRefseqId(), hgvsProt.getAccession()));
@@ -84,7 +88,7 @@ public class Pro2Gen {
                 ProteinInput internalProt = (ProteinInput) input;
                 uniqueAccPos.add(new AccessionPosition(internalProt.getAccession(), internalProt.getPosition()));
 
-                if (!uniprotAccessionCache.isCanonical(internalProt.getAccession())) {
+                if (!proteinCache.isMapped(internalProt.getAccession())) {
                     internalProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), internalProt.getAccession()));
                 }
 
@@ -95,7 +99,7 @@ public class Pro2Gen {
                         ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
                             codingInput.getDerivedUniprotAcc()));*/
 
-                    if (!uniprotAccessionCache.isCanonical(codingInput.getDerivedUniprotAcc()))
+                    if (!proteinCache.isMapped(codingInput.getDerivedUniprotAcc()))
                         codingInput.addWarning(
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
                                         , codingInput.getRefseqId(), codingInput.getDerivedUniprotAcc()));
