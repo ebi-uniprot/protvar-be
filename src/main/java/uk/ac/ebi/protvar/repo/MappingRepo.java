@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +19,12 @@ import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
+import uk.ac.ebi.protvar.model.data.Protein;
+import uk.ac.ebi.protvar.model.data.EnsemblGene;
+import uk.ac.ebi.protvar.model.data.EnsemblTranscript;
+import uk.ac.ebi.protvar.cache.ProteinCache;
+import uk.ac.ebi.protvar.cache.EnsemblGeneCache;
+import uk.ac.ebi.protvar.cache.EnsemblTranscriptCache;
 import uk.ac.ebi.protvar.types.*;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
 
@@ -35,11 +40,12 @@ import java.util.stream.Collectors;
 public class MappingRepo {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MappingRepo.class);
+	// Slim mapping (Round B): is_canonical no longer on the mapping — canonical-first ordering is done
+	// app-side after cache enrichment (see createMapping). SELECT * returns the slim columns.
 	private static final String MAPPINGS_IN_CHR_POS = """
    			SELECT * FROM %s
-   			INNER JOIN (VALUES :chrPosList) AS t(chr,pos) 
-   			ON t.chr=chromosome AND t.pos=genomic_position 
-   			ORDER BY is_canonical DESC
+   			INNER JOIN (VALUES :chrPosList) AS t(chr,pos)
+   			ON t.chr=chromosome AND t.pos=genomic_position
    			""";
 
 	private static final String MAPPINGS_WITH_UNNEST = """
@@ -48,19 +54,22 @@ public class MappingRepo {
 			  SELECT UNNEST(:chromosomes) as chr, UNNEST(:positions) as pos
 			) coord_list ON coord_list.chr = m.chromosome
 			  AND coord_list.pos = m.genomic_position
-			ORDER BY m.is_canonical DESC
 			""";
 	private static final String MAPPINGS_IN_ACC_POS = """
 			SELECT
-				chromosome, genomic_position, allele, 
-				accession, protein_position, protein_seq, 
-				codon, codon_position, reverse_strand
-			FROM %s 
-			INNER JOIN (VALUES :accPosList) as t(acc,pos) 
+				chromosome, genomic_position, base_nucleotide,
+				accession, protein_position, amino_acid,
+				codon, codon_position, is_match, enst, enstv, ense
+			FROM %s
+			INNER JOIN (VALUES :accPosList) as t(acc,pos)
 			ON t.acc=accession AND t.pos=protein_position
 			""";
 
 	private final NamedParameterJdbcTemplate jdbcTemplate; // injected via constructor
+	// Round B dim caches — enrich the slim mapping rows with fields it no longer carries.
+	private final ProteinCache proteinCache;
+	private final EnsemblGeneCache ensemblGeneCache;
+	private final EnsemblTranscriptCache ensemblTranscriptCache;
 
 	@Value("${tbl.mapping}")
 	private String mappingTable; // injected via Spring after constructor
@@ -266,12 +275,12 @@ public class MappingRepo {
 	 * with no TTL and invalidated by the cache.version bump that accompanies
 	 * each release deploy.
 	 */
-	@Cacheable(value = "mappedAccessions", key = "'all'")
+	/**
+	 * Mapped canonical accessions. Round B: served from the protein dim cache (its canonical subset)
+	 * instead of a DISTINCT scan over the 266M-row mapping table.
+	 */
 	public List<String> getMappedAccessions() {
-		String sql = String.format(
-				"SELECT DISTINCT accession FROM %s WHERE is_canonical = true ORDER BY accession",
-				mappingTable);
-		return jdbcTemplate.queryForList(sql, new MapSqlParameterSource(), String.class);
+		return new ArrayList<>(proteinCache.getCanonicalAccessions());
 	}
 
 	public List<GenomeToProteinMapping> getMappingsByChrPos(List<Object[]> chrPosList) {
@@ -297,27 +306,43 @@ public class MappingRepo {
 				.collect(Collectors.toList());
 	}
 
+	/**
+	 * Builds a GenomeToProteinMapping from a SLIM mapping row, enriching the columns moved out to the
+	 * Round B dim tables from the in-memory caches: protein (gene_name / protein_name / is_canonical),
+	 * ensembl_transcript (ensp / is_mane_select / ensg), ensembl_gene (reverse_strand / ensg version).
+	 * patch_name is dropped (was unused). Null-safe on cache misses.
+	 */
 	private GenomeToProteinMapping createMapping(ResultSet rs) throws SQLException {
+		String accession = rs.getString("accession");
+		String enst = rs.getString("enst");
+		String enstv = rs.getString("enstv");
+
+		Protein protein = proteinCache.get(accession);
+		EnsemblTranscript transcript = ensemblTranscriptCache.get(accession, enst);
+		EnsemblGene gene = transcript != null ? ensemblGeneCache.get(transcript.getEnsg()) : null;
+
 		return GenomeToProteinMapping.builder()
 				.chromosome(rs.getString("chromosome"))
 				.genomeLocation(rs.getInt("genomic_position"))
 				.isoformPosition(rs.getInt("protein_position"))
-				.baseNucleotide(rs.getString("allele"))
-				.aa(rs.getString("protein_seq"))
+				.baseNucleotide(rs.getString("base_nucleotide"))
+				.aa(rs.getString("amino_acid"))
 				.codon(rs.getString("codon"))
-				.accession(rs.getString("accession"))
-				.ensg(ensXVersion(rs.getString("ensg"), rs.getString("ensgv")))
-				.ensp(ensXVersion(rs.getString("ensp"), rs.getString("enspv")))
-				.enst(ensXVersion(rs.getString("enst"), rs.getString("enstv")))
-				.ense(rs.getString("ense"))
-				.reverseStrand(rs.getBoolean("reverse_strand"))
-				.isValidRecord(rs.getBoolean("is_match"))
-				.patchName(rs.getString("patch_name"))
-				.geneName(rs.getString("gene_name"))
 				.codonPosition(rs.getInt("codon_position"))
-				.isCanonical(rs.getBoolean("is_canonical"))
-				.isManeSelect(rs.getBoolean("is_mane_select"))
-				.proteinName(rs.getString("protein_name"))
+				.isValidRecord(rs.getBoolean("is_match"))
+				.accession(accession)
+				.enst(ensXVersion(enst, enstv))
+				.ense(rs.getString("ense"))
+				// ensembl_transcript dim
+				.ensp(transcript != null ? ensXVersion(transcript.getEnsp(), transcript.getEnspv()) : null)
+				.isManeSelect(transcript != null && transcript.isManeSelect())
+				// ensembl_gene dim (ensg version lives on the gene record)
+				.ensg(transcript != null ? ensXVersion(transcript.getEnsg(), gene != null ? gene.getEnsgv() : null) : null)
+				.reverseStrand(gene != null && gene.isReverseStrand())
+				// protein dim
+				.isCanonical(protein != null && protein.isCanonical())
+				.geneName(protein != null ? protein.getGeneName() : null)
+				.proteinName(protein != null ? protein.getProteinName() : null)
 				.build();
 	}
 
@@ -330,17 +355,7 @@ public class MappingRepo {
 			return List.of();
 		SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
 
-		return jdbcTemplate.query(String.format(MAPPINGS_IN_ACC_POS, mappingTable), parameters, (rs, rowNum) ->
-						GenomeToProteinMapping.builder()
-								.chromosome(rs.getString("chromosome"))
-								.genomeLocation(rs.getInt("genomic_position"))
-								.baseNucleotide(rs.getString("allele"))
-								.accession(rs.getString("accession"))
-								.isoformPosition(rs.getInt("protein_position"))
-								.aa(rs.getString("protein_seq"))
-								.codon(rs.getString("codon"))
-								.codonPosition(rs.getInt("codon_position"))
-								.reverseStrand(rs.getBoolean("reverse_strand")).build())
+		return jdbcTemplate.query(String.format(MAPPINGS_IN_ACC_POS, mappingTable), parameters, (rs, rowNum) -> createMapping(rs))
 				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
 	}
 
