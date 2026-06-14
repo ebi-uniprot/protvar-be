@@ -56,7 +56,10 @@ public class GenomicVariantRepo {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    @Value("${tbl.mapping}") private String mappingTable;
+    // GenomicVariantRepo is entirely the bulk filter-browse path → uses the enriched view (slim mapping
+    // ⋈ protein ⋈ transcript) so the legacy column names (allele/protein_seq/is_canonical/reverse_strand/
+    // gene_name/ensp…) resolve unchanged. See tbl.mapping.enriched in application.properties.
+    @Value("${tbl.mapping.enriched}") private String mappingTable;
     @Value("${tbl.cadd}") private String caddTable;
     @Value("${tbl.allelefreq}") private String alleleFreqTable;
     @Value("${tbl.am}") private String amTable;
@@ -827,7 +830,10 @@ public class GenomicVariantRepo {
             parameters.addValue(idParam, baseId);
             String condition = "m." + idColumn + " = :" + idParam;
 
-            if (version != null) {
+            // ENST/ENSP versions (enstv/enspv) are available on the mapping/transcript; ENSG version (ensgv)
+            // is gene-only and would force a gene join into the view — match base ENSG only (the base id
+            // identifies the gene; version is just the annotation release).
+            if (version != null && !"ensg".equals(idColumn)) {
                 String versionParam = "ensVer_" + i;
                 parameters.addValue(versionParam, version);
                 condition += " AND m." + idColumn + "v = :" + versionParam;

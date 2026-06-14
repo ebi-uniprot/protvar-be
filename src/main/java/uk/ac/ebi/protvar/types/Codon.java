@@ -163,5 +163,49 @@ public enum Codon {
         return Codon.valueOf(reverse(rnaCodon.name()));
     }
 
+    /**
+     * RNA base in coding orientation for a genomic (forward-strand DNA) allele — the Java equivalent of
+     * the SQL {@code rna_base_for_strand(dna_base, reverse_strand)} (see function.sql).
+     * Reverse strand: complement then T→U (A→U, T→A, C→G, G→C). Forward strand: T→U only.
+     */
+    public static String rnaBaseForStrand(String dnaBase, boolean reverseStrand) {
+        if (reverseStrand) {
+            switch (dnaBase) {
+                case "T": return "A";
+                case "A": return "U";
+                case "C": return "G";
+                case "G": return "C";
+            }
+        } else if ("T".equals(dnaBase)) {
+            return "U";
+        }
+        return dnaBase;
+    }
+
+    /**
+     * Splices a genomic alt allele into the reference RNA codon at {@code codonPosition} (1-based),
+     * applying strand orientation — the Java equivalent of the alt-codon CASE expression in the mapping
+     * SQL. Returns null if the inputs can't form a valid RNA codon (mirrors a SQL LEFT JOIN codon_table miss).
+     */
+    public static Codon altCodon(String refCodon, int codonPosition, String altAlleleDna, boolean reverseStrand) {
+        if (refCodon == null || refCodon.length() != 3
+                || codonPosition < 1 || codonPosition > 3 || altAlleleDna == null)
+            return null;
+        String codon = refCodon.toUpperCase();
+        String altCodon = codon.substring(0, codonPosition - 1)
+                + rnaBaseForStrand(altAlleleDna.toUpperCase(), reverseStrand)
+                + codon.substring(codonPosition);
+        try {
+            return Codon.valueOf(altCodon);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /** Consequence amino acid for a genomic SNV, or null on a non-codable codon (see {@link #altCodon}). */
+    public static AminoAcid altAA(String refCodon, int codonPosition, String altAlleleDna, boolean reverseStrand) {
+        Codon c = altCodon(refCodon, codonPosition, altAlleleDna, reverseStrand);
+        return c == null ? null : c.getAa();
+    }
 
 }

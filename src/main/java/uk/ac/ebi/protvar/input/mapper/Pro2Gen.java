@@ -246,16 +246,10 @@ public class Pro2Gen {
                                 }
                             }
 
-                            String codonUC = gCoordCodon.toUpperCase();
-
                             for (String altAllele : possibleAltAlleles) {
 
-                                String altCodon = codonUC.substring(0, gCoordCodonPos - 1) +
-                                        altAlleleIfReverse(altAllele, gCoordIsReverse) +
-                                        codonUC.substring(gCoordCodonPos);
-
-                                Codon altRnaCodon = Codon.valueOf(altCodon);
-                                AminoAcid altAA = altRnaCodon.getAa();
+                                // alt codon + consequence AA via the shared Codon helper (was inline + altAlleleIfReverse)
+                                AminoAcid altAA = Codon.altAA(gCoordCodon, gCoordCodonPos, altAllele, gCoordIsReverse);
 
                                 GenomicVariant genomicVariant = new GenomicVariant(gCoordChr, gCoordPos, gCoordRefAllele, altAllele);
 
@@ -332,26 +326,6 @@ public class Pro2Gen {
         });
     }
 
-    private String altAlleleIfReverse(String altAllele, boolean isReverse) {
-        //dna->rna codon
-        if (isReverse) {
-            //T->A
-            //A->U
-            //C->G
-            //G->C
-            if (altAllele.equals("T")) return "A";
-            else if (altAllele.equals("A")) return "U";
-            else if (altAllele.equals("C")) return "G";
-            else if (altAllele.equals("G")) return "C";
-        } else {
-            //A->A
-            //T->U
-            //G->G
-            //C->C
-            if (altAllele.equals("T")) return "U";
-        }
-        return altAllele;
-    }
     private String reverseDNA(String dna) {
         String reverseStr = "";
         for (char c : dna.toCharArray()) {

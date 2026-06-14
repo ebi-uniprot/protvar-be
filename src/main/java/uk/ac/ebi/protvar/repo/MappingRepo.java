@@ -72,7 +72,11 @@ public class MappingRepo {
 	private final EnsemblTranscriptCache ensemblTranscriptCache;
 
 	@Value("${tbl.mapping}")
-	private String mappingTable; // injected via Spring after constructor
+	private String mappingTable; // slim mapping — used by the point/list methods (createMapping + cache enrich)
+	// Enriched view (slim ⋈ protein ⋈ transcript) — used ONLY by the bulk getGenomicVariantsForInput so its
+	// legacy column names (allele/protein_seq/is_canonical/reverse_strand/gene_name/ensp…) resolve unchanged.
+	@Value("${tbl.mapping.enriched}")
+	private String enrichedMappingTable;
 	@Value("${tbl.cadd}")
 	private String caddTable;
     @Value("${tbl.allelefreq}")
@@ -556,7 +560,7 @@ public class MappingRepo {
 				""";
 
 		StringBuilder sql = new StringBuilder(baseQuery
-				.replaceFirst("%s", mappingTable)
+				.replaceFirst("%s", enrichedMappingTable)
 				.replaceFirst("%s", dbsnpJoin)
 				.replaceFirst("%s", inputCondition));
 
@@ -1063,7 +1067,9 @@ public class MappingRepo {
 		StringBuilder condition = new StringBuilder("WHERE m." + idColumn + " = :input");
 		parameters.addValue("input", baseId);
 
-		if (version != null) {
+		// ensgv (gene version) is gene-only and not on the enriched view (no gene join) — match base ENSG only.
+		// ENST/ENSP versions remain matchable (enstv on mapping, enspv on transcript).
+		if (version != null && !"ensg".equals(idColumn)) {
 			condition.append(" AND m.").append(versionColumn).append(" = :version");
 			parameters.addValue("version", version);
 		}

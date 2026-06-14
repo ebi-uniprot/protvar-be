@@ -4,7 +4,51 @@ import org.junit.jupiter.api.Test;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.protvar.types.Codon;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 public class CodonTest {
+
+    // rnaBaseForStrand must match the SQL rna_base_for_strand(dna_base, reverse_strand) in function.sql
+    @Test
+    void testRnaBaseForStrand() {
+        // forward: T->U only
+        assertEquals("A", Codon.rnaBaseForStrand("A", false));
+        assertEquals("U", Codon.rnaBaseForStrand("T", false));
+        assertEquals("G", Codon.rnaBaseForStrand("G", false));
+        assertEquals("C", Codon.rnaBaseForStrand("C", false));
+        // reverse: complement then T->U  (A->U, T->A, C->G, G->C)
+        assertEquals("U", Codon.rnaBaseForStrand("A", true));
+        assertEquals("A", Codon.rnaBaseForStrand("T", true));
+        assertEquals("C", Codon.rnaBaseForStrand("G", true));
+        assertEquals("G", Codon.rnaBaseForStrand("C", true));
+    }
+
+    // altAA must match the SQL alt-codon CASE + codon_table lookup
+    @Test
+    void testAltAA() {
+        // forward strand, ref codon AUG (Met)
+        assertEquals(AminoAcid.MET, Codon.altAA("AUG", 1, "A", false)); // A->A : AUG synonymous
+        assertEquals(AminoAcid.LEU, Codon.altAA("AUG", 1, "C", false)); // C    : CUG Leu
+        assertEquals(AminoAcid.LYS, Codon.altAA("AUG", 2, "A", false)); // U->A : AAG Lys
+        assertEquals(AminoAcid.ILE, Codon.altAA("AUG", 3, "A", false)); // G->A : AUA Ile
+        assertEquals(AminoAcid.TER, Codon.altAA("UAC", 3, "A", false)); // C->A : UAA stop gained
+
+        // reverse strand: the genomic DNA alt is complemented then T->U before splicing
+        assertEquals(AminoAcid.MET, Codon.altAA("AUG", 1, "T", true));  // T->A : AUG Met
+        assertEquals(AminoAcid.LEU, Codon.altAA("AUG", 1, "A", true));  // A->U : UUG Leu
+        assertEquals(AminoAcid.MET, Codon.altAA("AUG", 3, "C", true));  // C->G : AUG Met
+    }
+
+    // null-tolerant on malformed input (mirrors SQL LEFT JOIN codon_table miss)
+    @Test
+    void testAltAANullSafe() {
+        assertNull(Codon.altAA(null, 1, "A", false));
+        assertNull(Codon.altAA("AU", 1, "A", false));   // codon not length 3
+        assertNull(Codon.altAA("AUG", 0, "A", false));  // bad codon position
+        assertNull(Codon.altAA("AUG", 4, "A", false));
+        assertNull(Codon.altAA("AUG", 1, null, false));
+    }
 
     @Test
     void testChangeCount() {
