@@ -8,15 +8,17 @@
 --
 -- Joins ONLY protein + ensembl_transcript (both PK joins → cannot multiply rows; verified row-for-row equal
 --   to the mapping). NO ensembl_gene join — that 2-hop join mis-plans badly (rows=1 estimate → seq-scan of
---   ensembl_gene per row, ~180x slower). reverse_strand is read 1-hop from ensembl_transcript, where the
---   importer denormalises it from the gene.
+--   ensembl_gene per row, ~180x slower). reverse_strand is read straight from the mapping fact (m), where
+--   the importer keeps it per-row: it is intrinsic to the per-row codon math, and sourcing it from any join
+--   (even 1-hop from ensembl_transcript) makes the codon expr depend on that join → the planner defers
+--   consequence/mt_aa/score matching to late Join Filters, ~40x on consequence-AA-keyed filter browses.
 --
 -- TEMPORARY: this is a bridge. It is removed when the bulk queries are rewritten to read slim+dims directly
 --   (the deferred resolve→enrich→filter redesign; see doc/mapping_target_architecture.md).
 --
 -- Per-release: substitute the rel_<release>_ prefix to match application.properties (tbl.prefix). Apply as
 --   part of BE release setup, AFTER the importer has produced the mapping + protein + ensembl_transcript
---   tables (ensembl_transcript must include the reverse_strand column).
+--   tables (mapping must include the reverse_strand column).
 -- Maps to property: tbl.mapping.enriched = ${tbl.prefix}_genomic_protein_mapping_enriched
 -- =====================================================
 
@@ -27,9 +29,9 @@ SELECT
     m.codon, m.codon_position,
     m.accession, m.protein_position,
     m.amino_acid     AS protein_seq,    -- legacy name
-    m.is_match, m.enst, m.enstv, m.ense,
+    m.is_match, m.reverse_strand, m.enst, m.enstv, m.ense,
     p.is_canonical, p.gene_name, p.protein_name,
-    t.ensg, t.ensp, t.enspv, t.is_mane_select, t.reverse_strand
+    t.ensg, t.ensp, t.enspv, t.is_mane_select
 FROM rel_2026_02_genomic_protein_mapping m
 JOIN rel_2026_02_protein p
     ON p.accession = m.accession
