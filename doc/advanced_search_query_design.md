@@ -136,14 +136,18 @@ This needs `reverse_strand` **on the mapping row** — which the slim schema rem
 wild-type side `am.wt_aa = m.protein_seq` → slim `amino_acid`). So filtering/sorting by AlphaMissense /
 popEVE / ESM / stability *requires* the alt-AA in SQL. Therefore:
 - **Bulk path: keep the SQL codon→AA** (`rna_base_for_strand` + `codon_table`) — it's load-bearing, not a
-  fallback. This needs `reverse_strand` in the row, so **denormalising `reverse_strand` onto
-  `rel_*_ensembl_transcript` is REQUIRED** (1-hop, cheap, no `ensembl_gene` landmine). Importer must write it.
+  fallback. This needs `reverse_strand` in the row: it lives on the **slim mapping fact** (the `_enriched`
+  view sources `m.reverse_strand` from the mapping), **NOT** on `ensembl_transcript`. See the perf note below.
 - **Point path: Java AA** (`Codon.altAA`, added 2026-06-14, unit-tested + DB-parity-checked) where the AA is
   output-only (`MappingRepo.createMapping`).
-- **Perf caveat (validated 2026-06-14):** with the denorm, the score-filter slim path runs (no landmine) but
-  was ~4× fat on a broad chr21 region (636ms→2465ms) because the planner lost the `codon_table` **Memoize**
-  and reordered the dim joins. Tunable in the builder (apply `protein`/`transcript` before alt-expansion,
-  restore Memoize); realistic narrower queries are fine, but it's a real tuning task.
+- **Perf — RESOLVED (2026-06-17): `reverse_strand` on the mapping fact, not the transcript.** Strand-on-transcript
+  made the codon expr depend on the transcript join, so the planner deferred consequence/`mt_aa`/score matching to
+  late Join Filters over a huge intermediate → **~40× slower** on consequence-AA-keyed filter browses (gnomad+AM,
+  chr21 43.0–43.2M: 2915ms). `reverse_strand` is intrinsic to per-row codon math, so it belongs on the slim
+  mapping fact (1 bool × 266M); the view exposes it as `m.reverse_strand` and the codon resolves early again →
+  **171ms** (vs fat 73ms). The earlier "~4× lost `codon_table` Memoize" was a **misdiagnosis** — forcing the
+  Memoize doesn't change the time; the strand-on-transcript blowup was the real cause. (importer: strand on the
+  mapping fact; be: `create_mapping_enriched_view.sql` sources strand from `m`.)
 
 --- superseded ---
 **DECISION (2026-06-13): Java active, SQL preserved as a live, switchable fallback.**
