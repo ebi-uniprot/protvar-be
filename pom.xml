@@ -21,7 +21,7 @@
     <maven.compiler.source>21</maven.compiler.source>
     <maven.compiler.target>21</maven.compiler.target>
     <springdoc.version>2.5.0</springdoc.version>
-    <artifactory.url>https://wwwdev.ebi.ac.uk/uniprot/artifactory</artifactory.url>
+    <artifactory.url>https://unpartifactory.uniprot.org/artifactory</artifactory.url>
   </properties>
 
   <repositories>
