@@ -106,6 +106,7 @@ public class InputService {
                     cacheService.getBuild(id) == null) {
 
                 List<String> inputs = cacheService.getInput(id);
+                if (inputs == null) return; // unknown or expired input id
                 InputBuild build = detectBuild(inputs);
                 cacheService.cacheBuild(id, build);
             }
