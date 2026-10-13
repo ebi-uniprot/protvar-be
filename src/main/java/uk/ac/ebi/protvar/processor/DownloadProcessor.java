@@ -209,6 +209,10 @@ public class DownloadProcessor {
 			try (Stream<String[]> rows = streamInputsToCsv(inputs, coreMapping, annData)) {
 				writeCsv(outputPath, rows, writeHeader);
 			}
+		} else {
+			// No genomic coordinates (e.g. unmapped or invalid inputs): still
+			// write the file, the merge/zip step expects it to exist.
+			writeCsv(outputPath, Stream.empty(), writeHeader);
 		}
 	}
 

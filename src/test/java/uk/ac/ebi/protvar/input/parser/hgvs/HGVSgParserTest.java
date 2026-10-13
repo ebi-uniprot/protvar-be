@@ -88,4 +88,28 @@ public class HGVSgParserTest {
         assertFalse(result.getErrors().isEmpty());
         assertTrue(result.getErrors().contains("HGVS g. invalid"));
     }
+
+    @Test
+    public void testParse_ChromosomeInsteadOfRefseq() {
+        assertTrue(HGVSgParser.matchesChrPattern("chr11:g.108321424A>G"));
+        assertTrue(HGVSgParser.matchesChrPattern("11:g.108321424A>G"));
+        assertFalse(HGVSgParser.matchesChrPattern("NC_000011.10:g.108321424A>G"));
+        assertTrue(HGVSgParser.matchesPattern("chr11:g.108321424A>G"));
+
+        GenomicInput result = HGVSgParser.parse("chr11:g.108321424A>G");
+        assertTrue(result.isValid());
+        assertEquals(VariantFormat.HGVS_GENOMIC, result.getFormat());
+        assertEquals("11", result.getChromosome());
+        assertEquals(108321424, result.getPosition());
+        assertEquals("A", result.getRefBase());
+        assertEquals("G", result.getAltBase());
+        assertNull(result.getRefseqId());
+        assertNotEquals(Boolean.TRUE, result.getRefseq37());
+    }
+
+    @Test
+    public void testParse_NonSubstitution() {
+        GenomicInput result = HGVSgParser.parse("NC_000016.10:g.23634954del");
+        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_NON_SUBSTITUTION.toString()));
+    }
 }

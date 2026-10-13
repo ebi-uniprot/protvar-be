@@ -18,6 +18,8 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,12 +58,31 @@ public class InputService {
         return id;
     }
 
+    // Genomic position written with thousands separators, e.g. chr16:29,847,799 T>C
+    private static final Pattern POSITION_WITH_SEPARATORS = Pattern.compile(
+            "^([ \\t]*(?:chr)?(?:\\d{1,2}|X|Y|MT?)[: \\t]+)(\\d{1,3}(?:,\\d{3})+)(?!\\d)",
+            Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
+
     public static List<String> normalizeInput(String rawInput) {
-        return Arrays.stream(rawInput.split("\\R|,")) // split on any line break, pipe and comma
+        // remove thousands separators first, so the comma split below doesn't break the position
+        String input = POSITION_WITH_SEPARATORS.matcher(rawInput).replaceAll(m ->
+                Matcher.quoteReplacement(m.group(1) + m.group(2).replace(",", "")));
+        return Arrays.stream(input.split("\\R|,")) // split on any line break, pipe and comma
                 .map(String::trim)          // trim each line
+                .map(InputService::stripQuotes)
                 .filter(line -> !line.isEmpty())      // remove blank lines
                 .filter(line -> !line.startsWith("#")) // ignore comment lines
                 .collect(Collectors.toList());
+    }
+
+    // "P22304 A205P" or 'P22304 A205P' -> P22304 A205P
+    private static String stripQuotes(String line) {
+        if (line.length() >= 2) {
+            char first = line.charAt(0);
+            if ((first == '"' || first == '\'') && line.charAt(line.length() - 1) == first)
+                return line.substring(1, line.length() - 1).trim();
+        }
+        return line;
     }
 
     /** Accepted values: The assembly can be one of the following:
@@ -106,6 +127,7 @@ public class InputService {
                     cacheService.getBuild(id) == null) {
 
                 List<String> inputs = cacheService.getInput(id);
+                if (inputs == null) return; // unknown or expired input id
                 InputBuild build = detectBuild(inputs);
                 cacheService.cacheBuild(id, build);
             }

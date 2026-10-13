@@ -79,6 +79,19 @@ public enum ErrorConstants {
 
     INVALID_GENERIC_INPUT("", "Could not parse input."),
 
+    // Unsupported inputs - specific reasons instead of a generic "Unsupported format"
+    UNSUPPORTED_FORMAT("", "Unsupported format"),
+    UNSUPPORTED_INDEL("", "Insertions and deletions are not supported. ProtVar annotates single-nucleotide variants, e.g. 14 89993420 A G."),
+    UNSUPPORTED_MNV("", "Multi-nucleotide variants are not supported. Enter each base change as a separate single-nucleotide variant, e.g. 14 89993420 A G."),
+    UNSUPPORTED_PROTEIN_NO_ACC("", "Protein change without a UniProt accession. Add the accession before the change, e.g. P22304 A205P."),
+    UNSUPPORTED_GENE_SYMBOL("", "Gene symbols are not supported as protein input. Use the UniProt accession instead, e.g. P22304 A205P."),
+    UNSUPPORTED_CDNA_NO_REFSEQ("", "HGVS c. input needs a RefSeq transcript, e.g. NM_000202.8:c.1327C>T."),
+    UNSUPPORTED_ID_ONLY("", "A transcript or RefSeq ID on its own is not a variant. Add a variant description, e.g. NM_000202.8:c.1327C>T."),
+    UNSUPPORTED_ACC_ONLY("", "A UniProt accession on its own is not a variant. Add a position or change, e.g. P22304 205 or P22304 A205P, or use Search to see all variants of the protein."),
+    UNSUPPORTED_BINARY("", "Input contains unreadable characters. If you uploaded a spreadsheet, save it as plain text or CSV with one variant per line."),
+    HGVS_NON_SUBSTITUTION("", "Only substitutions are supported in HGVS input; deletions, duplications, insertions, delins, inversions and frameshifts are not."),
+    HGVS_G_CHR_NO_REFSEQ("", "Chromosome given instead of a RefSeq (NC_) accession; the position is read in the selected (or detected) genome assembly."),
+
 
     ///
 

@@ -118,6 +118,8 @@ public class HGVSpParser extends VariantParser {
                         alt = ProteinParser.normalizeEquals(alt, ref);
                         parsedInput.setAltAA(ProteinParser.normalizeAA(alt));
                     }
+                } else if (HGVS.NON_SUBSTITUTION.matcher(vardescPart).find()) {
+                    parsedInput.addError(ErrorConstants.HGVS_NON_SUBSTITUTION);
                 } else {
                     parsedInput.addError(ErrorConstants.HGVS_P_VARDESC_INVALID);
                 }

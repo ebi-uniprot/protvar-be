@@ -19,8 +19,15 @@ import java.util.regex.Pattern;
  *     6	    CHR:POS	            chr1:12345
  *     7	    CHR:POS:REF	        chr1:12345:A
  *     8	    CHR:POS:REF:ALT	    chr1:12345:A:T
+ *     Mixed (CHR:POS, then space or colon before the alleles):
+ *     9	    CHR:POS REF>ALT	    chr1:12345 A>T, chr1:12345:A>T, chr1:12345 A T
+ *     REF/ALT may also be a missing-allele placeholder (na or .), read as no allele,
+ *     e.g. 12:56478854:na:na is the same as 12:56478854.
  */
 public class GenomicParser extends VariantParser {
+    // A base, or a missing-allele placeholder (na or .)
+    private static final String BASE_OR_MISSING = VALID_BASE + "|na|\\.";
+
     // Structural patterns - quick format check
     public static final Pattern SPACE_STRUCTURE = Pattern.compile("^\\S+\\s+\\S+(?:\\s+\\S+(?:\\s+\\S+|/\\S+|>\\S+)?)?$");
     public static final Pattern COLON_STRUCTURE = Pattern.compile("^\\S+:\\S+(?::\\S+(?::\\S+)?)?$");
@@ -31,10 +38,10 @@ public class GenomicParser extends VariantParser {
             "^(%s)\\s+(%s)(?:\\s+(%s)(?:\\s+(%s)|/(%s)|>(%s))?)?$",
             VALID_CHROMOSOME,  // Group 1: CHR
             VALID_POSITION,    // Group 2: POS
-            VALID_BASE,        // Group 3: REF
-            VALID_BASE,        // Group 4: ALT (space)
-            VALID_BASE,        // Group 5: ALT (/)
-            VALID_BASE         // Group 6: ALT (>)
+            BASE_OR_MISSING,   // Group 3: REF
+            BASE_OR_MISSING,   // Group 4: ALT (space)
+            BASE_OR_MISSING,   // Group 5: ALT (/)
+            BASE_OR_MISSING    // Group 6: ALT (>)
     );
 
     // Colon-separated pattern: CHR:POS[:REF[:ALT]]
@@ -42,12 +49,22 @@ public class GenomicParser extends VariantParser {
             "^(%s):(%s)(?::(%s)(?::(%s))?)?$",
             VALID_CHROMOSOME,  // Group 1: CHR
             VALID_POSITION,    // Group 2: POS
-            VALID_BASE,        // Group 3: REF
-            VALID_BASE         // Group 4: ALT
+            BASE_OR_MISSING,   // Group 3: REF
+            BASE_OR_MISSING    // Group 4: ALT
+    );
+
+    // Mixed pattern: CHR:POS( |:)REF[( |:|/|>)ALT], e.g. chr1:12345 A>T (UCSC/IGV style)
+    public static final String MIXED_REGEX = String.format(
+            "^(%s):(%s)[\\s:]+(%s)(?:(?:\\s*[>/]\\s*|[\\s:]+)(%s))?$",
+            VALID_CHROMOSOME,  // Group 1: CHR
+            VALID_POSITION,    // Group 2: POS
+            BASE_OR_MISSING,   // Group 3: REF
+            BASE_OR_MISSING    // Group 4: ALT
     );
 
     public static final Pattern SPACE_PATTERN = Pattern.compile(SPACE_REGEX, Pattern.CASE_INSENSITIVE);
     public static final Pattern COLON_PATTERN = Pattern.compile(COLON_REGEX, Pattern.CASE_INSENSITIVE);
+    public static final Pattern MIXED_PATTERN = Pattern.compile(MIXED_REGEX, Pattern.CASE_INSENSITIVE);
 
     /**
      * Quick structural check - doesn't validate content, only format structure
@@ -62,7 +79,8 @@ public class GenomicParser extends VariantParser {
      */
     public static boolean matchesPattern(String inputStr) {
         return SPACE_PATTERN.matcher(inputStr).matches() ||
-                COLON_PATTERN.matcher(inputStr).matches();
+                COLON_PATTERN.matcher(inputStr).matches() ||
+                MIXED_PATTERN.matcher(inputStr).matches();
     }
 
     public static GenomicInput parse(String inputStr) {
@@ -73,15 +91,15 @@ public class GenomicParser extends VariantParser {
                 GenomicInput parsedInput = new GenomicInput(inputStr);
                 parsedInput.setChromosome(normalizeChr(spaceMatcher.group(1)));
                 parsedInput.setPosition(Integer.parseInt(spaceMatcher.group(2)));
-                parsedInput.setRefBase(normalizeBase(spaceMatcher.group(3)));
+                parsedInput.setRefBase(allele(spaceMatcher.group(3)));
                 String alt = null;
 
                 if (spaceMatcher.group(4) != null) {
-                    alt = normalizeBase(spaceMatcher.group(4));
+                    alt = allele(spaceMatcher.group(4));
                 } else if (spaceMatcher.group(5) != null) {
-                    alt = normalizeBase(spaceMatcher.group(5));
+                    alt = allele(spaceMatcher.group(5));
                 } else if (spaceMatcher.group(6) != null) {
-                    alt = normalizeBase(spaceMatcher.group(6));
+                    alt = allele(spaceMatcher.group(6));
                 }
                 parsedInput.setAltBase(alt);
                 return parsedInput;
@@ -93,8 +111,19 @@ public class GenomicParser extends VariantParser {
                 GenomicInput parsedInput = new GenomicInput(inputStr);
                 parsedInput.setChromosome(normalizeChr(colonMatcher.group(1)));
                 parsedInput.setPosition(Integer.parseInt(colonMatcher.group(2)));
-                parsedInput.setRefBase(normalizeBase(colonMatcher.group(3)));
-                parsedInput.setAltBase(normalizeBase(colonMatcher.group(4)));
+                parsedInput.setRefBase(allele(colonMatcher.group(3)));
+                parsedInput.setAltBase(allele(colonMatcher.group(4)));
+                return parsedInput;
+            }
+
+            // Try mixed format
+            Matcher mixedMatcher = MIXED_PATTERN.matcher(inputStr);
+            if (mixedMatcher.matches()) {
+                GenomicInput parsedInput = new GenomicInput(inputStr);
+                parsedInput.setChromosome(normalizeChr(mixedMatcher.group(1)));
+                parsedInput.setPosition(Integer.parseInt(mixedMatcher.group(2)));
+                parsedInput.setRefBase(allele(mixedMatcher.group(3)));
+                parsedInput.setAltBase(allele(mixedMatcher.group(4)));
                 return parsedInput;
             }
         } catch (NumberFormatException e) {
@@ -103,5 +132,11 @@ public class GenomicParser extends VariantParser {
         }
 
         return GenomicInput.invalid(inputStr); // No match
+    }
+
+    // Placeholder (na or .) means no allele given
+    private static String allele(String base) {
+        if (base == null || base.equalsIgnoreCase("na") || base.equals(".")) return null;
+        return normalizeBase(base);
     }
 }

@@ -10,6 +10,7 @@ import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.genomic.GenomicParser;
 import uk.ac.ebi.protvar.input.parser.genomic.GnomadParser;
 import uk.ac.ebi.protvar.input.parser.genomic.VCFParser;
+import uk.ac.ebi.protvar.input.parser.hgvs.HGVSgParser;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.model.data.Crossmap;
 import uk.ac.ebi.protvar.model.response.Message;
@@ -48,6 +49,9 @@ public class BuildProcessor {
 
                     if (GenomicParser.matchesPattern(inputStr)) // ^chr pos( ref( alt)?)?$
                         return GenomicParser.parse(inputStr);
+
+                    if (HGVSgParser.matchesChrPattern(inputStr)) // ^chr:g.posRef>Alt$ (no NC_, build not implied)
+                        return HGVSgParser.parse(inputStr);
                     return GenomicInput.invalid(inputStr);
                 })
                 .filter(VariantInput::isValid)

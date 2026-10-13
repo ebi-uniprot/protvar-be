@@ -20,6 +20,9 @@ public class HGVSgParser extends VariantParser {
 
     // no anchors (^...$)
     public static final String REFSEQ_REGEX = "(NC_)\\d+(\\.\\d+)?"; // RefSeq part: NC_ + digits + version
+    // Chromosome in place of the RefSeq, e.g. chr11:g.108321424A>G - build not implied,
+    // so it follows the selected (or detected) assembly like other genomic inputs
+    public static final String CHR_REGEX = "(?:" + VALID_CHROMOSOME + ")";
 
     // no anchors (^...$)
     public static final String VARDESC_REGEX = String.format("(?<pos>%s)(?<refBase>%s)>(?<altBase>%s)",
@@ -29,14 +32,22 @@ public class HGVSgParser extends VariantParser {
     );
 
     // Full pattern - for matchesPattern() method
-    public static final String FULL_REGEX = String.format("^%s%s%s$",
+    public static final String FULL_REGEX = String.format("^(?:%s|%s)%s%s$",
             REFSEQ_REGEX,
+            CHR_REGEX,
+            SCHEME_REGEX,
+            VARDESC_REGEX
+    );
+    public static final String FULL_CHR_REGEX = String.format("^%s%s%s$",
+            CHR_REGEX,
             SCHEME_REGEX,
             VARDESC_REGEX
     );
 
     private static Pattern STRUCTURE_PATTERN = Pattern.compile(STRUCTURE_REGEX, Pattern.CASE_INSENSITIVE);
     private static Pattern REFSEQ_PATTERN = Pattern.compile("^" + REFSEQ_REGEX + "$", Pattern.CASE_INSENSITIVE);
+    private static Pattern CHR_PATTERN = Pattern.compile("^" + CHR_REGEX + "$", Pattern.CASE_INSENSITIVE);
+    private static Pattern FULL_CHR_PATTERN = Pattern.compile(FULL_CHR_REGEX, Pattern.CASE_INSENSITIVE);
     private static Pattern VARDESC_PATTERN = Pattern.compile("^" + VARDESC_REGEX + "$", Pattern.CASE_INSENSITIVE);
     private static Pattern FULL_PATTERN = Pattern.compile(FULL_REGEX, Pattern.CASE_INSENSITIVE);
 
@@ -58,6 +69,14 @@ public class HGVSgParser extends VariantParser {
      */
     public static boolean matchesPattern(String input) {
         return input != null && FULL_PATTERN.matcher(input).matches();
+    }
+
+    /**
+     * Chromosome form only (e.g. chr11:g.108321424A>G), whose build is not implied
+     * by the input and so takes part in build auto-detection.
+     */
+    public static boolean matchesChrPattern(String input) {
+        return input != null && FULL_CHR_PATTERN.matcher(input).matches();
     }
 
     public static GenomicInput parse(String inputStr) {
@@ -86,6 +105,9 @@ public class HGVSgParser extends VariantParser {
                     if (parsedInput.getChromosome() == null) {
                         parsedInput.addError(ErrorConstants.HGVS_G_REFSEQ_NOT_MAP_TO_CHR);
                     }
+                } else if (CHR_PATTERN.matcher(refseqPart).matches()) {
+                    parsedInput.setChromosome(normalizeChr(refseqPart));
+                    parsedInput.addInfo(ErrorConstants.HGVS_G_CHR_NO_REFSEQ.getErrorMessage());
                 } else {
                     parsedInput.addError(ErrorConstants.HGVS_G_REFSEQ_INVALID);
                 }
@@ -101,6 +123,8 @@ public class HGVSgParser extends VariantParser {
                     parsedInput.setPosition(Integer.parseInt(pos));
                     parsedInput.setRefBase(refBase);
                     parsedInput.setAltBase(altBase);
+                } else if (HGVS.NON_SUBSTITUTION.matcher(vardescPart).find()) {
+                    parsedInput.addError(ErrorConstants.HGVS_NON_SUBSTITUTION);
                 } else {
                     parsedInput.addError(ErrorConstants.HGVS_G_VARDESC_INVALID);
                 }
