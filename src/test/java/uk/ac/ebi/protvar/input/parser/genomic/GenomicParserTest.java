@@ -224,4 +224,14 @@ class GenomicParserTest {
         assertFalse(result.isValid(), "Input should be invalid: " + input);
         assertEquals(input, result.getInputStr(), "Input string should be preserved: " + input);
     }
+
+    @Test
+    @DisplayName("Missing-allele placeholders (na or .) are read as no allele")
+    public void testMissingAllelePlaceholders() {
+        assertResult("12:56478854:na:na", "12", 56478854, null, null);
+        assertResult("X:40052108:NA:NA", "X", 40052108, null, null);
+        assertResult("12 56478854 . .", "12", 56478854, null, null);
+        assertResult("12:56478854:A:na", "12", 56478854, "A", null);
+        assertInvalid("12:56478854:nan:na");
+    }
 }

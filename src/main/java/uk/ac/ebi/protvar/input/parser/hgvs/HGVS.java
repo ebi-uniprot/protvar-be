@@ -52,6 +52,10 @@ public class HGVS {
     public static final String GENERAL_HGVS_PATTERN_REGEX = "^(?<refseqId>[^:]+):(?<scheme>(\\s+)?[a-z]\\.)[^:]+$";
     private static final Pattern GENERAL_HGVS_PATTERN = Pattern.compile(GENERAL_HGVS_PATTERN_REGEX, Pattern.CASE_INSENSITIVE);
 
+    // Non-substitution variant descriptions (only checked once a substitution failed to parse),
+    // e.g. c.235del, c.3872_3875dup, c.3999_4000delinsAG, p.Gln7fs, p.Met1ext-5 (HGVS keywords are lowercase)
+    public static final Pattern NON_SUBSTITUTION = Pattern.compile("\\d(?:del|dup|ins|inv)|[A-Za-z\\d*]fs|ext(?:[-*\\dA-Z]|$)");
+
     /**
      * Quick structural check for any HGVS format
      */

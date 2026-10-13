@@ -180,4 +180,29 @@ public class HGVScParserTest {
         assertFalse(result.getErrors().isEmpty());
         assertTrue(result.getErrors().contains("HGVS c. invalid"));
     }
+
+    @Test
+    public void testParse_SpacingAndSlashSeparator() {
+        HGVSCodingInput result = HGVScParser.parse("NM_000095.3: c.1219 T>C");
+        assertTrue(result.isValid());
+        assertEquals(1219, result.getPosition());
+        assertEquals("T", result.getRefBase());
+        assertEquals("C", result.getAltBase());
+
+        assertTrue(HGVScParser.parse("NM_000095.3:c.1219T > C").isValid());
+
+        result = HGVScParser.parse("NM_000316.3:c.1393G>A/p.(Glu465Lys)");
+        assertTrue(result.isValid());
+        assertEquals("Glu", result.getRefAA());
+        assertEquals("Lys", result.getAltAA());
+        assertEquals(465, result.getAaPos());
+    }
+
+    @Test
+    public void testParse_NonSubstitution() {
+        for (String input : new String[]{"NM_001393769.1:c.3872_3875dup", "NM_004004.5:c.235del",
+                "NM_006772.3(SYNGAP1):c.3999_4000delinsAG (p.Asn1334Asp)"}) {
+            assertTrue(HGVScParser.parse(input).getErrors().contains(ErrorConstants.HGVS_NON_SUBSTITUTION.toString()), input);
+        }
+    }
 }
