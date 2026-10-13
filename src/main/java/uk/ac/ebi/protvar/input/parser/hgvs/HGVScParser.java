@@ -25,9 +25,9 @@ public class HGVScParser extends VariantParser {
     public static final String REFSEQ_REGEX = "(NM_|NP_)\\d+(\\.\\d+)?(\\s*\\([A-Z][A-Z0-9]+\\))?"; // RefSeq part: NM_/NP_ + digits + version + optional gene
 
     // Basic variant description without special positions
-    public static final String VARDESC_REGEX = String.format("(?<pos>%s)(?<refBase>%s)>(?<altBase>%s)" +
+    public static final String VARDESC_REGEX = String.format("(?<pos>%s)\\s*(?<refBase>%s)\\s*>\\s*(?<altBase>%s)" +
                     // Optional protein annotation
-                    "(\\s*" +               // Optional space before
+                    "(\\s*/?\\s*" +         // Optional space or / before
                     "(p\\.\\(|\\(p\\.)" +   // Flexible bracket: p.( or (p.
                     "(?<refAA>%s)" +        // REF AA: three letter
                     "(?<aaPos>%s)" +        // AA position
@@ -143,6 +143,8 @@ public class HGVScParser extends VariantParser {
                         parsedInput.addError("Intronic positions (3' side) are not supported (e.g., c.128-1G>A).");
                     } else if (PATTERN_3_PRIME_UTR.matcher(vardescPart).matches()) {
                         parsedInput.addError("3' UTR positions are not supported (e.g., c.*128A>G).");
+                    } else if (HGVS.NON_SUBSTITUTION.matcher(vardescPart).find()) {
+                        parsedInput.addError(ErrorConstants.HGVS_NON_SUBSTITUTION);
                     } else {
                         parsedInput.addError(ErrorConstants.HGVS_C_VARDESC_INVALID);
                     }

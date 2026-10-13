@@ -17,6 +17,8 @@ import uk.ac.ebi.protvar.input.parser.hgvs.HGVS;
 import uk.ac.ebi.protvar.utils.RegexUtils;
 
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -33,6 +35,21 @@ public class VariantParser {
     // - Optional chr prefix for: chromosomes 1-22 (with optional leading zeros), X, Y, M, MT
     // - No prefix for longer mitochondrial aliases: mit, mtDNA, mitochondria, mitochondrion
     public static final String VALID_CHROMOSOME = "(?:chr)?(?:0*(?:[1-9]|1[0-9]|2[0-2])|[XY]|M|MT)|mit|mtDNA|mitochondria|mitochondrion";
+
+    // Common unsupported inputs, matched only after all supported formats failed,
+    // to give a specific reason instead of a generic "Unsupported format".
+    private static final String AA = "(?:" + ProteinParser.VALID_AA_THREE + "|" + ProteinParser.VALID_AA_SINGLE + ")";
+    private static final String AA_CHANGE = "(?:p\\.\\s*)?\\(?" + AA + "\\s*\\d+\\s*(?:" + AA + "|=)\\)?";
+    private static final Pattern BINARY = Pattern.compile("[\\x00-\\x08\\x0E-\\x1F\\uFFFD]");
+    // CHR POS REF ALT with multi-base REF and/or ALT (space, tab, colon, dash, slash or > separated)
+    private static final Pattern GENOMIC_MULTI_BASE = Pattern.compile(String.format(
+            "^(?:%s)[\\s:_\\-]+%s[\\s:_\\-]+(?:\\S+\\s+)?(?<ref>[ACGT]+|-)[\\s:_\\-/>]+(?<alt>[ACGT]+|-)(?:\\s.*)?$",
+            VALID_CHROMOSOME, VALID_POSITION), Pattern.CASE_INSENSITIVE);
+    private static final Pattern PROTEIN_NO_ACC = Pattern.compile("^" + AA_CHANGE + "$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern GENE_PROTEIN = Pattern.compile("^[A-Z][A-Z0-9-]{1,15}\\s+" + AA_CHANGE + "$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CDNA_NO_REFSEQ = Pattern.compile("^c\\.\\s*\\S+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ID_ONLY = Pattern.compile("^(?:ENS[GTP]\\d+|N[MPRCG]_\\d+)(?:\\.\\d+)?$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ACC_ONLY = Pattern.compile("^" + ProteinParser.VALID_UNIPROT + "$", Pattern.CASE_INSENSITIVE);
 
 
     /**
@@ -204,10 +221,35 @@ public class VariantParser {
             if (GenomicParser.matchesPattern(inputStr))
                 return GenomicParser.parse(inputStr);
 
-            return invalid(inputStr, "Unsupported format");
+            return invalid(inputStr, unsupportedReason(inputStr.trim()));
         } catch (Exception e) {
             return invalid(inputStr, ErrorConstants.INVALID_GENERIC_INPUT); // todo review this error message
         }
+    }
+
+    static ErrorConstants unsupportedReason(String inputStr) {
+        if (BINARY.matcher(inputStr).find())
+            return ErrorConstants.UNSUPPORTED_BINARY;
+        Matcher multiBase = GENOMIC_MULTI_BASE.matcher(inputStr);
+        if (multiBase.matches()) {
+            String ref = multiBase.group("ref");
+            String alt = multiBase.group("alt");
+            if (ref.length() == alt.length() && ref.length() > 1 && !ref.equals("-"))
+                return ErrorConstants.UNSUPPORTED_MNV;
+            if (ref.length() != alt.length() || ref.equals("-") || alt.equals("-"))
+                return ErrorConstants.UNSUPPORTED_INDEL;
+        }
+        if (PROTEIN_NO_ACC.matcher(inputStr).matches())
+            return ErrorConstants.UNSUPPORTED_PROTEIN_NO_ACC;
+        if (GENE_PROTEIN.matcher(inputStr).matches())
+            return ErrorConstants.UNSUPPORTED_GENE_SYMBOL;
+        if (CDNA_NO_REFSEQ.matcher(inputStr).find())
+            return ErrorConstants.UNSUPPORTED_CDNA_NO_REFSEQ;
+        if (ID_ONLY.matcher(inputStr).matches())
+            return ErrorConstants.UNSUPPORTED_ID_ONLY;
+        if (ACC_ONLY.matcher(inputStr).matches())
+            return ErrorConstants.UNSUPPORTED_ACC_ONLY;
+        return ErrorConstants.UNSUPPORTED_FORMAT;
     }
 
     public static VariantInput invalid(String inputStr, String message) {

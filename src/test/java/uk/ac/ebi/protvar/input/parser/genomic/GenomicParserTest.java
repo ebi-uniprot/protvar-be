@@ -135,9 +135,7 @@ class GenomicParserTest {
         assertInvalid("chr1:12345:A:Z");    // invalid alt base Z
 
         // Mixed formats (invalid)
-        assertInvalid("chr1:12345 A");      // mixed colon/space
         assertInvalid("chr1 12345:A");      // mixed space/colon
-        assertInvalid("chr1:12345 A>T");    // mixed formats
 
         // Empty or malformed
         assertInvalid("");                  // empty string
@@ -223,5 +221,27 @@ class GenomicParserTest {
         assertNotNull(result, "Parser should never return null: " + input);
         assertFalse(result.isValid(), "Input should be invalid: " + input);
         assertEquals(input, result.getInputStr(), "Input string should be preserved: " + input);
+    }
+
+    @Test
+    @DisplayName("Missing-allele placeholders (na or .) are read as no allele")
+    public void testMissingAllelePlaceholders() {
+        assertResult("12:56478854:na:na", "12", 56478854, null, null);
+        assertResult("X:40052108:NA:NA", "X", 40052108, null, null);
+        assertResult("12 56478854 . .", "12", 56478854, null, null);
+        assertResult("12:56478854:A:na", "12", 56478854, "A", null);
+        assertInvalid("12:56478854:nan:na");
+    }
+
+    @Test
+    @DisplayName("Mixed format: CHR:POS then space or colon before the alleles")
+    public void testMixedFormat() {
+        assertResult("chr14:89993420 A>G", "14", 89993420, "A", "G");
+        assertResult("chr20:24971511:G>A", "20", 24971511, "G", "A");
+        assertResult("chr20:24971511:G > A", "20", 24971511, "G", "A");
+        assertResult("chr14:89993420 A G", "14", 89993420, "A", "G");
+        assertResult("chr14:89993420 A/G", "14", 89993420, "A", "G");
+        assertResult("chr14:89993420 A", "14", 89993420, "A", null);
+        assertInvalid("chr14:89993420 AT>G");
     }
 }
