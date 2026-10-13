@@ -19,6 +19,8 @@ import java.util.regex.Pattern;
  *     6	    CHR:POS	            chr1:12345
  *     7	    CHR:POS:REF	        chr1:12345:A
  *     8	    CHR:POS:REF:ALT	    chr1:12345:A:T
+ *     Mixed (CHR:POS, then space or colon before the alleles):
+ *     9	    CHR:POS REF>ALT	    chr1:12345 A>T, chr1:12345:A>T, chr1:12345 A T
  *     REF/ALT may also be a missing-allele placeholder (na or .), read as no allele,
  *     e.g. 12:56478854:na:na is the same as 12:56478854.
  */
@@ -51,8 +53,18 @@ public class GenomicParser extends VariantParser {
             BASE_OR_MISSING    // Group 4: ALT
     );
 
+    // Mixed pattern: CHR:POS( |:)REF[( |:|/|>)ALT], e.g. chr1:12345 A>T (UCSC/IGV style)
+    public static final String MIXED_REGEX = String.format(
+            "^(%s):(%s)[\\s:]+(%s)(?:(?:\\s*[>/]\\s*|[\\s:]+)(%s))?$",
+            VALID_CHROMOSOME,  // Group 1: CHR
+            VALID_POSITION,    // Group 2: POS
+            BASE_OR_MISSING,   // Group 3: REF
+            BASE_OR_MISSING    // Group 4: ALT
+    );
+
     public static final Pattern SPACE_PATTERN = Pattern.compile(SPACE_REGEX, Pattern.CASE_INSENSITIVE);
     public static final Pattern COLON_PATTERN = Pattern.compile(COLON_REGEX, Pattern.CASE_INSENSITIVE);
+    public static final Pattern MIXED_PATTERN = Pattern.compile(MIXED_REGEX, Pattern.CASE_INSENSITIVE);
 
     /**
      * Quick structural check - doesn't validate content, only format structure
@@ -67,7 +79,8 @@ public class GenomicParser extends VariantParser {
      */
     public static boolean matchesPattern(String inputStr) {
         return SPACE_PATTERN.matcher(inputStr).matches() ||
-                COLON_PATTERN.matcher(inputStr).matches();
+                COLON_PATTERN.matcher(inputStr).matches() ||
+                MIXED_PATTERN.matcher(inputStr).matches();
     }
 
     public static GenomicInput parse(String inputStr) {
@@ -100,6 +113,17 @@ public class GenomicParser extends VariantParser {
                 parsedInput.setPosition(Integer.parseInt(colonMatcher.group(2)));
                 parsedInput.setRefBase(allele(colonMatcher.group(3)));
                 parsedInput.setAltBase(allele(colonMatcher.group(4)));
+                return parsedInput;
+            }
+
+            // Try mixed format
+            Matcher mixedMatcher = MIXED_PATTERN.matcher(inputStr);
+            if (mixedMatcher.matches()) {
+                GenomicInput parsedInput = new GenomicInput(inputStr);
+                parsedInput.setChromosome(normalizeChr(mixedMatcher.group(1)));
+                parsedInput.setPosition(Integer.parseInt(mixedMatcher.group(2)));
+                parsedInput.setRefBase(allele(mixedMatcher.group(3)));
+                parsedInput.setAltBase(allele(mixedMatcher.group(4)));
                 return parsedInput;
             }
         } catch (NumberFormatException e) {

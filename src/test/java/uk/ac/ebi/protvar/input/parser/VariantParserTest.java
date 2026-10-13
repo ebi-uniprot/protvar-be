@@ -126,6 +126,8 @@ public class VariantParserTest {
 
 		assertTrue(VariantParser.parse("NM_000316.3:c.1393G>A/p.(Glu465Lys)").isValid());
 		assertTrue(VariantParser.parse("NM_000095.3: c.1219 T>C").isValid());
+		assertEquals(VariantFormat.INTERNAL_GENOMIC, VariantParser.parse("chr14:89993420 A>G").getFormat());
+		assertTrue(VariantParser.parse("chr14:89993420 A>G").isValid());
 	}
 
 	private void assertUnsupported(ErrorConstants expected, String... inputs) {
