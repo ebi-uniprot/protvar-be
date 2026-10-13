@@ -1,4 +1,5 @@
 package uk.ac.ebi.protvar.input.parser;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -96,6 +97,44 @@ public class VariantParserTest {
 		assertNotNull(result);
 		if (result.hasError()) {
 			assertFalse(result.getErrors().isEmpty());
+		}
+	}
+
+	@Test
+	public void testParse_UnsupportedReasons() {
+		assertUnsupported(ErrorConstants.UNSUPPORTED_INDEL, "19:18169206:TC:T", "19 12943813 A ATTGTC",
+				"chr1 248650777 CAA C", "1-12345-A-AT", "X\t120253978\tCTGA\tC");
+		assertUnsupported(ErrorConstants.UNSUPPORTED_MNV, "7 140753336 AC TT", "10:71807696:AG:CC");
+		assertUnsupported(ErrorConstants.UNSUPPORTED_PROTEIN_NO_ACC, "R32C", "p.Gly358Arg", "p. R2580S", "E276Q");
+		assertUnsupported(ErrorConstants.UNSUPPORTED_GENE_SYMBOL, "SMAD4 R361H", "TP53 p.Arg175His", "STAT1 L206F");
+		assertUnsupported(ErrorConstants.UNSUPPORTED_CDNA_NO_REFSEQ, "c.1072G>A");
+		assertUnsupported(ErrorConstants.UNSUPPORTED_ID_ONLY, "ENST00000467905", "NM_002691.4");
+		assertUnsupported(ErrorConstants.UNSUPPORTED_ACC_ONLY, "P51608", "Q14592");
+		assertUnsupported(ErrorConstants.UNSUPPORTED_BINARY, "PK\u0003\u0004\u0014\u0000\u0006\u0000\u0008\u0000content", "\uFFFD\uFFFDLCr\uFFFD");
+		assertUnsupported(ErrorConstants.UNSUPPORTED_FORMAT, "completely_invalid_format_12345", "PASS");
+	}
+
+	@Test
+	public void testParse_NewlySupported() {
+		VariantInput result = VariantParser.parse("12:56478854:na:na");
+		assertTrue(result.isValid());
+		assertEquals(VariantFormat.INTERNAL_GENOMIC, result.getFormat());
+
+		result = VariantParser.parse("chr11:g.108321424A>G");
+		assertTrue(result.isValid());
+		assertEquals(VariantFormat.HGVS_GENOMIC, result.getFormat());
+
+		assertTrue(VariantParser.parse("NM_000316.3:c.1393G>A/p.(Glu465Lys)").isValid());
+		assertTrue(VariantParser.parse("NM_000095.3: c.1219 T>C").isValid());
+		assertEquals(VariantFormat.INTERNAL_GENOMIC, VariantParser.parse("chr14:89993420 A>G").getFormat());
+		assertTrue(VariantParser.parse("chr14:89993420 A>G").isValid());
+	}
+
+	private void assertUnsupported(ErrorConstants expected, String... inputs) {
+		for (String input : inputs) {
+			VariantInput result = VariantParser.parse(input);
+			assertFalse(result.isValid(), input);
+			assertEquals(List.of(expected.toString()), result.getErrors(), input);
 		}
 	}
 }
