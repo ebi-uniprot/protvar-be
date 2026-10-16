@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class CodonTest {
 
-    // rnaBaseForStrand must match the SQL rna_base_for_strand(dna_base, reverse_strand) in function.sql
+    // rnaBaseForStrand must match the SQL rna_base_for_strand(dna_base, reverse_strand) in protvar-production db/db_finalise.sql
     @Test
     void testRnaBaseForStrand() {
         // forward: T->U only

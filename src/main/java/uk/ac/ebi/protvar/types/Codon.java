@@ -165,7 +165,7 @@ public enum Codon {
 
     /**
      * RNA base in coding orientation for a genomic (forward-strand DNA) allele — the Java equivalent of
-     * the SQL {@code rna_base_for_strand(dna_base, reverse_strand)} (see function.sql).
+     * the SQL {@code rna_base_for_strand(dna_base, reverse_strand)} (protvar-production db/db_finalise.sql).
      * Reverse strand: complement then T→U (A→U, T→A, C→G, G→C). Forward strand: T→U only.
      */
     public static String rnaBaseForStrand(String dnaBase, boolean reverseStrand) {

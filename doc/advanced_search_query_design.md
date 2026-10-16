@@ -147,7 +147,7 @@ popEVE / ESM / stability *requires* the alt-AA in SQL. Therefore:
   mapping fact (1 bool × 266M); the view exposes it as `m.reverse_strand` and the codon resolves early again →
   **171ms** (vs fat 73ms). The earlier "~4× lost `codon_table` Memoize" was a **misdiagnosis** — forcing the
   Memoize doesn't change the time; the strand-on-transcript blowup was the real cause. (importer: strand on the
-  mapping fact; be: `create_mapping_enriched_view.sql` sources strand from `m`.)
+  mapping fact; protvar-production `db/db_finalise.sql` (enriched view) sources strand from `m`.)
 
 --- superseded ---
 **DECISION (2026-06-13): Java active, SQL preserved as a live, switchable fallback.**
