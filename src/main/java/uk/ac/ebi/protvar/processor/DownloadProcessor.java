@@ -421,6 +421,7 @@ public class DownloadProcessor {
 		String cadd = null;
 		if (gene.getCaddScore() != null)
 			cadd = gene.getCaddScore().toString();
+		String avi = gene.getAviScore() == null ? null : gene.getAviScore().toString();
 		String strand = "+";
 		List<Isoform> isoforms = gene.getIsoforms();
 		if (isoforms == null || isoforms.isEmpty()) {
@@ -436,7 +437,7 @@ public class DownloadProcessor {
 		List<String> transcripts = addTranscripts(isoform.getTranscripts());
 
 		List<String> output = new ArrayList<>(Arrays.asList(input.getInputStr(), chr, genomicLocation.toString(), id, gene.getRefAllele(),
-			varAllele, notes, gene.getGeneName(), isoform.getCodonChange(), strand, cadd,
+			varAllele, notes, gene.getGeneName(), isoform.getCodonChange(), strand, cadd, avi,
 				transcripts.toString(), Constants.NA,isoform.getAccession(), CsvUtils.getValOrNA(alternateInformDetails), isoform.getProteinName(),
 			String.valueOf(isoform.getIsoformPosition()), isoform.getAminoAcidChange(),
 			isoform.getConsequences()));

@@ -11,7 +11,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -49,18 +51,20 @@ public class GeneConverter {
 								.refAllele(representative.getBaseNucleotide())
 								.altAllele(altBase)
 								.isoforms(isoforms)
-								.caddScore(findScore(caddScores, altBase))
+								.caddScore(findScore(caddScores, altBase, CaddPrediction::getScore))
+								.aviScore(findScore(caddScores, altBase, CaddPrediction::getAviScore))
 								.build();
 					});
 				})
 				.collect(Collectors.toList());
 	}
 
-	private Double findScore(List<CaddPrediction> scores, String altBase) {
+	private Double findScore(List<CaddPrediction> scores, String altBase, Function<CaddPrediction, Double> field) {
 		return scores == null ? null :
 				scores.stream()
 						.filter(s -> altBase.equalsIgnoreCase(s.getAltAllele()))
-						.map(CaddPrediction::getScore)
+						.map(field)
+						.filter(Objects::nonNull)
 						.findFirst()
 						.orElse(null);
 	}

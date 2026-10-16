@@ -16,4 +16,5 @@ public class Gene {
 	private String altAllele;
 	private List<Isoform> isoforms;
 	private Double caddScore;
+	private Double aviScore;
 }

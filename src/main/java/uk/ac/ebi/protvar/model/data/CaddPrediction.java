@@ -17,7 +17,10 @@ public class CaddPrediction {
 	private String altAllele;
 	private double rawScore;
 	private double score;
-	
+	// AlphaGenome Variant Impact (AVI), from the genomic_score table (null when the variant has no AVI)
+	private Double aviRawScore;
+	private Double aviScore;
+
 	public String getVariantKey() {
 		return VariantKey.genomic(this.chromosome, position);
 	}
