@@ -267,6 +267,7 @@ public class MappingRepo {
 		// Determine filtering and sorting requirements
         boolean filterKnown = Boolean.TRUE.equals(request.getKnown());
 		boolean filterByCadd = isFilteringRequired(request.getCadd(), CaddCategory.class);
+		boolean filterByAvi = request.getAviMin() != null;
 		boolean filterByAm = isFilteringRequired(request.getAm(), AmClass.class);
         boolean filterByPopEve = isFilteringRequired(request.getPopeve(), PopEveClass.class);
         boolean filterByAlleleFreq = isFilteringRequired(request.getAlleleFreq(), AlleleFreqCategory.class);
@@ -292,7 +293,7 @@ public class MappingRepo {
         boolean sortByEsm1b = "esm1b".equalsIgnoreCase(request.getSort());
 
         // Determine which joins are needed
-		boolean joinGenomicScore = filterByCadd || sortByCadd || sortByAvi;
+		boolean joinGenomicScore = filterByCadd || filterByAvi || sortByCadd || sortByAvi;
         boolean joinAm = filterByAm || sortByAm;
         boolean joinPopEve = filterByPopEve || sortByPopEve;
         boolean joinEsm1b = filterByEsm1b || sortByEsm1b;
@@ -335,7 +336,7 @@ public class MappingRepo {
         // Add conditional joins in optimal order
         // 1. Genomic-level filters first (most selective)
 		if (joinGenomicScore) {
-			String joinType = filterByCadd ? "INNER" : "LEFT";
+			String joinType = filterByCadd || filterByAvi ? "INNER" : "LEFT";
 			sql.append(String.format("""
 				%s JOIN %s gs ON
 					gs.chromosome = m.chromosome AND
@@ -480,6 +481,10 @@ public class MappingRepo {
 				parameters.addValue(maxParam, category.getMax());
 			}
 			sql.append(" AND (").append(String.join(" OR ", caddClauses)).append(")");
+		}
+		if (filterByAvi) {
+			sql.append(" AND gs.avi_score >= :aviMin");
+			parameters.addValue("aviMin", request.getAviMin());
 		}
 
 		if (filterByAm) {

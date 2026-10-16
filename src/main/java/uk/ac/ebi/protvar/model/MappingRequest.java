@@ -145,6 +145,9 @@ public class MappingRequest {
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<CaddCategory> cadd;
 
+    @Schema(description = "Minimum AVI (AlphaGenome Variant Impact) PHRED score", example = "20")
+    private Double aviMin;
+
     @Schema(description = "AlphaMissense pathogenicity class filter", example = "[]")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<AmClass> am;

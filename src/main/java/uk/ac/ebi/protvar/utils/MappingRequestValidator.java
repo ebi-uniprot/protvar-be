@@ -20,7 +20,7 @@ import java.util.Optional;
  *   - experimentalModel     (leads from rel_*_structure,      ~203K rows)
  *   - known = true          (leads from mapping_dbsnp_lookup,  ~15M rows)
  *
- * All other filters (cadd, am, popeve, esm1b, stability, alleleFreq,
+ * All other filters (cadd, aviMin, am, popeve, esm1b, stability, alleleFreq,
  * conservation, startPos/endPos, sort) are refinements only — they cannot
  * stand alone because their underlying tables are 14M–500M rows and
  * lead to unbounded scans of the mapping table without a driver.
