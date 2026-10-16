@@ -77,8 +77,8 @@ public class MappingRepo {
 	// legacy column names (allele/protein_seq/is_canonical/reverse_strand/gene_name/ensp…) resolve unchanged.
 	@Value("${tbl.mapping.enriched}")
 	private String enrichedMappingTable;
-	@Value("${tbl.cadd}")
-	private String caddTable;
+	@Value("${tbl.genomic_score}")
+	private String genomicScoreTable;
     @Value("${tbl.allelefreq}")
     private String alleleFreqTable;
     @Value("${tbl.am}")
@@ -161,7 +161,7 @@ public class MappingRepo {
 	// and g2p.allele = cadd.reference_allele
 	// and g2p.altallele = cadd.alt_allele);
 	//
-	// select * from <tbl.cadd>
+	// select * from <tbl.genomic_score>
 	// where chromosome='21'
 	// and position=26170620; -- should return 3 rows but returning 9!
 	// -- duplicates! using distinct fixes it but issue needs to be
@@ -292,7 +292,7 @@ public class MappingRepo {
         boolean sortByEsm1b = "esm1b".equalsIgnoreCase(request.getSort());
 
         // Determine which joins are needed
-		boolean joinCadd = filterByCadd || sortByCadd || sortByAvi;
+		boolean joinGenomicScore = filterByCadd || sortByCadd || sortByAvi;
         boolean joinAm = filterByAm || sortByAm;
         boolean joinPopEve = filterByPopEve || sortByPopEve;
         boolean joinEsm1b = filterByEsm1b || sortByEsm1b;
@@ -334,15 +334,15 @@ public class MappingRepo {
 
         // Add conditional joins in optimal order
         // 1. Genomic-level filters first (most selective)
-		if (joinCadd) {
+		if (joinGenomicScore) {
 			String joinType = filterByCadd ? "INNER" : "LEFT";
 			sql.append(String.format("""
-				%s JOIN %s cadd ON
-					cadd.chromosome = m.chromosome AND
-					cadd.position = m.genomic_position AND
-					cadd.reference_allele = m.allele AND
-					cadd.alt_allele = m.alt_allele
-			""", joinType, caddTable));
+				%s JOIN %s gs ON
+					gs.chromosome = m.chromosome AND
+					gs.position = m.genomic_position AND
+					gs.reference_allele = m.allele AND
+					gs.alt_allele = m.alt_allele
+			""", joinType, genomicScoreTable));
 		}
 
         if (joinAlleleFreq) {
@@ -475,7 +475,7 @@ public class MappingRepo {
 				CaddCategory category = request.getCadd().get(i);
 				String minParam = "caddMin" + i;
 				String maxParam = "caddMax" + i;
-				caddClauses.add("(cadd.score >= :" + minParam + " AND cadd.score < :" + maxParam + ")");
+				caddClauses.add("(gs.score >= :" + minParam + " AND gs.score < :" + maxParam + ")");
 				parameters.addValue(minParam, category.getMin());
 				parameters.addValue(maxParam, category.getMax());
 			}
@@ -602,11 +602,11 @@ public class MappingRepo {
 		// Sorting
 		sql.append(" ORDER BY ");
 		if (sortByCadd) {
-			fields += ", cadd.score ";
-			sql.append("cadd.score ").append(sortOrder).append(", ");
+			fields += ", gs.score ";
+			sql.append("gs.score ").append(sortOrder).append(", ");
 		} else if (sortByAvi) {
-			fields += ", cadd.avi_score ";
-			sql.append("cadd.avi_score ").append(sortOrder).append(", ");
+			fields += ", gs.avi_score ";
+			sql.append("gs.avi_score ").append(sortOrder).append(", ");
 		} else if (sortByAm) {
             fields += ", am.am_pathogenicity ";
             sql.append("am.am_pathogenicity ").append(sortOrder).append(", ");

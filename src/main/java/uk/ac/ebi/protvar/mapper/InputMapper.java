@@ -11,7 +11,7 @@ import uk.ac.ebi.protvar.input.mapper.Coding2Pro;
 import uk.ac.ebi.protvar.input.mapper.Id2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
-import uk.ac.ebi.protvar.model.data.CaddPrediction;
+import uk.ac.ebi.protvar.model.data.GenomicScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
 public class InputMapper {
 	private static final Logger LOGGER = LoggerFactory.getLogger(InputMapper.class);
 	private final MappingRepo mappingRepo;
-	private final CaddPredictionRepo caddPredictionRepo;
+	private final GenomicScoreRepo genomicScoreRepo;
 	private final ScoreNewRepo scoreRepo;
 	private final UniprotRefseqRepo uniprotRefseqRepo;
 	private final BuildProcessor buildProcessor;
@@ -142,8 +142,8 @@ public class InputMapper {
 			return null;
 
 		// Core prediction and mapping
-		var caddPredictionMap = caddPredictionRepo.getCADDByChrPos(chromosomes, gpositions)
-				.stream().collect(Collectors.groupingBy(CaddPrediction::getVariantKey));
+		var genomicScoreMap = genomicScoreRepo.getByChrPos(chromosomes, gpositions)
+				.stream().collect(Collectors.groupingBy(GenomicScore::getVariantKey));
 
 		var g2pMappings = mappingRepo.getMappingsByChrPos(chromosomes, gpositions);
 		Map<String, List<GenomeToProteinMapping>> g2pMap = new HashMap<>();
@@ -171,7 +171,7 @@ public class InputMapper {
 		var scoreMap = scoreRepo.getMappingScores(accessions, ppositions)
 				.stream().collect(Collectors.groupingBy(Score::getVariantKey));
 
-		return new MappingData(chrPosArrays, g2pMap, caddPredictionMap, accPosArrays, canonicalAccessions, scoreMap);
+		return new MappingData(chrPosArrays, g2pMap, genomicScoreMap, accPosArrays, canonicalAccessions, scoreMap);
 	}
 
 	public void processInput(VariantInput input, MappingData core) {
@@ -179,7 +179,7 @@ public class InputMapper {
 			try {
 				var chrPos = genomicVariant.getVariantKey();
 				var mappingList = core.getG2pMap().get(chrPos);
-				var caddScores = core.getCaddMap().get(chrPos);
+				var genomicScores = core.getGenomicScoreMap().get(chrPos);
 
 				List<Gene> ensgMappingList = Collections.emptyList();
 
@@ -192,7 +192,7 @@ public class InputMapper {
 							.map(mappingList.get(0)::getAltCodon)
 							.collect(Collectors.toSet());*/
 
-					ensgMappingList = geneConverter.createGenes(altBases, mappingList, caddScores, core.getScoreMap());
+					ensgMappingList = geneConverter.createGenes(altBases, mappingList, genomicScores, core.getScoreMap());
 				}
 
 				genomicVariant.getGenes().addAll(ensgMappingList);

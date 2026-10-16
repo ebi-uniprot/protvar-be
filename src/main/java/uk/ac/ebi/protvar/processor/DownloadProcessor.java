@@ -223,7 +223,7 @@ public class DownloadProcessor {
 	//
 	// TODO(redesign): full download flattens to CSV, so the per-chunk
 	// MappingData hierarchy built by inputMapper.loadCoreMappingAndScores
-	// (g2pMap + caddMap + scoreMap + canonical/accPos sets) is overhead.
+	// (g2pMap + genomicScoreMap + scoreMap + canonical/accPos sets) is overhead.
 	// Mirror GenomicVariantRepo: SQL-side codon expansion + LEFT JOINs to
 	// score tables, stream rows straight to CSVWriter via RowCallbackHandler.
 	// The API page path keeps loadCoreMappingAndScores (page-bounded JSON

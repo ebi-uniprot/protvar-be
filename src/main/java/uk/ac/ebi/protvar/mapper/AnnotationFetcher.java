@@ -53,7 +53,7 @@ public class AnnotationFetcher {
 
 	Core mappings DB calls:
 	- 1x [G2P]: GenomeToProteinMapping
-	- 1x [CADD]: CaddPrediction
+	- 1x [GS]: GenomicScore (CADD + AVI)
 	- 1x [AM]: AM scores
 
 	DB calls per function call:

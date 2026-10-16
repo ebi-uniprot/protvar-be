@@ -60,7 +60,7 @@ public class GenomicVariantRepo {
     // ⋈ protein ⋈ transcript) so the legacy column names (allele/protein_seq/is_canonical/reverse_strand/
     // gene_name/ensp…) resolve unchanged. See tbl.mapping.enriched in application.properties.
     @Value("${tbl.mapping.enriched}") private String mappingTable;
-    @Value("${tbl.cadd}") private String caddTable;
+    @Value("${tbl.genomic_score}") private String genomicScoreTable;
     @Value("${tbl.allelefreq}") private String alleleFreqTable;
     @Value("${tbl.am}") private String amTable;
     @Value("${tbl.popeve}") private String popeveTable;
@@ -104,7 +104,7 @@ public class GenomicVariantRepo {
 
         MapSqlParameterSource parameters = new MapSqlParameterSource();
 
-        boolean joinCadd = filterByCadd || sortByCadd || sortByAvi;
+        boolean joinGenomicScore = filterByCadd || sortByCadd || sortByAvi;
         boolean joinAm = filterByAm || sortByAm;
         boolean joinPopEve = filterByPopEve || sortByPopEve;
         boolean joinEsm1b = filterByEsm1b || sortByEsm1b;
@@ -119,7 +119,7 @@ public class GenomicVariantRepo {
             buildQueryWithIdentifiers(query, parameters,
                     filterPocket, filterInteract, filterExperimentalModel,
                     filterKnown, joinCodonTable,
-                    joinCadd, joinAm, joinPopEve, joinEsm1b,
+                    joinGenomicScore, joinAm, joinPopEve, joinEsm1b,
                     filterByAlleleFreq, filterByConservation, filterStability,
                     filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
                     request);
@@ -141,21 +141,21 @@ public class GenomicVariantRepo {
                 buildQueryWithFeatureFilters(query, parameters,
                         filterPocket, filterInteract, filterExperimentalModel,
                         filterKnown, joinCodonTable,
-                        joinCadd, joinAm, joinPopEve, joinEsm1b,
+                        joinGenomicScore, joinAm, joinPopEve, joinEsm1b,
                         filterByAlleleFreq, filterByConservation, filterStability,
                         filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
                         request);
             } else if (filterKnown) {
                 // STRATEGY 3: Start with dbSNP filter (moderately selective)
                 buildQueryWithDbsnpFilter(query, parameters,
-                        joinCodonTable, joinCadd, joinAm, joinPopEve, joinEsm1b,
+                        joinCodonTable, joinGenomicScore, joinAm, joinPopEve, joinEsm1b,
                         filterByAlleleFreq, filterByConservation, filterStability,
                         filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
                         request);
             } else {
                 // STRATEGY 4: No highly selective filters - start with most selective score filter
                 buildQueryWithScoreFilters(query, parameters,
-                        joinCodonTable, joinCadd, joinAm, joinPopEve, joinEsm1b,
+                        joinCodonTable, joinGenomicScore, joinAm, joinPopEve, joinEsm1b,
                         filterByAlleleFreq, filterByConservation, filterStability,
                         filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
                         request);
@@ -225,9 +225,9 @@ public class GenomicVariantRepo {
             String sortOrder = "asc".equalsIgnoreCase(request.getOrder()) ? "ASC" : "DESC";
             query.append("\nORDER BY ");
             if (sortByCadd) {
-                query.append("cadd.score ").append(sortOrder).append(", ");
+                query.append("gs.score ").append(sortOrder).append(", ");
             } else if (sortByAvi) {
-                query.append("cadd.avi_score ").append(sortOrder).append(", ");
+                query.append("gs.avi_score ").append(sortOrder).append(", ");
             } else if (sortByAm) {
                 query.append("am.am_pathogenicity ").append(sortOrder).append(", ");
             } else if (sortByPopEve) {
@@ -299,7 +299,7 @@ public class GenomicVariantRepo {
             StringBuilder query, MapSqlParameterSource parameters,
             boolean filterPocket, boolean filterInteract, boolean filterExperimentalModel,
             boolean filterKnown, boolean joinCodonTable,
-            boolean joinCadd, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
+            boolean joinGenomicScore, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
             boolean filterByAlleleFreq, boolean filterByConservation, boolean filterStability,
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve, boolean filterByEsm1b,
             MappingRequest request) {
@@ -365,7 +365,7 @@ public class GenomicVariantRepo {
         query.append("  m.chromosome, m.genomic_position, m.allele, bases.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
-        if (joinCadd) query.append(", cadd.score");
+        if (joinGenomicScore) query.append(", gs.score");
         if (joinAm) query.append(", am.am_pathogenicity");
         if (joinPopEve) query.append(", popeve.popeve");
         if (joinEsm1b) query.append(", esm.score");
@@ -388,7 +388,7 @@ public class GenomicVariantRepo {
         }
 
         addRemainingJoins(query, filterKnown, filterByAlleleFreq, filterByConservation,
-                joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
+                joinGenomicScore, joinAm, joinPopEve, joinEsm1b, filterStability,
                 filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
                 "bases.alt_allele");
 
@@ -406,7 +406,7 @@ public class GenomicVariantRepo {
             StringBuilder query, MapSqlParameterSource parameters,
             boolean filterPocket, boolean filterInteract, boolean filterExperimentalModel,
             boolean filterKnown, boolean joinCodonTable,
-            boolean joinCadd, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
+            boolean joinGenomicScore, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
             boolean filterByAlleleFreq, boolean filterByConservation, boolean filterStability,
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve, boolean filterByEsm1b,
             MappingRequest request) {
@@ -453,7 +453,7 @@ public class GenomicVariantRepo {
         query.append("  m.chromosome, m.genomic_position, m.allele, bases.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
-        if (joinCadd) query.append(",\n  cadd.score");
+        if (joinGenomicScore) query.append(",\n  gs.score");
         if (joinAm) query.append(",\n  am.am_pathogenicity");
         if (joinPopEve) query.append(",\n  popeve.popeve");
         if (joinEsm1b) query.append(",\n  esm.score");
@@ -478,7 +478,7 @@ public class GenomicVariantRepo {
         }
 
         addRemainingJoins(query, filterKnown, filterByAlleleFreq, filterByConservation,
-                joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
+                joinGenomicScore, joinAm, joinPopEve, joinEsm1b, filterStability,
                 filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
                 "bases.alt_allele");
 
@@ -495,7 +495,7 @@ public class GenomicVariantRepo {
     private void buildQueryWithDbsnpFilter(
             StringBuilder query, MapSqlParameterSource parameters,
             boolean joinCodonTable,
-            boolean joinCadd, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
+            boolean joinGenomicScore, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
             boolean filterByAlleleFreq, boolean filterByConservation, boolean filterStability,
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve, boolean filterByEsm1b,
             MappingRequest request) {
@@ -508,7 +508,7 @@ public class GenomicVariantRepo {
         query.append("  m.chromosome, m.genomic_position, m.allele, dbsnp_alts.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
-        if (joinCadd) query.append(",\n  cadd.score");
+        if (joinGenomicScore) query.append(",\n  gs.score");
         if (joinAm) query.append(",\n  am.am_pathogenicity");
         if (joinPopEve) query.append(",\n  popeve.popeve");
         if (joinEsm1b) query.append(",\n  esm.score");
@@ -537,7 +537,7 @@ public class GenomicVariantRepo {
         // — Strategy 3 has no plain `bases` VALUES cross-join, so any
         // downstream join referencing the alt allele must use this name.
         addRemainingJoins(query, false, filterByAlleleFreq, filterByConservation,
-                joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
+                joinGenomicScore, joinAm, joinPopEve, joinEsm1b, filterStability,
                 filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
                 "dbsnp_alts.alt_allele");
 
@@ -554,20 +554,20 @@ public class GenomicVariantRepo {
     private void buildQueryWithScoreFilters(
             StringBuilder query, MapSqlParameterSource parameters,
             boolean joinCodonTable,
-            boolean joinCadd, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
+            boolean joinGenomicScore, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
             boolean filterByAlleleFreq, boolean filterByConservation, boolean filterStability,
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve, boolean filterByEsm1b,
             MappingRequest request) {
 
         if (filterByAlleleFreq) {
             buildQueryStartingWithAlleleFreq(query, parameters, joinCodonTable,
-                    joinCadd, joinAm, joinPopEve, joinEsm1b,
+                    joinGenomicScore, joinAm, joinPopEve, joinEsm1b,
                     filterByConservation, filterStability,
                     filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
                     request);
         } else if (filterByConservation) {
             buildQueryStartingWithConservation(query, parameters, joinCodonTable,
-                    joinCadd, joinAm, joinPopEve, joinEsm1b,
+                    joinGenomicScore, joinAm, joinPopEve, joinEsm1b,
                     filterStability,
                     filterByCadd, filterByAm, filterByPopEve, filterByEsm1b,
                     request);
@@ -579,7 +579,7 @@ public class GenomicVariantRepo {
     private void buildQueryStartingWithAlleleFreq(
             StringBuilder query, MapSqlParameterSource parameters,
             boolean joinCodonTable,
-            boolean joinCadd, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
+            boolean joinGenomicScore, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
             boolean filterByConservation, boolean filterStability,
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve, boolean filterByEsm1b,
             MappingRequest request) {
@@ -602,7 +602,7 @@ public class GenomicVariantRepo {
         query.append("  m.chromosome, m.genomic_position, m.allele, af.alt as alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
-        if (joinCadd) query.append(",\n  cadd.score");
+        if (joinGenomicScore) query.append(",\n  gs.score");
         if (joinAm) query.append(",\n  am.am_pathogenicity");
         if (joinPopEve) query.append(",\n  popeve.popeve");
         if (joinEsm1b) query.append(",\n  esm.score");
@@ -633,7 +633,7 @@ public class GenomicVariantRepo {
                 """.formatted(conservationTable));
         }
 
-        addScoreTableJoins(query, joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
+        addScoreTableJoins(query, joinGenomicScore, joinAm, joinPopEve, joinEsm1b, filterStability,
                 filterByCadd, filterByAm, filterByPopEve, filterByEsm1b, "af.alt");
 
         query.append("WHERE (").append(String.join(" OR ", afClauses)).append(")\n");
@@ -645,7 +645,7 @@ public class GenomicVariantRepo {
     private void buildQueryStartingWithConservation(
             StringBuilder query, MapSqlParameterSource parameters,
             boolean joinCodonTable,
-            boolean joinCadd, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
+            boolean joinGenomicScore, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
             boolean filterStability,
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve, boolean filterByEsm1b,
             MappingRequest request) {
@@ -658,7 +658,7 @@ public class GenomicVariantRepo {
         query.append("  m.chromosome, m.genomic_position, m.allele, bases.alt_allele,\n");
         query.append("  m.protein_position, m.codon_position");
 
-        if (joinCadd) query.append(",\n  cadd.score");
+        if (joinGenomicScore) query.append(",\n  gs.score");
         if (joinAm) query.append(",\n  am.am_pathogenicity");
         if (joinPopEve) query.append(",\n  popeve.popeve");
         if (joinEsm1b) query.append(",\n  esm.score");
@@ -683,7 +683,7 @@ public class GenomicVariantRepo {
         """);
         }
 
-        addScoreTableJoins(query, joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
+        addScoreTableJoins(query, joinGenomicScore, joinAm, joinPopEve, joinEsm1b, filterStability,
                 filterByCadd, filterByAm, filterByPopEve, filterByEsm1b, "bases.alt_allele");
 
         query.append("WHERE 1=1\n");
@@ -864,7 +864,7 @@ public class GenomicVariantRepo {
             StringBuilder query,
             boolean filterKnown,
             boolean filterByAlleleFreq, boolean filterByConservation,
-            boolean joinCadd, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
+            boolean joinGenomicScore, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
             boolean filterStability,
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve,
             boolean filterByEsm1b,
@@ -896,26 +896,26 @@ public class GenomicVariantRepo {
                     """.formatted(alleleFreqTable, altAlleleExpr));
         }
 
-        addScoreTableJoins(query, joinCadd, joinAm, joinPopEve, joinEsm1b, filterStability,
+        addScoreTableJoins(query, joinGenomicScore, joinAm, joinPopEve, joinEsm1b, filterStability,
                 filterByCadd, filterByAm, filterByPopEve, filterByEsm1b, altAlleleExpr);
     }
 
     private void addScoreTableJoins(
             StringBuilder query,
-            boolean joinCadd, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
+            boolean joinGenomicScore, boolean joinAm, boolean joinPopEve, boolean joinEsm1b,
             boolean filterStability,
             boolean filterByCadd, boolean filterByAm, boolean filterByPopEve,
             boolean filterByEsm1b,
             String altAlleleExpr) {
 
-        if (joinCadd) {
+        if (joinGenomicScore) {
             String joinType = filterByCadd ? "INNER" : "LEFT";
             query.append("""
-                %s JOIN %s cadd ON cadd.chromosome = m.chromosome
-                  AND cadd.position = m.genomic_position
-                  AND cadd.reference_allele = m.allele
-                  AND cadd.alt_allele = %s
-                """.formatted(joinType, caddTable, altAlleleExpr));
+                %s JOIN %s gs ON gs.chromosome = m.chromosome
+                  AND gs.position = m.genomic_position
+                  AND gs.reference_allele = m.allele
+                  AND gs.alt_allele = %s
+                """.formatted(joinType, genomicScoreTable, altAlleleExpr));
         }
 
         if (joinAm) {
@@ -967,7 +967,7 @@ public class GenomicVariantRepo {
             List<String> caddClauses = new ArrayList<>();
             for (int i = 0; i < request.getCadd().size(); i++) {
                 CaddCategory category = request.getCadd().get(i);
-                caddClauses.add("(cadd.score >= :caddMin" + i + " AND cadd.score < :caddMax" + i + ")");
+                caddClauses.add("(gs.score >= :caddMin" + i + " AND gs.score < :caddMax" + i + ")");
                 parameters.addValue("caddMin" + i, category.getMin());
                 parameters.addValue("caddMax" + i, category.getMax());
             }

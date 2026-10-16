@@ -2,7 +2,7 @@ package uk.ac.ebi.protvar.converter;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import uk.ac.ebi.protvar.model.data.CaddPrediction;
+import uk.ac.ebi.protvar.model.data.GenomicScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.score.Score;
@@ -25,7 +25,7 @@ public class GeneConverter {
 	// and we default to mappingRef and all alternative bases of that ref
 	public List<Gene> createGenes(Set<String> altBases,
 								List<GenomeToProteinMapping> mappings,
-								List<CaddPrediction> caddScores,
+								List<GenomicScore> genomicScores,
 								Map<String, List<Score>>  scoreMap) {
 		if (mappings == null || mappings.isEmpty()) return Collections.emptyList();
 		// Round B: return ALL overlapping genes (never drop a real mapping). Order so the gene carrying the
@@ -51,15 +51,15 @@ public class GeneConverter {
 								.refAllele(representative.getBaseNucleotide())
 								.altAllele(altBase)
 								.isoforms(isoforms)
-								.caddScore(findScore(caddScores, altBase, CaddPrediction::getScore))
-								.aviScore(findScore(caddScores, altBase, CaddPrediction::getAviScore))
+								.caddScore(findScore(genomicScores, altBase, GenomicScore::getScore))
+								.aviScore(findScore(genomicScores, altBase, GenomicScore::getAviScore))
 								.build();
 					});
 				})
 				.collect(Collectors.toList());
 	}
 
-	private Double findScore(List<CaddPrediction> scores, String altBase, Function<CaddPrediction, Double> field) {
+	private Double findScore(List<GenomicScore> scores, String altBase, Function<GenomicScore, Double> field) {
 		return scores == null ? null :
 				scores.stream()
 						.filter(s -> altBase.equalsIgnoreCase(s.getAltAllele()))

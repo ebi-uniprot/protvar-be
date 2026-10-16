@@ -10,7 +10,7 @@ import uk.ac.ebi.protvar.utils.VariantKey;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CaddPrediction {
+public class GenomicScore {
 	private String chromosome;
 	private Integer position;
 	private String referenceAllele;

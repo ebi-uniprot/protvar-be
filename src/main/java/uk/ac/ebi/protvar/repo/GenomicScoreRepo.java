@@ -7,18 +7,18 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
-import uk.ac.ebi.protvar.model.data.CaddPrediction;
+import uk.ac.ebi.protvar.model.data.GenomicScore;
 
 import java.util.List;
 
 @Repository
 @RequiredArgsConstructor
-public class CaddPredictionRepo {
+public class GenomicScoreRepo {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
-    @Value("${tbl.cadd}")
-    private String caddTable;
+    @Value("${tbl.genomic_score}")
+    private String genomicScoreTable;
     /*
     optimised from:
         SELECT * FROM %s
@@ -35,7 +35,7 @@ public class CaddPredictionRepo {
    	and to using unnest
      */
 
-    private static final String CADDS_WITH_COORD_LIST = """
+    private static final String GS_WITH_COORD_LIST = """
         WITH coord_list (chr, pos) AS (
           VALUES :chrPosList
         )
@@ -44,16 +44,16 @@ public class CaddPredictionRepo {
           AND position = coord_list.pos
         """;
 
-    public List<CaddPrediction> getCADDByChrPos(List<Object[]> chrPosList) {
+    public List<GenomicScore> getByChrPos(List<Object[]> chrPosList) {
         if (chrPosList == null || chrPosList.isEmpty())
             return List.of();
         SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
-        String sql = String.format(CADDS_WITH_COORD_LIST, caddTable);
-        return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(CaddPrediction.class));
+        String sql = String.format(GS_WITH_COORD_LIST, genomicScoreTable);
+        return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(GenomicScore.class));
     }
 
     // Needs positional accuracy
-    private static final String CADDS_WITH_UNNEST = """
+    private static final String GS_WITH_UNNEST = """
     WITH coord_list (chr, pos) AS (
       SELECT UNNEST(:chromosomes) as chr, UNNEST(:positions) as pos
     )
@@ -62,7 +62,7 @@ public class CaddPredictionRepo {
       AND position = coord_list.pos
     """;
 
-    public List<CaddPrediction> getCADDByChrPos(String[] chromosomes, Integer[] positions) {
+    public List<GenomicScore> getByChrPos(String[] chromosomes, Integer[] positions) {
         if (chromosomes == null || chromosomes.length == 0)
             return List.of();
 
@@ -70,7 +70,7 @@ public class CaddPredictionRepo {
                 .addValue("chromosomes", chromosomes)
                 .addValue("positions", positions);
 
-        String sql = String.format(CADDS_WITH_UNNEST, caddTable);
-        return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(CaddPrediction.class));
+        String sql = String.format(GS_WITH_UNNEST, genomicScoreTable);
+        return jdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(GenomicScore.class));
     }
 }
