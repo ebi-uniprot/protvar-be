@@ -97,13 +97,14 @@ public class GenomicVariantRepo {
         boolean filterStability = request.getStability() != null && !request.getStability().isEmpty();
 
         boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
+        boolean sortByAvi = "avi".equalsIgnoreCase(request.getSort());
         boolean sortByAm = "am".equalsIgnoreCase(request.getSort());
         boolean sortByPopEve = "popeve".equalsIgnoreCase(request.getSort());
         boolean sortByEsm1b = "esm1b".equalsIgnoreCase(request.getSort());
 
         MapSqlParameterSource parameters = new MapSqlParameterSource();
 
-        boolean joinCadd = filterByCadd || sortByCadd;
+        boolean joinCadd = filterByCadd || sortByCadd || sortByAvi;
         boolean joinAm = filterByAm || sortByAm;
         boolean joinPopEve = filterByPopEve || sortByPopEve;
         boolean joinEsm1b = filterByEsm1b || sortByEsm1b;
@@ -198,7 +199,7 @@ public class GenomicVariantRepo {
         // The alt-allele expression in the sort tail must match the strategy's
         // alias (bases / dbsnp_alts / af.alt) — same parameterisation as
         // addRemainingJoins, otherwise SQL fails with missing-FROM.
-        boolean userRequestedSort = sortByCadd || sortByAm || sortByPopEve || sortByEsm1b;
+        boolean userRequestedSort = sortByCadd || sortByAvi || sortByAm || sortByPopEve || sortByEsm1b;
 
         String altAlleleExpr;
         boolean strategySupportsDefaultSort;
@@ -225,6 +226,8 @@ public class GenomicVariantRepo {
             query.append("\nORDER BY ");
             if (sortByCadd) {
                 query.append("cadd.score ").append(sortOrder).append(", ");
+            } else if (sortByAvi) {
+                query.append("cadd.avi_score ").append(sortOrder).append(", ");
             } else if (sortByAm) {
                 query.append("am.am_pathogenicity ").append(sortOrder).append(", ");
             } else if (sortByPopEve) {

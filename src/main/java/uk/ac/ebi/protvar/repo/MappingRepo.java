@@ -286,12 +286,13 @@ public class MappingRepo {
 		boolean filterByDiseaseAssoc = Boolean.TRUE.equals(request.getDiseaseAssociation());
 
         boolean sortByCadd = "cadd".equalsIgnoreCase(request.getSort());
+        boolean sortByAvi = "avi".equalsIgnoreCase(request.getSort());
         boolean sortByAm = "am".equalsIgnoreCase(request.getSort());
         boolean sortByPopEve = "popeve".equalsIgnoreCase(request.getSort());
         boolean sortByEsm1b = "esm1b".equalsIgnoreCase(request.getSort());
 
         // Determine which joins are needed
-		boolean joinCadd = filterByCadd || sortByCadd;
+		boolean joinCadd = filterByCadd || sortByCadd || sortByAvi;
         boolean joinAm = filterByAm || sortByAm;
         boolean joinPopEve = filterByPopEve || sortByPopEve;
         boolean joinEsm1b = filterByEsm1b || sortByEsm1b;
@@ -603,6 +604,9 @@ public class MappingRepo {
 		if (sortByCadd) {
 			fields += ", cadd.score ";
 			sql.append("cadd.score ").append(sortOrder).append(", ");
+		} else if (sortByAvi) {
+			fields += ", cadd.avi_score ";
+			sql.append("cadd.avi_score ").append(sortOrder).append(", ");
 		} else if (sortByAm) {
             fields += ", am.am_pathogenicity ";
             sql.append("am.am_pathogenicity ").append(sortOrder).append(", ");

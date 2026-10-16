@@ -173,7 +173,7 @@ public class MappingRequest {
     private Integer endPos;
 
     // Sorting
-    @Schema(description = "Sort field: 'cadd', 'am', 'popeve', or 'esm1b'", example = "cadd")
+    @Schema(description = "Sort field: 'cadd', 'avi', 'am', 'popeve', or 'esm1b'", example = "cadd")
     private String sort;
 
     @Schema(description = "Sort direction: 'asc' or 'desc'", example = "asc")
