@@ -14,6 +14,7 @@ import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.model.data.GenomicScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Gene;
+import uk.ac.ebi.protvar.model.response.Isoform;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.score.Score;
 import uk.ac.ebi.protvar.record.AccessionPosition;
@@ -40,6 +41,7 @@ public class InputMapper {
 	private final MappingRepo mappingRepo;
 	private final GenomicScoreRepo genomicScoreRepo;
 	private final ScoreNewRepo scoreRepo;
+	private final RichnessRepo richnessRepo;
 	private final UniprotRefseqRepo uniprotRefseqRepo;
 	private final BuildProcessor buildProcessor;
 	private final Id2Gen id2Gen;
@@ -171,7 +173,9 @@ public class InputMapper {
 		var scoreMap = scoreRepo.getMappingScores(accessions, ppositions)
 				.stream().collect(Collectors.groupingBy(Score::getVariantKey));
 
-		return new MappingData(chrPosArrays, g2pMap, genomicScoreMap, accPosArrays, canonicalAccessions, scoreMap);
+		var richnessMap = richnessRepo.getRichness(accessions, ppositions);
+
+		return new MappingData(chrPosArrays, g2pMap, genomicScoreMap, accPosArrays, canonicalAccessions, scoreMap, richnessMap);
 	}
 
 	public void processInput(VariantInput input, MappingData core) {
@@ -193,6 +197,9 @@ public class InputMapper {
 							.collect(Collectors.toSet());*/
 
 					ensgMappingList = geneConverter.createGenes(altBases, mappingList, genomicScores, core.getScoreMap());
+					ensgMappingList.forEach(gene -> gene.getIsoforms().stream().filter(Isoform::isCanonical)
+							.forEach(iso -> iso.setRichness(core.getRichnessMap()
+									.get(RichnessRepo.key(iso.getAccession(), iso.getIsoformPosition())))));
 				}
 
 				genomicVariant.getGenes().addAll(ensgMappingList);

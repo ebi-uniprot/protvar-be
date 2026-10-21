@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import uk.ac.ebi.protvar.model.score.*;
 
 import static uk.ac.ebi.protvar.utils.Commons.upperFirstRemainingLower;
@@ -42,6 +43,11 @@ public class Isoform implements Comparable<Isoform> {
 
 	@JsonInclude(Include.NON_NULL)
 	private PopEveScore popEveScore;
+
+	// Set after the isoforms are built (InputMapper), canonical only
+	@JsonInclude(Include.NON_NULL)
+	@Setter
+	private Richness richness;
 
 	public String getCodonChange(){
 		return refCodon + "/" + variantCodon;
