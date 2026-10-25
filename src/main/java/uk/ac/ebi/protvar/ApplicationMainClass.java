@@ -1,6 +1,7 @@
 package uk.ac.ebi.protvar;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
@@ -30,10 +31,24 @@ import java.util.concurrent.Executor;
 	@Info(
 		title = "ProtVar API",
 		version = "2.1",
-		description = "ProtVar API's Swagger documentation page. The API serves the ProtVar UI and enables programmatic access to the ProtVar data.",
+		description = "Programmatic access to ProtVar: map human missense variants to proteins and retrieve annotations. "
+				+ "Typical flow: POST /input/text → GET /mapping/{inputId} → POST /download.",
 		license = @License(name = "Creative Commons", url = "https://creativecommons.org/licenses/by/4.0/"),
 		contact = @Contact(url = "https://www.ebi.ac.uk/ProtVar", name = "ProtVar", email = "protvar@ebi.ac.uk")
-	)
+	),
+	tags = {
+		@Tag(name = "Input", description = "Submit variants; returns an input ID."),
+		@Tag(name = "Mapping", description = "Map variants to proteins; browse and filter by identifier."),
+		@Tag(name = "Download", description = "Queue and fetch CSV downloads."),
+		@Tag(name = "Annotation", description = "Functional, population and structural annotations for a protein position."),
+		@Tag(name = "Score", description = "Amino-acid-level scores."),
+		@Tag(name = "Prediction", description = "Structure-based predictions."),
+		@Tag(name = "Allele frequency", description = "gnomAD allele frequencies."),
+		@Tag(name = "Assembly", description = "GRCh37 ↔ GRCh38 coordinate conversion."),
+		@Tag(name = "Semantic search", description = "Free-text search over protein function and population text."),
+		@Tag(name = "Stats", description = "Release statistics."),
+		@Tag(name = "Status", description = "Service health.")
+	}
 )
 public class ApplicationMainClass {
 

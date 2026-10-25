@@ -39,12 +39,12 @@ public class AnnotationController {
    * @param variantAA Optional, 1- or 3-letter symbol for variant amino acid
    * @return <code>FunctionalInfo</code> on accession and position
    */
-  @Operation(summary = "Retrieve functional annotations for an amino acid")
+  @Operation(summary = "Functional annotations at a protein position")
   @GetMapping(value = "/function/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<FunctionalInfo> getFunction(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position,
-    @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
+    @Parameter(description = "Optional variant amino acid.", example = "R") @RequestParam(required = false) String variantAA) {
 
     FunctionalInfo functionalInfo = functionService.get(accession, position);
     if (functionalInfo != null) {
@@ -71,7 +71,7 @@ public class AnnotationController {
    * @param position  Amino acid position
    * @return <code>PopulationObservation</code> List of variants co-located at the same residue as the input.
    */
-  @Operation(summary = "Retrieve other variants co-located at the same amino acid position")
+  @Operation(summary = "Population data: variants at the same protein position")
   @GetMapping(value = "/population/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<PopulationObservation> getPopulationObservation(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
@@ -104,7 +104,7 @@ public class AnnotationController {
    * @param position  Amino acid position
    * @return List of <code>StructureResidue</code> Mappings from UniProt position to position in all relevant PDB structures
    */
-  @Operation(summary = "Returns the position in PDB structures for the input variant")
+  @Operation(summary = "Experimental structures (PDB) covering a protein position")
   @GetMapping(value = "/structure/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<List<StructureResidue>> getStructure(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,

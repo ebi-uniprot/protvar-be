@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 // error emails (Email.notifyDevErr) showed only fname/url/jobName, making it
 // impossible to trace a failed download back to its input.
 @ToString(callSuper = true)
-@Schema(description = "Request payload for initiating a download")
+@Schema(description = "Download request: a mapping request plus annotation options.")
 public class DownloadRequest extends MappingRequest {
 
     @Schema(description = "Include functional annotations", defaultValue = "false")
@@ -31,7 +31,7 @@ public class DownloadRequest extends MappingRequest {
     @Schema(description = "Include structural annotations", defaultValue = "false")
     protected Boolean structure;
 
-    @Schema(description = "Optional email address for status updates", example = "user@example.com")
+    @Schema(description = "Optional; notified when ready.", example = "user@example.com")
     //@Email(message = "Must be a valid email address") // default jakarta validation is lenient, allows abc@xyz (without domain)
     @Pattern(
             regexp = "^\\s*$|^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
@@ -39,15 +39,11 @@ public class DownloadRequest extends MappingRequest {
     )
     private String email;
 
-    @Schema(description = "Optional job name for tracking the download", example = "protvar-run-001")
+    @Schema(description = "Optional label.", example = "protvar-run-001")
     private String jobName;
 
     @Schema(
-            description = """
-            If true, download all inputs ignoring pagination.
-            If false or omitted, pagination will be applied using page and pageSize,
-            which default to 1 and default page size respectively.
-            """,
+            description = "true: all pages; false: only page/pageSize.",
             defaultValue = "false"
     )
     @lombok.Builder.Default

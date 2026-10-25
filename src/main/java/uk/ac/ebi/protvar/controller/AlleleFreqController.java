@@ -15,7 +15,7 @@ import uk.ac.ebi.protvar.repo.AlleleFreqRepo;
 
 import java.util.List;
 
-@Tag(name = "Allele Frequency")
+@Tag(name = "Allele frequency")
 @RestController
 @CrossOrigin
 @RequiredArgsConstructor
@@ -31,8 +31,8 @@ public class AlleleFreqController {
      * @param alt Optional, alternate allele
      * @return <code>List<AlleleFreq></code>
      */
-    @Operation(summary = "Gnomad allele frequency",
-            description = "Retrieve the allele frequency for the genomic coordinate (chromosome and position), and alternate allele (optional)")
+    @Operation(summary = "gnomAD allele frequency at a genomic position",
+            description = "GRCh38. alt is optional.")
     @GetMapping(value = "/allelefreq/{chr}/{pos}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<AlleleFreq>> getAlleleFreq(
             @Parameter(example = "2") @PathVariable String chr,
@@ -42,8 +42,8 @@ public class AlleleFreqController {
         return new ResponseEntity<>(alleleFreqs, HttpStatus.OK);
     }
 
-    @Operation(summary = "Gnomad allele frequencies - multiple inputs ",
-            description = "Retrieve the allele frequencies for the list of genomic coordinates (chromosome-position pairs)")
+    @Operation(summary = "gnomAD allele frequencies for several positions",
+            description = "GRCh38. Body: list of [chr, pos] pairs.")
     @PostMapping(value = "/allele-freq", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> getAlleleFreqs(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(

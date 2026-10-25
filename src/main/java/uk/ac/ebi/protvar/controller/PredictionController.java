@@ -2,8 +2,6 @@ package uk.ac.ebi.protvar.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,18 +31,6 @@ public class PredictionController {
     private final InteractionRepo interactionRepo;
     private final FoldxRepo foldxRepo;
 
-    @Operation(summary = "Nucleotide predictions - CADD (WIP)",
-            description="Retrieve CADD score for the given genomic positions.")
-    @PostMapping(value = "/cadd", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Object> getCADDScores(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =
-            @ExampleObject(value = "[\"19 1010539\"]"))})
-            @RequestBody List<String> coordinates) { // note coords normally refer to genomic coord whereas position is
-        // used more generally for e.g. genomic/protein position, UniProt or PDB position, etc.
-        return new ResponseEntity<>(null, HttpStatus.OK);
-    }
-
-
     /**
      * Foldx predictions based on AFDB.
      *
@@ -53,8 +39,7 @@ public class PredictionController {
      * @param variantAA Optional, 1- or 3-letter symbol for variant amino acid
      * @return <code>Foldx</code> information on accession
      */
-    @Operation(summary = "Predictions based on structure - foldx",
-            description = "Retrieve foldx predictions for accession and position")
+    @Operation(summary = "FoldX stability change")
     @GetMapping(value = "/foldx/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Foldx>> getFoldxsByAccAndPos(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
@@ -79,8 +64,7 @@ public class PredictionController {
      * @param resid     Residue
      * @return <code>Pocket</code> information on accession
      */
-    @Operation(summary = "Predictions based on structure - pocket",
-            description = "Retrieves predicted pockets for accession and residue")
+    @Operation(summary = "Predicted pockets containing a residue")
     @GetMapping(value = "/pocket/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Pocket>> getPocketsByAccAndResid(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
@@ -101,8 +85,7 @@ public class PredictionController {
      * @param resid     Residue
      * @return <code>Interaction</code> information on accession
      */
-    @Operation(summary = "Predictions based on structure - interaction",
-            description = "Retrieve predicted interacting structures for accession and residue")
+    @Operation(summary = "Predicted protein–protein interfaces containing a residue")
     @GetMapping(value = "/interaction/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Interaction>> getInteractionsByAccAndResid(
             @Parameter(example = "Q9NUW8") @PathVariable String accession,
@@ -124,8 +107,7 @@ public class PredictionController {
      * @param b UniProt accession
      * @return pdb model
      */
-    @Operation(summary = "Predictions based on structure - interaction model",
-            description = "Retrieve model of two interacting protein")
+    @Operation(summary = "Predicted complex model for two proteins (PDB text)")
     @GetMapping(value = "/interaction/{a}/{b}/model", produces = MediaType.TEXT_PLAIN_VALUE)
     public @ResponseBody String getInteractionModel(
             @Parameter(example = "Q9NUW8") @PathVariable String a,

@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.actuate.health.HealthEndpoint;
@@ -32,6 +33,7 @@ public class StatusController {
     private final EmbeddingHealthService embeddingHealth;
     private final McpHealthService mcpHealth;
 
+    @Operation(summary = "Service health")
     @GetMapping
     public ResponseEntity<StatusResponse> status() {
         return ResponseEntity.ok(new StatusResponse(

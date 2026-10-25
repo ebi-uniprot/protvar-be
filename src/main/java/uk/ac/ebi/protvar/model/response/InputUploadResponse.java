@@ -6,10 +6,10 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-@Schema(description = "Response containing the input ID generated after upload.")
+@Schema(description = "ID of the submitted input.")
 public class InputUploadResponse {
 
-    @Schema(description = "The unique ID assigned to the uploaded input.", example = "abc123xyz")
+    @Schema(description = "Input ID (32-character hex).", example = "148095764c8e06da401a29408e3d19ec")
     private String inputId;
 
 }

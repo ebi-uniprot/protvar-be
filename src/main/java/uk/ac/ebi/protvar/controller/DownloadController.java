@@ -38,7 +38,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DownloadController implements WebMvcConfigurer {
 
-    private final static String SUMMARY = "Submit a download request.";
+    private final static String SUMMARY = "Queue a CSV download";
+    private final static String DESC = "Same request as POST /mapping, plus annotation options. "
+            + "Returns a job id; poll /download/status, then GET /download/{id}. full=true downloads every page (max 100,000 rows).";
 
     /**
      * Hard cap on rows for full downloads. Larger requests are rejected at
@@ -52,7 +54,7 @@ public class DownloadController implements WebMvcConfigurer {
     private final DownloadFileCleanupTask cleanupTask;
     private final MappingService mappingService;
 
-    @Operation(summary = SUMMARY)
+    @Operation(summary = SUMMARY, description = DESC)
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> downloadGet(@Valid @RequestBody
                                          DownloadRequest request,
@@ -60,7 +62,7 @@ public class DownloadController implements WebMvcConfigurer {
         return handleDownload(request, http);
     }
 
-    @Operation(summary = SUMMARY)
+    @Operation(summary = SUMMARY, description = DESC)
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> downloadPost(@Valid @RequestBody @ModelAttribute
                                           DownloadRequest request,
@@ -101,11 +103,11 @@ public class DownloadController implements WebMvcConfigurer {
         return ResponseEntity.ok(response);
     }
 
-    @Operation(summary = "Download results file")
+    @Operation(summary = "Fetch a finished download (zipped CSV)")
     @GetMapping(value = "/{filename}")
     @ResponseBody
     public ResponseEntity<?> downloadFile(
-            @Parameter(example = "550e8400-e29b-41d4-a716-446655440000") @PathVariable("filename") String filename) {
+            @Parameter(description = "Job id from POST /download.", example = "550e8400-e29b-41d4-a716-446655440000") @PathVariable("filename") String filename) {
 
         FileInputStream fileInputStream = downloadService.getFileResource(filename);
         if (fileInputStream == null)
@@ -122,7 +124,7 @@ public class DownloadController implements WebMvcConfigurer {
                 .body(resource);
     }
 
-    @Operation(summary = "Check status of a list of download requests")
+    @Operation(summary = "Check download status", description = "Body: list of job ids.")
     @PostMapping(value = "/status", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, DownloadStatus>> downloadStatus(@RequestBody List<String> ids) {
         return new ResponseEntity<>(downloadService.getDownloadStatus(ids), HttpStatus.OK);

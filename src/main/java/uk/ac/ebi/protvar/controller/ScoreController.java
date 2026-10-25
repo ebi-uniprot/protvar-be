@@ -32,10 +32,9 @@ public class ScoreController {
      * @param type  Score type
      * @return <code>Score</code>
      */
-    @Operation(summary = "Amino acid-level scores",
-            description="Retrieve Conservation, EVE, ESM1b and AlphaMissense scores for accession and position. " +
-                    "Mutated type (mt) is disregarded for Conservation score and optional for the other scores. " +
-                    "By default, all scores are retrieved.")
+    @Operation(summary = "Scores at a protein position",
+            description = "Conservation, AlphaMissense, ESM1b, popEVE and EVE. "
+                    + "mt (variant amino acid) narrows variant-level scores; type returns one score only.")
     @GetMapping(value = "/{acc}/{pos}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<Score>> getScores(
             @Parameter(example = "Q9NUW8") @PathVariable String acc,

@@ -18,9 +18,7 @@ import java.util.List;
 public class StatsController {
     private final StatsService statsService;
 
-    @Operation(summary = "Statistics for the current release: what ProtVar covers",
-            description = "One entry per figure, with its label, description, page layout, value, source and version. "
-                    + "inSync=false flags a figure counted from a table the API does not serve.")
+    @Operation(summary = "Current release statistics", description = "One entry per figure: label, value, source and version.")
     @GetMapping
     public ResponseEntity<List<ReleaseStat>> getStats() {
         return ResponseEntity.ok(statsService.getStats());

@@ -15,7 +15,7 @@ import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.model.response.AssemblyMappingResponse;
 import java.util.List;
 
-@Tag(name = "Assembly Mapping")
+@Tag(name = "Assembly")
 @RestController
 @CrossOrigin
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class AssemblyMappingController {
      * @param to     To assembly e.g. `38`, `h38`, or `GRCh38`
      * @return <code>AssemblyMappingResponse</code> see below schema for more details
      */
-    @Operation(summary = "Convert genomic coordinates between GRCh37 and GRCh38")
+    @Operation(summary = "Convert coordinates between GRCh37 and GRCh38", description = "Protein-coding positions only.")
     @PostMapping(value = "/assembly/mappings/{from}/{to}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<AssemblyMappingResponse> convert(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(content = {@Content(examples =

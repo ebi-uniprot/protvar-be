@@ -24,41 +24,25 @@ import java.util.List;
 public class MappingRequest {
 
     public final static String PAGE_DESC = """
-            Page number (1-based) indicating which page of inputs to include in the response or download.
-            Defaults to first page (1) if not specified.
-            Must be greater than 0.
+            Page number, from 1 (default 1).
             """;
 
     public final static String PAGE_SIZE_DESC = """
-            Number of results per page.
-            Must be between 10 and 1000.
-            Defaults to the system's default page size if not specified.
+            Results per page, 10–1000.
             """;
 
     public final static String ASSEMBLY_DESC = """
-            Genome assembly to use for mapping: 'AUTO', 'GRCh37', or 'GRCh38'.
-            If set to 'AUTO', the system will attempt to detect the appropriate assembly for genomic inputs.
-            Defaults to 'AUTO' if not specified.
+            Assembly of genomic inputs: AUTO (default, detected), GRCh37 or GRCh38.
             """;
 
-    @Schema(description = "Variant query string in any supported format (genomic, protein, HGVS, dbSNP, etc.). Mutually exclusive with resultId and ids.")
+    @Schema(description = "A single variant in any supported format (genomic, protein, HGVS, dbSNP…).")
     protected String q;
 
-    @Schema(description = """
-            Uploaded result ID (32-character hex string returned by POST /input/text or /input/file).
-            When provided, the backend retrieves the cached input associated with this ID.
-            Mutually exclusive with 'ids' — if both are provided, 'resultId' takes precedence.
-            """)
+    @Schema(description = "inputId from /input. Takes precedence over ids.")
     protected String resultId;
 
-    @Schema(description = """
-            Biological identifiers for browse queries (UniProt, Gene, PDB, Ensembl, RefSeq).
-            Each entry has a 'type' and 'value'. 'type' is optional — if omitted, the backend
-            auto-detects it from 'value' using InputTypeResolver. Callers that know the type
-            should always supply it to avoid misdetection of ambiguous values (e.g. short gene
-            symbols). Falls back to GENE if detection fails.
-            Example: [{"type": "UNIPROT", "value": "P22304"}, {"value": "BRCA2"}]
-            """)
+    @Schema(description = "Identifiers to browse. type is optional (detected from value) but recommended.",
+            example = "[{\"type\": \"uniprot\", \"value\": \"P22304\"}, {\"value\": \"BRCA2\"}]")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     protected List<Identifier> ids;
 
@@ -78,7 +62,7 @@ public class MappingRequest {
     protected Integer pageSize;
 
     @Schema(
-            description = "Genome assembly version. 'AUTO' lets the system auto-detect the build for genomic inputs.",
+            description = ASSEMBLY_DESC,
             defaultValue = "AUTO",
             allowableValues = {"AUTO", "GRCh37", "GRCh38"}
     )
@@ -86,40 +70,40 @@ public class MappingRequest {
 
     // Advanced filtering criteria
     // Variant Type
-    @Schema(description = "Show only known variants (default: potential included)", example = "false")
+    @Schema(description = "Only known variants (default includes all possible)", example = "false")
     private Boolean known;
 
     // Function-side feature filters (mapped via FeatureGroup → function_feature.type)
-    @Schema(description = "Restrict to variants overlapping a PTM (post-translational modification) feature", example = "false")
+    @Schema(description = "Only variants at a PTM site", example = "false")
     private Boolean ptm;
 
-    @Schema(description = "Restrict to variants overlapping a mutagenesis site", example = "false")
+    @Schema(description = "Only variants at a mutagenesis site", example = "false")
     private Boolean mutagen;
 
-    @Schema(description = "Restrict to variants overlapping a domain, region, or notable site", example = "false")
+    @Schema(description = "Only variants in a domain, region or site", example = "false")
     private Boolean domain;
 
-    @Schema(description = "Restrict to variants overlapping a binding site", example = "false")
+    @Schema(description = "Only variants at a binding site", example = "false")
     private Boolean binding;
 
-    @Schema(description = "Restrict to variants overlapping an active site", example = "false")
+    @Schema(description = "Only variants at an active site", example = "false")
     private Boolean actsite;
 
-    @Schema(description = "Restrict to variants overlapping a transmembrane region", example = "false")
+    @Schema(description = "Only variants in a transmembrane region", example = "false")
     private Boolean transmem;
 
-    @Schema(description = "Minimum conservation score (0-1, inclusive)", example = "0.0")
+    @Schema(description = "Minimum conservation (0–1)", example = "0.0")
     @Min(value = 0, message = "Conservation minimum must be at least 0")
     @Max(value = 1, message = "Conservation minimum must not exceed 1")
     private Double conservationMin;
 
-    @Schema(description = "Maximum conservation score (0-1, inclusive)", example = "1.0")
+    @Schema(description = "Maximum conservation (0–1)", example = "1.0")
     @Min(value = 0, message = "Conservation maximum must be at least 0")
     @Max(value = 1, message = "Conservation maximum must not exceed 1")
     private Double conservationMax;
 
     // Population
-    @Schema(description = "Restrict to variants at a residue with at least one disease-associated population entry", example = "false")
+    @Schema(description = "Only residues with a disease-associated variant", example = "false")
     private Boolean diseaseAssociation;
 
     @Schema(description = "Allele frequency categories", example = "[]")
@@ -127,59 +111,59 @@ public class MappingRequest {
     private List<AlleleFreqCategory> alleleFreq;
 
     // Structural
-    @Schema(description = "Show only variants with experimental structural model", example = "false")
+    @Schema(description = "Only variants with an experimental structure", example = "false")
     private Boolean experimentalModel;
 
-    @Schema(description = "Show only variants in P-P interaction", example = "false")
+    @Schema(description = "Only variants in a predicted protein–protein interface", example = "false")
     private Boolean interact;
 
-    @Schema(description = "Show only variants in predicted pocket", example = "false")
+    @Schema(description = "Only variants in a predicted pocket", example = "false")
     private Boolean pocket;
 
-    @Schema(description = "Stability change filter", example = "[]")
+    @Schema(description = "FoldX stability change categories", example = "[]")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<StabilityChange> stability;
 
     // Consequence
-    @Schema(description = "CADD score filter categories", example = "[]")
+    @Schema(description = "CADD categories", example = "[]")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<CaddCategory> cadd;
 
     @Schema(description = "Minimum AVI (AlphaGenome Variant Impact) PHRED score", example = "20")
     private Double aviMin;
 
-    @Schema(description = "AlphaMissense pathogenicity class filter", example = "[]")
+    @Schema(description = "AlphaMissense classes", example = "[]")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<AmClass> am;
 
-    @Schema(description = "popEVE score filter categories", example = "[]")
+    @Schema(description = "popEVE categories", example = "[]")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private List<PopEveClass> popeve;
 
-    @Schema(description = "Minimum ESM1b score (-25 to 0, inclusive)", example = "-25.0")
+    @Schema(description = "Minimum ESM1b (-25 to 0)", example = "-25.0")
     @Min(value = -25, message = "ESM1b minimum must be at least -25")
     @Max(value = 0, message = "ESM1b minimum must not exceed 0")
     private Double esm1bMin;
 
-    @Schema(description = "Maximum ESM1b score (-25 to 0, inclusive)", example = "0.0")
+    @Schema(description = "Maximum ESM1b (-25 to 0)", example = "0.0")
     @Min(value = -25, message = "ESM1b maximum must be at least -25")
     @Max(value = 0, message = "ESM1b maximum must not exceed 0")
     private Double esm1bMax;
 
     // Position range filter (single UniProt accession browse only; ignored otherwise with a warning)
-    @Schema(description = "Start of protein position range (inclusive, 1-based). Only applies to single UniProt accession browse.", example = "558")
+    @Schema(description = "Protein position range start (single UniProt accession browse only)", example = "558")
     @Min(value = 1, message = "startPos must be at least 1")
     private Integer startPos;
 
-    @Schema(description = "End of protein position range (inclusive, 1-based). Must be used with startPos. Values are normalised if startPos > endPos.", example = "600")
+    @Schema(description = "Protein position range end (with startPos)", example = "600")
     @Min(value = 1, message = "endPos must be at least 1")
     private Integer endPos;
 
     // Sorting
-    @Schema(description = "Sort field: 'cadd', 'avi', 'am', 'popeve', or 'esm1b'", example = "cadd")
+    @Schema(description = "Sort by: cadd, avi, am, popeve or esm1b", example = "cadd")
     private String sort;
 
-    @Schema(description = "Sort direction: 'asc' or 'desc'", example = "asc")
+    @Schema(description = "asc or desc", example = "asc")
     private String order;
 
     // override Lombok getter for page

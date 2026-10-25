@@ -1,5 +1,8 @@
 package uk.ac.ebi.protvar.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -16,6 +19,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
+@Tag(name = "Semantic search")
 @RestController
 @RequestMapping("/semantic-search")
 @RequiredArgsConstructor
@@ -27,6 +31,7 @@ public class SemanticSearchController {
 
     // ── Model registry ────────────────────────────────────────────────────────
 
+    @Operation(summary = "Available embedding models")
     @GetMapping("/models")
     public ResponseEntity<List<ModelInfo>> getModels() {
         String defaultModelId = modelRegistry.getDefaultModel();
@@ -44,12 +49,13 @@ public class SemanticSearchController {
 
     // ── Vector search ─────────────────────────────────────────────────────────
 
+    @Operation(summary = "Search protein function and population text")
     @GetMapping
     public ResponseEntity<VectorSearchResponse> search(
-            @RequestParam String text,
-            @RequestParam(defaultValue = "10") int limit,
+            @Parameter(example = "drug resistance") @RequestParam String text,
+            @Parameter(description = "1–100") @RequestParam(defaultValue = "10") int limit,
             @RequestParam(defaultValue = "0") int offset,
-            @RequestParam(required = false) String model) {
+            @Parameter(description = "Optional; see /semantic-search/models.") @RequestParam(required = false) String model) {
 
         if (text == null || text.isBlank()) {
             return ResponseEntity.badRequest()
@@ -85,6 +91,7 @@ public class SemanticSearchController {
 
     // ── Embedding ─────────────────────────────────────────────────────────────
 
+    @Operation(hidden = true)
     @GetMapping("/embed")
     public ResponseEntity<EmbeddingResponse> embed(
             @RequestParam String text,
@@ -108,6 +115,7 @@ public class SemanticSearchController {
 
     // ── Health ────────────────────────────────────────────────────────────────
 
+    @Operation(hidden = true)
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health(
             @RequestParam(required = false) String model) {

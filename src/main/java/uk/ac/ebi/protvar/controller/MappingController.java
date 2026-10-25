@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 import static uk.ac.ebi.protvar.constants.PageUtils.*;
 
-@Tag(name = "Coordinate Mapping")
+@Tag(name = "Mapping")
 @RestController
 @RequestMapping("/mapping")
 @CrossOrigin
@@ -40,10 +40,14 @@ public class MappingController {
     private final MappingRepo mappingRepo;
     private final UniprotAccessionCache uniprotAccessionCache;
 
+    private static final String BROWSE_SUMMARY = "Browse and filter variants";
+    private static final String BROWSE_DESC = "Browse by identifier (ids: UniProt, gene, PDB, Ensembl, RefSeq), or filter all variants. "
+            + "Filters (e.g. known, ptm, cadd, am) and sort apply to browse only, not to q or resultId.";
+
     /**
      * Direct variant query: GET /mapping?q=19-1010539-G-C[&assembly=GRCh38]
      */
-    @Operation(summary = "Retrieve mappings for a single variant query string.")
+    @Operation(summary = "Map a single variant")
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PagedMappingResponse> queryVariant(
             @Parameter(description = "Variant query in any supported format.", example = "19-1010539-G-C")
@@ -71,21 +75,23 @@ public class MappingController {
      *       {@code @Cacheable} on the repo method; the first request after a
      *       deploy pays the full-scan cost, subsequent requests are Redis-
      *       fast.</li>
-     *   <li>{@code unmapped} — {@code all − mapped}: canonicals in the release
+     *   <li>{@code notmapped} (alias {@code unmapped}) — {@code all − mapped}: canonicals in the release
      *       that have no mapping. Reconstructs the {@code notMappedUniprot.txt}
      *       artifact the import writes. Computed at request time over the two
      *       cached lists (cheap set diff).</li>
      * </ul>
      */
-    @Operation(summary = "Plain-text list of accessions: all | mapped | unmapped (one per line).")
+    @Operation(summary = "Reviewed (Swiss-Prot) accessions: all, mapped or not mapped",
+            description = "Canonical Swiss-Prot accessions in this release, one per line. "
+                    + "mapped = at least one position mapped to GRCh38; notmapped = none. Counts match the release statistics.")
     @GetMapping(value = "/accessions/{kind}", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> accessions(
-            @Parameter(description = "Which list to return: all, mapped, or unmapped.", example = "mapped")
+            @Parameter(description = "all, mapped or notmapped", example = "mapped")
             @PathVariable("kind") String kind) {
         Collection<String> list = switch (kind.toLowerCase()) {
             case "all" -> uniprotAccessionCache.getCanonicalAccessions();
             case "mapped" -> mappingRepo.getMappedAccessions();
-            case "unmapped" -> {
+            case "notmapped", "unmapped" -> { // unmapped: original name, kept for existing links
                 Set<String> mapped = new HashSet<>(mappingRepo.getMappedAccessions());
                 yield uniprotAccessionCache.getCanonicalAccessions().stream()
                         .filter(acc -> !mapped.contains(acc))
@@ -96,7 +102,7 @@ public class MappingController {
         if (list == null) {
             return ResponseEntity.badRequest()
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body("kind must be one of: all, mapped, unmapped");
+                    .body("kind must be one of: all, mapped, notmapped");
         }
         return ResponseEntity.ok(String.join("\n", list));
     }
@@ -104,10 +110,10 @@ public class MappingController {
     /**
      * Uploaded result lookup: GET /mapping/{resultId}
      */
-    @Operation(summary = "Retrieve mappings for an uploaded result by ID.")
+    @Operation(summary = "Get mappings for a submitted input")
     @GetMapping(value = "/{resultId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PagedMappingResponse> queryResult(
-            @Parameter(description = "Uploaded result ID (32-character hex).", example = "abc123...")
+            @Parameter(description = "inputId from /input.", example = "148095764c8e06da401a29408e3d19ec")
             @PathVariable("resultId") String resultId,
             @Parameter(description = MappingRequest.PAGE_DESC, example = PAGE)
             @RequestParam(value = "page", defaultValue = PAGE, required = false) Integer page,
@@ -128,13 +134,13 @@ public class MappingController {
         return new ResponseEntity<>(mappingService.get(request), HttpStatus.OK);
     }
 
-    @Operation(summary = "Retrieve mappings for identifiers or apply filters (POST, JSON body).")
+    @Operation(summary = BROWSE_SUMMARY, description = BROWSE_DESC)
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> mappingJson(@Valid @RequestBody MappingRequest request) {
         return handleRequest(request);
     }
 
-    @Operation(summary = "Retrieve mappings for identifiers or apply filters (POST, form body).")
+    @Operation(summary = BROWSE_SUMMARY, description = BROWSE_DESC)
     @PostMapping(consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> mappingForm(@Valid @RequestBody @ModelAttribute MappingRequest request) {
         return handleRequest(request);

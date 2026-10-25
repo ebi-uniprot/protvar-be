@@ -18,10 +18,7 @@ import uk.ac.ebi.protvar.service.InputService;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-@Tag(
-    name = "Input Upload",
-    description = "Upload variant data via text or file and receive an input ID for downstream queries."
-)
+@Tag(name = "Input")
 @RestController
 @RequestMapping("/input")
 @CrossOrigin
@@ -30,12 +27,12 @@ public class InputUploadController {
     private final InputService inputService;
 
     @Operation(
-        summary = "Upload variant input file and receive a corresponding input ID",
-        description = "Accepts a plain text file containing variants (one per line) in supported formats. Returns a unique input ID to be used in downstream variant queries."
+        summary = "Upload a variant file",
+        description = "Plain-text file, one variant per line, any supported format. Returns an inputId for /mapping and /download."
     )
     @PostMapping(value = "/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> uploadFile(
-            @Parameter(description = "A text file where each line contains a variant in a supported format.")
+            @Parameter(description = "Text file, one variant per line.")
             @RequestParam MultipartFile file,
             @Parameter(description = MappingRequest.ASSEMBLY_DESC)
             @RequestParam(required = false, defaultValue = "AUTO") String assembly) {
@@ -53,13 +50,13 @@ public class InputUploadController {
     }
 
     @Operation(
-        summary = "Upload variant text and receive a corresponding input ID",
-        description = "Accepts raw text with one variant per line in a supported format. Returns a unique input ID for later use."
+        summary = "Submit variants as text",
+        description = "One variant per line, any supported format. Returns an inputId for /mapping and /download."
     )
     @PostMapping(value = "/text", consumes = MediaType.TEXT_PLAIN_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> uploadText(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                description = "Raw text input where each line contains a variant.",
+                description = "One variant per line.",
                 content = @Content(
                     examples = @ExampleObject(value = "19 1010539 G C\nP80404 Gln56Arg\nrs1042779")
                 )

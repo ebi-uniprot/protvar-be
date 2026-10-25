@@ -16,11 +16,11 @@ import uk.ac.ebi.protvar.types.IdentifierType;
  * <p>Only biological identifiers (UniProt, Gene, PDB, Ensembl, RefSeq) are valid here.
  * Variant queries use the GET {@code /mapping?input=} endpoint; uploaded results use {@code resultId}.
  */
-@Schema(description = "A typed biological identifier for browse queries. 'type' is optional — if omitted, auto-detected from 'value'.")
+@Schema(description = "An identifier to browse.")
 public record Identifier(
-    @Schema(description = "Identifier type. If null, auto-detected from 'value' by InputTypeResolver.", example = "GENE", nullable = true)
+    @Schema(description = "Optional; detected from value if omitted.", example = "gene", nullable = true)
     IdentifierType type,
 
-    @Schema(description = "Identifier value (UniProt accession, gene symbol, PDB ID, Ensembl ID, or RefSeq accession).", example = "BRCA2")
+    @Schema(description = "UniProt accession, gene symbol, PDB ID, Ensembl or RefSeq ID.", example = "BRCA2")
     String value
 ) {}
