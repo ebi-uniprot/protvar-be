@@ -23,10 +23,10 @@ import uk.ac.ebi.uniprot.domain.entry.comment.CatalyticActivityComment;
 import uk.ac.ebi.uniprot.domain.entry.comment.Comment;
 import uk.ac.ebi.uniprot.domain.entry.comment.IntActComment;
 import uk.ac.ebi.uniprot.domain.entry.comment.SubcellLocationComment;
+import uk.ac.ebi.uniprot.domain.entry.comment.TextComment;
 import uk.ac.ebi.uniprot.domain.features.Feature;
 import uk.ac.ebi.uniprot.domain.features.FeatureCategory;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -120,7 +120,9 @@ public class CsvFunctionDataBuilder {
 						catalyticActivity.add(activity);
 					break;
 				case SUBUNIT:
-					complex.add(buildComplex(comment));
+					String subunit = buildComplex(comment);
+					if (subunit != null)
+						complex.add(subunit);
 					break;
 				case SUBCELLULAR_LOCATION:
 					String location = buildSubCellularLocation(comment);
@@ -128,7 +130,9 @@ public class CsvFunctionDataBuilder {
 						subCellularLocation.add(location);
 					break;
 				case SIMILARITY:
-					family.add(buildFamily(comment));
+					String similarity = buildFamily(comment);
+					if (similarity != null)
+						family.add(similarity);
 					break;
 				case INTERACTION:
 					String interaction = buildInteractions(comment);
@@ -164,30 +168,13 @@ public class CsvFunctionDataBuilder {
 		return extractValue(comment);
 	}
 
+	// SUBUNIT/SIMILARITY comments deserialise to TextComment; first sentence of the first text
 	private String extractValue(Comment comment) {
-		if (comment != null) {
-			Class<?> commentClass = comment.getClass();
-			try {
-				Field field = commentClass.getField("text");
-				Object text = field.get(comment);
-				if (text != null && text instanceof List) {
-					List<?> textList = (List<?>) text;
-					if (!textList.isEmpty()) {
-						Object complex = textList.get(0);
-						if (complex instanceof Map) {
-							Map<?, ?> complexMap = (Map<?, ?>) complex;
-							Object rawValue = complexMap.get("value");
-							if (rawValue == null) return null;
-							String textValue = rawValue.toString();
-							return textValue.contains(".") ? textValue.split("\\.")[0] : textValue;
-						}
-					}
-				}
-			} catch (NoSuchFieldException e) {
-				// ignore
-			} catch (IllegalAccessException e) {
-				// ignore
-			}
+		if (comment instanceof TextComment textComment
+				&& textComment.getText() != null && !textComment.getText().isEmpty()) {
+			String textValue = textComment.getText().get(0).getValue();
+			if (textValue == null) return null;
+			return textValue.contains(".") ? textValue.split("\\.")[0] : textValue;
 		}
 		return null;
 	}

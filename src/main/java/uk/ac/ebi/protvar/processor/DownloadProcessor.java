@@ -40,6 +40,7 @@ import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.service.UploadCacheService;
 import uk.ac.ebi.protvar.service.InputService;
+import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.utils.*;
 
@@ -201,6 +202,7 @@ public class DownloadProcessor {
 	private void processAndWriteCsv(List<VariantInput> inputs, Path outputPath, String assembly, InputBuild build,
                                     boolean fun, boolean pop, boolean str, boolean writeHeader) throws Exception {
 		inputMapper.preprocess(inputs, assembly, build);
+		addDetectedBuildNote(inputs, assembly, build);
 
 		MappingData coreMapping = inputMapper.loadCoreMappingAndScores(inputs);
 		if (coreMapping != null) {
@@ -210,10 +212,23 @@ public class DownloadProcessor {
 				writeCsv(outputPath, rows, writeHeader);
 			}
 		} else {
-			// No genomic coordinates (e.g. unmapped or invalid inputs): still
-			// write the file, the merge/zip step expects it to exist.
-			writeCsv(outputPath, Stream.empty(), writeHeader);
+			// No genomic coordinates (e.g. all inputs invalid or failed GRCh37
+			// conversion): still write one row per invalid input, as the web shows.
+			writeCsv(outputPath, inputs.stream().filter(i -> !i.isValid()).map(this::getCsvDataInvalidInput), writeHeader);
 		}
+	}
+
+	// AUTO requests: note the detected (or assumed) assembly on genomic inputs whose
+	// build isn't implied by the input itself (RefSeq HGVS g. is excluded), as the web shows it.
+	private void addDetectedBuildNote(List<VariantInput> inputs, String assembly, InputBuild build) {
+		if (!Assembly.autodetect(assembly) || build == null || build.getMessage() == null)
+			return;
+		String note = build.getMessage().getType() == Message.MessageType.WARN
+				? "Assembly auto-detect inconclusive, GRCh38 assumed"
+				: "Assembly auto-detected: " + build.getAssembly().name;
+		inputs.stream()
+				.filter(i -> i instanceof GenomicInput g && g.getRefseqId() == null)
+				.forEach(i -> i.addInfo(note));
 	}
 
 	// Define a semaphore limiting DB-heavy task concurrency
@@ -333,7 +348,6 @@ public class DownloadProcessor {
 		// Stream the inputs instead of collecting them into a list
 		Stream.Builder<String[]> builder = Stream.builder();
 		inputs.stream()
-			.filter(VariantInput::isValid)
 			.forEach(input -> {
 				if (!input.isValid()) {
 					// Invalid input, add one row
@@ -438,7 +452,8 @@ public class DownloadProcessor {
 
 		List<String> output = new ArrayList<>(Arrays.asList(input.getInputStr(), chr, genomicLocation.toString(), id, gene.getRefAllele(),
 			varAllele, notes, gene.getGeneName(), isoform.getCodonChange(), strand, cadd, avi,
-				transcripts.toString(), Constants.NA,isoform.getAccession(), CsvUtils.getValOrNA(alternateInformDetails), isoform.getProteinName(),
+				transcripts.toString(), Constants.NA,
+				isoform.isCanonical() ? isoform.getAccession() : "(" + isoform.getAccession() + ")", CsvUtils.getValOrNA(alternateInformDetails), isoform.getProteinName(),
 			String.valueOf(isoform.getIsoformPosition()), isoform.getAminoAcidChange(),
 			isoform.getConsequences()));
 

@@ -11,7 +11,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputSummary;
+import uk.ac.ebi.protvar.input.ErrorConstants;
 import uk.ac.ebi.protvar.input.VariantInput;
+import uk.ac.ebi.protvar.input.VariantType;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.Identifier;
@@ -19,6 +21,7 @@ import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
 import uk.ac.ebi.protvar.repo.GenomicVariantRepo;
 import uk.ac.ebi.protvar.repo.MappingRepo;
+import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
@@ -202,7 +205,8 @@ public class MappingService {
             List<Message> messages = Optional.ofNullable(mapping.getMessages()).orElseGet(ArrayList::new);
             mapping.setMessages(messages);
 
-            if (build.getMessage() != null) {
+            // detected-build message only applies when the user asked for AUTO
+            if (build.getMessage() != null && Assembly.autodetect(request.getAssembly())) {
                 messages.add(build.getMessage());
             }
 
@@ -212,6 +216,12 @@ public class MappingService {
                     : String.format("%d user input%s", inputs.size(), FetcherUtils.pluralise(inputs.size()));
 
             messages.add(0, new Message(Message.MessageType.INFO, summaryText));
+        }
+
+        if (mapping != null && mostGrch37ConversionsFailed(request, inputs)) {
+            List<Message> messages = Optional.ofNullable(mapping.getMessages()).orElseGet(ArrayList::new);
+            mapping.setMessages(messages);
+            messages.add(new Message(Message.MessageType.WARN, GRCH37_CONVERT_HINT));
         }
 
         return PagedMappingResponse.builder()
@@ -244,6 +254,22 @@ public class MappingService {
 
     private static boolean isMultiFormat(MappingRequest request) {
         return isResultId(request) || hasQ(request);
+    }
+
+    static final String GRCH37_CONVERT_HINT = "Most GRCh37 coordinates could not be converted to GRCh38. "
+            + "Only protein-coding positions can be converted; if your input is already GRCh38, select GRCh38 or Auto instead.";
+
+    /**
+     * Explicit GRCh37 request where at least half of the genomic inputs failed conversion,
+     * typically GRCh38 input submitted as GRCh37.
+     */
+    private boolean mostGrch37ConversionsFailed(MappingRequest request, List<VariantInput> inputs) {
+        if (!Assembly.is37(request.getAssembly())) return false;
+        List<VariantInput> genomic = inputs.stream().filter(i -> i.getType() == VariantType.GENOMIC).toList();
+        if (genomic.isEmpty()) return false;
+        String convertErr = ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND.toString();
+        long failed = genomic.stream().filter(i -> i.getErrors().contains(convertErr)).count();
+        return failed * 2 >= genomic.size();
     }
 
     /** True when posFrom/posTo is set but the request is NOT a single-UniProt browse. */

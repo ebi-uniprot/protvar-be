@@ -19,7 +19,6 @@ import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -85,7 +84,7 @@ public class BuildProcessor {
         if (genomicInputs.size() < AUTO_DETECT_MIN_SIZE) {
             sampleGenomicInputs = genomicInputs;
         } else {
-            sampleGenomicInputs = randomSublist(genomicInputs, AUTO_DETECT_SAMPLE_SIZE);
+            sampleGenomicInputs = evenlySpacedSublist(genomicInputs, AUTO_DETECT_SAMPLE_SIZE);
         }
 
         double match38 = buildPercentageMatch(sampleGenomicInputs, "38");
@@ -169,7 +168,11 @@ public class BuildProcessor {
         genomicInputs.stream().map(i -> (GenomicInput) i).forEach(input -> {
             List<Crossmap> crossmaps = groupedCrossmaps.get(VariantKey.genomic(input.getChromosome(), input.getPosition()));
 
-            if (crossmaps != null && crossmaps.size() > 0) {
+            if ("MT".equals(input.getChromosome())) {
+                // GRCh37 and GRCh38 share the same MT sequence (rCRS, NC_012920.1); the Ensembl
+                // chain is an MT identity block, but older crossmap tables omit MT.
+                input.setIsLiftedFrom37(true);
+            } else if (crossmaps != null && crossmaps.size() > 0) {
                 // We should expect 1 result, multiple mapping not possible based on
                 // select chr, grch37_pos, count(*) from crossmap
                 // group by chr, grch37_pos
@@ -191,14 +194,18 @@ public class BuildProcessor {
         return crossmapRepo.getPercentageMatch(chrPosRefList, build);
     }
 
-    public <T> List<T> randomSublist(List<T> originalList, int sublistSize) {
-        // Create a copy of the original list
-        List<T> copyList = new ArrayList<>(originalList);
-        // Shuffle the copy list
-        Collections.shuffle(copyList);
-        // Ensure the sublist size is within the bounds of the original list
-        sublistSize = Math.min(sublistSize, copyList.size());
-        // Return the sublist of the specified size
-        return copyList.subList(0, sublistSize);
+    /**
+     * Deterministic sample: every (n/size)-th element, so the same input always gives the same
+     * detected build (a random sample could flip it between page view and download).
+     */
+    public <T> List<T> evenlySpacedSublist(List<T> originalList, int sublistSize) {
+        int n = originalList.size();
+        if (n <= sublistSize)
+            return new ArrayList<>(originalList);
+        List<T> sample = new ArrayList<>(sublistSize);
+        for (int i = 0; i < sublistSize; i++) {
+            sample.add(originalList.get((int) ((long) i * n / sublistSize)));
+        }
+        return sample;
     }
 }
