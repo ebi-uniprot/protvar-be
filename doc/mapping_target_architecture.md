@@ -10,6 +10,23 @@
 > Redis raw input when accessed/expired. This makes filter+sort+paginate over 1M-row inputs possible (SQL
 > over an indexed, sortable relation — Redis can't sort/index), without permanently storing every upload.
 > Sort is the reason materialisation is required (you must score+filter+sort the whole set for page 1).
+>
+> **Refined 2026-10-25 — one path, not a size-based hybrid.** Materialise on the *first filter/sort request*
+> for every input size (small inputs cost milliseconds); the unfiltered, unsorted view keeps today's Redis
+> streaming. A separate in-memory filter for small inputs would duplicate browse's SQL filter semantics and
+> drift. Large inputs (≈1M) need an async "preparing filters" step, like downloads (resolve ≈ full download).
+> - **Store:** one shared `UNLOGGED` table keyed by upload id (not a table per upload), loaded with `COPY`,
+>   rows carry `release` + `expires_at` aligned with the Redis TTL; a scheduled BE job deletes expired rows;
+>   missing rows for a live Redis entry ⇒ rebuild (guard concurrent rebuilds, e.g. advisory lock).
+> - **Name:** `upload_variant` in its own schema (proposed `protvar_runtime`) so it's clearly runtime data,
+>   not import data, and release clean-ups/`rel_<R>_` conventions don't touch it. No `rel_` prefix: it isn't
+>   rebuilt per release — the `release` column marks stale rows after a cut-over.
+> - **Blocker = write access.** The BE uses read-only `k8sprotvarro` everywhere and public reads a Delphix
+>   copy. Ask DB team (Sri): DML grant on just this table (or a small rw role). Create + grant on **prod**
+>   so every Delphix refresh brings the empty table and the grant; refresh wiping rows is fine (rebuilt from
+>   Redis). Note int's BE points at prod, so int would write to prod.
+> - **Open:** row unit (input that has a match vs each matching expanded row); cap = full-download cap.
+> - **Fallback if no write access:** temporary in-memory filtering capped at ~10k inputs.
 
 Concrete target design, derived from `mapping_current_state.md`. One source-agnostic pipeline that produces
 the **same** `PagedMappingResponse` the FE already consumes, but with filtering as a reusable predicate over a
