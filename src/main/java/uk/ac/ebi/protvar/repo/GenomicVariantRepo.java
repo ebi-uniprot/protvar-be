@@ -20,6 +20,7 @@ import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.types.*;
+import uk.ac.ebi.protvar.exception.QueryTooBroadException;
 import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
 import java.util.*;
@@ -53,6 +54,9 @@ public class GenomicVariantRepo {
      * Prev/Next-only pagination. The data fetch itself is unaffected.
      */
     private static final int COUNT_TIMEOUT_SECONDS = 3;
+    private static final int PAGE_TIMEOUT_SECONDS = 20;
+    static final String PAGE_TIMEOUT_MESSAGE = "This filter combination is too slow to browse. "
+            + "Add an identifier (protein, gene, …) or a more selective primary filter.";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -72,6 +76,8 @@ public class GenomicVariantRepo {
     @Value("${tbl.interfaces}") private String interactionTable;
     @Value("${tbl.foldx}") private String foldxTable;
     @Value("${tbl.mapping.dbsnp}") private String dbsnpLookupTable;
+    @Value("${tbl.ann.fun.feature}") private String functionFeatureTable;
+    @Value("${tbl.ann.pop}") private String populationTable;
 
     // ========================================================================
     // MAIN ENTRY POINT
@@ -243,7 +249,12 @@ public class GenomicVariantRepo {
         parameters.addValue("pageSize", pageable.getPageSize());
         parameters.addValue("offset", pageable.getOffset());
 
-        List<VariantInput> variants = jdbcTemplate.query(query.toString(), parameters,
+        // Downloads run async and may take long; interactive pages get a time budget so a slow filter
+        // combination fails fast with a clear message instead of a gateway 500 and a query left running.
+        NamedParameterJdbcTemplate pageTemplate = isDownload ? jdbcTemplate : withTimeout(PAGE_TIMEOUT_SECONDS);
+        List<VariantInput> variants;
+        try {
+            variants = pageTemplate.query(query.toString(), parameters,
                 (rs, rowNum) -> {
                     String chr = rs.getString("chromosome");
                     int pos = rs.getInt("genomic_position");
@@ -254,6 +265,11 @@ public class GenomicVariantRepo {
                             chr, pos, ref, alt
                     );
                 });
+        } catch (DataAccessException e) {
+            if (!isStatementCancelled(e)) throw e;
+            LOGGER.info("Filter-only page query exceeded {}s timeout", PAGE_TIMEOUT_SECONDS);
+            throw new QueryTooBroadException(PAGE_TIMEOUT_MESSAGE);
+        }
 
         if (isDownload) {
             return new PageImpl<>(variants);
@@ -286,10 +302,23 @@ public class GenomicVariantRepo {
      * DataAccessException) when the timeout fires.
      */
     private long countWithTimeout(String sql, MapSqlParameterSource params, int timeoutSeconds) {
+        return withTimeout(timeoutSeconds).queryForObject(sql, params, Long.class);
+    }
+
+    /** Postgres reports a statement timeout (and a cancel) as SQLState 57014; Spring's translation varies. */
+    private static boolean isStatementCancelled(DataAccessException e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof java.sql.SQLException sql && "57014".equals(sql.getSQLState())) return true;
+        }
+        return false;
+    }
+
+    /** A template over the same DataSource whose statements time out after {@code seconds}. */
+    private NamedParameterJdbcTemplate withTimeout(int seconds) {
         org.springframework.jdbc.core.JdbcTemplate scoped =
                 new org.springframework.jdbc.core.JdbcTemplate(jdbcTemplate.getJdbcTemplate().getDataSource());
-        scoped.setQueryTimeout(timeoutSeconds);
-        return new NamedParameterJdbcTemplate(scoped).queryForObject(sql, params, Long.class);
+        scoped.setQueryTimeout(seconds);
+        return new NamedParameterJdbcTemplate(scoped);
     }
 
     // ========================================================================
@@ -1048,6 +1077,39 @@ public class GenomicVariantRepo {
                     sql.append("AND f.foldx_ddg < 2\n");
                 }
             }
+        }
+
+        // Residue-level refinements, same semantics as MappingRepo (identifier browse): one EXISTS per
+        // selected feature group (AND across groups, OR within; DISULFID matches its two endpoints only),
+        // and "has a disease-associated variant" at the residue. Previously missing here, so filter-only
+        // browse silently ignored them.
+        Map<String, FeatureGroup> featureGroups = new LinkedHashMap<>();
+        if (Boolean.TRUE.equals(request.getPtm()))      featureGroups.put("ptmTypes", FeatureGroup.PTM);
+        if (Boolean.TRUE.equals(request.getMutagen()))  featureGroups.put("mutagenTypes", FeatureGroup.MUTAGENESIS);
+        if (Boolean.TRUE.equals(request.getDomain()))   featureGroups.put("domainTypes", FeatureGroup.DOMAIN);
+        if (Boolean.TRUE.equals(request.getBinding()))  featureGroups.put("bindingTypes", FeatureGroup.BINDING_SITE);
+        if (Boolean.TRUE.equals(request.getActsite()))  featureGroups.put("actsiteTypes", FeatureGroup.ACTIVE_SITE);
+        if (Boolean.TRUE.equals(request.getTransmem())) featureGroups.put("transmemTypes", FeatureGroup.TRANSMEMBRANE);
+        for (Map.Entry<String, FeatureGroup> e : featureGroups.entrySet()) {
+            sql.append("""
+                AND EXISTS (
+                  SELECT 1 FROM %s ff
+                  WHERE ff.accession = m.accession
+                    AND ff.type IN (:%s)
+                    AND ((ff.type <> 'DISULFID' AND m.protein_position BETWEEN ff.begin_pos AND ff.end_pos)
+                      OR (ff.type =  'DISULFID' AND m.protein_position IN (ff.begin_pos, ff.end_pos)))
+                )
+                """.formatted(functionFeatureTable, e.getKey()));
+            parameters.addValue(e.getKey(), e.getValue().getFeatureTypeNames());
+        }
+
+        if (Boolean.TRUE.equals(request.getDiseaseAssociation())) {
+            sql.append("""
+                AND EXISTS (
+                  SELECT 1 FROM %s pop
+                  WHERE pop.accession = m.accession AND pop.position = m.protein_position AND pop.disease IS TRUE
+                )
+                """.formatted(populationTable));
         }
     }
 

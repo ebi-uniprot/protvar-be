@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import org.springframework.http.HttpStatus;
+import uk.ac.ebi.protvar.exception.QueryTooBroadException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,6 +25,12 @@ public class ValidationExceptionHandler {
      * or JsonMappingException) and returns a clear error response. Includes the
      * list of valid values when the target is an enum.
      */
+    /** A browse query that ran out of time — same 400 {"error"} shape the FE shows for other query errors. */
+    @ExceptionHandler(QueryTooBroadException.class)
+    public ResponseEntity<Map<String, Object>> handleQueryTooBroad(QueryTooBroadException ex) {
+        return new ResponseEntity<>(Map.of("error", ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> handleInvalidFormat(HttpMessageNotReadableException ex) {
         Throwable cause = ex.getCause();
