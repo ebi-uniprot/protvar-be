@@ -27,6 +27,15 @@
 >   Redis). Note int's BE points at prod, so int would write to prod.
 > - **Open:** row unit (input that has a match vs each matching expanded row); cap = full-download cap.
 > - **Fallback if no write access:** temporary in-memory filtering capped at ~10k inputs.
+>
+> **BUILT 2026-10-27 (branch `upload-filter`)** — `UploadVariantRepo` + `UploadFilterService`. DB team made
+> `protvar_runtime` owned by k8sprotvarro on prod; the BE creates `upload` + `upload_variant` (both UNLOGGED,
+> so a Delphix snapshot empties them together) at startup. Row = derived genomic variant × alt × gene lead
+> accession (canonical, else first isoform), tagged with the input line number; unmapped variants get no row.
+> Filters = EXISTS per table on the row's own key; a line passes if any row does and shows only passing
+> variants; sort = line's best row. Builds ≤5k lines in-request, larger in the background with
+> `preparing` (0–99) on the response; claim via the unique key (stale heartbeat 10 min ⇒ takeover); unused
+> builds dropped after 7 days. Not yet: downloads of a filtered upload (still export everything), FE.
 
 Concrete target design, derived from `mapping_current_state.md`. One source-agnostic pipeline that produces
 the **same** `PagedMappingResponse` the FE already consumes, but with filtering as a reusable predicate over a

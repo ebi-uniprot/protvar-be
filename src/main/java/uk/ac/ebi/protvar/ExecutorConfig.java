@@ -27,4 +27,16 @@ public class ExecutorConfig {
         executor.initialize();
         return executor;
     }
+
+    @Bean
+    public AsyncTaskExecutor uploadFilterExecutor() {
+        // background builds of large uploads for filter/sort (UploadFilterService)
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(20);
+        executor.setThreadNamePrefix("upload-filter-");
+        executor.initialize();
+        return executor;
+    }
 }
