@@ -183,6 +183,31 @@ public enum Codon {
     }
 
     /**
+     * Genome (forward-strand DNA) reference base at {@code codonPosition} (1-based) of an RNA codon — the
+     * inverse of {@link #rnaBaseForStrand}. Reverse strand: complement (A→T, U→A, G→C, C→G); forward: U→T.
+     * Null if the codon/position can't give a base.
+     */
+    public static String genomicBase(String rnaCodon, int codonPosition, boolean reverseStrand) {
+        if (rnaCodon == null || rnaCodon.length() != 3 || codonPosition < 1 || codonPosition > 3)
+            return null;
+        char base = Character.toUpperCase(rnaCodon.charAt(codonPosition - 1));
+        if (reverseStrand) {
+            return switch (base) {
+                case 'A' -> "T";
+                case 'U', 'T' -> "A";
+                case 'G' -> "C";
+                case 'C' -> "G";
+                default -> null;
+            };
+        }
+        return switch (base) {
+            case 'U', 'T' -> "T";
+            case 'A', 'G', 'C' -> String.valueOf(base);
+            default -> null;
+        };
+    }
+
+    /**
      * Splices a genomic alt allele into the reference RNA codon at {@code codonPosition} (1-based),
      * applying strand orientation — the Java equivalent of the alt-codon CASE expression in the mapping
      * SQL. Returns null if the inputs can't form a valid RNA codon (mirrors a SQL LEFT JOIN codon_table miss).
