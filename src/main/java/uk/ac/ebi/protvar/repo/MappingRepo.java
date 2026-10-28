@@ -59,7 +59,7 @@ public class MappingRepo {
 			SELECT
 				chromosome, genomic_position, base_nucleotide,
 				accession, protein_position, amino_acid,
-				codon, codon_position, is_match, enst, enstv, ense
+				codon, codon_position, reverse_strand, is_match, enst, enstv, ense
 			FROM %s
 			INNER JOIN (VALUES :accPosList) as t(acc,pos)
 			ON t.acc=accession AND t.pos=protein_position
@@ -214,14 +214,21 @@ public class MappingRepo {
 		EnsemblTranscript transcript = ensemblTranscriptCache.get(accession, enst);
 		EnsemblGene gene = transcript != null ? ensemblGeneCache.get(transcript.getEnsg()) : null;
 
+		// Reference base from the codon, not base_nucleotide: on 2026_02 some reverse-strand rows store the
+		// complemented (transcript-strand) base and some none (~0.28% of rows, 457 accessions); the
+		// codon-derived base matches the genome (CADD reference). base_nucleotide only when no usable codon.
+		String codon = rs.getString("codon");
+		int codonPosition = rs.getInt("codon_position");
+		String ref = Codon.genomicBase(codon, codonPosition, rs.getBoolean("reverse_strand"));
+
 		return GenomeToProteinMapping.builder()
 				.chromosome(rs.getString("chromosome"))
 				.genomeLocation(rs.getInt("genomic_position"))
 				.isoformPosition(rs.getInt("protein_position"))
-				.baseNucleotide(rs.getString("base_nucleotide"))
+				.baseNucleotide(ref != null ? ref : rs.getString("base_nucleotide"))
 				.aa(rs.getString("amino_acid"))
-				.codon(rs.getString("codon"))
-				.codonPosition(rs.getInt("codon_position"))
+				.codon(codon)
+				.codonPosition(codonPosition)
 				.isValidRecord(rs.getBoolean("is_match"))
 				.accession(accession)
 				.enst(ensXVersion(enst, enstv))

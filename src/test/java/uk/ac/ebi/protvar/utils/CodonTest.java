@@ -24,6 +24,37 @@ public class CodonTest {
         assertEquals("G", Codon.rnaBaseForStrand("C", true));
     }
 
+    // genomicBase: genome reference base from the RNA codon (inverse of rnaBaseForStrand)
+    @Test
+    void testGenomicBase() {
+        // forward: U->T, others unchanged; position is 1-based; case-insensitive (codons store mixed case)
+        assertEquals("A", Codon.genomicBase("AUG", 1, false));
+        assertEquals("T", Codon.genomicBase("AUG", 2, false));
+        assertEquals("G", Codon.genomicBase("aUg", 3, false));
+        // reverse: complement back to the forward strand (A->T, U->A, G->C, C->G)
+        assertEquals("T", Codon.genomicBase("AUG", 1, true));
+        assertEquals("A", Codon.genomicBase("AUG", 2, true));
+        assertEquals("C", Codon.genomicBase("AUG", 3, true));
+        // real row: Q9NYP3 at 21:33579418, codon "Gua", codon_position 1, reverse strand -> genome C (CADD ref)
+        assertEquals("C", Codon.genomicBase("Gua", 1, true));
+        // round trip with rnaBaseForStrand, both strands, every base
+        for (String dna : new String[]{"A", "C", "G", "T"}) {
+            for (boolean reverse : new boolean[]{false, true}) {
+                String rna = Codon.rnaBaseForStrand(dna, reverse);
+                assertEquals(dna, Codon.genomicBase(rna + "AA", 1, reverse));
+            }
+        }
+    }
+
+    @Test
+    void testGenomicBaseNullSafe() {
+        assertNull(Codon.genomicBase(null, 1, false));
+        assertNull(Codon.genomicBase("AU", 1, false));
+        assertNull(Codon.genomicBase("AUG", 0, false));
+        assertNull(Codon.genomicBase("AUG", 4, true));
+        assertNull(Codon.genomicBase("NUG", 1, false));
+    }
+
     // altAA must match the SQL alt-codon CASE + codon_table lookup
     @Test
     void testAltAA() {
