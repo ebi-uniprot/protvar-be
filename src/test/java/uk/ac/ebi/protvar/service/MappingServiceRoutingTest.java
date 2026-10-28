@@ -17,7 +17,7 @@ class MappingServiceRoutingTest {
     private final GenomicVariantRepo legacy = mock(GenomicVariantRepo.class);
     private final CodingVariantRepo codingVariant = mock(CodingVariantRepo.class);
     private final MappingService service = new MappingService(mock(InputService.class), mock(UploadCacheService.class),
-            mock(MappingRepo.class), legacy, codingVariant, mock(InputMapper.class));
+            mock(MappingRepo.class), legacy, codingVariant, mock(InputMapper.class), mock(UploadFilterService.class));
 
     private MappingRequest filterOnlyRequest() {
         MappingRequest r = new MappingRequest();
