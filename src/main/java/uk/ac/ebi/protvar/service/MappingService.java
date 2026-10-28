@@ -44,6 +44,7 @@ public class MappingService {
     private final MappingRepo mappingRepo;
     private final GenomicVariantRepo genomicVariantRepo;
     private final InputMapper inputMapper;
+    private final UploadFilterService uploadFilterService;
 
     /**
      * Fetches a single page of {@link VariantInput} for the request, dispatching
@@ -179,11 +180,8 @@ public class MappingService {
      * and mapping/annotation enrichment.
      */
     public PagedMappingResponse get(MappingRequest request) {
-        Page<VariantInput> page = getInputs(request);
         boolean filterOnly = isFilterOnly(request);
         boolean multiFormat = isMultiFormat(request);
-
-        List<VariantInput> inputs = page.getContent();
 
         InputBuild build = null;
         if (isResultId(request)) {
@@ -194,7 +192,26 @@ public class MappingService {
             build = uploadCacheService.getBuild(request.getResultId());
         }
 
+        // filter/sort on an upload: page over the materialised upload (may still be preparing)
+        UploadFilterService.Result filtered = UploadFilterService.applies(request)
+                ? uploadFilterService.get(request, build) : null;
+        if (filtered != null && filtered.preparing() != null) {
+            return PagedMappingResponse.builder()
+                    .page(request.getPage())
+                    .pageSize(request.getPageSize())
+                    .assembly(request.getAssembly())
+                    .content(new MappingResponse(List.of()))
+                    .preparing(filtered.preparing())
+                    .build();
+        }
+
+        Page<VariantInput> page = filtered != null ? filtered.page() : getInputs(request);
+        List<VariantInput> inputs = page.getContent();
+
         MappingResponse mapping = inputMapper.getMapping(inputs, request.getAssembly(), build, multiFormat);
+        if (filtered != null && mapping != null) {
+            uploadFilterService.trim(inputs, filtered.passing());
+        }
 
         if (mapping != null && posRangeIgnored(request)) {
             mapping.getMessages().add(new Message(Message.MessageType.WARN,

@@ -42,7 +42,8 @@ public class MappingController {
 
     private static final String BROWSE_SUMMARY = "Browse and filter variants";
     private static final String BROWSE_DESC = "Browse by identifier (ids: UniProt, gene, PDB, Ensembl, RefSeq), or filter all variants. "
-            + "Filters (e.g. known, ptm, cadd, am) and sort apply to browse only, not to q or resultId.";
+            + "Filters (e.g. known, ptm, cadd, am) and sort apply to browse and to resultId, not to q. "
+            + "For resultId, a large upload is prepared first: the response has 'preparing' (0-99) until it is ready.";
 
     /**
      * Direct variant query: GET /mapping?q=19-1010539-G-C[&assembly=GRCh38]

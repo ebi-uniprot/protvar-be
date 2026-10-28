@@ -203,7 +203,7 @@ public class InputMapper {
 		});
 	}
 
-	private Set<String> resolveAltBases(VariantInput input, GenomicVariant genomicVariant, String mappingRef) {
+	public Set<String> resolveAltBases(VariantInput input, GenomicVariant genomicVariant, String mappingRef) {
 		String ref = genomicVariant.getRefBase();
 		String alt = genomicVariant.getAltBase();
 

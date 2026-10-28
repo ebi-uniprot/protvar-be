@@ -30,5 +30,11 @@ public class PagedMappingResponse {
 	private Long totalCap;
 
 	private boolean last;
+
+	/**
+	 * Set while an upload is being prepared for filter/sort: build progress 0–99. The client polls
+	 * the same request until it is null (content is empty meanwhile).
+	 */
+	private Integer preparing;
 	//private long ttl;
 }

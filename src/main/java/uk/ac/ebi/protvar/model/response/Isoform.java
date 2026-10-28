@@ -64,7 +64,7 @@ public class Isoform implements Comparable<Isoform> {
 	}
 
 	/** Natural accession order: base accession, then isoform suffix numerically (so -2 sorts before -10). */
-	private static int compareAccession(String a, String b) {
+	public static int compareAccession(String a, String b) {
 		if (a == null || b == null) return a == null ? (b == null ? 0 : -1) : 1;
 		String[] pa = a.split("-", 2), pb = b.split("-", 2);
 		int base = pa[0].compareTo(pb[0]);
