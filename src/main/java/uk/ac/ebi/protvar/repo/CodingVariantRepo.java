@@ -17,18 +17,23 @@ import uk.ac.ebi.protvar.constants.PageUtils;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.model.DownloadRequest;
+import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.types.AlleleFreqCategory;
 import uk.ac.ebi.protvar.types.AmClass;
 import uk.ac.ebi.protvar.types.CaddCategory;
+import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.types.PopEveClass;
 import uk.ac.ebi.protvar.types.StabilityChange;
+import uk.ac.ebi.protvar.utils.InputTypeResolver;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Filter/sort over the precomputed {@code rel_<R>_coding_variant} table: one row per mapped coding position ×
@@ -41,12 +46,19 @@ import java.util.Set;
  * <p>Score sorts show only variants that have that score ({@code <score> IS NOT NULL}), so the planner reads the
  * score's btree in order and stops after one page. The default order is (accession, protein_pos), served by
  * its index, which keeps pages stable and groups results per protein.
+ *
+ * <p>With {@code ids[]}, each identifier is resolved to its mapped genomic positions on its own (one subquery
+ * per identifier, UNIONed: OR-ing the conditions made Postgres scan the whole mapping table), and the table is
+ * joined on those positions. Every lead at a matched position is kept (not only canonical), so an isoform or
+ * transcript identifier still finds positions that only its own protein covers. The count is exact, since the
+ * identifiers bound the result.
  */
 @Repository
 @RequiredArgsConstructor
 public class CodingVariantRepo {
     private static final Logger LOGGER = LoggerFactory.getLogger(CodingVariantRepo.class);
     private static final int COUNT_TIMEOUT_SECONDS = 3;
+    private static final Pattern ENSEMBL_ID = Pattern.compile("^(ENS[GTP])(\\d{11})(?:\\.(\\d+))?$", Pattern.CASE_INSENSITIVE);
 
     // request sort key → column
     private static final Map<String, String> SORT_COLUMNS = Map.of(
@@ -55,24 +67,45 @@ public class CodingVariantRepo {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Value("${tbl.coding.variant}") private String table;
+    @Value("${tbl.mapping.enriched}") private String mappingTable;
+    @Value("${tbl.uprefseq}") private String uniprotRefseqTable;
+    @Value("${tbl.ann.str}") private String structureTable;
+
+    /**
+     * Whether an {@code ids[]} request should use this table: any filter or score sort, or more than one
+     * identifier. A single identifier with no filter stays on MappingRepo (fast, and lists the identifier's own
+     * isoform order).
+     */
+    public boolean servesIds(MappingRequest request) {
+        return request.getIds().size() > 1
+                || (request.getSort() != null && SORT_COLUMNS.containsKey(request.getSort().toLowerCase()))
+                || !filters(request, new MapSqlParameterSource()).isEmpty();
+    }
 
     public Page<VariantInput> get(MappingRequest request, Pageable pageable) {
         if (pageable == null) pageable = PageRequest.of(0, PageUtils.DEFAULT_PAGE_SIZE);
         boolean isDownload = request instanceof DownloadRequest;
 
         MapSqlParameterSource params = new MapSqlParameterSource();
+        boolean byIds = request.getIds() != null && !request.getIds().isEmpty();
+        List<String> where = new ArrayList<>();
         // filter-only browse is canonical-only today; including non-canonical-only positions is an open
         // decision (design §8) and just drops this condition
-        List<String> where = new ArrayList<>(List.of("is_canonical"));
+        if (!byIds) where.add("is_canonical");
         where.addAll(filters(request, params));
 
         String sortColumn = request.getSort() == null ? null : SORT_COLUMNS.get(request.getSort().toLowerCase());
         if (sortColumn != null) where.add(sortColumn + " IS NOT NULL");
-        String from = "FROM " + table + "\nWHERE " + String.join("\n  AND ", where);
+        String from = "FROM " + table
+                + (byIds ? "\nJOIN (" + idPositions(request.getIds(), params) + ") ids"
+                           + " ON ids.id_chr = chromosome AND ids.id_pos = position" : "")
+                + (where.isEmpty() ? "" : "\nWHERE " + String.join("\n  AND ", where));
 
         long total = -1;
         if (!isDownload) {
-            String countSql = "SELECT count(*) FROM (SELECT 1 " + from + " LIMIT " + (GenomicVariantRepo.COUNT_CAP + 1) + ") c";
+            String countSql = byIds
+                    ? "SELECT count(*) " + from
+                    : "SELECT count(*) FROM (SELECT 1 " + from + " LIMIT " + (GenomicVariantRepo.COUNT_CAP + 1) + ") c";
             try {
                 total = withTimeout(COUNT_TIMEOUT_SECONDS).queryForObject(countSql, params, Long.class);
             } catch (DataAccessException e) {
@@ -199,6 +232,53 @@ public class CodingVariantRepo {
         if (Boolean.TRUE.equals(r.getActsite())) c.add("actsite");
         if (Boolean.TRUE.equals(r.getTransmem())) c.add("transmem");
         return c;
+    }
+
+    /**
+     * The mapped genomic positions of the identifiers, as {@code (id_chr, id_pos)}: one SELECT DISTINCT per
+     * identifier on the enriched mapping view (which has a row per transcript), UNIONed. Same matching as
+     * MappingRepo's single identifier conditions; an identifier that can't match (bad Ensembl format, unknown
+     * type) adds no positions.
+     */
+    String idPositions(List<Identifier> ids, MapSqlParameterSource params) {
+        List<String> selects = new ArrayList<>();
+        for (int i = 0; i < ids.size(); i++) {
+            Identifier id = ids.get(i);
+            if (id.type() == null || id.value() == null || id.value().isBlank()) continue;
+            String p = "id" + i, value = id.value().trim();
+            String cond = switch (id.type()) {
+                case UNIPROT -> "m.accession = :" + p;
+                case GENE -> "m.gene_name = :" + p;
+                case REFSEQ -> {
+                    Matcher rm = InputTypeResolver.REFSEQ_REGEX.matcher(value);
+                    yield "m.accession IN (SELECT uniprot_acc FROM " + uniprotRefseqTable + " WHERE refseq_acc "
+                            + (rm.matches() && rm.group(2) != null ? "= :" + p : "ILIKE :" + p + " || '.%'") + ")";
+                }
+                case PDB -> "m.accession = s.accession AND "
+                        + StructureRepo.observedRegionsContain("s.observed_regions", "m.protein_position");
+                case ENSEMBL -> {
+                    Matcher em = ENSEMBL_ID.matcher(value);
+                    if (!em.matches()) yield null;
+                    String col = em.group(1).toLowerCase();   // ensg / enst / ensp
+                    value = em.group(1).toUpperCase() + em.group(2);
+                    // ensgv isn't on the enriched view: ENSG matches the base id only
+                    if (em.group(3) != null && !"ensg".equals(col)) {
+                        params.addValue(p + "v", em.group(3));
+                        yield "m." + col + " = :" + p + " AND m." + col + "v = :" + p + "v";
+                    }
+                    yield "m." + col + " = :" + p;
+                }
+            };
+            if (cond == null) continue;
+            params.addValue(p, value);
+            selects.add("SELECT DISTINCT m.chromosome AS id_chr, m.genomic_position AS id_pos FROM " + mappingTable + " m"
+                    + (id.type() == IdentifierType.PDB
+                       ? " JOIN (SELECT DISTINCT accession, observed_regions FROM " + structureTable
+                         + " WHERE pdb_id = LOWER(:" + p + ")) s ON true" : "")
+                    + " WHERE " + cond);
+        }
+        if (selects.isEmpty()) return "SELECT NULL::text AS id_chr, NULL::int AS id_pos WHERE false";
+        return String.join("\nUNION ", selects);
     }
 
     private static boolean notEmpty(List<?> l) {

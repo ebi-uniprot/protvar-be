@@ -61,7 +61,9 @@ public class MappingService {
      *   ─────────────────     ────────────────────────      ──────────────────────
      *   q=…                   inline VariantParser          exact (always 1)
      *   resultId=…            UploadCacheService            exact (cached input size)
-     *   ids[]=…               MappingRepo                   exact
+     *   ids[]=…               MappingRepo, or               exact
+     *                         CodingVariantRepo when it
+     *                         filters, sorts or has >1 id
      *   (none — filter-only)  GenomicVariantRepo            best-effort:
      *                                                       • exact when result count
      *                                                         is small
@@ -84,7 +86,7 @@ public class MappingService {
         }
         if (hasIds(request)) {
             Pageable pageable = PageRequest.of(request.getPage() - 1, request.getPageSize());
-            return mappingRepo.getGenomicVariantsForInput(request, pageable);
+            return idsPage(request, pageable);
         }
         if (hasQ(request)) {
             return new PageImpl<>(
@@ -106,7 +108,7 @@ public class MappingService {
      * <ul>
      *   <li>{@code 1} for {@code q} (always a single variant)</li>
      *   <li>cached upload size for {@code resultId} — exact, O(1)</li>
-     *   <li>exact count from {@link MappingRepo} for {@code ids[]}</li>
+     *   <li>exact count for {@code ids[]} (MappingRepo, or CodingVariantRepo when it serves the request)</li>
      *   <li>For filter-only: exact when ≤ {@link GenomicVariantRepo#COUNT_CAP},
      *       {@code COUNT_CAP+1} when the bounded COUNT short-circuits (i.e.
      *       result set exceeds the cap), {@code -1} when COUNT timed out</li>
@@ -121,7 +123,7 @@ public class MappingService {
             return cached == null ? 0L : cached.size();
         }
         if (hasIds(request)) {
-            return mappingRepo.getGenomicVariantsForInput(request, PageRequest.of(0, 1)).getTotalElements();
+            return idsPage(request, PageRequest.of(0, 1)).getTotalElements();
         }
         // filter-only
         return filterOnlyPage(request, PageRequest.of(0, 1)).getTotalElements();
@@ -138,7 +140,7 @@ public class MappingService {
         }
         if (hasIds(request)) {
             return Stream.iterate(0, page -> page + 1)
-                    .map(page -> mappingRepo.getGenomicVariantsForInput(request, PageRequest.of(page, chunkSize)).getContent())
+                    .map(page -> idsPage(request, PageRequest.of(page, chunkSize)).getContent())
                     .takeWhile(batch -> !batch.isEmpty());
         }
         if (hasQ(request)) {
@@ -260,6 +262,16 @@ public class MappingService {
                     .assembly(request.getAssembly())
                     .content(mapping)
                     .build();
+    }
+
+    /**
+     * Identifier browse: the coding_variant table when enabled and the request filters, sorts by a score or has
+     * several identifiers; otherwise MappingRepo (single identifier, no filter).
+     */
+    private Page<VariantInput> idsPage(MappingRequest request, Pageable pageable) {
+        return filterOnCodingVariant && codingVariantRepo.servesIds(request)
+                ? codingVariantRepo.get(request, pageable)
+                : mappingRepo.getGenomicVariantsForInput(request, pageable);
     }
 
     /** Filter-only browse: the coding_variant table when enabled, else the legacy per-request SQL. */
