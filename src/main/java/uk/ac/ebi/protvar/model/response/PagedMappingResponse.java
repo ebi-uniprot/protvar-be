@@ -36,5 +36,11 @@ public class PagedMappingResponse {
 	 * the same request until it is null (content is empty meanwhile).
 	 */
 	private Integer preparing;
+
+	/**
+	 * Uploaded result only: how many inputs the upload has in total, whatever the filters. With filters on,
+	 * totalItems counts the matching inputs, so the client can show "N of totalInputs".
+	 */
+	private Long totalInputs;
 	//private long ttl;
 }

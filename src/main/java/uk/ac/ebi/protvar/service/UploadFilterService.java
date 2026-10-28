@@ -12,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.dao.DataAccessException;
 import uk.ac.ebi.protvar.cache.InputBuild;
+import uk.ac.ebi.protvar.exception.QueryTooBroadException;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.input.GenomicVariant;
 import uk.ac.ebi.protvar.input.VariantInput;
@@ -109,13 +111,32 @@ public class UploadFilterService {
 
         uploadVariantRepo.touch(u.key());
         PageRequest pageable = PageRequest.of(request.getPage() - 1, request.getPageSize());
-        long total = uploadVariantRepo.countLines(u.key(), request);
-        if (total == 0) return new Result(Page.empty(pageable), Set.of(), null);
-
-        List<Integer> pageLines = uploadVariantRepo.pageLines(u.key(), request, pageable.getOffset(), pageable.getPageSize());
-        Set<Passing> passing = new HashSet<>(uploadVariantRepo.passingRows(u.key(), request, pageLines));
+        long total;
+        List<Integer> pageLines;
+        Set<Passing> passing;
+        try {
+            total = uploadVariantRepo.countLines(u.key(), request);
+            if (total == 0) return new Result(Page.empty(pageable), Set.of(), null);
+            pageLines = uploadVariantRepo.pageLines(u.key(), request, pageable.getOffset(), pageable.getPageSize());
+            passing = new HashSet<>(uploadVariantRepo.passingRows(u.key(), request, pageLines));
+        } catch (DataAccessException e) {
+            if (!isStatementCancelled(e)) throw e;
+            LOGGER.info("Upload filter query for {} exceeded {}s", uploadId, UploadVariantRepo.FILTER_TIMEOUT_SECONDS);
+            throw new QueryTooBroadException(FILTER_TIMEOUT_MESSAGE);
+        }
         List<VariantInput> inputs = pageLines.stream().map(idx -> parse(lines, idx)).toList();
         return new Result(new PageImpl<>(inputs, pageable, total), passing, null);
+    }
+
+    static final String FILTER_TIMEOUT_MESSAGE = "These filters took too long on this upload. "
+            + "Please try again in a moment, or use fewer filters.";
+
+    /** Postgres reports a statement timeout (and a cancel) as SQLState 57014. */
+    private static boolean isStatementCancelled(DataAccessException e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof java.sql.SQLException sql && "57014".equals(sql.getSQLState())) return true;
+        }
+        return false;
     }
 
     private static boolean needsBuild(Upload u) {

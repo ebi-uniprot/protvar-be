@@ -30,14 +30,14 @@ public class InputSummary {
         if (nonZeroInputs.size() == 1) {
             // Only one type of input
             VariantType onlyInputType = nonZeroInputs.get(0).getKey();
-            return String.format("%d %s input%s", totalCount, onlyInputType.getName(), pluralSuffix);
+            return String.format("%,d %s input%s", totalCount, onlyInputType.getName(), pluralSuffix);
         } else {
             // Multiple input types
             String breakdown = nonZeroInputs.stream()
-                    .map(entry -> String.format("%d %s", entry.getValue(), entry.getKey().getName()))
+                    .map(entry -> String.format("%,d %s", entry.getValue(), entry.getKey().getName()))
                     .collect(Collectors.joining(", "));
 
-            return String.format("%d user input%s (%s)", totalCount, pluralSuffix, breakdown);
+            return String.format("%,d user input%s (%s)", totalCount, pluralSuffix, breakdown);
         }
     }
 }

@@ -224,7 +224,7 @@ public class UploadVariantRepo {
         var params = new MapSqlParameterSource("k", key);
         String sql = "SELECT count(DISTINCT uv.input_idx) FROM protvar_runtime.upload_variant uv\n"
                 + where(request, params);
-        return jdbcTemplate.queryForObject(sql, params, Long.class);
+        return withFilterTimeout().queryForObject(sql, params, Long.class);
     }
 
     /** One page of passing input line numbers, in sort order (input order when unsorted). */
@@ -244,7 +244,7 @@ public class UploadVariantRepo {
                     + "ORDER BY " + (asc ? "min(s) ASC" : "max(s) DESC") + " NULLS LAST, input_idx\n"
                     + "LIMIT :limit OFFSET :offset";
         }
-        return jdbcTemplate.queryForList(sql, params, Integer.class);
+        return withFilterTimeout().queryForList(sql, params, Integer.class);
     }
 
     /** The passing rows of the given lines. */
@@ -254,8 +254,21 @@ public class UploadVariantRepo {
         String sql = "SELECT uv.input_idx, uv.chromosome, uv.position, uv.alt, uv.accession\n"
                 + "FROM protvar_runtime.upload_variant uv\n"
                 + where(request, params) + "\nAND uv.input_idx = ANY(:lines)";
-        return jdbcTemplate.query(sql, params, (rs, i) -> new Passing(rs.getInt("input_idx"),
+        return withFilterTimeout().query(sql, params, (rs, i) -> new Passing(rs.getInt("input_idx"),
                 rs.getString("chromosome"), rs.getInt("position"), rs.getString("alt"), rs.getString("accession")));
+    }
+
+    /**
+     * Filter queries get a time budget (as browse's page query does) so a slow one fails with a clear message
+     * instead of running past the gateway's ~60 s and surfacing as a 500.
+     */
+    public static final int FILTER_TIMEOUT_SECONDS = 20;
+
+    private NamedParameterJdbcTemplate withFilterTimeout() {
+        org.springframework.jdbc.core.JdbcTemplate scoped =
+                new org.springframework.jdbc.core.JdbcTemplate(jdbcTemplate.getJdbcTemplate().getDataSource());
+        scoped.setQueryTimeout(FILTER_TIMEOUT_SECONDS);
+        return new NamedParameterJdbcTemplate(scoped);
     }
 
     /** True when the request filters or sorts (i.e. needs the materialised upload). */

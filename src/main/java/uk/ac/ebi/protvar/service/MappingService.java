@@ -236,7 +236,7 @@ public class MappingService {
             InputSummary inputSummary = uploadCacheService.getSummary(request.getResultId());
             String summaryText = (inputSummary != null)
                     ? inputSummary.toString()
-                    : String.format("%d user input%s", inputs.size(), FetcherUtils.pluralise(inputs.size()));
+                    : String.format("%,d user input%s", inputs.size(), FetcherUtils.pluralise(inputs.size()));
 
             messages.add(0, new Message(Message.MessageType.INFO, summaryText));
         }
@@ -247,10 +247,13 @@ public class MappingService {
             messages.add(new Message(Message.MessageType.WARN, GRCH37_CONVERT_HINT));
         }
 
+        InputSummary uploadSummary = isResultId(request) ? uploadCacheService.getSummary(request.getResultId()) : null;
+
         return PagedMappingResponse.builder()
                     .page(request.getPage())
                     .pageSize(page.getSize())
                     .totalItems(page.getTotalElements())
+                    .totalInputs(uploadSummary != null ? (long) uploadSummary.getTotalCount() : null)
                     .totalPages(page.getTotalPages())
                     .totalCap(filterOnly ? (long) GenomicVariantRepo.COUNT_CAP : null)
                     .last(page.isLast())
