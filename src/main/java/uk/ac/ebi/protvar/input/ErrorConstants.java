@@ -61,6 +61,7 @@ public enum ErrorConstants {
 
     HGVS_UNIPROT_ACC_NOT_FOUND("", "We mapped %s to %s but the accession cannot be found in UniProt. "),
     PROT_UNIPROT_ACC_NOT_FOUND("", "%s is not a human UniProt accession. "),
+    PROT_UNIPROT_ACC_NOT_MAPPED("", "%s is a human UniProt accession but has no genomic mapping in ProtVar. "),
 
     PROT_NO_GEN_MAPPING("", "Could not map protein input to genomic coordinate(s). "),
     CDNA_NO_GEN_MAPPING("", "Could not map cDNA input to genomic coordinate(s). "),

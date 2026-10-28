@@ -76,7 +76,11 @@ public class Pro2Gen {
                         }
                     }
                     if (!proteinCache.isMapped(hgvsProt.getAccession())) {
-                        hgvsProt.addWarning(
+                        if (uniprotAccessionCache.isKnown(hgvsProt.getAccession()))
+                            hgvsProt.addWarning(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED.getErrorMessage(),
+                                    hgvsProt.getAccession()));
+                        else
+                            hgvsProt.addWarning(
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage(),
                                         hgvsProt.getRefseqId(), hgvsProt.getAccession()));
                     }
@@ -89,7 +93,9 @@ public class Pro2Gen {
                 uniqueAccPos.add(new AccessionPosition(internalProt.getAccession(), internalProt.getPosition()));
 
                 if (!proteinCache.isMapped(internalProt.getAccession())) {
-                    internalProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND.toString(), internalProt.getAccession()));
+                    ErrorConstants error = uniprotAccessionCache.isKnown(internalProt.getAccession())
+                            ? ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED : ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND;
+                    internalProt.addError(String.format(error.toString(), internalProt.getAccession()));
                 }
 
             } else if (input.getFormat() == VariantFormat.HGVS_CODING) {
@@ -99,10 +105,15 @@ public class Pro2Gen {
                         ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
                             codingInput.getDerivedUniprotAcc()));*/
 
-                    if (!proteinCache.isMapped(codingInput.getDerivedUniprotAcc()))
-                        codingInput.addWarning(
+                    if (!proteinCache.isMapped(codingInput.getDerivedUniprotAcc())) {
+                        if (uniprotAccessionCache.isKnown(codingInput.getDerivedUniprotAcc()))
+                            codingInput.addWarning(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED.getErrorMessage(),
+                                    codingInput.getDerivedUniprotAcc()));
+                        else
+                            codingInput.addWarning(
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
                                         , codingInput.getRefseqId(), codingInput.getDerivedUniprotAcc()));
+                    }
                     if (codingInput.getDerivedProtPos() != null)
                         uniqueAccPos.add(new AccessionPosition(codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos()));
                 }
