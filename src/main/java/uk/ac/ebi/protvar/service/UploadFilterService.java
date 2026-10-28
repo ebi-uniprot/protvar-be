@@ -253,8 +253,10 @@ public class UploadFilterService {
         return b != null && b.length() == 1 && "ACGTacgt".contains(b);
     }
 
-    private static final Comparator<GenomeToProteinMapping> LEAD_ORDER =
+    // same lead rule as Isoform.compareTo and the coding_variant table: canonical, then -N (reviewed) isoforms, then rest
+    static final Comparator<GenomeToProteinMapping> LEAD_ORDER =
             Comparator.comparing((GenomeToProteinMapping m) -> !m.isCanonical())
+                    .thenComparing(m -> !Isoform.isReviewedIsoform(m.getAccession()))
                     .thenComparing(GenomeToProteinMapping::getAccession, Isoform::compareAccession);
 
     @Scheduled(cron = "0 30 3 * * *")

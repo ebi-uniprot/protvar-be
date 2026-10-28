@@ -70,7 +70,7 @@ public class Isoform implements Comparable<Isoform> {
 		return compareAccession(this.accession, o.accession);   // then natural accession order
 	}
 
-	private static boolean isReviewedIsoform(String accession) {
+	public static boolean isReviewedIsoform(String accession) {
 		return accession != null && accession.matches(".*-\\d+");
 	}
 
