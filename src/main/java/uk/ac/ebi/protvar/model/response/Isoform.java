@@ -56,11 +56,22 @@ public class Isoform implements Comparable<Isoform> {
 	public String getVariantAA() {
 		return upperFirstRemainingLower(variantAA);
 	}
+	/**
+	 * Lead order: canonical, then isoforms of reviewed entries (a -N suffix: only Swiss-Prot entries have
+	 * isoforms), then the rest (unreviewed); natural accession order within each. The first isoform leads the
+	 * result row, and the coding_variant table picks its lead accession by the same rule.
+	 */
 	@Override
 	public int compareTo(Isoform o) {
 		int c = Boolean.compare(o.canonical, this.canonical);   // canonical first
 		if (c != 0) return c;
+		c = Boolean.compare(isReviewedIsoform(o.accession), isReviewedIsoform(this.accession));
+		if (c != 0) return c;
 		return compareAccession(this.accession, o.accession);   // then natural accession order
+	}
+
+	private static boolean isReviewedIsoform(String accession) {
+		return accession != null && accession.matches(".*-\\d+");
 	}
 
 	/** Natural accession order: base accession, then isoform suffix numerically (so -2 sorts before -10). */
