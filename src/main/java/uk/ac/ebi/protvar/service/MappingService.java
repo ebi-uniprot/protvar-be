@@ -4,6 +4,7 @@ import com.google.common.collect.Iterables;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +20,7 @@ import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
+import uk.ac.ebi.protvar.repo.CodingVariantRepo;
 import uk.ac.ebi.protvar.repo.GenomicVariantRepo;
 import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.types.Assembly;
@@ -43,7 +45,11 @@ public class MappingService {
     private final UploadCacheService uploadCacheService;
     private final MappingRepo mappingRepo;
     private final GenomicVariantRepo genomicVariantRepo;
+    private final CodingVariantRepo codingVariantRepo;
     private final InputMapper inputMapper;
+
+    @Value("${app.filter.coding-variant:false}")
+    private boolean filterOnCodingVariant;
 
     /**
      * Fetches a single page of {@link VariantInput} for the request, dispatching
@@ -86,9 +92,9 @@ public class MappingService {
                     1
             );
         }
-        // filter-only browse — routed through GenomicVariantRepo for query optimisation
+        // filter-only browse — coding_variant table or legacy GenomicVariantRepo (app.filter.coding-variant)
         Pageable pageable = PageRequest.of(request.getPage() - 1, request.getPageSize());
-        return genomicVariantRepo.get(request, pageable);
+        return filterOnlyPage(request, pageable);
     }
 
     /**
@@ -117,7 +123,7 @@ public class MappingService {
             return mappingRepo.getGenomicVariantsForInput(request, PageRequest.of(0, 1)).getTotalElements();
         }
         // filter-only
-        return genomicVariantRepo.get(request, PageRequest.of(0, 1)).getTotalElements();
+        return filterOnlyPage(request, PageRequest.of(0, 1)).getTotalElements();
     }
 
     /**
@@ -139,7 +145,7 @@ public class MappingService {
         }
         // filter-only
         return Stream.iterate(0, page -> page + 1)
-                .map(page -> genomicVariantRepo.get(request, PageRequest.of(page, chunkSize)).getContent())
+                .map(page -> filterOnlyPage(request, PageRequest.of(page, chunkSize)).getContent())
                 .takeWhile(batch -> !batch.isEmpty());
     }
 
@@ -234,6 +240,13 @@ public class MappingService {
                     .assembly(request.getAssembly())
                     .content(mapping)
                     .build();
+    }
+
+    /** Filter-only browse: the coding_variant table when enabled, else the legacy per-request SQL. */
+    private Page<VariantInput> filterOnlyPage(MappingRequest request, Pageable pageable) {
+        return filterOnCodingVariant
+                ? codingVariantRepo.get(request, pageable)
+                : genomicVariantRepo.get(request, pageable);
     }
 
     private static boolean isResultId(MappingRequest request) {
