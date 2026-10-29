@@ -17,6 +17,7 @@ import uk.ac.ebi.protvar.types.PopEveClass;
 import uk.ac.ebi.protvar.types.StabilityChange;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,6 +36,11 @@ import java.util.Set;
  *
  * <p>Filters compile to EXISTS on each score/feature table's own key, so a variant passes on its own
  * row; a line passes if any of its rows does. Sort uses each line's best row (MAX desc / MIN asc).
+ *
+ * <p>With {@code app.filter.coding-variant}, a build instead copies its rows from the coding_variant table
+ * (every lead at each derived variant, with all filter/sort attributes), and filters are plain column
+ * conditions on upload_variant, the same ones CodingVariantRepo uses. Those builds carry a distinct release
+ * key ({@link #CV_SUFFIX}), so old-format builds are never read by the new path (rebuilt on demand).
  */
 @Repository
 @RequiredArgsConstructor
@@ -44,6 +50,13 @@ public class UploadVariantRepo {
     public static final String BUILDING = "BUILDING";
     public static final String READY = "READY";
     public static final String FAILED = "FAILED";
+    /** Release-key suffix of builds copied from coding_variant (fits upload.release varchar(10)). */
+    public static final String CV_SUFFIX = "-cv";
+
+    // coding_variant attributes copied into upload_variant (same names and types as the table)
+    private static final String CV_COLUMNS = "cadd, avi, am, am_class, popeve, esm1b, conservation, af, "
+            + "foldx_ddg_max, foldx_ddg_min, known, pocket, interface, exp_structure, disease, "
+            + "ptm, mutagen, domain, binding, actsite, transmem";
 
     private static final String DDL = """
             CREATE UNLOGGED TABLE IF NOT EXISTS protvar_runtime.upload (
@@ -72,10 +85,27 @@ public class UploadVariantRepo {
               mt_aa       varchar(1)
             );
             CREATE INDEX IF NOT EXISTS upload_variant_key_idx_idx ON protvar_runtime.upload_variant (upload_key, input_idx);
+            -- coding_variant attributes (null on old-format builds)
+            ALTER TABLE protvar_runtime.upload_variant
+              ALTER COLUMN protein_pos DROP NOT NULL,
+              ADD COLUMN IF NOT EXISTS cadd real, ADD COLUMN IF NOT EXISTS avi real,
+              ADD COLUMN IF NOT EXISTS am real, ADD COLUMN IF NOT EXISTS am_class smallint,
+              ADD COLUMN IF NOT EXISTS popeve real, ADD COLUMN IF NOT EXISTS esm1b real,
+              ADD COLUMN IF NOT EXISTS conservation real, ADD COLUMN IF NOT EXISTS af real,
+              ADD COLUMN IF NOT EXISTS foldx_ddg_max real, ADD COLUMN IF NOT EXISTS foldx_ddg_min real,
+              ADD COLUMN IF NOT EXISTS known boolean, ADD COLUMN IF NOT EXISTS pocket boolean,
+              ADD COLUMN IF NOT EXISTS interface boolean, ADD COLUMN IF NOT EXISTS exp_structure boolean,
+              ADD COLUMN IF NOT EXISTS disease boolean, ADD COLUMN IF NOT EXISTS ptm boolean,
+              ADD COLUMN IF NOT EXISTS mutagen boolean, ADD COLUMN IF NOT EXISTS domain boolean,
+              ADD COLUMN IF NOT EXISTS binding boolean, ADD COLUMN IF NOT EXISTS actsite boolean,
+              ADD COLUMN IF NOT EXISTS transmem boolean;
             """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final CodingVariantRepo codingVariantRepo;
 
+    @Value("${app.filter.coding-variant:false}") private boolean fromCodingVariant;
+    @Value("${tbl.coding.variant}") private String codingVariantTable;
     @Value("${tbl.genomic_score}") private String genomicScoreTable;
     @Value("${tbl.mapping.dbsnp}") private String dbsnpTable;
     @Value("${tbl.allelefreq}") private String alleleFreqTable;
@@ -207,6 +237,39 @@ public class UploadVariantRepo {
         jdbcTemplate.update(sql, params);
     }
 
+    /** Whether builds copy their rows from coding_variant (see the class comment). */
+    public boolean fromCodingVariant() {
+        return fromCodingVariant;
+    }
+
+    /**
+     * Inserts one chunk's derived variants with every coding_variant row at each: one per gene lead, with
+     * its attributes. Only the line number and (chromosome, position, ref, alt) of each Row are used; a
+     * variant not in the table (unmapped, or no reference base) adds no rows. Returns the rows inserted.
+     */
+    public int insertFromCodingVariant(int key, List<Row> rows) {
+        if (rows.isEmpty()) return 0;
+        // genomic order: neighbouring lookups reuse the same index and table pages (the table is in that order)
+        List<Row> variants = rows.stream()
+                .sorted(Comparator.comparing(Row::chromosome).thenComparingInt(Row::position)).toList();
+        String sql = """
+                INSERT INTO protvar_runtime.upload_variant
+                  (upload_key, input_idx, chromosome, position, ref, alt, accession, protein_pos, wt_aa, mt_aa, %1$s)
+                SELECT :k, u.idx, cv.chromosome, cv.position, cv.ref, cv.alt, cv.accession, cv.protein_pos,
+                       cv.wt_aa, cv.mt_aa, %2$s
+                FROM unnest(:idx::int[], :chr::varchar[], :pos::int[], :ref::varchar[], :alt::varchar[])
+                       AS u(idx, chr, pos, ref, alt)
+                JOIN %3$s cv ON cv.chromosome = u.chr AND cv.position = u.pos AND cv.ref = u.ref AND cv.alt = u.alt
+                """.formatted(CV_COLUMNS, "cv." + CV_COLUMNS.replace(", ", ", cv."), codingVariantTable);
+        var params = new MapSqlParameterSource("k", key)
+                .addValue("idx", variants.stream().map(Row::inputIdx).toArray(Integer[]::new))
+                .addValue("chr", variants.stream().map(Row::chromosome).toArray(String[]::new))
+                .addValue("pos", variants.stream().map(Row::position).toArray(Integer[]::new))
+                .addValue("ref", variants.stream().map(Row::ref).toArray(String[]::new))
+                .addValue("alt", variants.stream().map(Row::alt).toArray(String[]::new));
+        return jdbcTemplate.update(sql, params);
+    }
+
     /** Drops builds unused for {@code days}, and builds of other releases. Returns builds removed. */
     public int deleteExpired(int days, String currentRelease) {
         var params = new MapSqlParameterSource("days", days).addValue("rel", currentRelease);
@@ -301,6 +364,7 @@ public class UploadVariantRepo {
     private String sortExpr(MappingRequest request) {
         String key = sortExprKey(request);
         if (key == null) return null;
+        if (fromCodingVariant) return "uv." + key;   // copied column, same name as the sort key
         return switch (key) {
             case "cadd", "avi" -> """
                     (SELECT max(gs.%s) FROM %s gs WHERE gs.chromosome = uv.chromosome AND gs.position = uv.position
@@ -322,10 +386,17 @@ public class UploadVariantRepo {
         };
     }
 
-    /** WHERE clause: the upload key plus one EXISTS per active filter (AND across filters). */
-    private String where(MappingRequest request, MapSqlParameterSource params) {
+    /**
+     * WHERE clause: the upload key plus, per active filter (AND across filters), a column condition on the
+     * copied coding_variant attributes, or an EXISTS on the source table for old-format builds.
+     */
+    String where(MappingRequest request, MapSqlParameterSource params) {
         List<String> c = new ArrayList<>();
         c.add("uv.upload_key = :k");
+        if (fromCodingVariant) {
+            c.addAll(codingVariantRepo.filters(request, params));   // unqualified: upload_variant is the only table
+            return "WHERE " + String.join("\n  AND ", c);
+        }
 
         if (Boolean.TRUE.equals(request.getKnown())) {
             c.add("""

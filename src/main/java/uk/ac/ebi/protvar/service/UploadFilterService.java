@@ -79,9 +79,9 @@ public class UploadFilterService {
         if (lines == null || lines.isEmpty()) return new Result(Page.empty(), Set.of(), null);
 
         String assembly = request.getAssembly() == null ? "AUTO" : request.getAssembly();
-        Optional<Upload> upload = uploadVariantRepo.find(uploadId, assembly, release, STALE_MINUTES);
+        Optional<Upload> upload = uploadVariantRepo.find(uploadId, assembly, buildRelease(), STALE_MINUTES);
         if (upload.isEmpty() || needsBuild(upload.get())) {
-            Optional<Integer> key = uploadVariantRepo.claim(uploadId, assembly, release, lines.size(), STALE_MINUTES);
+            Optional<Integer> key = uploadVariantRepo.claim(uploadId, assembly, buildRelease(), lines.size(), STALE_MINUTES);
             if (key.isPresent()) {
                 if (lines.size() <= SYNC_MAX) {
                     build(key.get(), lines, assembly, build);
@@ -96,7 +96,7 @@ public class UploadFilterService {
                     return Result.preparing(0);
                 }
             }
-            upload = uploadVariantRepo.find(uploadId, assembly, release, STALE_MINUTES);
+            upload = uploadVariantRepo.find(uploadId, assembly, buildRelease(), STALE_MINUTES);
         }
 
         Upload u = upload.orElseThrow();
@@ -126,6 +126,11 @@ public class UploadFilterService {
         }
         List<VariantInput> inputs = pageLines.stream().map(idx -> parse(lines, idx)).toList();
         return new Result(new PageImpl<>(inputs, pageable, total), passing, null);
+    }
+
+    /** The build's release key: builds copied from coding_variant are kept apart from old-format ones. */
+    private String buildRelease() {
+        return uploadVariantRepo.fromCodingVariant() ? release + UploadVariantRepo.CV_SUFFIX : release;
     }
 
     static final String FILTER_TIMEOUT_MESSAGE = "These filters took too long on this upload. "
@@ -183,9 +188,13 @@ public class UploadFilterService {
                 List<VariantInput> chunk = new ArrayList<>(to - from);
                 for (int i = from; i < to; i++) chunk.add(parse(lines, i));
                 inputMapper.preprocess(chunk, assembly, build);
-                List<Row> out = toRows(chunk);
-                uploadVariantRepo.insert(key, out);
-                rows += out.size();
+                if (uploadVariantRepo.fromCodingVariant()) {
+                    rows += uploadVariantRepo.insertFromCodingVariant(key, toRows(chunk, false));
+                } else {
+                    List<Row> out = toRows(chunk, true);
+                    uploadVariantRepo.insert(key, out);
+                    rows += out.size();
+                }
                 uploadVariantRepo.progress(key, to);
             }
             uploadVariantRepo.finish(key, rows);
@@ -199,9 +208,11 @@ public class UploadFilterService {
 
     /**
      * One row per derived genomic variant × alt × gene, on the gene's lead accession (canonical, else the
-     * first isoform in natural accession order — the isoform the result list leads with).
+     * first isoform in natural accession order — the isoform the result list leads with). Without
+     * {@code leads}, one row per derived variant × alt only (no protein columns): coding_variant supplies
+     * the leads.
      */
-    private List<Row> toRows(List<VariantInput> chunk) {
+    private List<Row> toRows(List<VariantInput> chunk, boolean leads) {
         Set<List<Object>> chrPos = new HashSet<>();
         for (VariantInput input : chunk) {
             if (!input.isValid()) continue;
@@ -230,6 +241,13 @@ public class UploadFilterService {
                 String ref = mappings.get(0).getBaseNucleotide();
                 if (!isBase(ref)) continue;
                 Set<String> alts = inputMapper.resolveAltBases(input, gv, ref);
+                if (!leads) {
+                    for (String alt : alts) {
+                        if (isBase(alt)) rows.add(new Row(input.getOriginalIndex(), gv.getChromosome(),
+                                gv.getPosition(), ref.toUpperCase(), alt.toUpperCase(), null, 0, null, null));
+                    }
+                    continue;
+                }
 
                 Collection<List<GenomeToProteinMapping>> genes = mappings.stream()
                         .filter(m -> m.getAccession() != null)
@@ -262,7 +280,7 @@ public class UploadFilterService {
     @Scheduled(cron = "0 30 3 * * *")
     public void cleanUp() {
         try {
-            int removed = uploadVariantRepo.deleteExpired(KEEP_DAYS, release);
+            int removed = uploadVariantRepo.deleteExpired(KEEP_DAYS, buildRelease());
             if (removed > 0) LOGGER.info("Upload filter clean-up: removed {} builds", removed);
         } catch (Exception e) {
             LOGGER.warn("Upload filter clean-up failed: {}", e.getMessage());
