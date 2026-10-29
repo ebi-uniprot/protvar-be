@@ -28,7 +28,7 @@ class UploadVariantRepoTest {
         assertEquals("""
                 WHERE uv.upload_key = :k
                   AND known
-                  AND ((cadd >= :caddMin0 AND cadd < :caddMax0))
+                  AND ((cadd >= CAST(:caddMin0 AS real) AND cadd < CAST(:caddMax0 AS real)))
                   AND pocket""", repo.where(request(), p));
         assertEquals(30.0, p.getValue("caddMin0"));
     }

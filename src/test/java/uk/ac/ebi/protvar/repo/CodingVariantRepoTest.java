@@ -51,7 +51,7 @@ class CodingVariantRepoTest {
         MappingRequest r = new MappingRequest();
         r.setCadd(List.of(CaddCategory.PROBABLY_DELETERIOUS, CaddCategory.HIGHLY_LIKELY_DELETERIOUS));
         MapSqlParameterSource p = new MapSqlParameterSource();
-        assertEquals(List.of("((cadd >= :caddMin0 AND cadd < :caddMax0) OR (cadd >= :caddMin1 AND cadd < :caddMax1))"),
+        assertEquals(List.of("((cadd >= CAST(:caddMin0 AS real) AND cadd < CAST(:caddMax0 AS real)) OR (cadd >= CAST(:caddMin1 AS real) AND cadd < CAST(:caddMax1 AS real)))"),
                 filters(r, p));
         assertEquals(25.0, p.getValue("caddMin0"));
         assertEquals(30.0, p.getValue("caddMax0"));
@@ -63,7 +63,7 @@ class CodingVariantRepoTest {
         MappingRequest r = new MappingRequest();
         r.setPopeve(List.of(PopEveClass.SEVERE, PopEveClass.UNLIKELY_DELETERIOUS));
         MapSqlParameterSource p = new MapSqlParameterSource();
-        assertEquals(List.of("((popeve < :popeveMax0) OR (popeve >= :popeveMin1))"), filters(r, p));
+        assertEquals(List.of("((popeve < CAST(:popeveMax0 AS real)) OR (popeve >= CAST(:popeveMin1 AS real)))"), filters(r, p));
         assertEquals(-5.056, p.getValue("popeveMax0"));
         assertEquals(-4.617, p.getValue("popeveMin1"));
     }
@@ -83,8 +83,8 @@ class CodingVariantRepoTest {
         r.setAviMin(20.0); r.setEsm1bMin(-12.0); r.setEsm1bMax(-3.0);
         r.setConservationMin(0.8);
         r.setAlleleFreq(List.of(AlleleFreqCategory.RARE));
-        assertEquals(List.of("avi >= :aviMin", "esm1b >= :esm1bMin", "esm1b <= :esm1bMax",
-                "conservation >= :conservationMin", "((af >= :afMin0 AND af < :afMax0))"),
+        assertEquals(List.of("avi >= CAST(:aviMin AS real)", "esm1b >= CAST(:esm1bMin AS real)", "esm1b <= CAST(:esm1bMax AS real)",
+                "conservation >= CAST(:conservationMin AS real)", "((af >= CAST(:afMin0 AS real) AND af < CAST(:afMax0 AS real)))"),
                 filters(r, new MapSqlParameterSource()));
     }
 

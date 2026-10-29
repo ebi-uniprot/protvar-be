@@ -150,6 +150,8 @@ public class CodingVariantRepo {
      * One condition per active filter (AND across filters, OR within a band list), on the table's columns.
      * Same semantics as GenomicVariantRepo/MappingRepo: band lists are [min, max) ORs; popEVE bands may be
      * open-ended; stability means "any FoldX row" in either direction, hence max/min ΔΔG.
+     * Score bounds are cast to real like the columns, so a value exactly on a band edge (popEVE -5.056 is stored as
+     * -5.0560002) falls in the same band as on the source tables.
      */
     List<String> filters(MappingRequest r, MapSqlParameterSource params) {
         List<String> c = new ArrayList<>();
@@ -159,13 +161,13 @@ public class CodingVariantRepo {
             List<String> or = new ArrayList<>();
             for (int i = 0; i < r.getCadd().size(); i++) {
                 CaddCategory cat = r.getCadd().get(i);
-                or.add("(cadd >= :caddMin" + i + " AND cadd < :caddMax" + i + ")");
+                or.add("(cadd >= " + real("caddMin" + i) + " AND cadd < " + real("caddMax" + i) + ")");
                 params.addValue("caddMin" + i, cat.getMin()).addValue("caddMax" + i, cat.getMax());
             }
             c.add("(" + String.join(" OR ", or) + ")");
         }
         if (r.getAviMin() != null) {
-            c.add("avi >= :aviMin");
+            c.add("avi >= " + real("aviMin"));
             params.addValue("aviMin", r.getAviMin());
         }
         if (notEmpty(r.getAm())) {
@@ -177,39 +179,39 @@ public class CodingVariantRepo {
             for (int i = 0; i < r.getPopeve().size(); i++) {
                 PopEveClass cat = r.getPopeve().get(i);
                 if (Double.isInfinite(cat.getMin()) && cat.getMin() < 0) {
-                    or.add("(popeve < :popeveMax" + i + ")");
+                    or.add("(popeve < " + real("popeveMax" + i) + ")");
                     params.addValue("popeveMax" + i, cat.getMax());
                 } else if (Double.isInfinite(cat.getMax())) {
-                    or.add("(popeve >= :popeveMin" + i + ")");
+                    or.add("(popeve >= " + real("popeveMin" + i) + ")");
                     params.addValue("popeveMin" + i, cat.getMin());
                 } else {
-                    or.add("(popeve >= :popeveMin" + i + " AND popeve < :popeveMax" + i + ")");
+                    or.add("(popeve >= " + real("popeveMin" + i) + " AND popeve < " + real("popeveMax" + i) + ")");
                     params.addValue("popeveMin" + i, cat.getMin()).addValue("popeveMax" + i, cat.getMax());
                 }
             }
             c.add("(" + String.join(" OR ", or) + ")");
         }
         if (r.getEsm1bMin() != null) {
-            c.add("esm1b >= :esm1bMin");
+            c.add("esm1b >= " + real("esm1bMin"));
             params.addValue("esm1bMin", r.getEsm1bMin());
         }
         if (r.getEsm1bMax() != null) {
-            c.add("esm1b <= :esm1bMax");
+            c.add("esm1b <= " + real("esm1bMax"));
             params.addValue("esm1bMax", r.getEsm1bMax());
         }
         if (r.getConservationMin() != null) {
-            c.add("conservation >= :conservationMin");
+            c.add("conservation >= " + real("conservationMin"));
             params.addValue("conservationMin", r.getConservationMin());
         }
         if (r.getConservationMax() != null) {
-            c.add("conservation <= :conservationMax");
+            c.add("conservation <= " + real("conservationMax"));
             params.addValue("conservationMax", r.getConservationMax());
         }
         if (notEmpty(r.getAlleleFreq())) {
             List<String> or = new ArrayList<>();
             for (int i = 0; i < r.getAlleleFreq().size(); i++) {
                 AlleleFreqCategory cat = r.getAlleleFreq().get(i);
-                or.add("(af >= :afMin" + i + " AND af < :afMax" + i + ")");
+                or.add("(af >= " + real("afMin" + i) + " AND af < " + real("afMax" + i) + ")");
                 params.addValue("afMin" + i, cat.getMin()).addValue("afMax" + i, cat.getMax());
             }
             c.add("(" + String.join(" OR ", or) + ")");
@@ -232,6 +234,10 @@ public class CodingVariantRepo {
         if (Boolean.TRUE.equals(r.getActsite())) c.add("actsite");
         if (Boolean.TRUE.equals(r.getTransmem())) c.add("transmem");
         return c;
+    }
+
+    private static String real(String param) {
+        return "CAST(:" + param + " AS real)";
     }
 
     /**
