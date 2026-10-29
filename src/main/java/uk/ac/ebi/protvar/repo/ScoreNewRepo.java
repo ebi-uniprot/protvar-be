@@ -119,6 +119,20 @@ public class ScoreNewRepo {
         return jdbcTemplate.query(sql.toString(), params, amScoreMapper);
     }
 
+    /**
+     * The one RefSeq protein an accession's popEVE comes from: its MANE Select RefSeq if that has popEVE, else
+     * the lowest RefSeq accession that does. Same rule as the coding_variant build, so the shown score is the
+     * one filters and sorts use.
+     */
+    private String popeveRefseq(String accExpr) {
+        return String.format("""
+                (SELECT r.refseq_acc FROM %s r
+                 WHERE r.uniprot_acc = %s
+                   AND EXISTS (SELECT 1 FROM %s x WHERE x.refseq_protein = r.refseq_acc)
+                 ORDER BY (r.is_mane_select IS TRUE) DESC, r.refseq_acc LIMIT 1)""",
+                uniprotRefseqTableName, accExpr, popeveTableName);
+    }
+
     private List<PopEveScore> getPopEveScores(String acc, Integer pos, String mt) {
         StringBuilder sql = new StringBuilder(String.format("""
             SELECT ur.uniprot_acc AS accession,
@@ -134,7 +148,8 @@ public class ScoreNewRepo {
             FROM %s p
             JOIN %s ur ON p.refseq_protein = ur.refseq_acc
             WHERE ur.uniprot_acc = :acc AND p.position = :pos
-            """, popeveTableName, uniprotRefseqTableName));
+              AND ur.refseq_acc = %s
+            """, popeveTableName, uniprotRefseqTableName, popeveRefseq(":acc")));
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("acc", acc)
@@ -243,8 +258,11 @@ public class ScoreNewRepo {
         String sql = String.format("""
             WITH input(acc, pos) AS (
                 SELECT * FROM unnest(:accs::VARCHAR[], :positions::INT[])
+            ),
+            ref AS (
+                SELECT a.acc, %s AS refseq_acc FROM (SELECT DISTINCT acc FROM input) a
             )
-            SELECT ur.uniprot_acc AS accession,
+            SELECT i.acc AS accession,
                    p.position,
                    p.wt_aa,
                    p.mt_aa,
@@ -254,10 +272,10 @@ public class ScoreNewRepo {
                    p.popped_esm_1v,
                    p.eve,
                    p.esm_1v
-            FROM %s p
-            JOIN %s ur ON p.refseq_protein = ur.refseq_acc
-            JOIN input i ON ur.uniprot_acc = i.acc AND p.position = i.pos
-            """, popeveTableName, uniprotRefseqTableName);
+            FROM input i
+            JOIN ref ON ref.acc = i.acc
+            JOIN %s p ON p.refseq_protein = ref.refseq_acc AND p.position = i.pos
+            """, popeveRefseq("a.acc"), popeveTableName);
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("accs", accs)
@@ -330,7 +348,8 @@ public class ScoreNewRepo {
             FROM %s p
             JOIN %s ur ON p.refseq_protein = ur.refseq_acc
             WHERE ur.uniprot_acc = :acc
-            """, popeveTableName, uniprotRefseqTableName);
+              AND ur.refseq_acc = %s
+            """, popeveTableName, uniprotRefseqTableName, popeveRefseq(":acc"));
         return jdbcTemplate.query(sql, Map.of("acc", acc), popEveScoreMapper);
     }
 
