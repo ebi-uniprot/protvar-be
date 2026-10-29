@@ -152,6 +152,23 @@ public class MappingService {
                 .takeWhile(batch -> !batch.isEmpty());
     }
 
+    /**
+     * For a download of a filtered upload: the number of passing lines, or null while the upload is
+     * still being prepared for filtering (the first call starts that build).
+     */
+    public Long countFilteredUpload(MappingRequest request) {
+        UploadFilterService.Result filtered = uploadFilterService.get(request, uploadBuild(request));
+        return filtered.preparing() != null ? null : filtered.page().getTotalElements();
+    }
+
+    private InputBuild uploadBuild(MappingRequest request) {
+        inputService.detectBuild(InputRequest.builder()
+                .inputId(request.getResultId())
+                .assembly(request.getAssembly())
+                .build());
+        return uploadCacheService.getBuild(request.getResultId());
+    }
+
     private Page<VariantInput> cachedUploadPage(MappingRequest request) {
         String cacheKey = request.getResultId();
         List<String> fullList = uploadCacheService.getInput(cacheKey);
@@ -191,14 +208,7 @@ public class MappingService {
         boolean filterOnly = isFilterOnly(request);
         boolean multiFormat = isMultiFormat(request);
 
-        InputBuild build = null;
-        if (isResultId(request)) {
-            inputService.detectBuild(InputRequest.builder()
-                    .inputId(request.getResultId())
-                    .assembly(request.getAssembly())
-                    .build());
-            build = uploadCacheService.getBuild(request.getResultId());
-        }
+        InputBuild build = isResultId(request) ? uploadBuild(request) : null;
 
         // filter/sort on an upload: page over the materialised upload (may still be preparing)
         UploadFilterService.Result filtered = UploadFilterService.applies(request)
@@ -293,7 +303,7 @@ public class MappingService {
         return request.getQ() != null && !request.getQ().isBlank();
     }
 
-    private static boolean isFilterOnly(MappingRequest request) {
+    public static boolean isFilterOnly(MappingRequest request) {
         return !isResultId(request) && !hasIds(request) && !hasQ(request);
     }
 

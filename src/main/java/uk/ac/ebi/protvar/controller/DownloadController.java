@@ -18,9 +18,11 @@ import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatsResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.processor.DownloadFileCleanupTask;
+import uk.ac.ebi.protvar.repo.GenomicVariantRepo;
 import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.MappingService;
+import uk.ac.ebi.protvar.service.UploadFilterService;
 import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
 import java.io.FileInputStream;
@@ -48,6 +50,9 @@ public class DownloadController implements WebMvcConfigurer {
      * directed to the FTP site for bulk pre-computed datasets.
      */
     public static final long MAX_FULL_DOWNLOAD_ROWS = 100_000L;
+
+    static final String MSG_PREPARING = "This upload is still being prepared for filtering. "
+            + "Please try the download again once the filtered results show.";
 
     private final DownloadService downloadService;
     private final DownloadStatusService downloadStatusService;
@@ -80,11 +85,23 @@ public class DownloadController implements WebMvcConfigurer {
             return ResponseEntity.badRequest().body(Map.of("error", validationError.get()));
         }
 
+        // a filtered upload downloads its passing lines, so it must be prepared for filtering first
+        Long filteredTotal = null;
+        if (UploadFilterService.applies(request)) {
+            filteredTotal = mappingService.countFilteredUpload(request);
+            if (filteredTotal == null) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", MSG_PREPARING));
+            }
+        }
+
         if (Boolean.TRUE.equals(request.getFull())) {
-            long total = mappingService.countInputs(request);
+            long total = filteredTotal != null ? filteredTotal : mappingService.countInputs(request);
             // total = -1 means COUNT timed out (filter-only) — too risky to queue.
             // total > MAX or capped to a known-too-many sentinel — reject.
-            if (total < 0 || total > MAX_FULL_DOWNLOAD_ROWS) {
+            // Filter-only: browse pages up to COUNT_CAP results (its count stops at COUNT_CAP + 1),
+            // so a full download is capped there too.
+            if (total < 0 || total > MAX_FULL_DOWNLOAD_ROWS
+                    || (MappingService.isFilterOnly(request) && total > GenomicVariantRepo.COUNT_CAP)) {
                 downloadStatusService.increment("rejected");
                 return ResponseEntity.badRequest().body(Map.of("error", DownloadStatusService.MSG_TOO_LARGE));
             }

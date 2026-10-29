@@ -34,6 +34,7 @@ import uk.ac.ebi.protvar.types.Codon;
 import java.util.*;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Filter/sort over a user upload. On the first filtered or sorted request the upload is materialised
@@ -126,6 +127,27 @@ public class UploadFilterService {
         }
         List<VariantInput> inputs = pageLines.stream().map(idx -> parse(lines, idx)).toList();
         return new Result(new PageImpl<>(inputs, pageable, total), passing, null);
+    }
+
+    /**
+     * Every passing line of a prepared upload, in result order, as chunks of lines with their passing rows
+     * (for a full download; the download controller has checked the upload is prepared).
+     */
+    public Stream<Result> chunks(MappingRequest request, int chunkSize) {
+        String uploadId = request.getResultId();
+        List<String> lines = uploadCacheService.getInput(uploadId);
+        if (lines == null || lines.isEmpty()) return Stream.empty();
+
+        String assembly = request.getAssembly() == null ? "AUTO" : request.getAssembly();
+        Upload u = uploadVariantRepo.find(uploadId, assembly, buildRelease(), STALE_MINUTES)
+                .filter(x -> UploadVariantRepo.READY.equals(x.status()))
+                .orElseThrow(() -> new IllegalStateException("Upload " + uploadId + " is not prepared for filtering"));
+        uploadVariantRepo.touch(u.key());
+        return Stream.iterate(0L, offset -> offset + chunkSize)
+                .map(offset -> uploadVariantRepo.pageLines(u.key(), request, offset, chunkSize))
+                .takeWhile(idx -> !idx.isEmpty())
+                .map(idx -> new Result(new PageImpl<>(idx.stream().map(i -> parse(lines, i)).toList()),
+                        new HashSet<>(uploadVariantRepo.passingRows(u.key(), request, idx)), null));
     }
 
     /** The build's release key: builds copied from coding_variant are kept apart from old-format ones. */

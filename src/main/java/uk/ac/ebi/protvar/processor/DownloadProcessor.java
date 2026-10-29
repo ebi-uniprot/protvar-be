@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.task.AsyncTaskExecutor;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.stereotype.Service;
 
@@ -39,9 +40,11 @@ import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.service.UploadCacheService;
+import uk.ac.ebi.protvar.service.UploadFilterService;
 import uk.ac.ebi.protvar.service.InputService;
 import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.model.response.*;
+import uk.ac.ebi.protvar.repo.UploadVariantRepo.Passing;
 import uk.ac.ebi.protvar.utils.*;
 
 /**
@@ -81,6 +84,7 @@ public class DownloadProcessor {
 	private final CsvStructureDataBuilder csvStructureDataBuilder;
 	private final InputService inputService;
 	private final UploadCacheService uploadCacheService;
+	private final UploadFilterService uploadFilterService;
 	private final MappingService mappingService;
 	private final InputMapper inputMapper;
 	private final AnnotationFetcher annotationFetcher;
@@ -188,8 +192,15 @@ public class DownloadProcessor {
 
 		if (!Boolean.TRUE.equals(request.getFull())) {
 			LOGGER.info("Page download request: {}", request.getFname());
-			List<VariantInput> inputs = mappingService.getInputs(request).getContent();
-			processAndWriteCsv(inputs, csvPath, request.getAssembly(), build, fun, pop, str, true);
+			if (UploadFilterService.applies(request)) {
+				UploadFilterService.Result filtered = uploadFilterService.get(request, build);
+				if (filtered.preparing() != null)
+					throw new IllegalStateException("Upload " + request.getResultId() + " is not prepared for filtering");
+				processAndWriteCsv(filtered.page().getContent(), filtered.passing(), csvPath, request.getAssembly(), build, fun, pop, str, true);
+			} else {
+				List<VariantInput> inputs = mappingService.getInputs(request).getContent();
+				processAndWriteCsv(inputs, null, csvPath, request.getAssembly(), build, fun, pop, str, true);
+			}
 		} else {
 			LOGGER.info("Full download request: {}", request.getFname());
 			processFullDownload(request, csvPath, build, fun, pop, str);
@@ -199,8 +210,9 @@ public class DownloadProcessor {
 		Files.deleteIfExists(csvPath);
 	}
 
-	private void processAndWriteCsv(List<VariantInput> inputs, Path outputPath, String assembly, InputBuild build,
-                                    boolean fun, boolean pop, boolean str, boolean writeHeader) throws Exception {
+	// passing: for a filtered upload, the rows that passed (others are trimmed); null otherwise
+	private void processAndWriteCsv(List<VariantInput> inputs, Set<Passing> passing, Path outputPath, String assembly,
+                                    InputBuild build, boolean fun, boolean pop, boolean str, boolean writeHeader) throws Exception {
 		inputMapper.preprocess(inputs, assembly, build);
 		addDetectedBuildNote(inputs, assembly, build);
 
@@ -208,7 +220,7 @@ public class DownloadProcessor {
 		if (coreMapping != null) {
 			AnnotationData annData = annotationFetcher.preloadOptionalAnnotations(coreMapping, fun, pop, str);
 
-			try (Stream<String[]> rows = streamInputsToCsv(inputs, coreMapping, annData)) {
+			try (Stream<String[]> rows = streamInputsToCsv(inputs, passing, coreMapping, annData)) {
 				writeCsv(outputPath, rows, writeHeader);
 			}
 		} else {
@@ -251,8 +263,12 @@ public class DownloadProcessor {
 		long totalStreamed = 0;
 		boolean success = false;
 		try {
-			try (Stream<List<VariantInput>> chunkStream = mappingService.streamChunkedInputs(request, chunkSize)) {
-				for (List<VariantInput> chunk : (Iterable<List<VariantInput>>) chunkStream::iterator) {
+			Stream<UploadFilterService.Result> chunkStream = UploadFilterService.applies(request)
+					? uploadFilterService.chunks(request, chunkSize)
+					: mappingService.streamChunkedInputs(request, chunkSize).map(c -> new UploadFilterService.Result(new PageImpl<>(c), null, null));
+			try (chunkStream) {
+				for (UploadFilterService.Result result : (Iterable<UploadFilterService.Result>) chunkStream::iterator) {
+					List<VariantInput> chunk = result.page().getContent();
 					totalStreamed += chunk.size();
 					if (totalStreamed > DownloadController.MAX_FULL_DOWNLOAD_ROWS) {
 						throw new DownloadTooLargeException();
@@ -266,7 +282,7 @@ public class DownloadProcessor {
 					futures.add(partitionProcessingExecutor.submit(() -> {
 						try {
 							LOGGER.info("[{}] Processing chunk #{}", request.getFname(), chunkNum);
-							processAndWriteCsv(chunk, partPath, request.getAssembly(), build, fun, pop, str, false);
+							processAndWriteCsv(chunk, result.passing(), partPath, request.getAssembly(), build, fun, pop, str, false);
 							return partPath;
 						} finally {
 							dbTaskSemaphore.release();
@@ -343,6 +359,7 @@ public class DownloadProcessor {
 
 	// Stream the inputs and expand them based on input types
 	private Stream<String[]> streamInputsToCsv(List<VariantInput> inputs,
+											   Set<Passing> passing,
 											   MappingData coreMapping,
 												AnnotationData annData) {
 		// Stream the inputs instead of collecting them into a list
@@ -356,6 +373,7 @@ public class DownloadProcessor {
 				}
 				// Process the input and generate CSV rows
 				inputMapper.processInput(input, coreMapping);
+				if (passing != null) uploadFilterService.trim(List.of(input), passing);
 				input.getDerivedGenomicVariants()
 						.forEach(genomicVariant -> generateGenomicCsvRows(builder, input, genomicVariant, annData));
 		});

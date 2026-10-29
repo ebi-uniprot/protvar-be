@@ -12,6 +12,7 @@ import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.service.UploadCacheService;
+import uk.ac.ebi.protvar.service.UploadFilterService;
 import uk.ac.ebi.protvar.service.InputService;
 import uk.ac.ebi.protvar.utils.Constants;
 
@@ -28,6 +29,7 @@ class DownloadProcessorTest {
           mock(CsvStructureDataBuilder.class),
           mock(InputService.class),
           mock(UploadCacheService.class),
+          mock(UploadFilterService.class),
           mock(MappingService.class),
           mock(InputMapper.class),
           mock(AnnotationFetcher.class),

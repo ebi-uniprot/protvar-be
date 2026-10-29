@@ -41,6 +41,12 @@ public class GenomicVariantRepo {
      * most CAP+1 as the total. Clients receive this same value via the
      * {@code totalCap} field on PagedMappingResponse, so they don't need to
      * hard-code it.
+     *
+     * <p>It is also the filter-only browse limit, not just a count shortcut:
+     * the FE clamps paging to totalCap, and full downloads of filter-only
+     * results are capped at it too (DownloadController), so a download holds
+     * what can be browsed. Used by CodingVariantRepo as well; move it there
+     * when this class goes.
      */
     public static final int COUNT_CAP = 10000;
 
