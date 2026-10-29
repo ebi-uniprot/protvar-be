@@ -4,6 +4,7 @@ import com.google.common.collect.Iterables;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -122,11 +123,14 @@ public class MappingService {
             List<String> cached = uploadCacheService.getInput(request.getResultId());
             return cached == null ? 0L : cached.size();
         }
+        // the repos skip the count for a DownloadRequest (they stream its pages), so count it as a browse
+        MappingRequest browse = new MappingRequest();
+        BeanUtils.copyProperties(request, browse);
         if (hasIds(request)) {
-            return idsPage(request, PageRequest.of(0, 1)).getTotalElements();
+            return idsPage(browse, PageRequest.of(0, 1)).getTotalElements();
         }
         // filter-only
-        return filterOnlyPage(request, PageRequest.of(0, 1)).getTotalElements();
+        return filterOnlyPage(browse, PageRequest.of(0, 1)).getTotalElements();
     }
 
     /**

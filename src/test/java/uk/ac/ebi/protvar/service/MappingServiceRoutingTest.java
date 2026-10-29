@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Page;
 import org.springframework.test.util.ReflectionTestUtils;
 import uk.ac.ebi.protvar.mapper.InputMapper;
+import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.repo.CodingVariantRepo;
@@ -14,6 +15,7 @@ import uk.ac.ebi.protvar.types.IdentifierType;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 class MappingServiceRoutingTest {
@@ -28,6 +30,17 @@ class MappingServiceRoutingTest {
         MappingRequest r = new MappingRequest();
         r.setPocket(true);
         return r;
+    }
+
+    @Test
+    void downloadCountIsCountedAsABrowse() {
+        // the repos skip the count for a DownloadRequest, so the pre-queue cap check must not pass one
+        DownloadRequest download = new DownloadRequest();
+        download.setPocket(true);
+        download.setFull(true);
+        when(legacy.get(any(), any())).thenReturn(Page.empty());
+        service.countInputs(download);
+        verify(legacy).get(argThat(r -> !(r instanceof DownloadRequest) && Boolean.TRUE.equals(r.getPocket())), any());
     }
 
     @Test
