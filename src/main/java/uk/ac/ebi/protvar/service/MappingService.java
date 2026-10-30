@@ -116,13 +116,10 @@ public class MappingService {
             return cached == null ? 0L : cached.size();
         }
         // the repos skip the count for a DownloadRequest (they stream its pages), so count it as a browse
+        // (identifiers or filter-only); -1 when even the longer budget ran out
         MappingRequest browse = new MappingRequest();
         BeanUtils.copyProperties(request, browse);
-        if (hasIds(request)) {
-            return codingVariantRepo.get(browse, PageRequest.of(0, 1)).getTotalElements();
-        }
-        // filter-only
-        return codingVariantRepo.get(browse, PageRequest.of(0, 1)).getTotalElements();
+        return codingVariantRepo.count(browse);
     }
 
     /**

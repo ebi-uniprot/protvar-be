@@ -96,11 +96,15 @@ public class DownloadController implements WebMvcConfigurer {
 
         if (Boolean.TRUE.equals(request.getFull())) {
             long total = filteredTotal != null ? filteredTotal : mappingService.countInputs(request);
-            // total = -1 means COUNT timed out (filter-only) — too risky to queue.
+            // total = -1: the count timed out — unknown size, too risky to queue; say so (not "too large").
             // total > MAX or capped to a known-too-many sentinel — reject.
             // Filter-only: browse pages up to COUNT_CAP results (its count stops at COUNT_CAP + 1),
             // so a full download is capped there too.
-            if (total < 0 || total > MAX_FULL_DOWNLOAD_ROWS
+            if (total < 0) {
+                downloadStatusService.increment("rejected");
+                return ResponseEntity.badRequest().body(Map.of("error", DownloadStatusService.MSG_COUNT_TIMEOUT));
+            }
+            if (total > MAX_FULL_DOWNLOAD_ROWS
                     || (MappingService.isFilterOnly(request) && total > CodingVariantRepo.COUNT_CAP)) {
                 downloadStatusService.increment("rejected");
                 return ResponseEntity.badRequest().body(Map.of("error", DownloadStatusService.MSG_TOO_LARGE));

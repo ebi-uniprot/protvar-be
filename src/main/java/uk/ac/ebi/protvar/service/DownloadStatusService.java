@@ -37,6 +37,8 @@ public class DownloadStatusService {
             "Download failed. Please try again, or contact protvar@ebi.ac.uk if the issue persists.";
     public static final String MSG_TOO_LARGE =
             "Your download is too large. Please refine your filters.";
+    public static final String MSG_COUNT_TIMEOUT =
+            "Your download couldn't be sized in time. Please try again in a moment, or refine your filters.";
     public static final String MSG_RETRIES_EXHAUSTED =
             "Download failed repeatedly. Please contact protvar@ebi.ac.uk.";
 

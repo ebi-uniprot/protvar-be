@@ -96,6 +96,18 @@ public class CodingVariantRepo {
     @Value("${tbl.ann.str}") private String structureTable;
 
     public Page<VariantInput> get(MappingRequest request, Pageable pageable) {
+        return get(request, pageable, COUNT_TIMEOUT_SECONDS);
+    }
+
+    /**
+     * The total for a download's size check (a browse request, not a DownloadRequest): counted as for a page,
+     * but with the page's time budget rather than the 3 s one, so a cold count doesn't come back unknown.
+     */
+    public long count(MappingRequest request) {
+        return get(request, PageRequest.of(0, 1), PAGE_TIMEOUT_SECONDS).getTotalElements();
+    }
+
+    private Page<VariantInput> get(MappingRequest request, Pageable pageable, int countTimeoutSeconds) {
         if (pageable == null) pageable = PageRequest.of(0, PageUtils.DEFAULT_PAGE_SIZE);
         boolean isDownload = request instanceof DownloadRequest;
 
@@ -142,9 +154,9 @@ public class CodingVariantRepo {
                     ? "SELECT count(*) " + rows
                     : "SELECT count(*) FROM (SELECT 1 " + from + " LIMIT " + (COUNT_CAP + 1) + ") c";
             try {
-                total = withTimeout(COUNT_TIMEOUT_SECONDS).queryForObject(countSql, params, Long.class);
+                total = withTimeout(countTimeoutSeconds).queryForObject(countSql, params, Long.class);
             } catch (DataAccessException e) {
-                LOGGER.info("coding_variant COUNT exceeded {}s timeout; reporting unknown total", COUNT_TIMEOUT_SECONDS);
+                LOGGER.info("coding_variant COUNT exceeded {}s timeout; reporting unknown total", countTimeoutSeconds);
             }
             if (total == 0) return Page.empty(pageable);
         }

@@ -19,6 +19,7 @@ import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -187,10 +188,12 @@ public class BuildProcessor {
     }
 
     private double buildPercentageMatch(List<VariantInput> nonHgvsGs, String build) {
-        List<Object[]> chrPosRefList = new ArrayList<>();
-        nonHgvsGs.stream().map(i -> (GenomicInput) i).forEach(input -> {
-            chrPosRefList.add(new Object[]{input.getChromosome(), input.getPosition(), input.getRefBase()});
-        });
+        // distinct positions: the match counts distinct rows, so a repeated line would count against the build
+        Map<String, Object[]> distinct = new LinkedHashMap<>();
+        nonHgvsGs.stream().map(i -> (GenomicInput) i).forEach(input -> distinct.putIfAbsent(
+                input.getChromosome() + ":" + input.getPosition() + ":" + input.getRefBase(),
+                new Object[]{input.getChromosome(), input.getPosition(), input.getRefBase()}));
+        List<Object[]> chrPosRefList = new ArrayList<>(distinct.values());
         return crossmapRepo.getPercentageMatch(chrPosRefList, build);
     }
 

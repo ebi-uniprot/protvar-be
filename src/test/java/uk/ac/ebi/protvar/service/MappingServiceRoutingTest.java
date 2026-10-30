@@ -40,9 +40,8 @@ class MappingServiceRoutingTest {
         DownloadRequest download = new DownloadRequest();
         download.setPocket(true);
         download.setFull(true);
-        when(codingVariant.get(any(), any())).thenReturn(Page.empty());
         service.countInputs(download);
-        verify(codingVariant).get(argThat(r -> !(r instanceof DownloadRequest) && Boolean.TRUE.equals(r.getPocket())), any());
+        verify(codingVariant).count(argThat(r -> !(r instanceof DownloadRequest) && Boolean.TRUE.equals(r.getPocket())));
     }
 
     @Test
@@ -52,6 +51,7 @@ class MappingServiceRoutingTest {
         service.countInputs(filterOnlyRequest());
         service.getInputs(idsRequest());   // a single identifier with no filter too
         service.countInputs(idsRequest());
-        verify(codingVariant, times(4)).get(any(), any());
+        verify(codingVariant, times(2)).get(any(), any());
+        verify(codingVariant, times(2)).count(any());
     }
 }

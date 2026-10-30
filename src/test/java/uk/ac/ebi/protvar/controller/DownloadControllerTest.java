@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.controller;
 
+import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
@@ -79,5 +80,14 @@ class DownloadControllerTest {
         when(mappingService.countInputs(any())).thenReturn((long) CodingVariantRepo.COUNT_CAP);
         assertEquals(200, controller.handleDownload(filterOnly(), http).getStatusCode().value());
         verify(downloadService).queueRequest(any());
+    }
+
+    @Test
+    void fullWhoseCountTimedOutIsRefusedAsUnknownNotTooLarge() {
+        when(mappingService.countInputs(any())).thenReturn(-1L);
+        ResponseEntity<?> res = controller.handleDownload(filterOnly(), http);
+        assertEquals(400, res.getStatusCode().value());
+        assertEquals(Map.of("error", DownloadStatusService.MSG_COUNT_TIMEOUT), res.getBody());
+        verifyNoInteractions(downloadService);
     }
 }
