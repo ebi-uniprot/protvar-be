@@ -38,6 +38,7 @@ class MessageCodeTest {
         for (MessageCode c : MessageCode.values()) {
             assertTrue(c.name().matches("PV\\d{3}_[A-Z0-9_]+"), c.name());
             assertTrue(codes.add(c.getCode()), "duplicate " + c.getCode());
+            assertTrue(c.getLabel() != null && !c.getLabel().isBlank() && !c.getLabel().contains("%"), c.name() + " label");
             assertTrue(!c.getCode().startsWith("PV-9") || c.getType() == Message.Type.ERROR, c.name() + " should be ERROR");
             assertDoesNotThrow(() -> c.message(args(c.getText())), c.name());
         }
