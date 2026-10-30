@@ -41,7 +41,7 @@ public class ProteinParser extends VariantParser {
 
     // Amino acid patterns derived from AminoAcid enum
     public static final String VALID_AA_SINGLE = "[ACDEFGHIKLMNPQRSTVWY\\*BZUXOJ]";  // Single letter codes + stop codon (*)
-    public static final String VALID_AA_THREE = "(Ala|Cys|Asp|Glu|Phe|Gly|His|Ile|Lys|Leu|Met|Asn|Pro|Gln|Arg|Ser|Thr|Val|Trp|Tyr|Ter|Asx|Glx|Sec|Unk|Pyl|Xle)";
+    public static final String VALID_AA_THREE = "(Ala|Cys|Asp|Glu|Phe|Gly|His|Ile|Lys|Leu|Met|Asn|Pro|Gln|Arg|Ser|Thr|Val|Trp|Tyr|Ter|Asx|Glx|Sec|Xaa|Unk|Pyl|Xle)";
 
     // "?" as the variant AA = unknown consequence (HGVS p.Met1?); accepted as ALT and treated as unspecified.
     public static final String UNKNOWN_VARIANT_AA = "?";
@@ -223,6 +223,7 @@ public class ProteinParser extends VariantParser {
      */
     public static String normalizeAA(String aa) {
         if (aa == null) return null;
+        if (aa.equalsIgnoreCase("Unk")) return AminoAcid.UNK.getOneLetter();   // older spelling of Xaa
 
         for (AminoAcid value : AminoAcid.values()) {
             if (value.getOneLetter().equalsIgnoreCase(aa)

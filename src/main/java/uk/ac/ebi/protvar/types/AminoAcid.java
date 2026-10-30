@@ -38,7 +38,7 @@ public enum AminoAcid {
     ASX("B", "Asx", "Asparagine or aspartate", true),
     GLX("Z", "Glx", "Glutamine or glutamate", true),
     SEC("U", "Sec", "Selenocysteine", true),
-    UNK("X", "Unk", "Any / unknown", true),
+    UNK("X", "Xaa", "Any / unknown", true),   // Xaa: the HGVS three-letter code for an unknown residue
 
     /* extended AAs - not included before */
     PYL("O", "Pyl", "Pyrrolysine", true),

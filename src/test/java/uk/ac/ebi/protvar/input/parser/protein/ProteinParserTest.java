@@ -170,6 +170,7 @@ public class ProteinParserTest {
         // Three letter extended amino acids
         assertResult("P22304 205 Asx Sec", "P22304", 205, "B", "U");
         assertResult("P07949 783 Glx/Unk", "P07949", 783, "Z", "X");
+        assertResult("P07949 783 Glx/Xaa", "P07949", 783, "Z", "X");
         assertResult("Q9UBX0 501 Pyl Xle", "Q9UBX0", 501, "O", "J");
 
         // Compact extended amino acids
