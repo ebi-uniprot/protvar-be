@@ -166,6 +166,13 @@ public class MappingRequest {
     @Schema(description = "asc or desc", example = "asc")
     private String order;
 
+    // Notes on uploaded lines (uploaded result only)
+    @Schema(description = "Uploaded result only: lines with notes (any) or without (none)", example = "any")
+    private String notes;
+
+    @Schema(description = "Uploaded result only: lines with any of these note codes", example = "[\"PV-110\"]")
+    private List<String> codes;
+
     // override Lombok getter for page
 
     /**

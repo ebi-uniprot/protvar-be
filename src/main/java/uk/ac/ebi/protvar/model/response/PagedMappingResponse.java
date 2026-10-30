@@ -42,5 +42,8 @@ public class PagedMappingResponse {
 	 * totalItems counts the matching inputs, so the client can show "N of totalInputs".
 	 */
 	private Long totalInputs;
+
+	/** Uploaded result only, once the upload is prepared: mapped/not mapped lines and notes by code. */
+	private UploadSummary uploadSummary;
 	//private long ttl;
 }

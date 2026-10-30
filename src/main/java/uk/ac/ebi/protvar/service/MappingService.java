@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.model.response.UploadSummary;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputSummary;
 import uk.ac.ebi.protvar.input.MessageCode;
@@ -29,10 +30,11 @@ import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
 import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.model.response.PagedMappingResponse;
-import uk.ac.ebi.protvar.utils.FetcherUtils;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -239,6 +241,17 @@ public class MappingService {
             mapping.getMessages().add(MessageCode.PV805_POS_RANGE_IGNORED.message());
         }
 
+        // uploaded result: what happened to its lines — lines and formats from upload, then the
+        // preparation's progress or counts
+        InputSummary inputSummary = isResultId(request) ? uploadCacheService.getSummary(request.getResultId()) : null;
+        UploadSummary lineSummary = null;
+        if (isResultId(request)) {
+            UploadSummary base = UploadSummary.of(
+                    inputSummary != null ? inputSummary.getTotalCount() : page.getTotalElements(), formats(inputSummary));
+            lineSummary = uploadFilterService.summary(request.getResultId(), request.getAssembly())
+                    .map(base::with).orElse(base);
+        }
+
         if (mapping != null && build != null) {
             List<Message> messages = Optional.ofNullable(mapping.getMessages()).orElseGet(ArrayList::new);
             mapping.setMessages(messages);
@@ -248,12 +261,6 @@ public class MappingService {
                 messages.add(build.getMessage());
             }
 
-            InputSummary inputSummary = uploadCacheService.getSummary(request.getResultId());
-            String summaryText = (inputSummary != null)
-                    ? inputSummary.toString()
-                    : String.format("%,d user input%s", inputs.size(), FetcherUtils.pluralise(inputs.size()));
-
-            messages.add(0, new Message(Message.Type.INFO, summaryText));
         }
 
         if (mapping != null && mostGrch37ConversionsFailed(request, inputs)) {
@@ -262,13 +269,12 @@ public class MappingService {
             messages.add(MessageCode.PV505_GRCH37_MOSTLY_FAILED.message());
         }
 
-        InputSummary uploadSummary = isResultId(request) ? uploadCacheService.getSummary(request.getResultId()) : null;
-
         return PagedMappingResponse.builder()
                     .page(request.getPage())
                     .pageSize(page.getSize())
                     .totalItems(page.getTotalElements())
-                    .totalInputs(uploadSummary != null ? (long) uploadSummary.getTotalCount() : null)
+                    .totalInputs(inputSummary != null ? (long) inputSummary.getTotalCount() : null)
+                    .uploadSummary(lineSummary)
                     .totalPages(page.getTotalPages())
                     .totalCap(filterOnly ? (long) GenomicVariantRepo.COUNT_CAP : null)
                     .last(page.isLast())
@@ -325,6 +331,15 @@ public class MappingService {
         String convertErr = MessageCode.PV504_GRCH37_NOT_CONVERTED.toString();
         long failed = genomic.stream().filter(i -> i.getErrors().contains(convertErr)).count();
         return failed * 2 >= genomic.size();
+    }
+
+    // lines per input format, by its display name (protein, genomic, …); empty without a cached summary
+    private static Map<String, Integer> formats(InputSummary summary) {
+        Map<String, Integer> formats = new LinkedHashMap<>();
+        if (summary != null) {
+            summary.getInputCounts().forEach((type, n) -> { if (n > 0) formats.put(type.getName(), n); });
+        }
+        return formats;
     }
 
     /** True when posFrom/posTo is set but the request is NOT a single-UniProt browse. */

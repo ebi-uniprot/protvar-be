@@ -13,6 +13,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.dao.DataAccessException;
+import uk.ac.ebi.protvar.model.response.UploadSummary;
+import uk.ac.ebi.protvar.model.response.Message;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.exception.QueryTooBroadException;
 import uk.ac.ebi.protvar.input.GenomicInput;
@@ -79,31 +81,10 @@ public class UploadFilterService {
         List<String> lines = uploadCacheService.getInput(uploadId);
         if (lines == null || lines.isEmpty()) return new Result(Page.empty(), Set.of(), null);
 
-        String assembly = request.getAssembly() == null ? "AUTO" : request.getAssembly();
-        Optional<Upload> upload = uploadVariantRepo.find(uploadId, assembly, buildRelease(), STALE_MINUTES);
-        if (upload.isEmpty() || needsBuild(upload.get())) {
-            Optional<Integer> key = uploadVariantRepo.claim(uploadId, assembly, buildRelease(), lines.size(), STALE_MINUTES);
-            if (key.isPresent()) {
-                if (lines.size() <= SYNC_MAX) {
-                    build(key.get(), lines, assembly, build);
-                } else {
-                    try {
-                        uploadFilterExecutor.execute(() -> build(key.get(), lines, assembly, build));
-                    } catch (RejectedExecutionException e) {
-                        uploadVariantRepo.fail(key.get());
-                        throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                                "Too many uploads being prepared for filtering; please retry shortly.");
-                    }
-                    return Result.preparing(0);
-                }
-            }
-            upload = uploadVariantRepo.find(uploadId, assembly, buildRelease(), STALE_MINUTES);
-        }
-
-        Upload u = upload.orElseThrow();
+        String assembly = assembly(request.getAssembly());
+        Upload u = ensureBuild(uploadId, assembly, lines, build).orElseThrow();
         if (UploadVariantRepo.BUILDING.equals(u.status())) {
-            int n = u.inputCount() == null || u.inputCount() == 0 ? 1 : u.inputCount();
-            return Result.preparing(Math.min(99, (int) (100L * u.linesDone() / n)));
+            return Result.preparing(progress(u));
         }
         if (!UploadVariantRepo.READY.equals(u.status())) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -148,6 +129,66 @@ public class UploadFilterService {
                 .takeWhile(idx -> !idx.isEmpty())
                 .map(idx -> new Result(new PageImpl<>(idx.stream().map(i -> parse(lines, i)).toList()),
                         new HashSet<>(uploadVariantRepo.passingRows(u.key(), request, idx)), null));
+    }
+
+    /**
+     * Starts preparing an upload when it is submitted (in the background if large), so its summary and first
+     * filter don't wait. Best effort: a busy executor just leaves it to the first request.
+     */
+    public void prepare(String uploadId, String assembly, InputBuild build) {
+        List<String> lines = uploadCacheService.getInput(uploadId);
+        if (lines == null || lines.isEmpty()) return;
+        try {
+            ensureBuild(uploadId, assembly(assembly), lines, build);
+        } catch (ResponseStatusException e) {
+            LOGGER.info("Upload {} not prepared on submit: {}", uploadId, e.getReason());
+        }
+    }
+
+    /**
+     * The upload's preparation: its progress while building, or once prepared its mapped/not mapped lines
+     * and notes by code. Empty when there is no build (not started, or failed).
+     */
+    public Optional<UploadSummary> summary(String uploadId, String assembly) {
+        return uploadVariantRepo.find(uploadId, assembly(assembly), buildRelease(), STALE_MINUTES)
+                .flatMap(u -> switch (u.status()) {
+                    case UploadVariantRepo.READY -> Optional.of(uploadVariantRepo.summary(u.key()));
+                    case UploadVariantRepo.BUILDING -> Optional.of(UploadSummary.preparing(progress(u)));
+                    default -> Optional.empty();
+                });
+    }
+
+    private static int progress(Upload u) {
+        int n = u.inputCount() == null || u.inputCount() == 0 ? 1 : u.inputCount();
+        return Math.min(99, (int) (100L * u.linesDone() / n));
+    }
+
+    /**
+     * The upload's build, claiming and running it when there is none (or it failed, or went stale). Small
+     * uploads build here; large ones in the background, so the returned build may still be BUILDING.
+     */
+    private Optional<Upload> ensureBuild(String uploadId, String assembly, List<String> lines, InputBuild build) {
+        Optional<Upload> upload = uploadVariantRepo.find(uploadId, assembly, buildRelease(), STALE_MINUTES);
+        if (upload.isPresent() && !needsBuild(upload.get())) return upload;
+        Optional<Integer> key = uploadVariantRepo.claim(uploadId, assembly, buildRelease(), lines.size(), STALE_MINUTES);
+        if (key.isPresent()) {
+            if (lines.size() <= SYNC_MAX) {
+                build(key.get(), lines, assembly, build);
+            } else {
+                try {
+                    uploadFilterExecutor.execute(() -> build(key.get(), lines, assembly, build));
+                } catch (RejectedExecutionException e) {
+                    uploadVariantRepo.fail(key.get());
+                    throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                            "Too many uploads being prepared for filtering; please retry shortly.");
+                }
+            }
+        }
+        return uploadVariantRepo.find(uploadId, assembly, buildRelease(), STALE_MINUTES);
+    }
+
+    private static String assembly(String assembly) {
+        return assembly == null ? "AUTO" : assembly;
     }
 
     /** The build's release key: builds copied from coding_variant are kept apart from old-format ones. */
@@ -217,6 +258,8 @@ public class UploadFilterService {
                     uploadVariantRepo.insert(key, out);
                     rows += out.size();
                 }
+                // after toRows: parsing, preprocessing and resolving alt bases have all added their notes
+                uploadVariantRepo.insertLines(key, noteCodes(chunk));
                 uploadVariantRepo.progress(key, to);
             }
             uploadVariantRepo.finish(key, rows);
@@ -287,6 +330,17 @@ public class UploadFilterService {
             }
         }
         return new ArrayList<>(rows);
+    }
+
+    /** Each line's distinct note codes (line number → codes), for lines that have any. */
+    static Map<Integer, List<String>> noteCodes(List<VariantInput> chunk) {
+        Map<Integer, List<String>> codes = new LinkedHashMap<>();
+        for (VariantInput input : chunk) {
+            List<String> c = input.getMessages().stream().map(Message::getCode).filter(Objects::nonNull)
+                    .distinct().toList();
+            if (!c.isEmpty()) codes.put(input.getOriginalIndex(), c);
+        }
+        return codes;
     }
 
     private static boolean isBase(String b) {

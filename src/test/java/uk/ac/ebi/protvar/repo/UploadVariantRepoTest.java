@@ -42,4 +42,22 @@ class UploadVariantRepoTest {
         assertTrue(where.contains("EXISTS (SELECT 1 FROM dbsnp d"));
         assertTrue(where.contains("EXISTS (SELECT 1 FROM pocket p"));
     }
+
+    @Test
+    void notesFilterConditionsOnTheLine() {
+        MappingRequest r = new MappingRequest();
+        r.setNotes("any");
+        r.setCodes(List.of("PV-110", "PV-103"));
+        MapSqlParameterSource p = new MapSqlParameterSource();
+        String c = repo.lineConditions(r, p, "l.idx");
+        assertTrue(c.contains("AND EXISTS (SELECT 1 FROM protvar_runtime.upload_line ul WHERE ul.upload_key = :k AND ul.input_idx = l.idx)"));
+        assertTrue(c.contains("AND ul.codes && :codes::text[]"));
+        assertArrayEquals(new String[]{"PV-110", "PV-103"}, (String[]) p.getValue("codes"));
+        assertTrue(UploadVariantRepo.filtersOrSorts(r));
+
+        r = new MappingRequest();
+        r.setNotes("none");
+        assertTrue(repo.lineConditions(r, new MapSqlParameterSource(), "uv.input_idx").contains("AND NOT EXISTS ("));
+        assertEquals("", repo.lineConditions(new MappingRequest(), new MapSqlParameterSource(), "l.idx"));
+    }
 }

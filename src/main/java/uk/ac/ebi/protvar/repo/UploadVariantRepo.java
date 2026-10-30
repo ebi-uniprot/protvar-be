@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.model.MappingRequest;
+import uk.ac.ebi.protvar.model.response.UploadSummary;
 import uk.ac.ebi.protvar.types.AlleleFreqCategory;
 import uk.ac.ebi.protvar.types.AmClass;
 import uk.ac.ebi.protvar.types.CaddCategory;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Materialised user uploads for filter/sort (protvar_runtime schema, owned by the BE user).
@@ -41,6 +43,9 @@ import java.util.Set;
  * (every lead at each derived variant, with all filter/sort attributes), and filters are plain column
  * conditions on upload_variant, the same ones CodingVariantRepo uses. Those builds carry a distinct release
  * key ({@link #CV_SUFFIX}), so old-format builds are never read by the new path (rebuilt on demand).
+ *
+ * <p>{@code upload_line} holds the note codes (MessageCode) of each line that has any, recorded while
+ * building: the upload summary and the notes filter read it. A line is mapped when it has upload_variant rows.
  */
 @Repository
 @RequiredArgsConstructor
@@ -50,8 +55,11 @@ public class UploadVariantRepo {
     public static final String BUILDING = "BUILDING";
     public static final String READY = "READY";
     public static final String FAILED = "FAILED";
-    /** Release-key suffix of builds copied from coding_variant (fits upload.release varchar(10)). */
-    public static final String CV_SUFFIX = "-cv";
+    /**
+     * Release-key suffix of builds copied from coding_variant (fits upload.release varchar(10)). Bumped when
+     * builds gain data, so older builds are rebuilt on demand: -cv, then -c2 (adds upload_line).
+     */
+    public static final String CV_SUFFIX = "-c2";
 
     // coding_variant attributes copied into upload_variant (same names and types as the table)
     private static final String CV_COLUMNS = "cadd, avi, am, am_class, popeve, esm1b, conservation, af, "
@@ -85,6 +93,12 @@ public class UploadVariantRepo {
               mt_aa       varchar(1)
             );
             CREATE INDEX IF NOT EXISTS upload_variant_key_idx_idx ON protvar_runtime.upload_variant (upload_key, input_idx);
+            CREATE UNLOGGED TABLE IF NOT EXISTS protvar_runtime.upload_line (
+              upload_key int    NOT NULL,
+              input_idx  int    NOT NULL,
+              codes      text[] NOT NULL,
+              PRIMARY KEY (upload_key, input_idx)
+            );
             -- coding_variant attributes (null on old-format builds)
             ALTER TABLE protvar_runtime.upload_variant
               ALTER COLUMN protein_pos DROP NOT NULL,
@@ -213,6 +227,8 @@ public class UploadVariantRepo {
     private void deleteRows(int key) {
         jdbcTemplate.update("DELETE FROM protvar_runtime.upload_variant WHERE upload_key = :k",
                 new MapSqlParameterSource("k", key));
+        jdbcTemplate.update("DELETE FROM protvar_runtime.upload_line WHERE upload_key = :k",
+                new MapSqlParameterSource("k", key));
     }
 
     /** Bulk-inserts one chunk of rows as parallel arrays (one round trip). */
@@ -235,6 +251,36 @@ public class UploadVariantRepo {
                 .addValue("wt", rows.stream().map(Row::wtAa).toArray(String[]::new))
                 .addValue("mt", rows.stream().map(Row::mtAa).toArray(String[]::new));
         jdbcTemplate.update(sql, params);
+    }
+
+    /** Records the note codes of one chunk's lines (line number → codes); lines without notes are left out. */
+    public void insertLines(int key, Map<Integer, List<String>> codesByLine) {
+        if (codesByLine.isEmpty()) return;
+        String sql = """
+                INSERT INTO protvar_runtime.upload_line (upload_key, input_idx, codes)
+                SELECT :k, idx, string_to_array(codes, ',') FROM unnest(:idx::int[], :codes::text[]) AS u(idx, codes)
+                """;
+        var params = new MapSqlParameterSource("k", key)
+                .addValue("idx", codesByLine.keySet().toArray(Integer[]::new))
+                .addValue("codes", codesByLine.values().stream().map(c -> String.join(",", c)).toArray(String[]::new));
+        jdbcTemplate.update(sql, params);
+    }
+
+    /** Lines mapped (with rows) and with notes, and lines per note code, of a prepared build. */
+    public UploadSummary summary(int key) {
+        var params = new MapSqlParameterSource("k", key);
+        Map<String, Long> codes = new TreeMap<>();
+        jdbcTemplate.query("""
+                SELECT code, count(*) AS n FROM protvar_runtime.upload_line, unnest(codes) AS code
+                WHERE upload_key = :k GROUP BY code""", params,
+                rs -> { codes.put(rs.getString("code"), rs.getLong("n")); });
+        return jdbcTemplate.queryForObject("""
+                SELECT u.input_count,
+                       (SELECT count(DISTINCT input_idx) FROM protvar_runtime.upload_variant WHERE upload_key = :k) AS mapped,
+                       (SELECT count(*) FROM protvar_runtime.upload_line WHERE upload_key = :k) AS with_notes
+                FROM protvar_runtime.upload u WHERE u.upload_key = :k""", params,
+                (rs, i) -> UploadSummary.prepared(rs.getLong("input_count"), rs.getLong("mapped"),
+                        rs.getLong("with_notes"), codes));
     }
 
     /** Whether builds copy their rows from coding_variant (see the class comment). */
@@ -277,32 +323,45 @@ public class UploadVariantRepo {
                 SELECT upload_key FROM protvar_runtime.upload
                 WHERE last_used_at < now() - make_interval(days => :days) OR release <> :rel""";
         jdbcTemplate.update("DELETE FROM protvar_runtime.upload_variant WHERE upload_key IN (" + expired + ")", params);
+        jdbcTemplate.update("DELETE FROM protvar_runtime.upload_line WHERE upload_key IN (" + expired + ")", params);
         return jdbcTemplate.update("DELETE FROM protvar_runtime.upload WHERE upload_key IN (" + expired + ")", params);
     }
 
     // ---------------------------------------------------------------- filter / sort
 
-    /** Number of input lines with at least one passing row. */
+    /**
+     * Number of matching input lines: lines with at least one passing row, or, with only a notes filter, any
+     * line (mapped or not) whose notes match.
+     */
     public long countLines(int key, MappingRequest request) {
         var params = new MapSqlParameterSource("k", key);
-        String sql = "SELECT count(DISTINCT uv.input_idx) FROM protvar_runtime.upload_variant uv\n"
-                + where(request, params);
+        String sql = rowFiltersOrSorts(request)
+                ? "SELECT count(DISTINCT uv.input_idx) FROM protvar_runtime.upload_variant uv\n"
+                    + where(request, params) + lineConditions(request, params, "uv.input_idx")
+                : "SELECT count(*) FROM " + ALL_LINES + "\nWHERE true" + lineConditions(request, params, "l.idx");
         return withFilterTimeout().queryForObject(sql, params, Long.class);
     }
+
+    // every line number of the build, for a notes filter that must also find lines without rows
+    private static final String ALL_LINES = "generate_series(0, "
+            + "(SELECT input_count FROM protvar_runtime.upload WHERE upload_key = :k) - 1) AS l(idx)";
 
     /** One page of passing input line numbers, in sort order (input order when unsorted). */
     public List<Integer> pageLines(int key, MappingRequest request, long offset, int limit) {
         var params = new MapSqlParameterSource("k", key).addValue("limit", limit).addValue("offset", offset);
         String sortExpr = sortExpr(request);
         String sql;
-        if (sortExpr == null) {
+        if (!rowFiltersOrSorts(request)) {
+            sql = "SELECT l.idx FROM " + ALL_LINES + "\nWHERE true" + lineConditions(request, params, "l.idx")
+                    + "\nORDER BY l.idx LIMIT :limit OFFSET :offset";
+        } else if (sortExpr == null) {
             sql = "SELECT DISTINCT uv.input_idx FROM protvar_runtime.upload_variant uv\n"
-                    + where(request, params)
+                    + where(request, params) + lineConditions(request, params, "uv.input_idx")
                     + "\nORDER BY uv.input_idx LIMIT :limit OFFSET :offset";
         } else {
             boolean asc = "asc".equalsIgnoreCase(request.getOrder());
             sql = "WITH r AS (SELECT uv.input_idx, " + sortExpr + " AS s FROM protvar_runtime.upload_variant uv\n"
-                    + where(request, params) + ")\n"
+                    + where(request, params) + lineConditions(request, params, "uv.input_idx") + ")\n"
                     + "SELECT input_idx FROM r GROUP BY input_idx\n"
                     + "ORDER BY " + (asc ? "min(s) ASC" : "max(s) DESC") + " NULLS LAST, input_idx\n"
                     + "LIMIT :limit OFFSET :offset";
@@ -336,6 +395,32 @@ public class UploadVariantRepo {
 
     /** True when the request filters or sorts (i.e. needs the materialised upload). */
     public static boolean filtersOrSorts(MappingRequest r) {
+        return rowFiltersOrSorts(r) || notesFilter(r);
+    }
+
+    /** True when the request filters on the lines' notes (notes=any|none, codes=PV-…). */
+    public static boolean notesFilter(MappingRequest r) {
+        return "any".equalsIgnoreCase(r.getNotes()) || "none".equalsIgnoreCase(r.getNotes()) || notEmpty(r.getCodes());
+    }
+
+    /**
+     * Notes conditions on a line number ({@code idx}): " AND …" for each active notes filter, or "".
+     * A line's notes are its upload_line row (no row = no notes).
+     */
+    String lineConditions(MappingRequest request, MapSqlParameterSource params, String idx) {
+        String line = "SELECT 1 FROM protvar_runtime.upload_line ul WHERE ul.upload_key = :k AND ul.input_idx = " + idx;
+        StringBuilder c = new StringBuilder();
+        if ("any".equalsIgnoreCase(request.getNotes())) c.append("\n  AND EXISTS (").append(line).append(")");
+        if ("none".equalsIgnoreCase(request.getNotes())) c.append("\n  AND NOT EXISTS (").append(line).append(")");
+        if (notEmpty(request.getCodes())) {
+            params.addValue("codes", request.getCodes().toArray(String[]::new));
+            c.append("\n  AND EXISTS (").append(line).append(" AND ul.codes && :codes::text[])");
+        }
+        return c.toString();
+    }
+
+    /** True when the request filters or sorts on the lines' rows (scores, features, …), not only on notes. */
+    private static boolean rowFiltersOrSorts(MappingRequest r) {
         return Boolean.TRUE.equals(r.getKnown())
                 || notEmpty(r.getCadd()) || r.getAviMin() != null
                 || notEmpty(r.getAm()) || notEmpty(r.getPopeve())

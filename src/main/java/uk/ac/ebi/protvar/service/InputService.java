@@ -28,6 +28,7 @@ public class InputService {
     private final ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     private final UploadCacheService cacheService;
+    private final UploadFilterService uploadFilterService;
     private final BuildProcessor buildProcessor;
 
     private String checksumFromLines(List<String> lines) {
@@ -53,6 +54,9 @@ public class InputService {
 
             InputSummary summary = summarize(parsed);
             cacheService.cacheSummary(id, summary);
+
+            // prepare the upload now (summary, notes, filters) rather than on its first filtered request
+            uploadFilterService.prepare(id, request.getAssembly(), cacheService.getBuild(id));
 
         });
         return id;
