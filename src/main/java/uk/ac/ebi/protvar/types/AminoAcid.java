@@ -60,40 +60,60 @@ public enum AminoAcid {
     public final static Set<String> VALID_AA3 = new HashSet<>();
 
     static {
-        // amino acid is encoded by the rna codons
-        Arrays.stream(AminoAcid.standardValues())
-                .forEach(aminoAcid -> {
-                    Arrays.stream(Codon.values()).forEach(rnaCodon -> {
-                        if (rnaCodon.getAa() != null && rnaCodon.getAa().equals(aminoAcid))
-                            aminoAcid.rnaCodons.add(rnaCodon);
-                    });
-                });
-
-        Arrays.stream(AminoAcid.standardValues())
-                .forEach(aminoAcid -> {
-                    aminoAcid.rnaCodons.stream().forEach(rnaCodon -> {
-                        for (Map.Entry<Integer, Set<Codon>> entry : rnaCodon.getPossibleVariants().entrySet()) {
-                            Integer pos = entry.getKey();
-                            Set<Codon> variantCodons = entry.getValue();
-                            for (Codon variantCodon : variantCodons) {
-                                AminoAcid aa = variantCodon.getAa();
-                                if (aminoAcid.altAACodonPositions.containsKey(aa)) {
-                                    aminoAcid.altAACodonPositions.get(aa).add(pos);
-                                } else {
-                                    Set posSet = new HashSet<Integer>();
-                                    posSet.add(pos);
-                                    aminoAcid.altAACodonPositions.put(aa, posSet);
-                                }
-                            }
-                        }
-                    });
-                });
-
         Arrays.stream(AminoAcid.standardValues()).forEach(
                 aminoAcid -> {
                     VALID_AA1.add(aminoAcid.getOneLetter());
                     VALID_AA3.add(aminoAcid.name());
                 });
+    }
+
+    /**
+     * Links each amino acid to its codons on first use. Done lazily, not in AminoAcid's static block:
+     * Codon's static block references AminoAcid, so when Codon loads first AminoAcid's static block ran
+     * while every codon's aa was still null, leaving rnaCodons empty (isSNV then false for every change).
+     */
+    private static final class CodonLinks {
+        static {
+            // amino acid is encoded by the rna codons
+            Arrays.stream(AminoAcid.standardValues())
+                    .forEach(aminoAcid -> {
+                        Arrays.stream(Codon.values()).forEach(rnaCodon -> {
+                            if (rnaCodon.getAa() != null && rnaCodon.getAa().equals(aminoAcid))
+                                aminoAcid.rnaCodons.add(rnaCodon);
+                        });
+                    });
+
+            Arrays.stream(AminoAcid.standardValues())
+                    .forEach(aminoAcid -> {
+                        aminoAcid.rnaCodons.stream().forEach(rnaCodon -> {
+                            for (Map.Entry<Integer, Set<Codon>> entry : rnaCodon.getPossibleVariants().entrySet()) {
+                                Integer pos = entry.getKey();
+                                Set<Codon> variantCodons = entry.getValue();
+                                for (Codon variantCodon : variantCodons) {
+                                    AminoAcid aa = variantCodon.getAa();
+                                    if (aminoAcid.altAACodonPositions.containsKey(aa)) {
+                                        aminoAcid.altAACodonPositions.get(aa).add(pos);
+                                    } else {
+                                        Set posSet = new HashSet<Integer>();
+                                        posSet.add(pos);
+                                        aminoAcid.altAACodonPositions.put(aa, posSet);
+                                    }
+                                }
+                            }
+                        });
+                    });
+        }
+        static void ensure() {}
+    }
+
+    public Set<Codon> getRnaCodons() {
+        CodonLinks.ensure();
+        return rnaCodons;
+    }
+
+    public Map<AminoAcid, Set<Integer>> getAltAACodonPositions() {
+        CodonLinks.ensure();
+        return altAACodonPositions;
     }
 
     AminoAcid(String oneLetter, String threeLetter, String fullName) {
