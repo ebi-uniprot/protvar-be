@@ -68,7 +68,7 @@ public class Pro2Gen {
                                     ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
                                     hgvsProt.getAcc()));
                         }*/
-                        if (tail.size() > 1) {
+                        if (!tail.isEmpty()) {
                             hgvsProt.addWarning(String.format(
                                     ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.getErrorMessage(),
                                     Arrays.toString(uniprotAccs.toArray()),
@@ -77,15 +77,15 @@ public class Pro2Gen {
                     }
                     if (!proteinCache.isMapped(hgvsProt.getAccession())) {
                         if (uniprotAccessionCache.isKnown(hgvsProt.getAccession()))
-                            hgvsProt.addWarning(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED.getErrorMessage(),
+                            hgvsProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED.getErrorMessage(),
                                     hgvsProt.getAccession()));
                         else
-                            hgvsProt.addWarning(
+                            hgvsProt.addError(
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage(),
                                         hgvsProt.getRefseqId(), hgvsProt.getAccession()));
                     }
                 } else {
-                    hgvsProt.addWarning(ErrorConstants.HGVS_REFSEQ_NO_PROTEIN);
+                    hgvsProt.addError(ErrorConstants.HGVS_REFSEQ_NO_PROTEIN);
                 }
 
             } else if(input instanceof ProteinInput) { // internal Protein
@@ -107,10 +107,10 @@ public class Pro2Gen {
 
                     if (!proteinCache.isMapped(codingInput.getDerivedUniprotAcc())) {
                         if (uniprotAccessionCache.isKnown(codingInput.getDerivedUniprotAcc()))
-                            codingInput.addWarning(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED.getErrorMessage(),
+                            codingInput.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED.getErrorMessage(),
                                     codingInput.getDerivedUniprotAcc()));
                         else
-                            codingInput.addWarning(
+                            codingInput.addError(
                                 String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
                                         , codingInput.getRefseqId(), codingInput.getDerivedUniprotAcc()));
                     }

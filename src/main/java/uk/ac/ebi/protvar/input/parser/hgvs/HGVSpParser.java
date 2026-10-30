@@ -124,7 +124,7 @@ public class HGVSpParser extends VariantParser {
                     parsedInput.addError(ErrorConstants.HGVS_P_VARDESC_INVALID);
                 }
             } else {
-                parsedInput.addError("HGVS p. invalid"); // todo: ErrorConstants.HGVS_P_FORMAT_INVALID
+                parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);

@@ -63,7 +63,7 @@ public class Coding2Pro {
                             cDNAProt.addWarning(ErrorConstants.HGVS_C_POS_NOT_MATCHED);
                         }
 
-                        if (tail != null && tail.size() > 1) {
+                        if (tail != null && !tail.isEmpty()) {
                             cDNAProt.addWarning(String.format(ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.toString(),
                                     Arrays.toString(uniprotAccs.toArray()),
                                     head.get(0)));

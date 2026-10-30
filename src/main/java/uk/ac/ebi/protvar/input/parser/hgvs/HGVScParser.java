@@ -150,7 +150,7 @@ public class HGVScParser extends VariantParser {
                     }
                 }
             } else {
-                parsedInput.addError("HGVS c. invalid"); // todo: ErrorConstants.HGVS_C_FORMAT_INVALID
+                parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);

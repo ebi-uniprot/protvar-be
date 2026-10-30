@@ -86,7 +86,7 @@ public class HGVSgParserTest {
         GenomicInput result = HGVSgParser.parse("completely_invalid_format");
 
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().contains("HGVS g. invalid"));
+        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_GENERIC_ERROR.getErrorMessage()));
     }
 
     @Test

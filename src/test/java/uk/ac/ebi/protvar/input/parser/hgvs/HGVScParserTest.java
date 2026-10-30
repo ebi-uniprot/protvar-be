@@ -178,7 +178,7 @@ public class HGVScParserTest {
         HGVSCodingInput result = HGVScParser.parse("completely_invalid_format");
 
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().contains("HGVS c. invalid"));
+        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_GENERIC_ERROR.getErrorMessage()));
     }
 
     @Test

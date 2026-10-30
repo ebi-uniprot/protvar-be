@@ -98,7 +98,7 @@ public enum ErrorConstants {
 
     ERR_REF_ALLELE_EMPTY("", "User input reference and variant allele empty. ProtVar will use the reference allele at the genomic location."),
     ERR_VAR_ALLELE_EMPTY("", "User input variant allele empty."),
-    ERR_REF_ALLELE_MISMATCH("", "User input reference allele (%s) does not match the UniProt sequence (%s) at the genomic location."),
+    ERR_REF_ALLELE_MISMATCH("", "User input reference allele (%s) does not match the reference genome (%s) at this position."),
 
     ERR_REF_AND_VAR_ALLELE_SAME("", "Reference and alternate are the same. ProtVar will show all possible alternatives of the reference."),
 
