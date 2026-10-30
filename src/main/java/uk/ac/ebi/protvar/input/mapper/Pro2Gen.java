@@ -62,7 +62,7 @@ public class Pro2Gen {
 
                     if (uniprotAccs.size() > 1) {
                         hgvsProt.addMessage(MessageCode.PV351_REFSEQ_SEVERAL_ACCS,
-                                Arrays.toString(uniprotAccs.toArray()), head.get(0));
+                                String.join(", ", uniprotAccs), head.get(0));
                     }
                     if (!proteinCache.isMapped(hgvsProt.getAccession())) {
                         if (uniprotAccessionCache.isKnown(hgvsProt.getAccession()))

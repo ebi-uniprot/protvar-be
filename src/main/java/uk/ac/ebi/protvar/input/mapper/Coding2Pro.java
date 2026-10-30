@@ -64,7 +64,7 @@ public class Coding2Pro {
 
                         if (uniprotAccs.size() > 1) {
                             cDNAProt.addMessage(MessageCode.PV351_REFSEQ_SEVERAL_ACCS,
-                                    Arrays.toString(uniprotAccs.toArray()), head.get(0));
+                                    String.join(", ", uniprotAccs), head.get(0));
                         }
                     }
                 } else {

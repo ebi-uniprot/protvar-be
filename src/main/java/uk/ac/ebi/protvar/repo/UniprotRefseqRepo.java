@@ -22,6 +22,13 @@ public class UniprotRefseqRepo {
     @Value("${tbl.uprefseq}")
     private String uniprotRefseqTable;
 
+    // The table repeats a (refseq, uniprot) pair when it is MANE Select for one transcript and not another:
+    // one row per pair, and per RefSeq ID the accession to use first: MANE Select, then a 6-character
+    // accession over a 10-character one (always TrEMBL), then by accession.
+    // TODO prefer reviewed (protein.is_reviewed) once the next remap adds it.
+    private static final String PAIRS_IN_ORDER = "GROUP BY refseq_acc, uniprot_acc ORDER BY refseq_acc, "
+            + "bool_or(is_mane_select) DESC, length(uniprot_acc), uniprot_acc";
+
     /**
      * Check the number of RefSeq accession without version
      * select no_ver, count(*) from (
@@ -33,7 +40,8 @@ public class UniprotRefseqRepo {
     public Map<String, List<String>> getRefSeqUniprotMap(Set<String> refseqIds) {
         if (refseqIds == null || refseqIds.isEmpty())
             return new HashMap();
-        String sql = String.format("SELECT * FROM %s WHERE refseq_acc IN (:ids)",
+        String sql = String.format("SELECT refseq_acc, uniprot_acc FROM %s WHERE refseq_acc IN (:ids) "
+                        + PAIRS_IN_ORDER,
                 uniprotRefseqTable);
         SqlParameterSource parameters = new MapSqlParameterSource("ids", refseqIds);
         return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<Map>() {
@@ -55,7 +63,8 @@ public class UniprotRefseqRepo {
     public TreeMap<String, List<String>> getRefSeqNoVerUniprotMap(Set<String> refseqIds) {
         if (refseqIds == null || refseqIds.isEmpty())
             return new TreeMap<>();
-        String sql = String.format("SELECT * FROM %s WHERE split_part(refseq_acc, '.', 1) IN (:ids)",
+        String sql = String.format("SELECT refseq_acc, uniprot_acc FROM %s "
+                        + "WHERE split_part(refseq_acc, '.', 1) IN (:ids) " + PAIRS_IN_ORDER,
                 uniprotRefseqTable);
         SqlParameterSource parameters = new MapSqlParameterSource("ids", refseqIds);
         return namedParameterJdbcTemplate.query(sql, parameters, new ResultSetExtractor<TreeMap>() {
