@@ -102,7 +102,7 @@ class CodingVariantRepoTest {
     @Test
     void idPositionsOneSelectPerIdentifierUnioned() {
         MapSqlParameterSource p = new MapSqlParameterSource();
-        String sql = repo.idPositions(List.of(new Identifier(IdentifierType.UNIPROT, "P22304"),
+        String sql = repo.idPositions(ids(new Identifier(IdentifierType.UNIPROT, "P22304"),
                 new Identifier(IdentifierType.GENE, "BRCA2")), p);
         assertEquals("""
                 SELECT DISTINCT m.chromosome AS id_chr, m.genomic_position AS id_pos FROM map m WHERE m.accession = :id0
@@ -115,7 +115,7 @@ class CodingVariantRepoTest {
     @Test
     void idPositionsEnsemblVersionAndRefseq() {
         MapSqlParameterSource p = new MapSqlParameterSource();
-        String sql = repo.idPositions(List.of(new Identifier(IdentifierType.ENSEMBL, "enst00000380152.8"),
+        String sql = repo.idPositions(ids(new Identifier(IdentifierType.ENSEMBL, "enst00000380152.8"),
                 new Identifier(IdentifierType.ENSEMBL, "ENSG00000139618.2"),
                 new Identifier(IdentifierType.REFSEQ, "NP_000050")), p);
         assertTrue(sql.contains("WHERE m.enst = :id0 AND m.enstv = :id0v"));
@@ -127,7 +127,7 @@ class CodingVariantRepoTest {
 
     @Test
     void idPositionsPdbJoinsObservedRegions() {
-        String sql = repo.idPositions(List.of(new Identifier(IdentifierType.PDB, "1ABC")), new MapSqlParameterSource());
+        String sql = repo.idPositions(ids(new Identifier(IdentifierType.PDB, "1ABC")), new MapSqlParameterSource());
         assertTrue(sql.contains("JOIN (SELECT DISTINCT accession, observed_regions FROM str WHERE pdb_id = LOWER(:id0)) s"));
         assertTrue(sql.contains("m.accession = s.accession AND"));
         assertTrue(sql.contains("observed_regions"));
@@ -135,21 +135,29 @@ class CodingVariantRepoTest {
 
     @Test
     void idPositionsUnmatchableIdentifierAddsNothing() {
-        String sql = repo.idPositions(List.of(new Identifier(IdentifierType.ENSEMBL, "ENSX123")), new MapSqlParameterSource());
+        String sql = repo.idPositions(ids(new Identifier(IdentifierType.ENSEMBL, "ENSX123")), new MapSqlParameterSource());
         assertTrue(sql.endsWith("WHERE false"));
     }
 
     @Test
-    void servesIdsWhenFilteredSortedOrMulti() {
-        MappingRequest r = new MappingRequest();
-        r.setIds(List.of(new Identifier(IdentifierType.GENE, "BRCA2")));
-        assertFalse(repo.servesIds(r), "single identifier, no filter: MappingRepo");
-        r.setSort("cadd");
-        assertTrue(repo.servesIds(r));
-        r.setSort(null); r.setPocket(true);
-        assertTrue(repo.servesIds(r));
-        r.setPocket(null);
-        r.setIds(List.of(new Identifier(IdentifierType.GENE, "BRCA2"), new Identifier(IdentifierType.UNIPROT, "P22304")));
-        assertTrue(repo.servesIds(r));
+    void idPositionsRangeOnSingleUniprotOnly() {
+        MappingRequest r = ids(new Identifier(IdentifierType.UNIPROT, "P22304"));
+        r.setStartPos(600); r.setEndPos(558);
+        MapSqlParameterSource p = new MapSqlParameterSource();
+        assertTrue(repo.idPositions(r, p).endsWith("WHERE m.accession = :id0 AND m.protein_position BETWEEN :startPos AND :endPos"));
+        assertEquals(558, p.getValue("startPos"));
+        assertEquals(600, p.getValue("endPos"));
+
+        r = ids(new Identifier(IdentifierType.GENE, "BRCA2"));
+        r.setStartPos(1); r.setEndPos(10);
+        assertFalse(repo.idPositions(r, new MapSqlParameterSource()).contains("BETWEEN"), "not a single UniProt browse");
     }
+
+    private static MappingRequest ids(Identifier... ids) {
+        MappingRequest r = new MappingRequest();
+        r.setIds(List.of(ids));
+        return r;
+    }
+
+
 }

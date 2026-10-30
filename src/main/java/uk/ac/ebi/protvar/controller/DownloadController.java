@@ -18,7 +18,7 @@ import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatsResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.processor.DownloadFileCleanupTask;
-import uk.ac.ebi.protvar.repo.GenomicVariantRepo;
+import uk.ac.ebi.protvar.repo.CodingVariantRepo;
 import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.MappingService;
@@ -101,7 +101,7 @@ public class DownloadController implements WebMvcConfigurer {
             // Filter-only: browse pages up to COUNT_CAP results (its count stops at COUNT_CAP + 1),
             // so a full download is capped there too.
             if (total < 0 || total > MAX_FULL_DOWNLOAD_ROWS
-                    || (MappingService.isFilterOnly(request) && total > GenomicVariantRepo.COUNT_CAP)) {
+                    || (MappingService.isFilterOnly(request) && total > CodingVariantRepo.COUNT_CAP)) {
                 downloadStatusService.increment("rejected");
                 return ResponseEntity.badRequest().body(Map.of("error", DownloadStatusService.MSG_TOO_LARGE));
             }

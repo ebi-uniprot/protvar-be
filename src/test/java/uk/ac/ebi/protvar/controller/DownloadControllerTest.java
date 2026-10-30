@@ -6,7 +6,7 @@ import org.springframework.http.ResponseEntity;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.response.DownloadResponse;
 import uk.ac.ebi.protvar.processor.DownloadFileCleanupTask;
-import uk.ac.ebi.protvar.repo.GenomicVariantRepo;
+import uk.ac.ebi.protvar.repo.CodingVariantRepo;
 import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.MappingService;
@@ -69,14 +69,14 @@ class DownloadControllerTest {
 
     @Test
     void filterOnlyFullOverBrowseCapIsRefused() {
-        when(mappingService.countInputs(any())).thenReturn(GenomicVariantRepo.COUNT_CAP + 1L);
+        when(mappingService.countInputs(any())).thenReturn(CodingVariantRepo.COUNT_CAP + 1L);
         assertEquals(400, controller.handleDownload(filterOnly(), http).getStatusCode().value());
         verifyNoInteractions(downloadService);
     }
 
     @Test
     void filterOnlyFullWithinBrowseCapIsQueued() {
-        when(mappingService.countInputs(any())).thenReturn((long) GenomicVariantRepo.COUNT_CAP);
+        when(mappingService.countInputs(any())).thenReturn((long) CodingVariantRepo.COUNT_CAP);
         assertEquals(200, controller.handleDownload(filterOnly(), http).getStatusCode().value());
         verify(downloadService).queueRequest(any());
     }

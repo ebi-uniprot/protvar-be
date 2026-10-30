@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import uk.ac.ebi.protvar.exception.QueryTooBroadException;
 import uk.ac.ebi.protvar.constants.PageUtils;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.input.VariantInput;
@@ -40,8 +41,9 @@ import java.util.regex.Pattern;
  * alt on the gene's lead accession, with every filterable and sortable attribute already on the row (design:
  * doc/coding_variant_table.md). Every filter is a plain column condition, so there are no per-request joins.
  *
- * <p>Same contract as {@link GenomicVariantRepo#get}: a page of genomic variants plus a capped count
- * ({@link GenomicVariantRepo#COUNT_CAP}+1 = "more than the cap", -1 = count timed out).
+ * <p>Serves every browse: identifiers (with or without filters) and filter-only. Returns a page of genomic
+ * variants plus a count: exact for identifiers, capped for filter-only ({@link #COUNT_CAP}+1 = "more than the
+ * cap"), -1 when the count timed out.
  *
  * <p>Score sorts show only variants that have that score ({@code <score> IS NOT NULL}), so the planner reads the
  * score's btree in order and stops after one page. The default order is (accession, protein_pos), served by
@@ -57,7 +59,27 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class CodingVariantRepo {
     private static final Logger LOGGER = LoggerFactory.getLogger(CodingVariantRepo.class);
+
+    /**
+     * Upper bound on the COUNT(*) for paginated filter-only browse. Counting the full result set (potentially
+     * tens of millions of rows) would dominate every request — so we cap with an inner LIMIT and report at most
+     * CAP+1 as the total. Clients receive this same value via the {@code totalCap} field on PagedMappingResponse,
+     * so they don't need to hard-code it.
+     *
+     * <p>It is also the filter-only browse limit, not just a count shortcut: the FE clamps paging to totalCap,
+     * and full downloads of filter-only results are capped at it too (DownloadController), so a download holds
+     * what can be browsed.
+     */
+    public static final int COUNT_CAP = 10000;
+
+    /**
+     * Timeout for the bounded COUNT: sparse multi-filter intersections can scan much of the table to confirm
+     * "no more rows". On timeout the total is -1 ("unknown") and the FE pages with Prev/Next only.
+     */
     private static final int COUNT_TIMEOUT_SECONDS = 3;
+    private static final int PAGE_TIMEOUT_SECONDS = 20;
+    static final String PAGE_TIMEOUT_MESSAGE = "This filter combination is too slow to browse. "
+            + "Add an identifier (protein, gene, …) or a more selective primary filter.";
     private static final Pattern ENSEMBL_ID = Pattern.compile("^(ENS[GTP])(\\d{11})(?:\\.(\\d+))?$", Pattern.CASE_INSENSITIVE);
 
     // request sort key → column
@@ -70,17 +92,6 @@ public class CodingVariantRepo {
     @Value("${tbl.mapping.enriched}") private String mappingTable;
     @Value("${tbl.uprefseq}") private String uniprotRefseqTable;
     @Value("${tbl.ann.str}") private String structureTable;
-
-    /**
-     * Whether an {@code ids[]} request should use this table: any filter or score sort, or more than one
-     * identifier. A single identifier with no filter stays on MappingRepo (fast, and lists the identifier's own
-     * isoform order).
-     */
-    public boolean servesIds(MappingRequest request) {
-        return request.getIds().size() > 1
-                || (request.getSort() != null && SORT_COLUMNS.containsKey(request.getSort().toLowerCase()))
-                || !filters(request, new MapSqlParameterSource()).isEmpty();
-    }
 
     public Page<VariantInput> get(MappingRequest request, Pageable pageable) {
         if (pageable == null) pageable = PageRequest.of(0, PageUtils.DEFAULT_PAGE_SIZE);
@@ -97,15 +108,37 @@ public class CodingVariantRepo {
         String sortColumn = request.getSort() == null ? null : SORT_COLUMNS.get(request.getSort().toLowerCase());
         if (sortColumn != null) where.add(sortColumn + " IS NOT NULL");
         String from = "FROM " + table
-                + (byIds ? "\nJOIN (" + idPositions(request.getIds(), params) + ") ids"
+                + (byIds ? "\nJOIN (" + idPositions(request, params) + ") ids"
                            + " ON ids.id_chr = chromosome AND ids.id_pos = position" : "")
                 + (where.isEmpty() ? "" : "\nWHERE " + String.join("\n  AND ", where));
+        String dir = "asc".equalsIgnoreCase(request.getOrder()) ? " ASC" : " DESC";
+
+        // Identifiers: a variant has one row per gene lead, so overlapping genes repeat it. Page and count over
+        // one representative row per variant: its best score when sorting, else the canonical lead (then a
+        // 6-character accession over a 10-character one, always TrEMBL); unsorted pages read in reading frame.
+        String rows = from;
+        String order;
+        if (byIds) {
+            rows = "FROM (SELECT DISTINCT ON (chromosome, position, ref, alt) chromosome, position, ref, alt, "
+                    + "accession, is_canonical, protein_pos, codon_pos" + (sortColumn != null ? ", " + sortColumn : "") + "\n"
+                    + from + "\nORDER BY chromosome, position, ref, alt, "
+                    + (sortColumn != null ? sortColumn + dir + " NULLS LAST, " : "")
+                    + "is_canonical DESC, length(accession), accession) v";
+            // the canonical protein's variants first, then other entries' (a 6-character accession first)
+            order = sortColumn != null ? sortColumn + dir + ", chromosome, position, alt"
+                    : "is_canonical DESC, length(accession), accession, protein_pos, codon_pos, alt";
+        } else {
+            // filter-only stays row-based so the planner can stop after one page; it is canonical-only, so a
+            // variant repeats only where two genes' canonical proteins overlap (~0.02% of rows, chr17)
+            order = sortColumn != null ? sortColumn + dir + ", chromosome, position, alt, accession"
+                    : "accession, protein_pos, position, alt";
+        }
 
         long total = -1;
         if (!isDownload) {
             String countSql = byIds
-                    ? "SELECT count(*) " + from
-                    : "SELECT count(*) FROM (SELECT 1 " + from + " LIMIT " + (GenomicVariantRepo.COUNT_CAP + 1) + ") c";
+                    ? "SELECT count(*) " + rows
+                    : "SELECT count(*) FROM (SELECT 1 " + from + " LIMIT " + (COUNT_CAP + 1) + ") c";
             try {
                 total = withTimeout(COUNT_TIMEOUT_SECONDS).queryForObject(countSql, params, Long.class);
             } catch (DataAccessException e) {
@@ -114,25 +147,30 @@ public class CodingVariantRepo {
             if (total == 0) return Page.empty(pageable);
         }
 
-        String order = sortColumn != null
-                ? sortColumn + ("asc".equalsIgnoreCase(request.getOrder()) ? " ASC" : " DESC")
-                  + ", chromosome, position, alt, accession"
-                : "accession, protein_pos, position, alt";
-        String sql = "SELECT chromosome, position, ref, alt " + from
+        String sql = "SELECT chromosome, position, ref, alt " + rows
                 + "\nORDER BY " + order + "\nLIMIT :pageSize OFFSET :offset";
         params.addValue("pageSize", pageable.getPageSize()).addValue("offset", pageable.getOffset());
 
-        List<VariantInput> variants = jdbcTemplate.query(sql, params, (rs, i) -> {
-            String chr = rs.getString("chromosome");
-            int pos = rs.getInt("position");
-            String ref = rs.getString("ref");
-            String alt = rs.getString("alt");
-            return new GenomicInput(String.format("%s %d %s %s", chr, pos, ref, alt), chr, pos, ref, alt);
-        });
+        // Downloads run async and may take long; interactive pages get a time budget so a slow filter
+        // combination fails fast with a clear message instead of a gateway 500 and a query left running.
+        List<VariantInput> variants;
+        try {
+            variants = (isDownload ? jdbcTemplate : withTimeout(PAGE_TIMEOUT_SECONDS)).query(sql, params, (rs, i) -> {
+                String chr = rs.getString("chromosome");
+                int pos = rs.getInt("position");
+                String ref = rs.getString("ref");
+                String alt = rs.getString("alt");
+                return new GenomicInput(String.format("%s %d %s %s", chr, pos, ref, alt), chr, pos, ref, alt);
+            });
+        } catch (DataAccessException e) {
+            if (!isStatementCancelled(e)) throw e;
+            LOGGER.info("coding_variant page query exceeded {}s timeout", PAGE_TIMEOUT_SECONDS);
+            throw new QueryTooBroadException(PAGE_TIMEOUT_MESSAGE);
+        }
 
         if (isDownload) return new PageImpl<>(variants);
         if (total < 0) {
-            // count timed out: derive isLast from the page, as GenomicVariantRepo does
+            // count timed out: derive isLast from the page
             final boolean isLast = variants.size() < pageable.getPageSize();
             final boolean hasPrevious = pageable.getPageNumber() > 0;
             return new PageImpl<VariantInput>(variants, pageable, 0) {
@@ -148,7 +186,7 @@ public class CodingVariantRepo {
 
     /**
      * One condition per active filter (AND across filters, OR within a band list), on the table's columns.
-     * Same semantics as GenomicVariantRepo/MappingRepo: band lists are [min, max) ORs; popEVE bands may be
+     * Band lists are [min, max) ORs; popEVE bands may be
      * open-ended; stability means "any FoldX row" in either direction, hence max/min ΔΔG.
      * Score bounds are cast to real like the columns, so a value exactly on a band edge (popEVE -5.056 is stored as
      * -5.0560002) falls in the same band as on the source tables.
@@ -246,7 +284,16 @@ public class CodingVariantRepo {
      * MappingRepo's single identifier conditions; an identifier that can't match (bad Ensembl format, unknown
      * type) adds no positions.
      */
-    String idPositions(List<Identifier> ids, MapSqlParameterSource params) {
+    String idPositions(MappingRequest request, MapSqlParameterSource params) {
+        List<Identifier> ids = request.getIds();
+        // position range: single UniProt accession browse only (MappingService warns when it is ignored)
+        String range = "";
+        if (ids.size() == 1 && ids.get(0).type() == IdentifierType.UNIPROT
+                && request.getStartPos() != null && request.getEndPos() != null) {
+            range = " AND m.protein_position BETWEEN :startPos AND :endPos";
+            params.addValue("startPos", Math.min(request.getStartPos(), request.getEndPos()))
+                  .addValue("endPos", Math.max(request.getStartPos(), request.getEndPos()));
+        }
         List<String> selects = new ArrayList<>();
         for (int i = 0; i < ids.size(); i++) {
             Identifier id = ids.get(i);
@@ -281,7 +328,7 @@ public class CodingVariantRepo {
                     + (id.type() == IdentifierType.PDB
                        ? " JOIN (SELECT DISTINCT accession, observed_regions FROM " + structureTable
                          + " WHERE pdb_id = LOWER(:" + p + ")) s ON true" : "")
-                    + " WHERE " + cond);
+                    + " WHERE " + cond + range);
         }
         if (selects.isEmpty()) return "SELECT NULL::text AS id_chr, NULL::int AS id_pos WHERE false";
         return String.join("\nUNION ", selects);
@@ -292,6 +339,14 @@ public class CodingVariantRepo {
     }
 
     /** A template over the same DataSource whose statements time out after {@code seconds}. */
+    /** Postgres reports a statement timeout (and a cancel) as SQLState 57014; Spring's translation varies. */
+    private static boolean isStatementCancelled(DataAccessException e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof java.sql.SQLException sql && "57014".equals(sql.getSQLState())) return true;
+        }
+        return false;
+    }
+
     private NamedParameterJdbcTemplate withTimeout(int seconds) {
         JdbcTemplate scoped = new JdbcTemplate(jdbcTemplate.getJdbcTemplate().getDataSource());
         scoped.setQueryTimeout(seconds);

@@ -10,17 +10,9 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.response.UploadSummary;
-import uk.ac.ebi.protvar.types.AlleleFreqCategory;
-import uk.ac.ebi.protvar.types.AmClass;
-import uk.ac.ebi.protvar.types.CaddCategory;
-import uk.ac.ebi.protvar.types.FeatureGroup;
-import uk.ac.ebi.protvar.types.PopEveClass;
-import uk.ac.ebi.protvar.types.StabilityChange;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.EnumSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,18 +23,14 @@ import java.util.TreeMap;
  * Materialised user uploads for filter/sort (protvar_runtime schema, owned by the BE user).
  *
  * <p>{@code upload} holds one row per (upload id, requested assembly, data release) build;
- * {@code upload_variant} holds its rows: one per derived genomic variant × lead accession
- * per gene, tagged with the original input line number. Rows are derived from the Redis-cached input
- * and rebuilt whenever missing (Delphix refresh, clean-up, new release). Both tables are UNLOGGED so a
- * snapshot or crash empties them together — never a READY build without its rows.
+ * {@code upload_variant} holds its rows, copied from the coding_variant table: every gene lead at each derived
+ * genomic variant, with all filter/sort attributes, tagged with the original input line number. Rows are
+ * derived from the Redis-cached input and rebuilt whenever missing (Delphix refresh, clean-up, new release).
+ * The tables are UNLOGGED so a snapshot or crash empties them together — never a READY build without its rows.
  *
- * <p>Filters compile to EXISTS on each score/feature table's own key, so a variant passes on its own
- * row; a line passes if any of its rows does. Sort uses each line's best row (MAX desc / MIN asc).
- *
- * <p>With {@code app.filter.coding-variant}, a build instead copies its rows from the coding_variant table
- * (every lead at each derived variant, with all filter/sort attributes), and filters are plain column
- * conditions on upload_variant, the same ones CodingVariantRepo uses. Those builds carry a distinct release
- * key ({@link #CV_SUFFIX}), so old-format builds are never read by the new path (rebuilt on demand).
+ * <p>Filters are plain column conditions on upload_variant, the same ones CodingVariantRepo uses; a line
+ * passes if any of its rows does. Sort uses each line's best row (MAX desc / MIN asc). The build's release
+ * key carries {@link #CV_SUFFIX}, bumped when builds gain data so older ones are rebuilt on demand.
  *
  * <p>{@code upload_line} holds the note codes (MessageCode) of each line that has any, recorded while
  * building: the upload summary and the notes filter read it. A line is mapped when it has upload_variant rows.
@@ -118,28 +106,12 @@ public class UploadVariantRepo {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final CodingVariantRepo codingVariantRepo;
 
-    @Value("${app.filter.coding-variant:false}") private boolean fromCodingVariant;
     @Value("${tbl.coding.variant}") private String codingVariantTable;
-    @Value("${tbl.genomic_score}") private String genomicScoreTable;
-    @Value("${tbl.mapping.dbsnp}") private String dbsnpTable;
-    @Value("${tbl.allelefreq}") private String alleleFreqTable;
-    @Value("${tbl.am}") private String amTable;
-    @Value("${tbl.popeve}") private String popeveTable;
-    @Value("${tbl.uprefseq}") private String uniprotRefseqTable;
-    @Value("${tbl.esm}") private String esmTable;
-    @Value("${tbl.conserv}") private String conservationTable;
-    @Value("${tbl.ann.str}") private String structureTable;
-    @Value("${tbl.pocket.v2}") private String pocketTable;
-    @Value("${tbl.interfaces}") private String interfacesTable;
-    @Value("${tbl.foldx}") private String foldxTable;
-    @Value("${tbl.ann.pop}") private String populationTable;
-    @Value("${tbl.ann.fun.feature}") private String functionFeatureTable;
 
     public record Upload(int key, String status, Integer inputCount, int linesDone, boolean stale) {}
 
-    /** One upload_variant row; mtAa/wtAa may be null (non-codable codon). */
-    public record Row(int inputIdx, String chromosome, int position, String ref, String alt,
-                      String accession, int proteinPos, String wtAa, String mtAa) {}
+    /** One derived genomic variant of an input line, to look up in coding_variant. */
+    public record Row(int inputIdx, String chromosome, int position, String ref, String alt) {}
 
     /** A row that passed the filter — enough to trim the displayed mapping. */
     public record Passing(int inputIdx, String chromosome, int position, String alt, String accession) {}
@@ -231,28 +203,6 @@ public class UploadVariantRepo {
                 new MapSqlParameterSource("k", key));
     }
 
-    /** Bulk-inserts one chunk of rows as parallel arrays (one round trip). */
-    public void insert(int key, List<Row> rows) {
-        if (rows.isEmpty()) return;
-        String sql = """
-                INSERT INTO protvar_runtime.upload_variant
-                  (upload_key, input_idx, chromosome, position, ref, alt, accession, protein_pos, wt_aa, mt_aa)
-                SELECT :k, * FROM unnest(:idx::int[], :chr::varchar[], :pos::int[], :ref::varchar[], :alt::varchar[],
-                                         :acc::varchar[], :ppos::int[], :wt::varchar[], :mt::varchar[])
-                """;
-        var params = new MapSqlParameterSource("k", key)
-                .addValue("idx", rows.stream().map(Row::inputIdx).toArray(Integer[]::new))
-                .addValue("chr", rows.stream().map(Row::chromosome).toArray(String[]::new))
-                .addValue("pos", rows.stream().map(Row::position).toArray(Integer[]::new))
-                .addValue("ref", rows.stream().map(Row::ref).toArray(String[]::new))
-                .addValue("alt", rows.stream().map(Row::alt).toArray(String[]::new))
-                .addValue("acc", rows.stream().map(Row::accession).toArray(String[]::new))
-                .addValue("ppos", rows.stream().map(Row::proteinPos).toArray(Integer[]::new))
-                .addValue("wt", rows.stream().map(Row::wtAa).toArray(String[]::new))
-                .addValue("mt", rows.stream().map(Row::mtAa).toArray(String[]::new));
-        jdbcTemplate.update(sql, params);
-    }
-
     /** Records the note codes of one chunk's lines (line number → codes); lines without notes are left out. */
     public void insertLines(int key, Map<Integer, List<String>> codesByLine) {
         if (codesByLine.isEmpty()) return;
@@ -281,11 +231,6 @@ public class UploadVariantRepo {
                 FROM protvar_runtime.upload u WHERE u.upload_key = :k""", params,
                 (rs, i) -> UploadSummary.prepared(rs.getLong("input_count"), rs.getLong("mapped"),
                         rs.getLong("with_notes"), codes));
-    }
-
-    /** Whether builds copy their rows from coding_variant (see the class comment). */
-    public boolean fromCodingVariant() {
-        return fromCodingVariant;
     }
 
     /**
@@ -448,192 +393,18 @@ public class UploadVariantRepo {
 
     private String sortExpr(MappingRequest request) {
         String key = sortExprKey(request);
-        if (key == null) return null;
-        if (fromCodingVariant) return "uv." + key;   // copied column, same name as the sort key
-        return switch (key) {
-            case "cadd", "avi" -> """
-                    (SELECT max(gs.%s) FROM %s gs WHERE gs.chromosome = uv.chromosome AND gs.position = uv.position
-                       AND gs.reference_allele = uv.ref AND gs.alt_allele = uv.alt)"""
-                    .formatted(key.equals("cadd") ? "score" : "avi_score", genomicScoreTable);
-            case "am" -> """
-                    (SELECT max(am.am_pathogenicity) FROM %s am WHERE am.accession = uv.accession
-                       AND am.position = uv.protein_pos AND am.wt_aa = uv.wt_aa AND am.mt_aa = uv.mt_aa)"""
-                    .formatted(amTable);
-            case "popeve" -> """
-                    (SELECT max(p.popeve) FROM %s r JOIN %s p ON p.refseq_protein = r.refseq_acc
-                     WHERE r.uniprot_acc = uv.accession AND p.position = uv.protein_pos
-                       AND p.wt_aa = uv.wt_aa AND p.mt_aa = uv.mt_aa)"""
-                    .formatted(uniprotRefseqTable, popeveTable);
-            default -> """
-                    (SELECT max(esm.score) FROM %s esm WHERE esm.accession = uv.accession
-                       AND esm.position = uv.protein_pos AND esm.mt_aa = uv.mt_aa)"""
-                    .formatted(esmTable);
-        };
+        return key == null ? null : "uv." + key;   // copied column, same name as the sort key
     }
 
     /**
      * WHERE clause: the upload key plus, per active filter (AND across filters), a column condition on the
-     * copied coding_variant attributes, or an EXISTS on the source table for old-format builds.
+     * copied coding_variant attributes (the same conditions CodingVariantRepo uses; upload_variant is the only
+     * table, so they are unqualified).
      */
     String where(MappingRequest request, MapSqlParameterSource params) {
         List<String> c = new ArrayList<>();
         c.add("uv.upload_key = :k");
-        if (fromCodingVariant) {
-            c.addAll(codingVariantRepo.filters(request, params));   // unqualified: upload_variant is the only table
-            return "WHERE " + String.join("\n  AND ", c);
-        }
-
-        if (Boolean.TRUE.equals(request.getKnown())) {
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s d WHERE d.chr = uv.chromosome AND d.pos = uv.position
-                              AND d.ref = uv.ref AND uv.alt = ANY(d.known_alts))""".formatted(dbsnpTable));
-        }
-
-        List<String> gs = new ArrayList<>();
-        if (notEmpty(request.getCadd())) {
-            List<String> or = new ArrayList<>();
-            for (int i = 0; i < request.getCadd().size(); i++) {
-                CaddCategory cat = request.getCadd().get(i);
-                or.add("(gs.score >= :caddMin" + i + " AND gs.score < :caddMax" + i + ")");
-                params.addValue("caddMin" + i, cat.getMin()).addValue("caddMax" + i, cat.getMax());
-            }
-            gs.add("(" + String.join(" OR ", or) + ")");
-        }
-        if (request.getAviMin() != null) {
-            gs.add("gs.avi_score >= :aviMin");
-            params.addValue("aviMin", request.getAviMin());
-        }
-        if (!gs.isEmpty()) {
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s gs WHERE gs.chromosome = uv.chromosome AND gs.position = uv.position
-                              AND gs.reference_allele = uv.ref AND gs.alt_allele = uv.alt AND %s)"""
-                    .formatted(genomicScoreTable, String.join(" AND ", gs)));
-        }
-
-        if (notEmpty(request.getAlleleFreq())) {
-            List<String> or = new ArrayList<>();
-            for (int i = 0; i < request.getAlleleFreq().size(); i++) {
-                AlleleFreqCategory cat = request.getAlleleFreq().get(i);
-                or.add("(af.af >= :afMin" + i + " AND af.af < :afMax" + i + ")");
-                params.addValue("afMin" + i, cat.getMin()).addValue("afMax" + i, cat.getMax());
-            }
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s af WHERE af.chr = uv.chromosome AND af.pos = uv.position
-                              AND af.ref = uv.ref AND af.alt = uv.alt AND (%s))"""
-                    .formatted(alleleFreqTable, String.join(" OR ", or)));
-        }
-
-        if (notEmpty(request.getAm())) {
-            params.addValue("amClasses", request.getAm().stream().map(AmClass::getValue).toArray(Integer[]::new));
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s am WHERE am.accession = uv.accession AND am.position = uv.protein_pos
-                              AND am.wt_aa = uv.wt_aa AND am.mt_aa = uv.mt_aa AND am.am_class = ANY(:amClasses))"""
-                    .formatted(amTable));
-        }
-
-        if (notEmpty(request.getPopeve())) {
-            List<String> or = new ArrayList<>();
-            for (int i = 0; i < request.getPopeve().size(); i++) {
-                PopEveClass cat = request.getPopeve().get(i);
-                if (Double.isInfinite(cat.getMin()) && cat.getMin() < 0) {
-                    or.add("(p.popeve < :popeveMax" + i + ")");
-                    params.addValue("popeveMax" + i, cat.getMax());
-                } else if (Double.isInfinite(cat.getMax())) {
-                    or.add("(p.popeve >= :popeveMin" + i + ")");
-                    params.addValue("popeveMin" + i, cat.getMin());
-                } else {
-                    or.add("(p.popeve >= :popeveMin" + i + " AND p.popeve < :popeveMax" + i + ")");
-                    params.addValue("popeveMin" + i, cat.getMin()).addValue("popeveMax" + i, cat.getMax());
-                }
-            }
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s r JOIN %s p ON p.refseq_protein = r.refseq_acc
-                            WHERE r.uniprot_acc = uv.accession AND p.position = uv.protein_pos
-                              AND p.wt_aa = uv.wt_aa AND p.mt_aa = uv.mt_aa AND (%s))"""
-                    .formatted(uniprotRefseqTable, popeveTable, String.join(" OR ", or)));
-        }
-
-        if (request.getEsm1bMin() != null || request.getEsm1bMax() != null) {
-            List<String> and = new ArrayList<>();
-            if (request.getEsm1bMin() != null) {
-                and.add("esm.score >= :esm1bMin");
-                params.addValue("esm1bMin", request.getEsm1bMin());
-            }
-            if (request.getEsm1bMax() != null) {
-                and.add("esm.score <= :esm1bMax");
-                params.addValue("esm1bMax", request.getEsm1bMax());
-            }
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s esm WHERE esm.accession = uv.accession AND esm.position = uv.protein_pos
-                              AND esm.mt_aa = uv.mt_aa AND %s)""".formatted(esmTable, String.join(" AND ", and)));
-        }
-
-        if (request.getConservationMin() != null || request.getConservationMax() != null) {
-            List<String> and = new ArrayList<>();
-            if (request.getConservationMin() != null) {
-                and.add("cons.score >= :conservationMin");
-                params.addValue("conservationMin", request.getConservationMin());
-            }
-            if (request.getConservationMax() != null) {
-                and.add("cons.score <= :conservationMax");
-                params.addValue("conservationMax", request.getConservationMax());
-            }
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s cons WHERE cons.accession = uv.accession AND cons.position = uv.protein_pos
-                              AND cons.aa = uv.wt_aa AND %s)""".formatted(conservationTable, String.join(" AND ", and)));
-        }
-
-        if (notEmpty(request.getStability())) {
-            String ddg = "";
-            Set<StabilityChange> changes = EnumSet.copyOf(request.getStability());
-            if (!changes.equals(EnumSet.allOf(StabilityChange.class))) {
-                if (changes.contains(StabilityChange.LIKELY_DESTABILISING)) ddg = " AND f.foldx_ddg >= 2";
-                else if (changes.contains(StabilityChange.UNLIKELY_DESTABILISING)) ddg = " AND f.foldx_ddg < 2";
-            }
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s f WHERE f.protein_acc = uv.accession AND f.position = uv.protein_pos
-                              AND f.mutated_type = uv.mt_aa%s)""".formatted(foldxTable, ddg));
-        }
-
-        if (Boolean.TRUE.equals(request.getExperimentalModel())) {
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s s WHERE s.accession = uv.accession
-                              AND uv.protein_pos BETWEEN s.unp_start AND s.unp_end)""".formatted(structureTable));
-        }
-        if (Boolean.TRUE.equals(request.getPocket())) {
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s p WHERE p.struct_id = uv.accession
-                              AND uv.protein_pos = ANY(p.pocket_resid))""".formatted(pocketTable));
-        }
-        if (Boolean.TRUE.equals(request.getInteract())) {
-            c.add("""
-                    (EXISTS (SELECT 1 FROM %1$s i WHERE i.a = uv.accession AND uv.protein_pos = ANY(i.a_residues))
-                     OR EXISTS (SELECT 1 FROM %1$s i WHERE i.b = uv.accession AND uv.protein_pos = ANY(i.b_residues)))"""
-                    .formatted(interfacesTable));
-        }
-        if (Boolean.TRUE.equals(request.getDiseaseAssociation())) {
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s pop WHERE pop.accession = uv.accession AND pop.position = uv.protein_pos
-                              AND pop.disease IS TRUE)""".formatted(populationTable));
-        }
-
-        // function-side feature groups: AND across groups, OR within a group (as MappingRepo)
-        Map<String, FeatureGroup> groups = new LinkedHashMap<>();
-        if (Boolean.TRUE.equals(request.getPtm()))      groups.put("ptmTypes", FeatureGroup.PTM);
-        if (Boolean.TRUE.equals(request.getMutagen()))  groups.put("mutagenTypes", FeatureGroup.MUTAGENESIS);
-        if (Boolean.TRUE.equals(request.getDomain()))   groups.put("domainTypes", FeatureGroup.DOMAIN);
-        if (Boolean.TRUE.equals(request.getBinding()))  groups.put("bindingTypes", FeatureGroup.BINDING_SITE);
-        if (Boolean.TRUE.equals(request.getActsite()))  groups.put("actsiteTypes", FeatureGroup.ACTIVE_SITE);
-        if (Boolean.TRUE.equals(request.getTransmem())) groups.put("transmemTypes", FeatureGroup.TRANSMEMBRANE);
-        for (Map.Entry<String, FeatureGroup> e : groups.entrySet()) {
-            params.addValue(e.getKey(), e.getValue().getFeatureTypeNames());
-            c.add("""
-                    EXISTS (SELECT 1 FROM %s ff WHERE ff.accession = uv.accession AND ff.type IN (:%s)
-                              AND ((ff.type <> 'DISULFID' AND uv.protein_pos BETWEEN ff.begin_pos AND ff.end_pos)
-                                OR (ff.type =  'DISULFID' AND uv.protein_pos IN (ff.begin_pos, ff.end_pos))))"""
-                    .formatted(functionFeatureTable, e.getKey()));
-        }
-
+        c.addAll(codingVariantRepo.filters(request, params));
         return "WHERE " + String.join("\n  AND ", c);
     }
 }

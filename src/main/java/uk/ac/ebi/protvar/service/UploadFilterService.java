@@ -24,14 +24,11 @@ import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
-import uk.ac.ebi.protvar.model.response.Isoform;
 import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Passing;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Row;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Upload;
-import uk.ac.ebi.protvar.types.AminoAcid;
-import uk.ac.ebi.protvar.types.Codon;
 
 import java.util.*;
 import java.util.concurrent.RejectedExecutionException;
@@ -193,9 +190,9 @@ public class UploadFilterService {
         return assembly == null ? "AUTO" : assembly;
     }
 
-    /** The build's release key: builds copied from coding_variant are kept apart from old-format ones. */
+    /** The build's release key: the data release plus the build-format suffix (older formats are rebuilt). */
     private String buildRelease() {
-        return uploadVariantRepo.fromCodingVariant() ? release + UploadVariantRepo.CV_SUFFIX : release;
+        return release + UploadVariantRepo.CV_SUFFIX;
     }
 
     static final String FILTER_TIMEOUT_MESSAGE = "These filters took too long on this upload. "
@@ -257,16 +254,9 @@ public class UploadFilterService {
                 t = lap(ms, 0, t);
                 inputMapper.preprocess(chunk, assembly, build);
                 t = lap(ms, 1, t);
-                if (uploadVariantRepo.fromCodingVariant()) {
-                    List<Row> variants = toRows(chunk, false);
-                    t = lap(ms, 2, t);
-                    rows += uploadVariantRepo.insertFromCodingVariant(key, variants);
-                } else {
-                    List<Row> out = toRows(chunk, true);
-                    t = lap(ms, 2, t);
-                    uploadVariantRepo.insert(key, out);
-                    rows += out.size();
-                }
+                List<Row> variants = toRows(chunk);
+                t = lap(ms, 2, t);
+                rows += uploadVariantRepo.insertFromCodingVariant(key, variants);
                 t = lap(ms, 3, t);
                 // after toRows: parsing, preprocessing and resolving alt bases have all added their notes
                 uploadVariantRepo.insertLines(key, noteCodes(chunk));
@@ -284,12 +274,10 @@ public class UploadFilterService {
     }
 
     /**
-     * One row per derived genomic variant × alt × gene, on the gene's lead accession (canonical, else the
-     * first isoform in natural accession order — the isoform the result list leads with). Without
-     * {@code leads}, one row per derived variant × alt only (no protein columns): coding_variant supplies
-     * the leads.
+     * One row per derived genomic variant × alt of each valid line, with the reference base from the mapping
+     * (missing alts resolved as on the result page); coding_variant then supplies every gene lead.
      */
-    private List<Row> toRows(List<VariantInput> chunk, boolean leads) {
+    private List<Row> toRows(List<VariantInput> chunk) {
         Set<List<Object>> chrPos = new HashSet<>();
         for (VariantInput input : chunk) {
             if (!input.isValid()) continue;
@@ -317,27 +305,9 @@ public class UploadFilterService {
                 if (mappings == null || mappings.isEmpty()) continue; // unmapped: no protein to filter on
                 String ref = mappings.get(0).getBaseNucleotide();
                 if (!isBase(ref)) continue;
-                Set<String> alts = inputMapper.resolveAltBases(input, gv, ref);
-                if (!leads) {
-                    for (String alt : alts) {
-                        if (isBase(alt)) rows.add(new Row(input.getOriginalIndex(), gv.getChromosome(),
-                                gv.getPosition(), ref.toUpperCase(), alt.toUpperCase(), null, 0, null, null));
-                    }
-                    continue;
-                }
-
-                Collection<List<GenomeToProteinMapping>> genes = mappings.stream()
-                        .filter(m -> m.getAccession() != null)
-                        .collect(Collectors.groupingBy(m -> Objects.toString(m.getEnsg(), ""))).values();
-                for (List<GenomeToProteinMapping> gene : genes) {
-                    GenomeToProteinMapping lead = gene.stream().min(LEAD_ORDER).orElseThrow();
-                    for (String alt : alts) {
-                        if (!isBase(alt)) continue;
-                        AminoAcid mt = Codon.altAA(lead.getCodon(), lead.getCodonPosition(), alt, lead.isReverseStrand());
-                        rows.add(new Row(input.getOriginalIndex(), gv.getChromosome(), gv.getPosition(),
-                                ref.toUpperCase(), alt.toUpperCase(), lead.getAccession(), lead.getIsoformPosition(),
-                                lead.getAa(), mt == null ? null : mt.getOneLetter()));
-                    }
+                for (String alt : inputMapper.resolveAltBases(input, gv, ref)) {
+                    if (isBase(alt)) rows.add(new Row(input.getOriginalIndex(), gv.getChromosome(),
+                            gv.getPosition(), ref.toUpperCase(), alt.toUpperCase()));
                 }
             }
         }
@@ -365,12 +335,6 @@ public class UploadFilterService {
     private static boolean isBase(String b) {
         return b != null && b.length() == 1 && "ACGTacgt".contains(b);
     }
-
-    // same lead rule as Isoform.compareTo and the coding_variant table: canonical, then -N (reviewed) isoforms, then rest
-    static final Comparator<GenomeToProteinMapping> LEAD_ORDER =
-            Comparator.comparing((GenomeToProteinMapping m) -> !m.isCanonical())
-                    .thenComparing(m -> !Isoform.isReviewedIsoform(m.getAccession()))
-                    .thenComparing(GenomeToProteinMapping::getAccession, Isoform::compareAccession);
 
     @Scheduled(cron = "0 30 3 * * *")
     public void cleanUp() {

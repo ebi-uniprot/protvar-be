@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -23,8 +22,6 @@ import uk.ac.ebi.protvar.model.Identifier;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
 import uk.ac.ebi.protvar.repo.CodingVariantRepo;
-import uk.ac.ebi.protvar.repo.GenomicVariantRepo;
-import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.types.Assembly;
 import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
@@ -46,14 +43,9 @@ public class MappingService {
 
     private final InputService inputService;
     private final UploadCacheService uploadCacheService;
-    private final MappingRepo mappingRepo;
-    private final GenomicVariantRepo genomicVariantRepo;
     private final CodingVariantRepo codingVariantRepo;
     private final InputMapper inputMapper;
     private final UploadFilterService uploadFilterService;
-
-    @Value("${app.filter.coding-variant:false}")
-    private boolean filterOnCodingVariant;
 
     /**
      * Fetches a single page of {@link VariantInput} for the request, dispatching
@@ -64,10 +56,8 @@ public class MappingService {
      *   ─────────────────     ────────────────────────      ──────────────────────
      *   q=…                   inline VariantParser          exact (always 1)
      *   resultId=…            UploadCacheService            exact (cached input size)
-     *   ids[]=…               MappingRepo, or               exact
-     *                         CodingVariantRepo when it
-     *                         filters, sorts or has >1 id
-     *   (none — filter-only)  GenomicVariantRepo            best-effort:
+     *   ids[]=…               CodingVariantRepo             exact
+     *   (none — filter-only)  CodingVariantRepo             best-effort:
      *                                                       • exact when result count
      *                                                         is small
      *                                                       • capped (totalCap) when
@@ -89,7 +79,7 @@ public class MappingService {
         }
         if (hasIds(request)) {
             Pageable pageable = PageRequest.of(request.getPage() - 1, request.getPageSize());
-            return idsPage(request, pageable);
+            return codingVariantRepo.get(request, pageable);
         }
         if (hasQ(request)) {
             return new PageImpl<>(
@@ -98,9 +88,9 @@ public class MappingService {
                     1
             );
         }
-        // filter-only browse — coding_variant table or legacy GenomicVariantRepo (app.filter.coding-variant)
+        // filter-only browse
         Pageable pageable = PageRequest.of(request.getPage() - 1, request.getPageSize());
-        return filterOnlyPage(request, pageable);
+        return codingVariantRepo.get(request, pageable);
     }
 
     /**
@@ -112,7 +102,7 @@ public class MappingService {
      *   <li>{@code 1} for {@code q} (always a single variant)</li>
      *   <li>cached upload size for {@code resultId} — exact, O(1)</li>
      *   <li>exact count for {@code ids[]} (MappingRepo, or CodingVariantRepo when it serves the request)</li>
-     *   <li>For filter-only: exact when ≤ {@link GenomicVariantRepo#COUNT_CAP},
+     *   <li>For filter-only: exact when ≤ {@link CodingVariantRepo#COUNT_CAP},
      *       {@code COUNT_CAP+1} when the bounded COUNT short-circuits (i.e.
      *       result set exceeds the cap), {@code -1} when COUNT timed out</li>
      * </ul>
@@ -129,10 +119,10 @@ public class MappingService {
         MappingRequest browse = new MappingRequest();
         BeanUtils.copyProperties(request, browse);
         if (hasIds(request)) {
-            return idsPage(browse, PageRequest.of(0, 1)).getTotalElements();
+            return codingVariantRepo.get(browse, PageRequest.of(0, 1)).getTotalElements();
         }
         // filter-only
-        return filterOnlyPage(browse, PageRequest.of(0, 1)).getTotalElements();
+        return codingVariantRepo.get(browse, PageRequest.of(0, 1)).getTotalElements();
     }
 
     /**
@@ -146,7 +136,7 @@ public class MappingService {
         }
         if (hasIds(request)) {
             return Stream.iterate(0, page -> page + 1)
-                    .map(page -> idsPage(request, PageRequest.of(page, chunkSize)).getContent())
+                    .map(page -> codingVariantRepo.get(request, PageRequest.of(page, chunkSize)).getContent())
                     .takeWhile(batch -> !batch.isEmpty());
         }
         if (hasQ(request)) {
@@ -154,7 +144,7 @@ public class MappingService {
         }
         // filter-only
         return Stream.iterate(0, page -> page + 1)
-                .map(page -> filterOnlyPage(request, PageRequest.of(page, chunkSize)).getContent())
+                .map(page -> codingVariantRepo.get(request, PageRequest.of(page, chunkSize)).getContent())
                 .takeWhile(batch -> !batch.isEmpty());
     }
 
@@ -281,28 +271,11 @@ public class MappingService {
                     .totalInputs(inputSummary != null ? (long) inputSummary.getTotalCount() : null)
                     .uploadSummary(lineSummary)
                     .totalPages(page.getTotalPages())
-                    .totalCap(filterOnly ? (long) GenomicVariantRepo.COUNT_CAP : null)
+                    .totalCap(filterOnly ? (long) CodingVariantRepo.COUNT_CAP : null)
                     .last(page.isLast())
                     .assembly(request.getAssembly())
                     .content(mapping)
                     .build();
-    }
-
-    /**
-     * Identifier browse: the coding_variant table when enabled and the request filters, sorts by a score or has
-     * several identifiers; otherwise MappingRepo (single identifier, no filter).
-     */
-    private Page<VariantInput> idsPage(MappingRequest request, Pageable pageable) {
-        return filterOnCodingVariant && codingVariantRepo.servesIds(request)
-                ? codingVariantRepo.get(request, pageable)
-                : mappingRepo.getGenomicVariantsForInput(request, pageable);
-    }
-
-    /** Filter-only browse: the coding_variant table when enabled, else the legacy per-request SQL. */
-    private Page<VariantInput> filterOnlyPage(MappingRequest request, Pageable pageable) {
-        return filterOnCodingVariant
-                ? codingVariantRepo.get(request, pageable)
-                : genomicVariantRepo.get(request, pageable);
     }
 
     private static boolean isResultId(MappingRequest request) {

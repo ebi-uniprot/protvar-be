@@ -25,7 +25,7 @@ public class StructureRepo {
      * SQL boolean fragment: true if {@code positionExpr} falls within any [start, end] range of
      * {@code observedRegionsRef} — a structure's observed_regions, the residues actually resolved.
      * observed_regions is a 2-D int array {{s1,e1},{s2,e2},...}, iterated via the built-in
-     * {@code generate_subscripts}. Used by the PDB identifier search (MappingRepo / GenomicVariantRepo)
+     * {@code generate_subscripts}. Used by the PDB identifier search (CodingVariantRepo.idPositions)
      * so it stays consistent with the 3D structure tab (StructureService.filterByPosition) — matching
      * the resolved residues rather than the full unp_start..unp_end span.
      *
