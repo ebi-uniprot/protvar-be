@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.converter.GeneConverter;
 import uk.ac.ebi.protvar.input.*;
@@ -193,6 +194,12 @@ public class InputMapper {
 							.collect(Collectors.toSet());*/
 
 					ensgMappingList = geneConverter.createGenes(altBases, mappingList, genomicScores, core.getScoreMap());
+					// PV-113 when a row's lead isoform (the one shown) has no codon; an alt isoform without one just
+					// shows its change as unknown when expanded
+					boolean noCodon = ensgMappingList.stream().anyMatch(g -> !g.getIsoforms().isEmpty()
+							&& g.getIsoforms().get(0).getRefCodon() == null);
+					if (noCodon && input.getMessages().stream().noneMatch(m -> MessageCode.PV113_NO_CODON.getCode().equals(m.getCode())))
+						input.addMessage(MessageCode.PV113_NO_CODON);
 				}
 
 				genomicVariant.getGenes().addAll(ensgMappingList);

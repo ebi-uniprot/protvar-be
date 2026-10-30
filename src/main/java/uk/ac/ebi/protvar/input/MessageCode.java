@@ -36,6 +36,8 @@ public enum MessageCode {
             "%s is not a human UniProt accession."),
     PV112_POS_NOT_MAPPED(ERROR, "Position not mapped",
             "Position could not be mapped to the genome."),
+    PV113_NO_CODON(WARN, "No readable codon",
+            "No readable codon at this position, so the amino-acid change is unknown."),
     PV120_PROTEIN_INVALID(ERROR, "Protein input not recognised",
             "Protein input not recognised. Expected e.g. P22304 A205P."),
 

@@ -159,11 +159,23 @@ public class Pro2Gen {
                         // (data-pipeline issue tracked separately) and an unguarded
                         // toUpperCase below would NPE the whole download. codonPosition
                         // is a primitive int — SQL NULL becomes 0 silently, no NPE.
-                        if (gCoord.getBaseNucleotide() == null || gCoord.getAa() == null
-                                || gCoord.getCodon() == null) {
-                            LOGGER.warn("Skipping incomplete g2p mapping for {} pos {}: ref={}, aa={}, codon={}",
-                                    input.getAccession(), input.getPosition(),
-                                    gCoord.getBaseNucleotide(), gCoord.getAa(), gCoord.getCodon());
+                        if (gCoord.getBaseNucleotide() == null || gCoord.getAa() == null) {
+                            LOGGER.warn("Skipping incomplete g2p mapping for {} pos {}: ref={}, aa={}",
+                                    input.getAccession(), input.getPosition(), gCoord.getBaseNucleotide(), gCoord.getAa());
+                            return;
+                        }
+                        if (gCoord.getCodon() == null) {
+                            // no readable codon: the change can't be matched, so keep the position, every alt (PV-113)
+                            String noCodonKey = Commons.joinWithDash(gCoord.getChromosome(), gCoord.getGenomeLocation(),
+                                    gCoord.getBaseNucleotide());
+                            if (!seen.add(noCodonKey)) return;
+                            if (!errors.contains(PV113_NO_CODON)) {
+                                errors.add(PV113_NO_CODON);
+                                input.addMessage(PV113_NO_CODON);
+                            }
+                            for (String alt : GenomicInput.getAlternateBases(gCoord.getBaseNucleotide()))
+                                input.getDerivedGenomicVariants().add(new GenomicVariant(gCoord.getChromosome(),
+                                        gCoord.getGenomeLocation(), gCoord.getBaseNucleotide(), alt));
                             return;
                         }
 

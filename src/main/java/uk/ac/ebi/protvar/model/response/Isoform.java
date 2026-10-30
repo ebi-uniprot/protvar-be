@@ -44,10 +44,10 @@ public class Isoform implements Comparable<Isoform> {
 	private PopEveScore popEveScore;
 
 	public String getCodonChange(){
-		return refCodon + "/" + variantCodon;
+		return refCodon == null ? "" : refCodon + "/" + variantCodon;   // no codon (PV-113): empty
 	}
 	public String getAminoAcidChange(){
-		return getRefAA() + "/" + getVariantAA();
+		return getRefAA() + "/" + (variantAA == null ? "?" : getVariantAA());   // no codon: change unknown (PV-113)
 	}
 	public String getRefAA() {
 		return upperFirstRemainingLower(refAA);

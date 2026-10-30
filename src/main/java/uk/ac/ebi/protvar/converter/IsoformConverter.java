@@ -44,17 +44,27 @@ public class IsoformConverter {
 	private Isoform createIsoform(String altBase, String canonicalAccession, String accession,
 								  List<GenomeToProteinMapping> g2pAccessionMapping,
 								  Map<String, List<Score>>  scoreMap) {
+		// a transcript row with a codon when the accession has one (rows come codon-first, see MappingRepo)
 		GenomeToProteinMapping mapping = g2pAccessionMapping.get(0);
-		// Guard against incomplete g2p_mapping rows. A null aa or codon would
-		// NPE on AminoAcid.fromOneLetter / altCodon.toUpperCase below.
-		// (codonPosition is primitive int and silently becomes 0 for SQL NULL,
-		// which downstream code tolerates — no NPE risk there.)
-		if (mapping.getAa() == null || mapping.getCodon() == null) {
-			LOGGER.warn("Skipping isoform for {}: incomplete mapping (aa={}, codon={})",
-					accession, mapping.getAa(), mapping.getCodon());
+		if (mapping.getAa() == null) {
+			LOGGER.warn("Skipping isoform for {}: incomplete mapping (aa=null)", accession);
 			return null;
 		}
 		AminoAcid refAA = AminoAcid.fromOneLetter(mapping.getAa());
+		if (mapping.getCodon() == null) {
+			// a real mapping without a readable codon: the position and residue, change unknown (PV-113)
+			Isoform.IsoformBuilder builder = Isoform.builder()
+					.accession(accession)
+					.codonPosition(mapping.getCodonPosition())
+					.refAA(refAA.getThreeLetter())
+					.canonicalAccession(canonicalAccession)
+					.canonical(accession.equals(canonicalAccession))
+					.isoformPosition(mapping.getIsoformPosition())
+					.transcripts(extractTranscripts(g2pAccessionMapping))
+					.proteinName(mapping.getProteinName());
+			if (accession.equals(canonicalAccession)) addAnnotationUris(builder, accession, mapping, altBase, null);
+			return builder.build();
+		}
 		String altCodon = mapping.getAltCodon(altBase);
 		AminoAcid altAA = Codon.valueOf(altCodon.toUpperCase()).getAa();
 		String consequences = AminoAcid.getConsequence(refAA, altAA);
@@ -85,21 +95,26 @@ public class IsoformConverter {
 			scoreMap.getOrDefault(popEveKey, Collections.emptyList()).stream().findFirst()
 					.map(s -> ((PopEveScore) s).copySubclassFields()).ifPresent(builder::popEveScore);
 
-			// Annotation URIs
-			builder.referenceFunctionUri("/function/" + accession + "/" + mapping.getIsoformPosition()
-					+ (altAA.getOneLetter() != null && !altAA.getOneLetter().isEmpty()
-					? "?variantAA=" + altAA : ""));
-
-			String genomicVariant = String.format("%s-%d-%s-%s",
-					mapping.getChromosome(), mapping.getGenomeLocation(),
-					mapping.getBaseNucleotide(), altBase);
-
-			builder.populationObservationsUri("/population/" + accession + "/" + mapping.getIsoformPosition()
-					+ "?genomicVariant=" + genomicVariant);
-
-			builder.proteinStructureUri("/structure/" + accession + "/" + mapping.getIsoformPosition());
+			addAnnotationUris(builder, accession, mapping, altBase, altAA);
 		}
 		return builder.build();
+	}
+
+	// function / population / structure links of the canonical isoform; altAA null when the change is unknown
+	private static void addAnnotationUris(Isoform.IsoformBuilder builder, String accession,
+										  GenomeToProteinMapping mapping, String altBase, AminoAcid altAA) {
+		builder.referenceFunctionUri("/function/" + accession + "/" + mapping.getIsoformPosition()
+				+ (altAA != null && altAA.getOneLetter() != null && !altAA.getOneLetter().isEmpty()
+				? "?variantAA=" + altAA : ""));
+
+		String genomicVariant = String.format("%s-%d-%s-%s",
+				mapping.getChromosome(), mapping.getGenomeLocation(),
+				mapping.getBaseNucleotide(), altBase);
+
+		builder.populationObservationsUri("/population/" + accession + "/" + mapping.getIsoformPosition()
+				+ "?genomicVariant=" + genomicVariant);
+
+		builder.proteinStructureUri("/structure/" + accession + "/" + mapping.getIsoformPosition());
 	}
 
 

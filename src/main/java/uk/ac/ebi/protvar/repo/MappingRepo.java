@@ -136,8 +136,7 @@ public class MappingRepo {
 			return List.of();
 		SqlParameterSource parameters = new MapSqlParameterSource("chrPosList", chrPosList);
 
-		return jdbcTemplate.query(String.format(MAPPINGS_IN_CHR_POS, mappingTable), parameters, (rs, rowNum) -> createMapping(rs))
-				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
+		return codonFirst(jdbcTemplate.query(String.format(MAPPINGS_IN_CHR_POS, mappingTable), parameters, (rs, rowNum) -> createMapping(rs)));
 	}
 
 	public List<GenomeToProteinMapping> getMappingsByChrPos(String[] chromosomes, Integer[] positions) {
@@ -148,10 +147,7 @@ public class MappingRepo {
 				.addValue("chromosomes", chromosomes)
 				.addValue("positions", positions);
 
-		return jdbcTemplate.query(String.format(MAPPINGS_WITH_UNNEST, mappingTable), parameters, (rs, rowNum) -> createMapping(rs))
-				.stream()
-				.filter(gm -> Objects.nonNull(gm.getCodon()))
-				.collect(Collectors.toList());
+		return codonFirst(jdbcTemplate.query(String.format(MAPPINGS_WITH_UNNEST, mappingTable), parameters, (rs, rowNum) -> createMapping(rs)));
 	}
 
 	/**
@@ -210,8 +206,16 @@ public class MappingRepo {
 			return List.of();
 		SqlParameterSource parameters = new MapSqlParameterSource("accPosList", accPosList);
 
-		return jdbcTemplate.query(String.format(MAPPINGS_IN_ACC_POS, mappingTable), parameters, (rs, rowNum) -> createMapping(rs))
-				.stream().filter(gm -> Objects.nonNull(gm.getCodon())).collect(Collectors.toList());
+		return codonFirst(jdbcTemplate.query(String.format(MAPPINGS_IN_ACC_POS, mappingTable), parameters, (rs, rowNum) -> createMapping(rs)));
+	}
+
+	/**
+	 * Rows without a codon are kept (a real mapping; shown with PV-113, change unknown) but ordered after the rest,
+	 * keeping the original order otherwise: callers that take a position's first row (reference base,
+	 * representative) get one with a codon whenever there is one.
+	 */
+	private static List<GenomeToProteinMapping> codonFirst(List<GenomeToProteinMapping> mappings) {
+		return mappings.stream().sorted(Comparator.comparing(gm -> gm.getCodon() == null)).collect(Collectors.toList());
 	}
 
 }
