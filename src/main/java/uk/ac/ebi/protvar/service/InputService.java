@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.service;
 
+import org.springframework.core.task.AsyncTaskExecutor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
@@ -16,8 +17,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -25,8 +24,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class InputService {
-    private final ExecutorService executorService = Executors.newFixedThreadPool(5);
-
+    private final AsyncTaskExecutor inputExecutor; // bean resolved by name (ExecutorConfig)
     private final UploadCacheService cacheService;
     private final UploadFilterService uploadFilterService;
     private final BuildProcessor buildProcessor;
@@ -40,7 +38,7 @@ public class InputService {
         List<String> normalizedLines = normalizeInput(request.getRawInput()); // ensure consistent checksums across semantically identical inputs
         String id = checksumFromLines(normalizedLines);
         // Launch async job to cache, determine build and summarise input
-        executorService.submit(() -> {
+        inputExecutor.submit(() -> {
             cacheService.cacheInput(id, normalizedLines); // cache the normalized input lines
 
             if (request.isAutoDetectBuild()) {

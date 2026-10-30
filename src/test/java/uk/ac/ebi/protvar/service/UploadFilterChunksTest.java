@@ -23,7 +23,7 @@ class UploadFilterChunksTest {
     private final UploadVariantRepo repo = mock(UploadVariantRepo.class);
     private final UploadCacheService cache = mock(UploadCacheService.class);
     private final UploadFilterService service = new UploadFilterService(repo, cache, mock(InputMapper.class),
-            mock(AsyncTaskExecutor.class));
+            mock(AsyncTaskExecutor.class), new HeavyDbWork(2, 2, 10));
 
     private static MappingRequest request() {
         MappingRequest r = new MappingRequest();

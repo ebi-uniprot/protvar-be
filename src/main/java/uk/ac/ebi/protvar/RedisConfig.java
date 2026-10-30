@@ -49,8 +49,8 @@ public class RedisConfig implements CachingConfigurer {
     private int redisTimeoutMs;
 
     // Connection pool sizing. Jedis pools default to maxTotal=8, which the
-    // full-download path can exhaust on its own: up to 10 partition tasks run
-    // concurrently (DownloadProcessor.dbTaskSemaphore), each hitting the cache,
+    // full-download path can exhaust on its own: up to app.db-work.slots (6) tasks run
+    // concurrently (HeavyDbWork slots), each hitting the cache,
     // on top of live API traffic. Borrowing then blocks up to max-wait. Sized
     // above that concurrency so cache ops don't queue behind one another.
     @Value("${spring.data.redis.jedis.pool.max-active:32}")

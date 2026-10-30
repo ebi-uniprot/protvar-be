@@ -22,7 +22,7 @@ class UploadFilterBuildTest {
     private final UploadVariantRepo repo = mock(UploadVariantRepo.class);
     private final InputMapper inputMapper = mock(InputMapper.class);
     private final UploadFilterService service = new UploadFilterService(repo, mock(UploadCacheService.class),
-            inputMapper, mock(AsyncTaskExecutor.class));
+            inputMapper, mock(AsyncTaskExecutor.class), new HeavyDbWork(2, 2, 10));
 
     @Test
     @SuppressWarnings("unchecked")

@@ -29,7 +29,12 @@ import uk.ac.ebi.protvar.repo.UploadVariantRepo.Row;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Upload;
 
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -45,7 +50,7 @@ import java.util.stream.Stream;
 public class UploadFilterService {
     private static final Logger LOGGER = LoggerFactory.getLogger(UploadFilterService.class);
 
-    private static final int CHUNK = 2000;          // lines per preprocess + insert batch
+    private static final int CHUNK = 2000;          // default lines per preprocess + insert batch
     private static final int SYNC_MAX = 5000;       // build within the request up to this many lines
     private static final int STALE_MINUTES = 10;    // a BUILDING row without heartbeat for this long is taken over
     private static final int KEEP_DAYS = 7;         // drop builds unused for this long (rebuilt on demand)
@@ -54,9 +59,13 @@ public class UploadFilterService {
     private final UploadCacheService uploadCacheService;
     private final InputMapper inputMapper;
     private final AsyncTaskExecutor uploadFilterExecutor; // bean resolved by name (ExecutorConfig)
+    private final HeavyDbWork heavyDbWork;                // a build's chunks run in its slots, in parallel
 
     @Value("${uniprot.release}")
     private String release;
+
+    @Value("${app.upload-filter.chunk-size:" + CHUNK + "}")
+    private int chunkSize = CHUNK;
 
     /** A page of passing input lines plus the rows that passed; or, while building, the progress. */
     public record Result(Page<VariantInput> page, Set<Passing> passing, Integer preparing) {
@@ -239,36 +248,61 @@ public class UploadFilterService {
 
     // ---------------------------------------------------------------- build
 
+    // Chunks are independent (their own lines, rows and notes), so they run in parallel in HeavyDbWork slots;
+    // progress counts the lines of finished chunks. A failed chunk fails the build; chunks not yet started skip.
     void build(int key, List<String> lines, String assembly, InputBuild build) {
         long start = System.currentTimeMillis();
-        long[] ms = new long[5]; // time per stage: parse, preprocess, rows (mappings), insert, notes
+        LongAdder[] ms = Stream.generate(LongAdder::new).limit(5).toArray(LongAdder[]::new); // per stage, summed
+        AtomicInteger done = new AtomicInteger();
+        AtomicBoolean failed = new AtomicBoolean();
+        HeavyDbWork.Job job = heavyDbWork.job("upload build " + key);
         try {
-            int rows = 0;
-            for (int from = 0; from < lines.size(); from += CHUNK) {
-                int to = Math.min(from + CHUNK, lines.size());
-                long t = System.currentTimeMillis();
-                List<VariantInput> chunk = new ArrayList<>(to - from);
-                for (int i = from; i < to; i++) chunk.add(parse(lines, i));
-                t = lap(ms, 0, t);
-                inputMapper.preprocess(chunk, assembly, build);
-                t = lap(ms, 1, t);
-                List<Row> variants = toRows(chunk);
-                t = lap(ms, 2, t);
-                rows += uploadVariantRepo.insertFromCodingVariant(key, variants);
-                t = lap(ms, 3, t);
-                // after toRows: parsing, preprocessing and resolving alt bases have all added their notes
-                uploadVariantRepo.insertLines(key, noteCodes(chunk));
-                uploadVariantRepo.progress(key, to);
-                lap(ms, 4, t);
+            List<Future<Integer>> chunks = new ArrayList<>();
+            for (int from = 0; from < lines.size() && !failed.get(); from += chunkSize) {
+                int f = from, to = Math.min(from + chunkSize, lines.size());
+                chunks.add(job.submit(() -> {
+                    if (failed.get()) return 0;
+                    try {
+                        int n = buildChunk(key, lines, f, to, assembly, build, ms);
+                        uploadVariantRepo.progress(key, done.addAndGet(to - f));
+                        return n;
+                    } catch (RuntimeException e) {
+                        failed.set(true);
+                        throw e;
+                    }
+                }));
             }
+            int rows = 0;
+            for (Future<Integer> chunk : chunks) rows += chunk.get();
             uploadVariantRepo.finish(key, rows);
-            LOGGER.info("Upload filter build {}: {} lines → {} rows in {} ms (parse {}, preprocess {}, mappings {}, "
-                            + "insert {}, notes {})", key, lines.size(), rows, System.currentTimeMillis() - start,
-                    ms[0], ms[1], ms[2], ms[3], ms[4]);
+            LOGGER.info("Upload filter build {}: {} lines → {} rows in {} ms, chunks of {} (summed over chunks: parse {}, "
+                            + "preprocess {}, mappings {}, insert {}, notes {}; waited for slots {})", key, lines.size(),
+                    rows, System.currentTimeMillis() - start, chunkSize, ms[0].sum(), ms[1].sum(), ms[2].sum(),
+                    ms[3].sum(), ms[4].sum(), job.queuedMs());
         } catch (Exception e) {
-            LOGGER.error("Upload filter build {} failed", key, e);
+            failed.set(true);
+            LOGGER.error("Upload filter build {} failed", key, e instanceof ExecutionException ? e.getCause() : e);
             uploadVariantRepo.fail(key);
         }
+    }
+
+    // one chunk of lines [from, to): parse, preprocess, rows, insert, notes; returns the rows inserted
+    private int buildChunk(int key, List<String> lines, int from, int to, String assembly, InputBuild build,
+                           LongAdder[] ms) {
+        long t = System.currentTimeMillis();
+        List<VariantInput> chunk = new ArrayList<>(to - from);
+        for (int i = from; i < to; i++) chunk.add(parse(lines, i));
+        t = lap(ms, 0, t);
+        inputMapper.preprocess(chunk, assembly, build);
+        t = lap(ms, 1, t);
+        List<Row> variants = toRows(chunk);
+        t = lap(ms, 2, t);
+        int rows = uploadVariantRepo.insertFromCodingVariant(key, variants);
+        t = lap(ms, 3, t);
+        // after toRows: parsing, preprocessing and resolving alt bases have all added their notes
+        uploadVariantRepo.insertLines(key, noteCodes(chunk));
+        lap(ms, 4, t);
+        return rows;
     }
 
     /**
@@ -310,9 +344,9 @@ public class UploadFilterService {
     }
 
     // adds the time since t to stage i; returns now
-    private static long lap(long[] ms, int i, long t) {
+    private static long lap(LongAdder[] ms, int i, long t) {
         long now = System.currentTimeMillis();
-        ms[i] += now - t;
+        ms[i].add(now - t);
         return now;
     }
 

@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -17,7 +16,6 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.task.AsyncTaskExecutor;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.stereotype.Service;
@@ -40,6 +38,7 @@ import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.service.UploadCacheService;
+import uk.ac.ebi.protvar.service.HeavyDbWork;
 import uk.ac.ebi.protvar.service.UploadFilterService;
 import uk.ac.ebi.protvar.service.InputService;
 import uk.ac.ebi.protvar.types.Assembly;
@@ -51,8 +50,8 @@ import uk.ac.ebi.protvar.utils.*;
  * Handles CSV download requests received from RabbitMQ.
  *
  * - Requests run inline on the RabbitMQ listener thread (concurrency=5, prefetch=1).
- * - Large jobs are split into ~1000-input partitions, processed via `partitionProcessingExecutor`.
- * - A semaphore (10 permits) limits concurrent DB-heavy partition tasks to avoid overload.
+ * - Large jobs are split into partitions (csv.partition.size inputs), processed in HeavyDbWork slots: the
+ *   budget shared with upload builds, so downloads and uploads together stay within it.
  * - Each partition streams results to CSV, merged and zipped after all parts complete.
  *
  * Limits:
@@ -78,7 +77,7 @@ import uk.ac.ebi.protvar.utils.*;
 public class DownloadProcessor {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DownloadProcessor.class);
 	private static final String NO_MAPPING = "No mapping found";
-	private final AsyncTaskExecutor partitionProcessingExecutor;
+	private final HeavyDbWork heavyDbWork;
 	private final CsvFunctionDataBuilder csvFunctionDataBuilder;
 	private final CsvPopulationDataBuilder csvPopulationDataBuilder;
 	private final CsvStructureDataBuilder csvStructureDataBuilder;
@@ -240,9 +239,6 @@ public class DownloadProcessor {
 				.forEach(i -> i.getMessages().add(build.getMessage()));
 	}
 
-	// Define a semaphore limiting DB-heavy task concurrency
-	private final Semaphore dbTaskSemaphore = new Semaphore(10); // limit to 10 concurrent DB-hitting tasks
-
 	// Process in parallel, partitioning the input into chunks
 	//
 	// TODO(redesign): full download flattens to CSV, so the per-chunk
@@ -255,6 +251,7 @@ public class DownloadProcessor {
 	private void processFullDownload(DownloadRequest request, Path csvPath,
 									 InputBuild build, boolean fun, boolean pop, boolean str) throws Exception {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
+		HeavyDbWork.Job job = heavyDbWork.job("download " + request.getFname());
 		List<Future<Path>> futures = new ArrayList<>();
 		List<Path> partPaths = new ArrayList<>();   // tracked here so we can clean up on failure
 		long totalStreamed = 0;
@@ -273,17 +270,11 @@ public class DownloadProcessor {
 					int chunkNum = chunkIndex.getAndIncrement();
 					Path partPath = Path.of(tmpFolder, request.getFname() + "_" + chunkNum + ".csv");
 					partPaths.add(partPath);
-					// Limit concurrent DB/file-processing
-					dbTaskSemaphore.acquire(); // blocks if limit reached
-
-					futures.add(partitionProcessingExecutor.submit(() -> {
-						try {
-							LOGGER.info("[{}] Processing chunk #{}", request.getFname(), chunkNum);
-							processAndWriteCsv(chunk, result.passing(), partPath, request.getAssembly(), build, fun, pop, str, false);
-							return partPath;
-						} finally {
-							dbTaskSemaphore.release();
-						}
+					// blocks while this download already has its share of slots in use
+					futures.add(job.submit(() -> {
+						LOGGER.info("[{}] Processing chunk #{}", request.getFname(), chunkNum);
+						processAndWriteCsv(chunk, result.passing(), partPath, request.getAssembly(), build, fun, pop, str, false);
+						return partPath;
 					}));
 				}
 			}
@@ -297,9 +288,11 @@ public class DownloadProcessor {
 			// Merge all parts
 			mergeCsvFiles(csvParts, csvPath);
 			success = true;
+			LOGGER.info("[{}] {} chunks of {}; waited for slots {} ms", request.getFname(), csvParts.size(), chunkSize,
+					job.queuedMs());
 		} finally {
 			if (!success) {
-				// Drain any in-flight futures so workers can release the semaphore
+				// Drain any in-flight futures so workers release their slots
 				// and finish writing their part files before we delete them.
 				for (Future<Path> future : futures) {
 					if (!future.isDone()) {

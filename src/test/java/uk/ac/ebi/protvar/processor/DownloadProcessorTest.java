@@ -2,7 +2,7 @@ package uk.ac.ebi.protvar.processor;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import uk.ac.ebi.protvar.service.HeavyDbWork;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
@@ -23,7 +23,7 @@ class DownloadProcessorTest {
 
   private static final int TOTAL_CSV_COLUMNS = 45;
   DownloadProcessor mockDeps = new DownloadProcessor(
-          mock(ThreadPoolTaskExecutor.class),
+          mock(HeavyDbWork.class),
           mock(CsvFunctionDataBuilder.class),
           mock(CsvPopulationDataBuilder.class),
           mock(CsvStructureDataBuilder.class),

@@ -174,7 +174,7 @@ public class UploadVariantRepo {
 
     /** Records build progress; also the heartbeat that keeps another pod from taking the build over. */
     public void progress(int key, int linesDone) {
-        jdbcTemplate.update("UPDATE protvar_runtime.upload SET lines_done = :n, last_used_at = now() WHERE upload_key = :k",
+        jdbcTemplate.update("UPDATE protvar_runtime.upload SET lines_done = GREATEST(lines_done, :n), last_used_at = now() WHERE upload_key = :k",
                 new MapSqlParameterSource("k", key).addValue("n", linesDone));
     }
 
