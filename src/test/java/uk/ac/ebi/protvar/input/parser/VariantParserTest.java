@@ -2,6 +2,8 @@ package uk.ac.ebi.protvar.input.parser;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import uk.ac.ebi.protvar.input.MessageCode;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 import uk.ac.ebi.protvar.input.*;
@@ -11,11 +13,11 @@ public class VariantParserTest {
 	public void testParse_NullAndEmptyInputs() {
 		VariantInput result = VariantParser.parse("");
 		assertFalse(result.getErrors().isEmpty());
-		assertTrue(result.getErrors().contains("Empty input"));
+		assertTrue(result.getErrors().contains(MessageCode.PV911_EMPTY_LINE.getText()));
 
 		result = VariantParser.parse("   ");
 		assertFalse(result.getErrors().isEmpty());
-		assertTrue(result.getErrors().contains("Empty input"));
+		assertTrue(result.getErrors().contains(MessageCode.PV911_EMPTY_LINE.getText()));
 	}
 
 	@Test
@@ -63,7 +65,7 @@ public class VariantParserTest {
 		VariantInput result = VariantParser.parse("NG_123456.1:g.123A>T");
 
 		assertFalse(result.getErrors().isEmpty());
-		assertTrue(result.getErrors().contains(ErrorConstants.HGVS_G_REFSEQ_INVALID.toString()));
+		assertTrue(result.getErrors().contains(MessageCode.PV320_G_REFSEQ_INVALID.toString()));
 	}
 
 	@Test
@@ -71,7 +73,7 @@ public class VariantParserTest {
 		VariantInput result = VariantParser.parse("completely_invalid_format_12345");
 
 		assertFalse(result.getErrors().isEmpty());
-		assertTrue(result.getErrors().contains("Unsupported format"));
+		assertTrue(result.getErrors().contains(MessageCode.PV909_FORMAT_UNKNOWN.getText()));
 	}
 
 	@Test
@@ -102,16 +104,16 @@ public class VariantParserTest {
 
 	@Test
 	public void testParse_UnsupportedReasons() {
-		assertUnsupported(ErrorConstants.UNSUPPORTED_INDEL, "19:18169206:TC:T", "19 12943813 A ATTGTC",
+		assertUnsupported(MessageCode.PV902_INDEL, "19:18169206:TC:T", "19 12943813 A ATTGTC",
 				"chr1 248650777 CAA C", "1-12345-A-AT", "X\t120253978\tCTGA\tC");
-		assertUnsupported(ErrorConstants.UNSUPPORTED_MNV, "7 140753336 AC TT", "10:71807696:AG:CC");
-		assertUnsupported(ErrorConstants.UNSUPPORTED_PROTEIN_NO_ACC, "R32C", "p.Gly358Arg", "p. R2580S", "E276Q");
-		assertUnsupported(ErrorConstants.UNSUPPORTED_GENE_SYMBOL, "SMAD4 R361H", "TP53 p.Arg175His", "STAT1 L206F");
-		assertUnsupported(ErrorConstants.UNSUPPORTED_CDNA_NO_REFSEQ, "c.1072G>A");
-		assertUnsupported(ErrorConstants.UNSUPPORTED_ID_ONLY, "ENST00000467905", "NM_002691.4");
-		assertUnsupported(ErrorConstants.UNSUPPORTED_ACC_ONLY, "P51608", "Q14592");
-		assertUnsupported(ErrorConstants.UNSUPPORTED_BINARY, "PK\u0003\u0004\u0014\u0000\u0006\u0000\u0008\u0000content", "\uFFFD\uFFFDLCr\uFFFD");
-		assertUnsupported(ErrorConstants.UNSUPPORTED_FORMAT, "completely_invalid_format_12345", "PASS");
+		assertUnsupported(MessageCode.PV903_MULTI_BASE, "7 140753336 AC TT", "10:71807696:AG:CC");
+		assertUnsupported(MessageCode.PV904_PROTEIN_NO_ACC, "R32C", "p.Gly358Arg", "p. R2580S", "E276Q");
+		assertUnsupported(MessageCode.PV905_GENE_SYMBOL, "SMAD4 R361H", "TP53 p.Arg175His", "STAT1 L206F");
+		assertUnsupported(MessageCode.PV906_C_NO_REFSEQ, "c.1072G>A");
+		assertUnsupported(MessageCode.PV907_ID_ONLY, "ENST00000467905", "NM_002691.4");
+		assertUnsupported(MessageCode.PV908_ACC_ONLY, "P51608", "Q14592");
+		assertUnsupported(MessageCode.PV901_UNREADABLE_CHARS, "PK\u0003\u0004\u0014\u0000\u0006\u0000\u0008\u0000content", "\uFFFD\uFFFDLCr\uFFFD");
+		assertUnsupported(MessageCode.PV909_FORMAT_UNKNOWN, "completely_invalid_format_12345", "PASS");
 	}
 
 	@Test
@@ -130,7 +132,7 @@ public class VariantParserTest {
 		assertTrue(VariantParser.parse("chr14:89993420 A>G").isValid());
 	}
 
-	private void assertUnsupported(ErrorConstants expected, String... inputs) {
+	private void assertUnsupported(MessageCode expected, String... inputs) {
 		for (String input : inputs) {
 			VariantInput result = VariantParser.parse(input);
 			assertFalse(result.isValid(), input);

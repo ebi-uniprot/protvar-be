@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.input.parser.hgvs;
 
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.VariantInput;
 
@@ -74,27 +74,27 @@ public class HGVS {
             scheme = scheme == null ? "" : scheme.trim();
 
             switch (scheme) {
-                case "n." -> invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_N);
-                case "m." -> invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_M);
-                case "r." -> invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_SCHEME_R);
-                default -> invalid.addError(ErrorConstants.HGVS_INVALID_SCHEME);
+                case "n." -> invalid.addMessage(MessageCode.PV305_HGVS_SCHEME_N);
+                case "m." -> invalid.addMessage(MessageCode.PV306_HGVS_SCHEME_M);
+                case "r." -> invalid.addMessage(MessageCode.PV307_HGVS_SCHEME_R);
+                default -> invalid.addMessage(MessageCode.PV308_HGVS_SCHEME_INVALID);
             }
 
             String refseqId = generalMatcher.group("refseqId");
             refseqId = refseqId == null ? "" : refseqId.trim().toUpperCase();
 
             if (refseqId.startsWith("NG"))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_NG);
+                invalid.addMessage(MessageCode.PV301_HGVS_PREFIX_NG);
             else if (refseqId.startsWith("LRG"))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_LRG);
+                invalid.addMessage(MessageCode.PV302_HGVS_PREFIX_LRG);
             else if (refseqId.startsWith("NR"))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX_NR);
+                invalid.addMessage(MessageCode.PV303_HGVS_PREFIX_NR);
             else if (!refseqId.matches("(NC_|NM_|NP_)\\d+(\\.\\d+)?"))
-                invalid.addError(ErrorConstants.HGVS_UNSUPPORTED_PREFIX);
+                invalid.addMessage(MessageCode.PV304_HGVS_PREFIX_OTHER);
         }
 
         if (!invalid.hasError())
-            invalid.addError(ErrorConstants.HGVS_GENERIC_ERROR);
+            invalid.addMessage(MessageCode.PV309_HGVS_INVALID);
         return invalid;
     }
 }

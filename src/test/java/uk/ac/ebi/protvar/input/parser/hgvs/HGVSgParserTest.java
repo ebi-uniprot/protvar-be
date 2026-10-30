@@ -1,7 +1,7 @@
 package uk.ac.ebi.protvar.input.parser.hgvs;
 
 import org.junit.jupiter.api.Test;
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.input.VariantFormat;
 
@@ -70,7 +70,7 @@ public class HGVSgParserTest {
         GenomicInput result = HGVSgParser.parse("INVALID_123:g.123A>T");
 
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_G_REFSEQ_INVALID.toString()));
+        assertTrue(result.getErrors().contains(MessageCode.PV320_G_REFSEQ_INVALID.toString()));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class HGVSgParserTest {
         GenomicInput result = HGVSgParser.parse("NC_000001.11:g.INVALID");
 
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_G_VARDESC_INVALID.toString()));
+        assertTrue(result.getErrors().contains(MessageCode.PV322_G_CHANGE_INVALID.toString()));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class HGVSgParserTest {
         GenomicInput result = HGVSgParser.parse("completely_invalid_format");
 
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_GENERIC_ERROR.getErrorMessage()));
+        assertTrue(result.getErrors().contains(MessageCode.PV309_HGVS_INVALID.getText()));
     }
 
     @Test
@@ -110,6 +110,6 @@ public class HGVSgParserTest {
     @Test
     public void testParse_NonSubstitution() {
         GenomicInput result = HGVSgParser.parse("NC_000016.10:g.23634954del");
-        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_NON_SUBSTITUTION.toString()));
+        assertTrue(result.getErrors().contains(MessageCode.PV310_HGVS_NOT_SUBSTITUTION.toString()));
     }
 }

@@ -39,7 +39,7 @@ public class DbsnpParser extends VariantParser {
         VariantInput parsedInput = new VariantInput(VariantFormat.DBSNP, normalized);
         if (!matchesPattern(inputStr)) {
             LOGGER.warn("Invalid dbSNP ID format: {}", inputStr);
-            parsedInput.addError(ErrorConstants.DBSNP_ID_INVALID);
+            parsedInput.addMessage(MessageCode.PV401_DBSNP_INVALID);
         }
         return parsedInput;
     }

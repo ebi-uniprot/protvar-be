@@ -3,7 +3,7 @@ package uk.ac.ebi.protvar.input.processor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.VariantType;
 import uk.ac.ebi.protvar.input.VariantInput;
@@ -93,17 +93,17 @@ public class BuildProcessor {
         String match37Str = String.format("%.2f", match37);
 
         if (match38 > 75 && match37 < 25) {
-            return new InputBuild(Assembly.GRCH38, new Message(Message.MessageType.INFO,
-                    String.format(ErrorConstants.AUTO_DETECT_38.getErrorMessage(), match38Str, match37Str)));
+            return new InputBuild(Assembly.GRCH38,
+                    MessageCode.PV501_ASSEMBLY_GRCH38.message(match38Str, match37Str));
         }
 
         if (match37 > 75 && match38 < 25) {
-            return new InputBuild(Assembly.GRCH37, new Message(Message.MessageType.INFO,
-                    String.format(ErrorConstants.AUTO_DETECT_37.getErrorMessage(), match37Str, match38Str)));
+            return new InputBuild(Assembly.GRCH37,
+                    MessageCode.PV502_ASSEMBLY_GRCH37.message(match37Str, match38Str));
         }
 
-        return new InputBuild(Assembly.GRCH38, new Message(Message.MessageType.WARN,
-                String.format(ErrorConstants.AUTO_DETECT_UNKNOWN.getErrorMessage(), match38Str, match37Str)));
+        return new InputBuild(Assembly.GRCH38,
+                MessageCode.PV503_ASSEMBLY_UNCLEAR.message(match38Str, match37Str));
     }
 
 
@@ -180,7 +180,7 @@ public class BuildProcessor {
                 input.setPosition(crossmaps.get(0).getGrch38Pos());
                 input.setIsLiftedFrom37(true);
             } else {
-                input.addError(ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND);
+                input.addMessage(MessageCode.PV504_GRCH37_NOT_CONVERTED);
             }
 
         });

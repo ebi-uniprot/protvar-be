@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.input.parser.hgvs;
 
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.HGVSCodingInput;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.parser.protein.ProteinParser;
@@ -106,7 +106,7 @@ public class HGVScParser extends VariantParser {
                         }
                     }
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_C_REFSEQ_INVALID);
+                    parsedInput.addMessage(MessageCode.PV330_C_REFSEQ_INVALID);
                 }
 
                 String vardescPart = structureMatcher.group("varDesc");
@@ -136,25 +136,25 @@ public class HGVScParser extends VariantParser {
                 } else {
                     // Check for specific unsupported position types
                     if (PATTERN_5_PRIME_UTR.matcher(vardescPart).matches()) {
-                        parsedInput.addError("5' UTR positions are not supported (e.g., c.-128A>G).");
+                        parsedInput.addMessage(MessageCode.PV332_C_UTR_5);
                     } else if (PATTERN_INTRON_5_SIDE.matcher(vardescPart).matches()) {
-                        parsedInput.addError("Intronic positions (5' side) are not supported (e.g., c.128+1G>A).");
+                        parsedInput.addMessage(MessageCode.PV333_C_INTRONIC_5);
                     } else if (PATTERN_INTRON_3_SIDE.matcher(vardescPart).matches()) {
-                        parsedInput.addError("Intronic positions (3' side) are not supported (e.g., c.128-1G>A).");
+                        parsedInput.addMessage(MessageCode.PV334_C_INTRONIC_3);
                     } else if (PATTERN_3_PRIME_UTR.matcher(vardescPart).matches()) {
-                        parsedInput.addError("3' UTR positions are not supported (e.g., c.*128A>G).");
+                        parsedInput.addMessage(MessageCode.PV335_C_UTR_3);
                     } else if (HGVS.NON_SUBSTITUTION.matcher(vardescPart).find()) {
-                        parsedInput.addError(ErrorConstants.HGVS_NON_SUBSTITUTION);
+                        parsedInput.addMessage(MessageCode.PV310_HGVS_NOT_SUBSTITUTION);
                     } else {
-                        parsedInput.addError(ErrorConstants.HGVS_C_VARDESC_INVALID);
+                        parsedInput.addMessage(MessageCode.PV331_C_CHANGE_INVALID);
                     }
                 }
             } else {
-                parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
+                parsedInput.addMessage(MessageCode.PV309_HGVS_INVALID);
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);
-            parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
+            parsedInput.addMessage(MessageCode.PV309_HGVS_INVALID);
         }
         return parsedInput;
     }

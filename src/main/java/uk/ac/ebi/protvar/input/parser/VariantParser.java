@@ -101,7 +101,7 @@ public class VariantParser {
      */
     public static VariantInput parse(String inputStr) {
         if (inputStr == null || inputStr.isBlank()) // prior checks will not make this be true
-            return invalid(inputStr, "Empty input");
+            return invalid(inputStr, MessageCode.PV911_EMPTY_LINE);
 
         /** General Pattern
          * regex:
@@ -223,44 +223,38 @@ public class VariantParser {
 
             return invalid(inputStr, unsupportedReason(inputStr.trim()));
         } catch (Exception e) {
-            return invalid(inputStr, ErrorConstants.INVALID_GENERIC_INPUT); // todo review this error message
+            return invalid(inputStr, MessageCode.PV910_UNREADABLE_LINE);
         }
     }
 
-    static ErrorConstants unsupportedReason(String inputStr) {
+    static MessageCode unsupportedReason(String inputStr) {
         if (BINARY.matcher(inputStr).find())
-            return ErrorConstants.UNSUPPORTED_BINARY;
+            return MessageCode.PV901_UNREADABLE_CHARS;
         Matcher multiBase = GENOMIC_MULTI_BASE.matcher(inputStr);
         if (multiBase.matches()) {
             String ref = multiBase.group("ref");
             String alt = multiBase.group("alt");
             if (ref.length() == alt.length() && ref.length() > 1 && !ref.equals("-"))
-                return ErrorConstants.UNSUPPORTED_MNV;
+                return MessageCode.PV903_MULTI_BASE;
             if (ref.length() != alt.length() || ref.equals("-") || alt.equals("-"))
-                return ErrorConstants.UNSUPPORTED_INDEL;
+                return MessageCode.PV902_INDEL;
         }
         if (PROTEIN_NO_ACC.matcher(inputStr).matches())
-            return ErrorConstants.UNSUPPORTED_PROTEIN_NO_ACC;
+            return MessageCode.PV904_PROTEIN_NO_ACC;
         if (GENE_PROTEIN.matcher(inputStr).matches())
-            return ErrorConstants.UNSUPPORTED_GENE_SYMBOL;
+            return MessageCode.PV905_GENE_SYMBOL;
         if (CDNA_NO_REFSEQ.matcher(inputStr).find())
-            return ErrorConstants.UNSUPPORTED_CDNA_NO_REFSEQ;
+            return MessageCode.PV906_C_NO_REFSEQ;
         if (ID_ONLY.matcher(inputStr).matches())
-            return ErrorConstants.UNSUPPORTED_ID_ONLY;
+            return MessageCode.PV907_ID_ONLY;
         if (ACC_ONLY.matcher(inputStr).matches())
-            return ErrorConstants.UNSUPPORTED_ACC_ONLY;
-        return ErrorConstants.UNSUPPORTED_FORMAT;
+            return MessageCode.PV908_ACC_ONLY;
+        return MessageCode.PV909_FORMAT_UNKNOWN;
     }
 
-    public static VariantInput invalid(String inputStr, String message) {
+    public static VariantInput invalid(String inputStr, MessageCode error) {
         VariantInput invalid = new VariantInput(VariantFormat.INVALID, inputStr);
-        invalid.addError(message);
-        return invalid;
-    }
-
-    public static VariantInput invalid(String inputStr, ErrorConstants error) {
-        VariantInput invalid = new VariantInput(VariantFormat.INVALID, inputStr);
-        invalid.addError(error);
+        invalid.addMessage(error);
         return invalid;
     }
 

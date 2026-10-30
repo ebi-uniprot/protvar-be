@@ -2,7 +2,7 @@ package uk.ac.ebi.protvar.input.mapper;
 
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.VariantType;
 import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.HGVSCodingInput;
@@ -36,7 +36,7 @@ public class Coding2Pro {
                 if (!result.isEmpty()) {
                     SortedSet<String> keys = new TreeSet<>(result.keySet());
                     String firstKey = keys.first();
-                    input.addInfo(String.format(ErrorConstants.HGVS_USE_DIFF_REFSEQ_VERSION.toString(), firstKey));
+                    input.addMessage(MessageCode.PV350_REFSEQ_VERSION_DIFFERS, firstKey);
                     return result.get(firstKey);
                 }
             }
@@ -54,23 +54,21 @@ public class Coding2Pro {
                     int[] protAndCodonPos = coding2ProteinPosition(cDNAProt.getPosition());
                     if (protAndCodonPos.length == 2) {
                         List<String> head = uniprotAccs.subList(0, 1);
-                        List<String> tail = uniprotAccs.subList(1, uniprotAccs.size());
 
                         cDNAProt.setDerivedUniprotAcc(head.get(0));
                         cDNAProt.setDerivedProtPos(protAndCodonPos[0]);
                         cDNAProt.setDerivedCodonPos(protAndCodonPos[1]);
                         if (cDNAProt.getAaPos() != null && cDNAProt.getAaPos() != protAndCodonPos[0]) {
-                            cDNAProt.addWarning(ErrorConstants.HGVS_C_POS_NOT_MATCHED);
+                            cDNAProt.addMessage(MessageCode.PV336_C_POS_MISMATCH);
                         }
 
-                        if (tail != null && !tail.isEmpty()) {
-                            cDNAProt.addWarning(String.format(ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.toString(),
-                                    Arrays.toString(uniprotAccs.toArray()),
-                                    head.get(0)));
+                        if (uniprotAccs.size() > 1) {
+                            cDNAProt.addMessage(MessageCode.PV351_REFSEQ_SEVERAL_ACCS,
+                                    Arrays.toString(uniprotAccs.toArray()), head.get(0));
                         }
                     }
                 } else {
-                    cDNAProt.addError(ErrorConstants.HGVS_REFSEQ_NO_PROTEIN);
+                    cDNAProt.addMessage(MessageCode.PV352_REFSEQ_NO_PROTEIN);
                 }
             });
         }

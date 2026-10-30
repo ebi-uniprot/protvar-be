@@ -1,7 +1,7 @@
 package uk.ac.ebi.protvar.input.parser.hgvs;
 
 import org.junit.jupiter.api.Test;
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.ProteinInput;
 import uk.ac.ebi.protvar.input.VariantFormat;
 
@@ -163,7 +163,7 @@ public class HGVSpParserTest {
         ProteinInput result = HGVSpParser.parse("completely_invalid_format");
 
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_GENERIC_ERROR.getErrorMessage()));
+        assertTrue(result.getErrors().contains(MessageCode.PV309_HGVS_INVALID.getText()));
     }
 
     @Test

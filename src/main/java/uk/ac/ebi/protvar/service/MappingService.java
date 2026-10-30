@@ -13,7 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputSummary;
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.VariantType;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
@@ -236,8 +236,7 @@ public class MappingService {
         }
 
         if (mapping != null && posRangeIgnored(request)) {
-            mapping.getMessages().add(new Message(Message.MessageType.WARN,
-                    "startPos/endPos position range filter applies to single UniProt accession browse only and has been ignored."));
+            mapping.getMessages().add(MessageCode.PV805_POS_RANGE_IGNORED.message());
         }
 
         if (mapping != null && build != null) {
@@ -254,13 +253,13 @@ public class MappingService {
                     ? inputSummary.toString()
                     : String.format("%,d user input%s", inputs.size(), FetcherUtils.pluralise(inputs.size()));
 
-            messages.add(0, new Message(Message.MessageType.INFO, summaryText));
+            messages.add(0, new Message(Message.Type.INFO, summaryText));
         }
 
         if (mapping != null && mostGrch37ConversionsFailed(request, inputs)) {
             List<Message> messages = Optional.ofNullable(mapping.getMessages()).orElseGet(ArrayList::new);
             mapping.setMessages(messages);
-            messages.add(new Message(Message.MessageType.WARN, GRCH37_CONVERT_HINT));
+            messages.add(MessageCode.PV505_GRCH37_MOSTLY_FAILED.message());
         }
 
         InputSummary uploadSummary = isResultId(request) ? uploadCacheService.getSummary(request.getResultId()) : null;
@@ -315,9 +314,6 @@ public class MappingService {
         return isResultId(request) || hasQ(request);
     }
 
-    static final String GRCH37_CONVERT_HINT = "Most GRCh37 coordinates could not be converted to GRCh38. "
-            + "Only protein-coding positions can be converted; if your input is already GRCh38, select GRCh38 or Auto instead.";
-
     /**
      * Explicit GRCh37 request where at least half of the genomic inputs failed conversion,
      * typically GRCh38 input submitted as GRCh37.
@@ -326,7 +322,7 @@ public class MappingService {
         if (!Assembly.is37(request.getAssembly())) return false;
         List<VariantInput> genomic = inputs.stream().filter(i -> i.getType() == VariantType.GENOMIC).toList();
         if (genomic.isEmpty()) return false;
-        String convertErr = ErrorConstants.GEN_ASSEMBLY_CONVERT_ERR_NOT_FOUND.toString();
+        String convertErr = MessageCode.PV504_GRCH37_NOT_CONVERTED.toString();
         long failed = genomic.stream().filter(i -> i.getErrors().contains(convertErr)).count();
         return failed * 2 >= genomic.size();
     }

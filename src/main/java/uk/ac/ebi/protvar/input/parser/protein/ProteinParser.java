@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.input.parser.protein;
 
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.ProteinInput;
 import uk.ac.ebi.protvar.types.AminoAcid;
@@ -150,7 +150,7 @@ public class ProteinParser extends VariantParser {
         // Level 1: Quick structural validation
         if (!matchesStructure(inputStr)) {
             ProteinInput invalid = new ProteinInput(inputStr);
-            invalid.addError(ErrorConstants.INVALID_PROTEIN_INPUT);
+            invalid.addMessage(MessageCode.PV120_PROTEIN_INVALID);
             return invalid;
         }
 
@@ -164,10 +164,10 @@ public class ProteinParser extends VariantParser {
             if (tryParse(ACC_POS_THREE_PATTERN, inputStr, parsedInput)) return parsedInput;
 
             // Structure matched but no specific pattern matched
-            parsedInput.addError(ErrorConstants.INVALID_PROTEIN_INPUT);
+            parsedInput.addMessage(MessageCode.PV120_PROTEIN_INVALID);
 
         } catch (Exception ex) {
-            parsedInput.addError(ErrorConstants.INVALID_PROTEIN_INPUT);
+            parsedInput.addMessage(MessageCode.PV120_PROTEIN_INVALID);
             LOGGER.error("Protein parsing error for: " + inputStr, ex);
         }
 

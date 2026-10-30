@@ -50,7 +50,7 @@ public class ClinvarParser extends VariantParser {
         VariantInput parsedInput = new VariantInput(VariantFormat.CLINVAR, inputStr);
         if (!matchesPattern(inputStr)) {
             LOGGER.warn("Invalid ClinVar ID format: {}", inputStr);
-            parsedInput.addError(ErrorConstants.CLINVAR_ID_INVALID);
+            parsedInput.addMessage(MessageCode.PV403_CLINVAR_INVALID);
         }
         return parsedInput;
     }

@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.input.parser.hgvs;
 
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.parser.protein.ProteinParser;
@@ -98,7 +98,7 @@ public class HGVSpParser extends VariantParser {
                 if (REFSEQ_PATTERN.matcher(refseqPart).matches()) {
                     parsedInput.setRefseqId(refseqPart);
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_P_REFSEQ_INVALID);
+                    parsedInput.addMessage(MessageCode.PV340_P_REFSEQ_INVALID);
                 }
 
                 String vardescPart = structureMatcher.group("varDesc");
@@ -119,16 +119,16 @@ public class HGVSpParser extends VariantParser {
                         parsedInput.setAltAA(ProteinParser.normalizeAA(alt));
                     }
                 } else if (HGVS.NON_SUBSTITUTION.matcher(vardescPart).find()) {
-                    parsedInput.addError(ErrorConstants.HGVS_NON_SUBSTITUTION);
+                    parsedInput.addMessage(MessageCode.PV310_HGVS_NOT_SUBSTITUTION);
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_P_VARDESC_INVALID);
+                    parsedInput.addMessage(MessageCode.PV341_P_CHANGE_INVALID);
                 }
             } else {
-                parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
+                parsedInput.addMessage(MessageCode.PV309_HGVS_INVALID);
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);
-            parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
+            parsedInput.addMessage(MessageCode.PV309_HGVS_INVALID);
         }
         return parsedInput;
     }

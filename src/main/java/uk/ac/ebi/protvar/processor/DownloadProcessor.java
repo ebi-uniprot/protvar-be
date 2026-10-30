@@ -230,17 +230,14 @@ public class DownloadProcessor {
 		}
 	}
 
-	// AUTO requests: note the detected (or assumed) assembly on genomic inputs whose
+	// AUTO requests: note the detected (or assumed) assembly (PV-501–503) on genomic inputs whose
 	// build isn't implied by the input itself (RefSeq HGVS g. is excluded), as the web shows it.
 	private void addDetectedBuildNote(List<VariantInput> inputs, String assembly, InputBuild build) {
 		if (!Assembly.autodetect(assembly) || build == null || build.getMessage() == null)
 			return;
-		String note = build.getMessage().getType() == Message.MessageType.WARN
-				? "Assembly auto-detect inconclusive, GRCh38 assumed"
-				: "Assembly auto-detected: " + build.getAssembly().name;
 		inputs.stream()
 				.filter(i -> i instanceof GenomicInput g && g.getRefseqId() == null)
-				.forEach(i -> i.addInfo(note));
+				.forEach(i -> i.getMessages().add(build.getMessage()));
 	}
 
 	// Define a semaphore limiting DB-heavy task concurrency

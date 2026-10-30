@@ -1,7 +1,7 @@
 package uk.ac.ebi.protvar.input.parser.hgvs;
 
 import org.junit.jupiter.api.Test;
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.HGVSCodingInput;
 import uk.ac.ebi.protvar.input.VariantFormat;
 
@@ -142,19 +142,19 @@ public class HGVScParserTest {
         // 5' UTR
         HGVSCodingInput result = HGVScParser.parse("NM_000001.1:c.-128A>G");
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().get(0).contains("5' UTR positions are not supported"));
+        assertEquals(MessageCode.PV332_C_UTR_5.getText(), result.getErrors().get(0));
 
         // Intronic 5' side
         result = HGVScParser.parse("NM_000001.1:c.128+1G>A");
-        assertTrue(result.getErrors().get(0).contains("Intronic positions (5' side) are not supported"));
+        assertEquals(MessageCode.PV333_C_INTRONIC_5.getText(), result.getErrors().get(0));
 
         // Intronic 3' side
         result = HGVScParser.parse("NM_000001.1:c.128-1G>A");
-        assertTrue(result.getErrors().get(0).contains("Intronic positions (3' side) are not supported"));
+        assertEquals(MessageCode.PV334_C_INTRONIC_3.getText(), result.getErrors().get(0));
 
         // 3' UTR
         result = HGVScParser.parse("NM_000001.1:c.*128A>G");
-        assertTrue(result.getErrors().get(0).contains("3' UTR positions are not supported"));
+        assertEquals(MessageCode.PV335_C_UTR_3.getText(), result.getErrors().get(0));
     }
 
     @Test
@@ -162,7 +162,7 @@ public class HGVScParserTest {
         HGVSCodingInput result = HGVScParser.parse("INVALID_123:c.123A>T");
 
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_C_REFSEQ_INVALID.toString()));
+        assertTrue(result.getErrors().contains(MessageCode.PV330_C_REFSEQ_INVALID.toString()));
     }
 
     @Test
@@ -170,7 +170,7 @@ public class HGVScParserTest {
         HGVSCodingInput result = HGVScParser.parse("NM_000001.1:c.INVALID");
 
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_C_VARDESC_INVALID.toString()));
+        assertTrue(result.getErrors().contains(MessageCode.PV331_C_CHANGE_INVALID.toString()));
     }
 
     @Test
@@ -178,7 +178,7 @@ public class HGVScParserTest {
         HGVSCodingInput result = HGVScParser.parse("completely_invalid_format");
 
         assertFalse(result.getErrors().isEmpty());
-        assertTrue(result.getErrors().contains(ErrorConstants.HGVS_GENERIC_ERROR.getErrorMessage()));
+        assertTrue(result.getErrors().contains(MessageCode.PV309_HGVS_INVALID.getText()));
     }
 
     @Test
@@ -202,7 +202,7 @@ public class HGVScParserTest {
     public void testParse_NonSubstitution() {
         for (String input : new String[]{"NM_001393769.1:c.3872_3875dup", "NM_004004.5:c.235del",
                 "NM_006772.3(SYNGAP1):c.3999_4000delinsAG (p.Asn1334Asp)"}) {
-            assertTrue(HGVScParser.parse(input).getErrors().contains(ErrorConstants.HGVS_NON_SUBSTITUTION.toString()), input);
+            assertTrue(HGVScParser.parse(input).getErrors().contains(MessageCode.PV310_HGVS_NOT_SUBSTITUTION.toString()), input);
         }
     }
 }

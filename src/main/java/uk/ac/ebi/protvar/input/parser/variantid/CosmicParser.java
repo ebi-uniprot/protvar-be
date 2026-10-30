@@ -51,7 +51,7 @@ public class CosmicParser extends VariantParser {
         VariantInput parsedInput = new VariantInput(VariantFormat.COSMIC, inputStr);
         if (!matchesPattern(inputStr)) {
             LOGGER.warn("Invalid COSMIC ID format: {}", inputStr);
-            parsedInput.addError(ErrorConstants.COSMIC_ID_INVALID);
+            parsedInput.addMessage(MessageCode.PV405_COSMIC_INVALID);
         }
         return parsedInput;
     }

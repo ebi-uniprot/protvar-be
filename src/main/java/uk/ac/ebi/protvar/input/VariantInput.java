@@ -54,24 +54,12 @@ public class VariantInput {
 				.collect(Collectors.toList());
 	}
 
-	public void addError(String text) {
-		this.messages.add(new Message(Message.MessageType.ERROR, text));
-	}
-	public void addError(ErrorConstants error) {
-		this.messages.add(new Message(Message.MessageType.ERROR, error.toString()));
-	}
-	public void addWarning(String text) {
-		this.messages.add(new Message(Message.MessageType.WARN, text));
-	}
-	public void addWarning(ErrorConstants error) {
-		this.messages.add(new Message(Message.MessageType.WARN, error.toString()));
-	}
-	public void addInfo(String text) {
-		this.messages.add(new Message(Message.MessageType.INFO, text));
+	public void addMessage(MessageCode code, Object... args) {
+		this.messages.add(code.message(args));
 	}
 
 	public boolean hasError() {
-		return this.messages.stream().anyMatch(m -> m.getType() == Message.MessageType.ERROR);
+		return this.messages.stream().anyMatch(m -> m.getType() == Message.Type.ERROR);
 	}
 
 	@JsonIgnore
@@ -81,7 +69,7 @@ public class VariantInput {
 
 	@JsonIgnore
 	public List<String> getErrors() {
-		return messages.stream().filter(m ->  m.getType() == Message.MessageType.ERROR).map(m -> m.getText()).collect(Collectors.toList());
+		return messages.stream().filter(m ->  m.getType() == Message.Type.ERROR).map(m -> m.getText()).collect(Collectors.toList());
 	}
 
 	@JsonIgnore

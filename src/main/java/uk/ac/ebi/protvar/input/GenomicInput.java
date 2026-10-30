@@ -45,7 +45,7 @@ public class GenomicInput extends VariantInput {
 
     public static GenomicInput invalid(String inputStr){
         GenomicInput invalid = new GenomicInput(inputStr);
-        invalid.addError(ErrorConstants.INVALID_GENERIC_INPUT);
+        invalid.addMessage(MessageCode.PV210_GENOMIC_INVALID);
         return invalid;
     }
 

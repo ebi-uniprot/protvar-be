@@ -1,6 +1,6 @@
 package uk.ac.ebi.protvar.input.parser.hgvs;
 
-import uk.ac.ebi.protvar.input.ErrorConstants;
+import uk.ac.ebi.protvar.input.MessageCode;
 import uk.ac.ebi.protvar.input.VariantFormat;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
@@ -103,13 +103,13 @@ public class HGVSgParser extends VariantParser {
                         }
                     }
                     if (parsedInput.getChromosome() == null) {
-                        parsedInput.addError(ErrorConstants.HGVS_G_REFSEQ_NOT_MAP_TO_CHR);
+                        parsedInput.addMessage(MessageCode.PV321_G_REFSEQ_NOT_CHR);
                     }
                 } else if (CHR_PATTERN.matcher(refseqPart).matches()) {
                     parsedInput.setChromosome(normalizeChr(refseqPart));
-                    parsedInput.addInfo(ErrorConstants.HGVS_G_CHR_NO_REFSEQ.getErrorMessage());
+                    parsedInput.addMessage(MessageCode.PV323_G_CHR_FOR_REFSEQ);
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_G_REFSEQ_INVALID);
+                    parsedInput.addMessage(MessageCode.PV320_G_REFSEQ_INVALID);
                 }
 
                 String vardescPart = structureMatcher.group("varDesc");
@@ -124,16 +124,16 @@ public class HGVSgParser extends VariantParser {
                     parsedInput.setRefBase(refBase);
                     parsedInput.setAltBase(altBase);
                 } else if (HGVS.NON_SUBSTITUTION.matcher(vardescPart).find()) {
-                    parsedInput.addError(ErrorConstants.HGVS_NON_SUBSTITUTION);
+                    parsedInput.addMessage(MessageCode.PV310_HGVS_NOT_SUBSTITUTION);
                 } else {
-                    parsedInput.addError(ErrorConstants.HGVS_G_VARDESC_INVALID);
+                    parsedInput.addMessage(MessageCode.PV322_G_CHANGE_INVALID);
                 }
             } else {
-                parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
+                parsedInput.addMessage(MessageCode.PV309_HGVS_INVALID);
             }
         } catch (Exception ex) {
             LOGGER.error(parsedInput + ": parsing error", ex);
-            parsedInput.addError(ErrorConstants.HGVS_GENERIC_ERROR);
+            parsedInput.addMessage(MessageCode.PV309_HGVS_INVALID);
         }
         return parsedInput;
     }

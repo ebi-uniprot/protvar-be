@@ -19,7 +19,7 @@ import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import static uk.ac.ebi.protvar.input.ErrorConstants.*;
+import static uk.ac.ebi.protvar.input.MessageCode.*;
 
 @Service
 @AllArgsConstructor
@@ -56,36 +56,23 @@ public class Pro2Gen {
                 List<String> uniprotAccs = Coding2Pro.getUniprotAccs(hgvsProt.getRefseqId(), refseqIdMap, hgvsProt);
                 if (uniprotAccs != null && uniprotAccs.size() > 0){
                     List<String> head =  uniprotAccs.subList(0, 1);
-                    List<String> tail =  uniprotAccs.subList(1, uniprotAccs.size());
 
                     hgvsProt.setAccession(head.get(0));
                     uniqueAccPos.add(new AccessionPosition(head.get(0), hgvsProt.getPosition()));
 
-                    if (tail != null) {
-                        /*
-                        if (tail.size() == 0) {
-                            hgvsProt.addInfo(String.format(
-                                    ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
-                                    hgvsProt.getAcc()));
-                        }*/
-                        if (!tail.isEmpty()) {
-                            hgvsProt.addWarning(String.format(
-                                    ErrorConstants.HGVS_REFSEQ_MULTIPLE_PROTEINS.getErrorMessage(),
-                                    Arrays.toString(uniprotAccs.toArray()),
-                                    head.get(0)));
-                        }
+                    if (uniprotAccs.size() > 1) {
+                        hgvsProt.addMessage(MessageCode.PV351_REFSEQ_SEVERAL_ACCS,
+                                Arrays.toString(uniprotAccs.toArray()), head.get(0));
                     }
                     if (!proteinCache.isMapped(hgvsProt.getAccession())) {
                         if (uniprotAccessionCache.isKnown(hgvsProt.getAccession()))
-                            hgvsProt.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED.getErrorMessage(),
-                                    hgvsProt.getAccession()));
+                            hgvsProt.addMessage(MessageCode.PV110_ACC_NOT_MAPPED, hgvsProt.getAccession());
                         else
-                            hgvsProt.addError(
-                                String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage(),
-                                        hgvsProt.getRefseqId(), hgvsProt.getAccession()));
+                            hgvsProt.addMessage(MessageCode.PV353_REFSEQ_ACC_NOT_IN_UNIPROT,
+                                    hgvsProt.getRefseqId(), hgvsProt.getAccession());
                     }
                 } else {
-                    hgvsProt.addError(ErrorConstants.HGVS_REFSEQ_NO_PROTEIN);
+                    hgvsProt.addMessage(MessageCode.PV352_REFSEQ_NO_PROTEIN);
                 }
 
             } else if(input instanceof ProteinInput) { // internal Protein
@@ -93,26 +80,20 @@ public class Pro2Gen {
                 uniqueAccPos.add(new AccessionPosition(internalProt.getAccession(), internalProt.getPosition()));
 
                 if (!proteinCache.isMapped(internalProt.getAccession())) {
-                    ErrorConstants error = uniprotAccessionCache.isKnown(internalProt.getAccession())
-                            ? ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED : ErrorConstants.PROT_UNIPROT_ACC_NOT_FOUND;
-                    internalProt.addError(String.format(error.toString(), internalProt.getAccession()));
+                    MessageCode error = uniprotAccessionCache.isKnown(internalProt.getAccession())
+                            ? MessageCode.PV110_ACC_NOT_MAPPED : MessageCode.PV111_ACC_NOT_HUMAN;
+                    internalProt.addMessage(error, internalProt.getAccession());
                 }
 
             } else if (input.getFormat() == VariantFormat.HGVS_CODING) {
                 HGVSCodingInput codingInput = (HGVSCodingInput) input;
-                if (codingInput.getDerivedUniprotAcc() != null) {/*
-                    codingInput.addInfo(String.format(
-                        ErrorConstants.HGVS_REFSEQ_MAPPED_TO_PROTEIN.getErrorMessage(),
-                            codingInput.getDerivedUniprotAcc()));*/
-
+                if (codingInput.getDerivedUniprotAcc() != null) {
                     if (!proteinCache.isMapped(codingInput.getDerivedUniprotAcc())) {
                         if (uniprotAccessionCache.isKnown(codingInput.getDerivedUniprotAcc()))
-                            codingInput.addError(String.format(ErrorConstants.PROT_UNIPROT_ACC_NOT_MAPPED.getErrorMessage(),
-                                    codingInput.getDerivedUniprotAcc()));
+                            codingInput.addMessage(MessageCode.PV110_ACC_NOT_MAPPED, codingInput.getDerivedUniprotAcc());
                         else
-                            codingInput.addError(
-                                String.format(ErrorConstants.HGVS_UNIPROT_ACC_NOT_FOUND.getErrorMessage()
-                                        , codingInput.getRefseqId(), codingInput.getDerivedUniprotAcc()));
+                            codingInput.addMessage(MessageCode.PV353_REFSEQ_ACC_NOT_IN_UNIPROT,
+                                    codingInput.getRefseqId(), codingInput.getDerivedUniprotAcc());
                     }
                     if (codingInput.getDerivedProtPos() != null)
                         uniqueAccPos.add(new AccessionPosition(codingInput.getDerivedUniprotAcc(), codingInput.getDerivedProtPos()));
@@ -169,7 +150,7 @@ public class Pro2Gen {
                 //                                        alt allele 3
 
                 List<GenomicVariant> altGInputs = new ArrayList<>();
-                List<ErrorConstants> errors = new ArrayList<>();
+                List<MessageCode> errors = new ArrayList<>();
 
                 if (gCoordsForProtein != null && !gCoordsForProtein.isEmpty()) {
                     gCoordsForProtein.forEach(gCoord -> {
@@ -206,16 +187,14 @@ public class Pro2Gen {
                         // both ref and alt not provided
                         if (input.getRefAA() == null && input.getAltAA() == null) {
                             // Ref & var empty
-                            if (!errors.contains(ERR_CODE_REF_EMPTY)) {
-                                errors.add(ERR_CODE_REF_EMPTY);
-                                input.getMessages().add(new Message(Message.MessageType.WARN,
-                                        String.format(ERR_CODE_REF_EMPTY.getErrorMessage(), input.getPosition(), gCoordRefAA.getThreeLetter())));
+                            if (!errors.contains(PV102_REF_AA_MISSING)) {
+                                errors.add(PV102_REF_AA_MISSING);
+                                input.addMessage(PV102_REF_AA_MISSING, input.getPosition(), gCoordRefAA.getThreeLetter());
                             }
 
-                            if (!errors.contains(ERR_CODE_VAR_EMPTY)) {
-                                errors.add(ERR_CODE_VAR_EMPTY);
-                                input.getMessages().add(new Message(Message.MessageType.WARN,
-                                        ERR_CODE_VAR_EMPTY.getErrorMessage()));
+                            if (!errors.contains(PV104_ALT_AA_MISSING)) {
+                                errors.add(PV104_ALT_AA_MISSING);
+                                input.addMessage(PV104_ALT_AA_MISSING);
                             }
 
                             for (String altAllele : possibleAltAlleles) {
@@ -228,32 +207,29 @@ public class Pro2Gen {
                             AminoAcid refAA = AminoAcid.fromOneOrThreeLetter(input.getRefAA());
 
                             // reference mismatch
-                            if (!refAA.equals(gCoordRefAA) && !errors.contains(ERR_CODE_REF_MISMATCH)) {
-                                errors.add(ERR_CODE_REF_MISMATCH);
-                                input.getMessages().add(new Message(Message.MessageType.WARN,
-                                        String.format(ERR_CODE_REF_MISMATCH.getErrorMessage(),
-                                                refAA.getThreeLetter(), gCoordRefAA.getThreeLetter(), input.getPosition(), gCoordRefAA.getThreeLetter())));
+                            if (!refAA.equals(gCoordRefAA) && !errors.contains(PV101_REF_AA_MISMATCH)) {
+                                errors.add(PV101_REF_AA_MISMATCH);
+                                input.addMessage(PV101_REF_AA_MISMATCH,
+                                        refAA.getThreeLetter(), gCoordRefAA.getThreeLetter(), input.getPosition(), gCoordRefAA.getThreeLetter());
                                 input.setRefAA(gCoordAa);
                             }
 
                             AminoAcid userAltAA = null;
                             if (input.getAltAA() == null) { // alt not provided, or "?" (unknown)
-                                ErrorConstants varMsg = input.isAltUnknown() ? ERR_CODE_VAR_UNKNOWN : ERR_CODE_VAR_EMPTY;
+                                MessageCode varMsg = input.isAltUnknown() ? PV105_ALT_AA_UNKNOWN : PV104_ALT_AA_MISSING;
                                 if (!errors.contains(varMsg)) {
                                     errors.add(varMsg);
-                                    input.getMessages().add(new Message(Message.MessageType.WARN,
-                                            varMsg.getErrorMessage()));
+                                    input.addMessage(varMsg);
                                 }
                             }
                             else {
                                 userAltAA = AminoAcid.fromOneOrThreeLetter(input.getAltAA());
 
                                 // variant non SNV
-                                if (!AminoAcid.isSNV(gCoordRefAA, userAltAA) && !errors.contains(ERR_CODE_VARIANT_NON_SNV)) {
-                                    errors.add(ERR_CODE_VARIANT_NON_SNV);
-                                    input.getMessages().add(new Message(Message.MessageType.WARN,
-                                            String.format(ERR_CODE_VARIANT_NON_SNV.getErrorMessage(),
-                                                    userAltAA.getThreeLetter(), gCoordRefAA.getThreeLetter())));
+                                if (!AminoAcid.isSNV(gCoordRefAA, userAltAA) && !errors.contains(PV103_ALT_AA_NOT_SNV)) {
+                                    errors.add(PV103_ALT_AA_NOT_SNV);
+                                    input.addMessage(PV103_ALT_AA_NOT_SNV,
+                                            userAltAA.getThreeLetter(), gCoordRefAA.getThreeLetter());
                                 }
                             }
 
@@ -279,7 +255,7 @@ public class Pro2Gen {
                 if (input.getDerivedGenomicVariants().isEmpty()) {
                     //if we haven't got a filtered set of genomic coordinates, return all possible combinations
                     if (altGInputs.isEmpty()) {
-                        input.addError(PROT_NO_GEN_MAPPING);
+                        input.addMessage(PV112_POS_NOT_MAPPED);
                     }
                     else {
                         input.getDerivedGenomicVariants().addAll(altGInputs);
@@ -331,7 +307,7 @@ public class Pro2Gen {
                 }
 
                 if (codingInput.getDerivedGenomicVariants().isEmpty()) {
-                    codingInput.addError(CDNA_NO_GEN_MAPPING);
+                    codingInput.addMessage(PV337_C_POS_NOT_MAPPED);
                 }
             }
         });

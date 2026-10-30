@@ -210,26 +210,26 @@ public class InputMapper {
 		if (ref != null) {
 			// Handle ref mismatch whether or not alt is provided
 			if (!ref.equalsIgnoreCase(mappingRef)) {
-				input.addWarning(String.format(ErrorConstants.ERR_REF_ALLELE_MISMATCH.toString(), ref, mappingRef));
+				input.addMessage(MessageCode.PV201_REF_BASE_MISMATCH, ref, mappingRef);
 				genomicVariant.setRefBase(mappingRef);
 			}
 
 			// Case: Both ref and alt are provided (Y Y)
 			if (alt != null) {
 				if (alt.equalsIgnoreCase(mappingRef)) {
-					input.addWarning(ErrorConstants.ERR_REF_AND_VAR_ALLELE_SAME);
+					input.addMessage(MessageCode.PV204_REF_ALT_BASE_SAME);
 					return GenomicInput.getAlternateBases(mappingRef);
 				}
 				return Set.of(alt);
 			} // Case: Only ref is provided (Y X)
 			else {
-				input.addWarning(ErrorConstants.ERR_VAR_ALLELE_EMPTY);
+				input.addMessage(MessageCode.PV203_ALT_BASE_MISSING);
 				return GenomicInput.getAlternateBases(mappingRef);
 			}
 		}
 
 		// Case: Both ref and alt are missing (X X)
-		input.addWarning(ErrorConstants.ERR_REF_ALLELE_EMPTY);
+		input.addMessage(MessageCode.PV202_REF_ALT_BASE_MISSING);
 		genomicVariant.setRefBase(mappingRef);
 		return GenomicInput.getAlternateBases(mappingRef);
 	}
