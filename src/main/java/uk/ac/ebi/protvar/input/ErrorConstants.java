@@ -55,7 +55,7 @@ public enum ErrorConstants {
     // HGVS input processing (retrieval) errors
 
     //HGVS_REFSEQ_MAPPED_TO_PROTEIN("", "RefSeq ID mapped to Uniprot protein %s."),
-    HGVS_REFSEQ_MULTIPLE_PROTEINS("", "RefSeq ID mapped to multiple Uniprot accessions: %s. ProtVar will use accession %t."),
+    HGVS_REFSEQ_MULTIPLE_PROTEINS("", "RefSeq ID mapped to multiple Uniprot accessions: %s. ProtVar will use accession %s."),
 
     HGVS_REFSEQ_NO_PROTEIN("", "Could not map RefSeq ID to a Uniprot protein."),
 
