@@ -141,13 +141,14 @@ public class UploadFilterService {
 
     /**
      * The upload's preparation: its progress while building, or once prepared its mapped/not mapped lines
-     * and notes by code. Empty when there is no build (not started, or failed).
+     * and notes by code. Empty when there is no build to wait for (not started, failed, or stale: its pod
+     * went away mid-build), so the caller starts one.
      */
     public Optional<UploadSummary> summary(String uploadId, String assembly) {
         return uploadVariantRepo.find(uploadId, assembly(assembly), buildRelease(), STALE_MINUTES)
                 .flatMap(u -> switch (u.status()) {
                     case UploadVariantRepo.READY -> Optional.of(uploadVariantRepo.summary(u.key()));
-                    case UploadVariantRepo.BUILDING -> Optional.of(UploadSummary.preparing(progress(u)));
+                    case UploadVariantRepo.BUILDING -> u.stale() ? Optional.empty() : Optional.of(UploadSummary.preparing(progress(u)));
                     default -> Optional.empty();
                 });
     }

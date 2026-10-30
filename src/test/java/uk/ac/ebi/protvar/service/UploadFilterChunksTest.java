@@ -60,4 +60,16 @@ class UploadFilterChunksTest {
                 .thenReturn(Optional.of(new Upload(7, UploadVariantRepo.BUILDING, 1, 0, false)));
         assertThrows(IllegalStateException.class, () -> service.chunks(request(), 2));
     }
+
+    @Test
+    void summaryRestartsAStaleBuild() {
+        // a build whose pod went away mid-way (no heartbeat): no summary, so the page starts a new build
+        when(repo.find(eq(ID), eq("AUTO"), any(), anyInt()))
+                .thenReturn(Optional.of(new Upload(7, UploadVariantRepo.BUILDING, 100, 26, true)));
+        assertTrue(service.summary(ID, null).isEmpty());
+
+        when(repo.find(eq(ID), eq("AUTO"), any(), anyInt()))
+                .thenReturn(Optional.of(new Upload(7, UploadVariantRepo.BUILDING, 100, 26, false)));
+        assertEquals(26, service.summary(ID, null).orElseThrow().preparing());
+    }
 }
