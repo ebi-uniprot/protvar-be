@@ -37,8 +37,9 @@ public enum Assembly {
         return BY_NAME_STR.get(str.toUpperCase());
     }
 
+    // AUTO, or none given: the documented default (the web leaves it out of result requests)
     public static boolean autodetect(String assembly) {
-        return assembly != null && assembly.equalsIgnoreCase("AUTO");
+        return assembly == null || assembly.equalsIgnoreCase("AUTO");
     }
 
     public static boolean is37(String assembly) {
