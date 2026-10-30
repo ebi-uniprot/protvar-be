@@ -18,6 +18,8 @@ class CodingVariantRepoTest {
         ReflectionTestUtils.setField(repo, "mappingTable", "map");
         ReflectionTestUtils.setField(repo, "uniprotRefseqTable", "refseq");
         ReflectionTestUtils.setField(repo, "structureTable", "str");
+        ReflectionTestUtils.setField(repo, "proteinTable", "prot");
+        ReflectionTestUtils.setField(repo, "transcriptTable", "tx");
     }
 
     private List<String> filters(MappingRequest r, MapSqlParameterSource p) {
@@ -106,7 +108,7 @@ class CodingVariantRepoTest {
                 new Identifier(IdentifierType.GENE, "BRCA2")), p);
         assertEquals("""
                 SELECT DISTINCT m.chromosome AS id_chr, m.genomic_position AS id_pos FROM map m WHERE m.accession = :id0
-                UNION SELECT DISTINCT m.chromosome AS id_chr, m.genomic_position AS id_pos FROM map m WHERE m.gene_name = :id1""",
+                UNION SELECT DISTINCT m.chromosome AS id_chr, m.genomic_position AS id_pos FROM map m WHERE m.accession IN (SELECT accession FROM prot WHERE gene_name = :id1)""",
                 sql);
         assertEquals("P22304", p.getValue("id0"));
         assertEquals("BRCA2", p.getValue("id1"));
@@ -121,7 +123,8 @@ class CodingVariantRepoTest {
         assertTrue(sql.contains("WHERE m.enst = :id0 AND m.enstv = :id0v"));
         assertEquals("ENST00000380152", p.getValue("id0"));
         assertEquals("8", p.getValue("id0v"));
-        assertTrue(sql.contains("WHERE m.ensg = :id1\n"), "ENSG matches the base id only");
+        assertTrue(sql.contains("WHERE (m.accession, m.enst) IN (SELECT accession, enst FROM tx WHERE ensg = :id1)\n"),
+                "ENSG matches the base id only, through the transcript table");
         assertTrue(sql.contains("FROM refseq WHERE refseq_acc ILIKE :id2 || '.%'"));
     }
 
@@ -160,4 +163,12 @@ class CodingVariantRepoTest {
     }
 
 
+
+    @Test
+    void idPositionsEnspWithVersionThroughTranscripts() {
+        MapSqlParameterSource p = new MapSqlParameterSource();
+        String sql = repo.idPositions(ids(new Identifier(IdentifierType.ENSEMBL, "ENSP00000269305.4")), p);
+        assertTrue(sql.endsWith("WHERE (m.accession, m.enst) IN (SELECT accession, enst FROM tx WHERE ensp = :id0 AND enspv = :id0v)"));
+        assertEquals("4", p.getValue("id0v"));
+    }
 }

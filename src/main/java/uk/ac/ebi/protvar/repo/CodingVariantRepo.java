@@ -89,7 +89,9 @@ public class CodingVariantRepo {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Value("${tbl.coding.variant}") private String table;
-    @Value("${tbl.mapping.enriched}") private String mappingTable;
+    @Value("${tbl.mapping}") private String mappingTable;
+    @Value("${tbl.protein}") private String proteinTable;
+    @Value("${tbl.ensembl.transcript}") private String transcriptTable;
     @Value("${tbl.uprefseq}") private String uniprotRefseqTable;
     @Value("${tbl.ann.str}") private String structureTable;
 
@@ -280,9 +282,9 @@ public class CodingVariantRepo {
 
     /**
      * The mapped genomic positions of the identifiers, as {@code (id_chr, id_pos)}: one SELECT DISTINCT per
-     * identifier on the enriched mapping view (which has a row per transcript), UNIONed. Same matching as
-     * MappingRepo's single identifier conditions; an identifier that can't match (bad Ensembl format, unknown
-     * type) adds no positions.
+     * identifier on the slim mapping table (a row per transcript), UNIONed; a gene matches through the protein
+     * table, an ENSG/ENSP through the transcript table. An identifier that can't match (bad Ensembl format,
+     * unknown type) adds no positions.
      */
     String idPositions(MappingRequest request, MapSqlParameterSource params) {
         List<Identifier> ids = request.getIds();
@@ -301,7 +303,7 @@ public class CodingVariantRepo {
             String p = "id" + i, value = id.value().trim();
             String cond = switch (id.type()) {
                 case UNIPROT -> "m.accession = :" + p;
-                case GENE -> "m.gene_name = :" + p;
+                case GENE -> "m.accession IN (SELECT accession FROM " + proteinTable + " WHERE gene_name = :" + p + ")";
                 case REFSEQ -> {
                     Matcher rm = InputTypeResolver.REFSEQ_REGEX.matcher(value);
                     yield "m.accession IN (SELECT uniprot_acc FROM " + uniprotRefseqTable + " WHERE refseq_acc "
@@ -314,12 +316,16 @@ public class CodingVariantRepo {
                     if (!em.matches()) yield null;
                     String col = em.group(1).toLowerCase();   // ensg / enst / ensp
                     value = em.group(1).toUpperCase() + em.group(2);
-                    // ensgv isn't on the enriched view: ENSG matches the base id only
+                    // ENST is on the mapping; ENSG/ENSP give the (accession, transcript) pairs to match
+                    boolean onMapping = "enst".equals(col);
+                    String version = "";   // must match too, when given (not for ENSG: no ensgv on the tables)
                     if (em.group(3) != null && !"ensg".equals(col)) {
                         params.addValue(p + "v", em.group(3));
-                        yield "m." + col + " = :" + p + " AND m." + col + "v = :" + p + "v";
+                        version = " AND " + (onMapping ? "m." : "") + col + "v = :" + p + "v";
                     }
-                    yield "m." + col + " = :" + p;
+                    yield onMapping ? "m.enst = :" + p + version
+                            : "(m.accession, m.enst) IN (SELECT accession, enst FROM " + transcriptTable
+                              + " WHERE " + col + " = :" + p + version + ")";
                 }
             };
             if (cond == null) continue;
