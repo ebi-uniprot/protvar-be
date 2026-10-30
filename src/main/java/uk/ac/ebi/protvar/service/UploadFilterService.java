@@ -23,8 +23,6 @@ import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.MappingRequest;
-import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
-import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Passing;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Row;
@@ -55,7 +53,6 @@ public class UploadFilterService {
     private final UploadVariantRepo uploadVariantRepo;
     private final UploadCacheService uploadCacheService;
     private final InputMapper inputMapper;
-    private final MappingRepo mappingRepo;
     private final AsyncTaskExecutor uploadFilterExecutor; // bean resolved by name (ExecutorConfig)
 
     @Value("${uniprot.release}")
@@ -274,7 +271,7 @@ public class UploadFilterService {
     }
 
     /**
-     * One row per derived genomic variant × alt of each valid line, with the reference base from the mapping
+     * One row per derived genomic variant × alt of each valid line, with the reference base from coding_variant
      * (missing alts resolved as on the result page); coding_variant then supplies every gene lead.
      */
     private List<Row> toRows(List<VariantInput> chunk) {
@@ -294,16 +291,13 @@ public class UploadFilterService {
 
         String[] chrs = chrPos.stream().map(l -> (String) l.get(0)).toArray(String[]::new);
         Integer[] poss = chrPos.stream().map(l -> (Integer) l.get(1)).toArray(Integer[]::new);
-        Map<String, List<GenomeToProteinMapping>> byPos = mappingRepo.getMappingsByChrPos(chrs, poss).stream()
-                .collect(Collectors.groupingBy(GenomeToProteinMapping::getVariantKeyGenomic));
+        Map<String, String> refs = uploadVariantRepo.refBases(chrs, poss);
 
         Set<Row> rows = new LinkedHashSet<>();
         for (VariantInput input : chunk) {
             if (!input.isValid()) continue;
             for (GenomicVariant gv : input.getDerivedGenomicVariants()) {
-                List<GenomeToProteinMapping> mappings = byPos.get(gv.getVariantKey());
-                if (mappings == null || mappings.isEmpty()) continue; // unmapped: no protein to filter on
-                String ref = mappings.get(0).getBaseNucleotide();
+                String ref = refs.get(gv.getVariantKey()); // null: unmapped, no protein to filter on
                 if (!isBase(ref)) continue;
                 for (String alt : inputMapper.resolveAltBases(input, gv, ref)) {
                     if (isBase(alt)) rows.add(new Row(input.getOriginalIndex(), gv.getChromosome(),

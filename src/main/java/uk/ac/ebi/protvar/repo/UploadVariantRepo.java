@@ -10,9 +10,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.model.MappingRequest;
 import uk.ac.ebi.protvar.model.response.UploadSummary;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -231,6 +233,25 @@ public class UploadVariantRepo {
                 FROM protvar_runtime.upload u WHERE u.upload_key = :k""", params,
                 (rs, i) -> UploadSummary.prepared(rs.getLong("input_count"), rs.getLong("mapped"),
                         rs.getLong("with_notes"), codes));
+    }
+
+    /**
+     * Reference base at each of a chunk's derived positions, keyed by {@link VariantKey#genomic}; positions
+     * not in coding_variant (unmapped) are absent.
+     */
+    public Map<String, String> refBases(String[] chromosomes, Integer[] positions) {
+        Map<String, String> refs = new HashMap<>();
+        if (chromosomes.length == 0) return refs;
+        String sql = """
+                SELECT DISTINCT cv.chromosome, cv.position, cv.ref
+                FROM unnest(:chr::varchar[], :pos::int[]) AS u(chr, pos)
+                JOIN %s cv ON cv.chromosome = u.chr AND cv.position = u.pos
+                """.formatted(codingVariantTable);
+        var params = new MapSqlParameterSource("chr", chromosomes).addValue("pos", positions);
+        jdbcTemplate.query(sql, params, rs -> {
+            refs.putIfAbsent(VariantKey.genomic(rs.getString("chromosome"), rs.getInt("position")), rs.getString("ref"));
+        });
+        return refs;
     }
 
     /**

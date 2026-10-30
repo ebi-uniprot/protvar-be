@@ -5,7 +5,6 @@ import org.springframework.core.task.AsyncTaskExecutor;
 import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.MappingRequest;
-import uk.ac.ebi.protvar.repo.MappingRepo;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Passing;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Upload;
@@ -24,7 +23,7 @@ class UploadFilterChunksTest {
     private final UploadVariantRepo repo = mock(UploadVariantRepo.class);
     private final UploadCacheService cache = mock(UploadCacheService.class);
     private final UploadFilterService service = new UploadFilterService(repo, cache, mock(InputMapper.class),
-            mock(MappingRepo.class), mock(AsyncTaskExecutor.class));
+            mock(AsyncTaskExecutor.class));
 
     private static MappingRequest request() {
         MappingRequest r = new MappingRequest();
