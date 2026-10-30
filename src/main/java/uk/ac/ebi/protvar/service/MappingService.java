@@ -248,8 +248,13 @@ public class MappingService {
         if (isResultId(request)) {
             UploadSummary base = UploadSummary.of(
                     inputSummary != null ? inputSummary.getTotalCount() : page.getTotalElements(), formats(inputSummary));
-            lineSummary = uploadFilterService.summary(request.getResultId(), request.getAssembly())
-                    .map(base::with).orElse(base);
+            Optional<UploadSummary> prepared = uploadFilterService.summary(request.getResultId(), request.getAssembly());
+            if (prepared.isEmpty()) {
+                // not prepared yet (submitted before builds ran on upload, or cleaned up): start it in the
+                // background so the summary fills in; this page doesn't wait
+                uploadFilterService.prepare(request.getResultId(), request.getAssembly(), build, true);
+            }
+            lineSummary = prepared.map(base::with).orElse(base);
         }
 
         if (mapping != null && build != null) {

@@ -82,7 +82,7 @@ public class UploadFilterService {
         if (lines == null || lines.isEmpty()) return new Result(Page.empty(), Set.of(), null);
 
         String assembly = assembly(request.getAssembly());
-        Upload u = ensureBuild(uploadId, assembly, lines, build).orElseThrow();
+        Upload u = ensureBuild(uploadId, assembly, lines, build, false).orElseThrow();
         if (UploadVariantRepo.BUILDING.equals(u.status())) {
             return Result.preparing(progress(u));
         }
@@ -135,11 +135,11 @@ public class UploadFilterService {
      * Starts preparing an upload when it is submitted (in the background if large), so its summary and first
      * filter don't wait. Best effort: a busy executor just leaves it to the first request.
      */
-    public void prepare(String uploadId, String assembly, InputBuild build) {
+    public void prepare(String uploadId, String assembly, InputBuild build, boolean background) {
         List<String> lines = uploadCacheService.getInput(uploadId);
         if (lines == null || lines.isEmpty()) return;
         try {
-            ensureBuild(uploadId, assembly(assembly), lines, build);
+            ensureBuild(uploadId, assembly(assembly), lines, build, background);
         } catch (ResponseStatusException e) {
             LOGGER.info("Upload {} not prepared on submit: {}", uploadId, e.getReason());
         }
@@ -165,14 +165,16 @@ public class UploadFilterService {
 
     /**
      * The upload's build, claiming and running it when there is none (or it failed, or went stale). Small
-     * uploads build here; large ones in the background, so the returned build may still be BUILDING.
+     * uploads build here unless {@code background}; large ones always in the background, so the returned build
+     * may still be BUILDING.
      */
-    private Optional<Upload> ensureBuild(String uploadId, String assembly, List<String> lines, InputBuild build) {
+    private Optional<Upload> ensureBuild(String uploadId, String assembly, List<String> lines, InputBuild build,
+                                         boolean background) {
         Optional<Upload> upload = uploadVariantRepo.find(uploadId, assembly, buildRelease(), STALE_MINUTES);
         if (upload.isPresent() && !needsBuild(upload.get())) return upload;
         Optional<Integer> key = uploadVariantRepo.claim(uploadId, assembly, buildRelease(), lines.size(), STALE_MINUTES);
         if (key.isPresent()) {
-            if (lines.size() <= SYNC_MAX) {
+            if (lines.size() <= SYNC_MAX && !background) {
                 build(key.get(), lines, assembly, build);
             } else {
                 try {

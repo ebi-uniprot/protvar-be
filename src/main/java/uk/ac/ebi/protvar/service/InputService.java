@@ -56,7 +56,7 @@ public class InputService {
             cacheService.cacheSummary(id, summary);
 
             // prepare the upload now (summary, notes, filters) rather than on its first filtered request
-            uploadFilterService.prepare(id, request.getAssembly(), cacheService.getBuild(id));
+            uploadFilterService.prepare(id, request.getAssembly(), cacheService.getBuild(id), false);
 
         });
         return id;
