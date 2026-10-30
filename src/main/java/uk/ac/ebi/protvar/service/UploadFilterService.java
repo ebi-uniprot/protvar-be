@@ -246,27 +246,37 @@ public class UploadFilterService {
 
     void build(int key, List<String> lines, String assembly, InputBuild build) {
         long start = System.currentTimeMillis();
+        long[] ms = new long[5]; // time per stage: parse, preprocess, rows (mappings), insert, notes
         try {
             int rows = 0;
             for (int from = 0; from < lines.size(); from += CHUNK) {
                 int to = Math.min(from + CHUNK, lines.size());
+                long t = System.currentTimeMillis();
                 List<VariantInput> chunk = new ArrayList<>(to - from);
                 for (int i = from; i < to; i++) chunk.add(parse(lines, i));
+                t = lap(ms, 0, t);
                 inputMapper.preprocess(chunk, assembly, build);
+                t = lap(ms, 1, t);
                 if (uploadVariantRepo.fromCodingVariant()) {
-                    rows += uploadVariantRepo.insertFromCodingVariant(key, toRows(chunk, false));
+                    List<Row> variants = toRows(chunk, false);
+                    t = lap(ms, 2, t);
+                    rows += uploadVariantRepo.insertFromCodingVariant(key, variants);
                 } else {
                     List<Row> out = toRows(chunk, true);
+                    t = lap(ms, 2, t);
                     uploadVariantRepo.insert(key, out);
                     rows += out.size();
                 }
+                t = lap(ms, 3, t);
                 // after toRows: parsing, preprocessing and resolving alt bases have all added their notes
                 uploadVariantRepo.insertLines(key, noteCodes(chunk));
                 uploadVariantRepo.progress(key, to);
+                lap(ms, 4, t);
             }
             uploadVariantRepo.finish(key, rows);
-            LOGGER.info("Upload filter build {}: {} lines → {} rows in {} ms",
-                    key, lines.size(), rows, System.currentTimeMillis() - start);
+            LOGGER.info("Upload filter build {}: {} lines → {} rows in {} ms (parse {}, preprocess {}, mappings {}, "
+                            + "insert {}, notes {})", key, lines.size(), rows, System.currentTimeMillis() - start,
+                    ms[0], ms[1], ms[2], ms[3], ms[4]);
         } catch (Exception e) {
             LOGGER.error("Upload filter build {} failed", key, e);
             uploadVariantRepo.fail(key);
@@ -332,6 +342,13 @@ public class UploadFilterService {
             }
         }
         return new ArrayList<>(rows);
+    }
+
+    // adds the time since t to stage i; returns now
+    private static long lap(long[] ms, int i, long t) {
+        long now = System.currentTimeMillis();
+        ms[i] += now - t;
+        return now;
     }
 
     /** Each line's distinct note codes (line number → codes), for lines that have any. */
