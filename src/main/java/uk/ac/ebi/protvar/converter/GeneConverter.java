@@ -73,11 +73,13 @@ public class GeneConverter {
 						.orElse(null);
 	}
 
-	/** This gene's own Pangolin score (genes overlap, each has its own); none if Pangolin's ENSG differs from ours. */
-	private Pangolin findPangolin(List<PangolinScore> scores, String altBase, String ensg) {
-		return scores == null ? null :
-				scores.stream()
-						.filter(s -> altBase.equalsIgnoreCase(s.getAltAllele()) && s.getGeneId().equals(ensg))
+	/** This gene's own Pangolin score (genes overlap, each has its own); none if Pangolin's ENSG differs from ours.
+	 *  Pangolin's gene IDs are unversioned; ours carry the version (ENSG00000157404.18). */
+	Pangolin findPangolin(List<PangolinScore> scores, String altBase, String ensg) {
+		if (scores == null || ensg == null) return null;
+		String gene = ensg.split("\\.")[0];
+		return scores.stream()
+						.filter(s -> altBase.equalsIgnoreCase(s.getAltAllele()) && gene.equals(s.getGeneId()))
 						.findFirst()
 						.map(Pangolin::of)
 						.orElse(null);
