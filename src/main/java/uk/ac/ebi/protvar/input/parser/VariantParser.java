@@ -13,6 +13,7 @@ import uk.ac.ebi.protvar.input.parser.protein.ProteinParser;
 import uk.ac.ebi.protvar.input.parser.variantid.ClinvarParser;
 import uk.ac.ebi.protvar.input.parser.variantid.CosmicParser;
 import uk.ac.ebi.protvar.input.parser.variantid.DbsnpParser;
+import uk.ac.ebi.protvar.input.parser.variantid.UniprotVarParser;
 import uk.ac.ebi.protvar.input.parser.hgvs.HGVS;
 import uk.ac.ebi.protvar.utils.RegexUtils;
 
@@ -93,6 +94,8 @@ public class VariantParser {
         return null;
     }
 
+    static final java.util.regex.Pattern SINGLE_WORD = java.util.regex.Pattern.compile("^\\w+(\\.\\d+)?$");
+
     /**
      * Parse input string into a VariantInput object.
      * @param inputStr	Null and empty inputs will have been filtered before calling this function.
@@ -114,6 +117,7 @@ public class VariantParser {
          *  dbsnp       ^rs
          *  ClinVar     ^RCV|VCV
          *  COSMIC      ^COSV|COSM|COSN
+         *  UniProt     ^VAR_
          *
          * Genomic
          *  gnomAD      ^chr-pos-ref-alt$
@@ -161,7 +165,8 @@ public class VariantParser {
         //      Lenient HGVS - _:(S?)[a-z]._
 
         try {
-            boolean singleWord = RegexUtils.WORD.matcher(inputStr).matches();
+            // one word, optionally versioned (ClinVar RCV000424939.1)
+            boolean singleWord = SINGLE_WORD.matcher(inputStr).matches();
 
             // === SINGLE WORD FORMATS ===
             if (singleWord) {
@@ -179,6 +184,10 @@ public class VariantParser {
                 // 3. COSMIC - less specific (COS* + any digits)
                 if (CosmicParser.matchesStructure(inputStr))
                     return CosmicParser.parse(inputStr);
+
+                // 4. UniProt variant (humsavar FTId) - VAR_ + digits
+                if (UniprotVarParser.matchesStructure(inputStr))
+                    return UniprotVarParser.parse(inputStr);
             }
 
 

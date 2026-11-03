@@ -3,6 +3,8 @@ package uk.ac.ebi.protvar.converter;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.model.data.GenomicScore;
+import uk.ac.ebi.protvar.model.data.PangolinScore;
+import uk.ac.ebi.protvar.model.response.Pangolin;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.score.Score;
@@ -26,6 +28,7 @@ public class GeneConverter {
 	public List<Gene> createGenes(Set<String> altBases,
 								List<GenomeToProteinMapping> mappings,
 								List<GenomicScore> genomicScores,
+								List<PangolinScore> pangolinScores,
 								Map<String, List<Score>>  scoreMap) {
 		if (mappings == null || mappings.isEmpty()) return Collections.emptyList();
 		// Round B: return ALL overlapping genes (never drop a real mapping). Order so the gene carrying the
@@ -53,6 +56,7 @@ public class GeneConverter {
 								.isoforms(isoforms)
 								.caddScore(findScore(genomicScores, altBase, GenomicScore::getScore))
 								.aviScore(findScore(genomicScores, altBase, GenomicScore::getAviScore))
+								.pangolin(findPangolin(pangolinScores, altBase, ensg))
 								.build();
 					});
 				})
@@ -66,6 +70,16 @@ public class GeneConverter {
 						.map(field)
 						.filter(Objects::nonNull)
 						.findFirst()
+						.orElse(null);
+	}
+
+	/** This gene's own Pangolin score (genes overlap, each has its own); none if Pangolin's ENSG differs from ours. */
+	private Pangolin findPangolin(List<PangolinScore> scores, String altBase, String ensg) {
+		return scores == null ? null :
+				scores.stream()
+						.filter(s -> altBase.equalsIgnoreCase(s.getAltAllele()) && s.getGeneId().equals(ensg))
+						.findFirst()
+						.map(Pangolin::of)
 						.orElse(null);
 	}
 

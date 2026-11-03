@@ -17,4 +17,5 @@ public class Gene {
 	private List<Isoform> isoforms;
 	private Double caddScore;
 	private Double aviScore;
+	private Pangolin pangolin; // this gene's splice prediction; null if none
 }

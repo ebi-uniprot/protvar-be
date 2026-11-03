@@ -6,7 +6,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Repository;
-import uk.ac.ebi.protvar.model.data.ClinVar;
 import uk.ac.ebi.protvar.model.data.ClinVarExtended;
 
 import java.sql.ResultSet;
@@ -20,37 +19,8 @@ public class ClinVarRepo {
 
     private final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    @Value("${tbl.clinvar}")
-    private String clinvarTable;
-
     @Value("${tbl.clinvar.extended}")
     private String clinvarExtendedTable;
-
-    public List<ClinVar> getByRCV(List<Object[]> rcvs) {
-        if (rcvs == null || rcvs.isEmpty())
-            return new ArrayList<>();
-        String sql = String.format("""
-                SELECT DISTINCT c.rcv, c.chr, c.pos, c.ref, c.alt 
-                FROM %s c
-                INNER JOIN (VALUES :rcvs) AS t(rcv)
-                ON t.rcv=c.rcv
-                """, clinvarTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("rcvs", rcvs);
-        return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) -> getClinVaFromRs(rs));
-    }
-
-    public List<ClinVar> getByVCV(List<Object[]> vcvs) {
-        if (vcvs == null || vcvs.isEmpty())
-            return new ArrayList<>();
-        String sql = String.format("""
-                SELECT DISTINCT c.vcv, c.chr, c.pos, c.ref, c.alt 
-                FROM %s c
-                INNER JOIN (VALUES :vcvs) AS t(vcv)
-                ON t.vcv=c.vcv
-                """, clinvarTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("vcvs", vcvs);
-        return namedParameterJdbcTemplate.query(sql, parameters, (rs, rowNum) -> getClinVaFromRs(rs));
-    }
 
     // New clinvar extended table queries
     public Map<String, List<ClinVarExtended>> getByRCVMap(List<String> rcvs) {
@@ -61,11 +31,7 @@ public class ClinVarRepo {
         String sql = String.format("""
             SELECT DISTINCT c.rcvs, c.vcv, c.chr, c.pos, c.ref, c.alt
             FROM %s c
-            WHERE EXISTS (
-                SELECT 1
-                FROM unnest(c.rcvs) AS rcv
-                WHERE rcv = ANY(:rcvs)
-            )
+            WHERE c.rcvs && CAST(:rcvs AS varchar[])  -- array overlap: uses the GIN index on rcvs
             """, clinvarExtendedTable);
 
         // Create the parameter map for the query
@@ -96,7 +62,6 @@ public class ClinVarRepo {
         if (vcvs == null || vcvs.isEmpty()) {
             return new HashMap<>();
         }
-        // TODO review other places where ANY might be better than INNER JOIN
 
         String sql = String.format("""
             SELECT DISTINCT c.rcvs, c.vcv, c.chr, c.pos, c.ref, c.alt
@@ -138,14 +103,4 @@ public class ClinVarRepo {
                 .build();
     }
 
-    public ClinVar getClinVaFromRs(ResultSet rs) throws SQLException {
-        return ClinVar.builder()
-                .rcv(rs.getString("rcv"))
-                .vcv(rs.getString("vcv"))
-                .chr(rs.getString("chr"))
-                .pos(rs.getInt("pos"))
-                .ref(rs.getString("ref"))
-                .alt(rs.getString("alt"))
-                .build();
-    }
 }

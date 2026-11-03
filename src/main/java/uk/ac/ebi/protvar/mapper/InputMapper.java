@@ -13,6 +13,7 @@ import uk.ac.ebi.protvar.input.mapper.Id2Gen;
 import uk.ac.ebi.protvar.input.mapper.Pro2Gen;
 import uk.ac.ebi.protvar.input.processor.BuildProcessor;
 import uk.ac.ebi.protvar.model.data.GenomicScore;
+import uk.ac.ebi.protvar.model.data.PangolinScore;
 import uk.ac.ebi.protvar.model.data.GenomeToProteinMapping;
 import uk.ac.ebi.protvar.model.response.Gene;
 import uk.ac.ebi.protvar.model.response.MappingResponse;
@@ -40,6 +41,7 @@ public class InputMapper {
 	private static final Logger LOGGER = LoggerFactory.getLogger(InputMapper.class);
 	private final MappingRepo mappingRepo;
 	private final GenomicScoreRepo genomicScoreRepo;
+	private final PangolinScoreRepo pangolinScoreRepo;
 	private final ScoreNewRepo scoreRepo;
 	private final UniprotRefseqRepo uniprotRefseqRepo;
 	private final BuildProcessor buildProcessor;
@@ -55,7 +57,7 @@ public class InputMapper {
 		// Build conversion for genomic + HGVSg 37 inputs
 		buildProcessor.process(groupedInputs, requestAssembly, detectedBuild);
 
-		// Variant ID mapping
+		// Variant ID mapping (VAR_ IDs to protein, mapped to genomic by pro2Gen below)
 		id2Gen.map(groupedInputs);
 
 		// RefSeq-UniProt accession mapping
@@ -145,6 +147,8 @@ public class InputMapper {
 		// Core prediction and mapping
 		var genomicScoreMap = genomicScoreRepo.getByChrPos(chromosomes, gpositions)
 				.stream().collect(Collectors.groupingBy(GenomicScore::getVariantKey));
+		var pangolinScoreMap = pangolinScoreRepo.getByChrPos(chromosomes, gpositions)
+				.stream().collect(Collectors.groupingBy(PangolinScore::getVariantKey));
 
 		var g2pMappings = mappingRepo.getMappingsByChrPos(chromosomes, gpositions);
 		Map<String, List<GenomeToProteinMapping>> g2pMap = new HashMap<>();
@@ -172,7 +176,7 @@ public class InputMapper {
 		var scoreMap = scoreRepo.getMappingScores(accessions, ppositions)
 				.stream().collect(Collectors.groupingBy(Score::getVariantKey));
 
-		return new MappingData(chrPosArrays, g2pMap, genomicScoreMap, accPosArrays, canonicalAccessions, scoreMap);
+		return new MappingData(chrPosArrays, g2pMap, genomicScoreMap, pangolinScoreMap, accPosArrays, canonicalAccessions, scoreMap);
 	}
 
 	public void processInput(VariantInput input, MappingData core) {
@@ -181,6 +185,7 @@ public class InputMapper {
 				var chrPos = genomicVariant.getVariantKey();
 				var mappingList = core.getG2pMap().get(chrPos);
 				var genomicScores = core.getGenomicScoreMap().get(chrPos);
+				var pangolinScores = core.getPangolinScoreMap().get(chrPos);
 
 				List<Gene> ensgMappingList = Collections.emptyList();
 
@@ -193,7 +198,7 @@ public class InputMapper {
 							.map(mappingList.get(0)::getAltCodon)
 							.collect(Collectors.toSet());*/
 
-					ensgMappingList = geneConverter.createGenes(altBases, mappingList, genomicScores, core.getScoreMap());
+					ensgMappingList = geneConverter.createGenes(altBases, mappingList, genomicScores, pangolinScores, core.getScoreMap());
 					// PV-113 when a row's lead isoform (the one shown) has no codon; an alt isoform without one just
 					// shows its change as unknown when expanded
 					boolean noCodon = ensgMappingList.stream().anyMatch(g -> !g.getIsoforms().isEmpty()

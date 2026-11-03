@@ -41,6 +41,10 @@ public class Pro2Gen {
             proteinInputs.addAll(groupedInputs.get(VariantType.PROTEIN));
         if (groupedInputs.get(VariantType.CODING_DNA) != null)
             proteinInputs.addAll(groupedInputs.get(VariantType.CODING_DNA));
+        // UniProt VAR_ IDs: variant IDs that Id2Gen resolved to a protein change
+        if (groupedInputs.get(VariantType.VARIANT_ID) != null)
+            groupedInputs.get(VariantType.VARIANT_ID).stream()
+                    .filter(i -> i.getFormat() == VariantFormat.UNIPROT_VAR).forEach(proteinInputs::add);
         if (!proteinInputs.isEmpty())
             convert(proteinInputs, refseqIdMap);
     }
@@ -75,8 +79,9 @@ public class Pro2Gen {
                     hgvsProt.addMessage(MessageCode.PV352_REFSEQ_NO_PROTEIN);
                 }
 
-            } else if(input instanceof ProteinInput) { // internal Protein
+            } else if(input instanceof ProteinInput) { // internal Protein, or a resolved UniProt VAR_ ID
                 ProteinInput internalProt = (ProteinInput) input;
+                if (internalProt.getAccession() == null) continue; // VAR_ ID not found
                 uniqueAccPos.add(new AccessionPosition(internalProt.getAccession(), internalProt.getPosition()));
 
                 if (!proteinCache.isMapped(internalProt.getAccession())) {
@@ -112,7 +117,7 @@ public class Pro2Gen {
         //	which we will try to pin down to one, if possible, based on the user inputs
         proteinInputs.stream().filter(i -> i.isValid()).forEach(i -> {
 
-            if (i.getType() == VariantType.PROTEIN) { // INTERNAL_PROT or HGVS_PROT formats
+            if (i.getType() == VariantType.PROTEIN || i.getFormat() == VariantFormat.UNIPROT_VAR) { // INTERNAL_PROT, HGVS_PROT, VAR_ ID
                 ProteinInput input = (ProteinInput) i;
 
                 String key = VariantKey.protein(input.getAccession(), input.getPosition());

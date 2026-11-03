@@ -17,6 +17,7 @@ public final class CsvHeaders {
             "Strand",
             "CADD_phred_like_score",
             "AVI_phred_like_score",
+            "Pangolin_splice_score",
             "Canonical_isoform_transcripts",
             "MANE_transcript",
             "Uniprot_canonical_isoform_(non_canonical)",
@@ -25,7 +26,7 @@ public final class CsvHeaders {
             "Amino_acid_position",
             "Amino_acid_change",
             "Consequences"
-    ); // length = 13
+    ); // length = 14
 
     public static final String OUTPUT_FUNCTION = String.join(",",
             "Residue_function_(evidence)",

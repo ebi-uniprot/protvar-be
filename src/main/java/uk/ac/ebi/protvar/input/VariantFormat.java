@@ -18,6 +18,7 @@ public enum VariantFormat {
     DBSNP,            // rs12345
     CLINVAR,          // RCV/CV IDs
     COSMIC,           // COSV...
+    UNIPROT_VAR,      // VAR_000123 (UniProt humsavar FTId; an ID that resolves to a protein variant, see Id2Gen)
 
     INVALID;
 
@@ -26,7 +27,7 @@ public enum VariantFormat {
             case HGVS_GENOMIC, INTERNAL_GENOMIC, VCF, GNOMAD -> VariantType.GENOMIC;
             case HGVS_CODING -> VariantType.CODING_DNA;
             case HGVS_PROTEIN, INTERNAL_PROTEIN -> VariantType.PROTEIN;
-            case DBSNP, CLINVAR, COSMIC -> VariantType.VARIANT_ID;
+            case DBSNP, CLINVAR, COSMIC, UNIPROT_VAR -> VariantType.VARIANT_ID;
             case INVALID -> VariantType.INVALID;
         };
     }

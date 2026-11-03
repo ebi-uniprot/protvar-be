@@ -11,6 +11,7 @@ import uk.ac.ebi.protvar.model.data.Cosmic;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -21,15 +22,14 @@ public class CosmicRepo {
     @Value("${tbl.cosmic}")
     private String cosmicTable;
 
-    public List<Cosmic> getById(List<Object[]> ids) {
+    public List<Cosmic> getById(Collection<String> ids) {
         if (ids == null || ids.isEmpty())
             return new ArrayList<>();
         String sql = String.format("""
                 SELECT DISTINCT c.id, c.chr, c.pos, c.ref, c.alt FROM %s c
-                INNER JOIN (VALUES :ids) AS t(id)
-                ON t.id=c.id
+                WHERE c.id = ANY(:ids)
                 """, cosmicTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+        SqlParameterSource parameters = new MapSqlParameterSource("ids", ids.toArray(String[]::new));
         return jdbcTemplate.query(sql, parameters, (rs, rowNum) -> {
             Cosmic cosmic = createCosmic(rs);
             cosmic.setId(rs.getString("id"));
@@ -37,15 +37,14 @@ public class CosmicRepo {
         });
     }
 
-    public List<Cosmic> getByLegacyId(List<Object[]> ids) {
+    public List<Cosmic> getByLegacyId(Collection<String> ids) {
         if (ids == null || ids.isEmpty())
             return new ArrayList<>();
         String sql = String.format("""
                 SELECT DISTINCT c.legacy_id, c.chr, c.pos, c.ref, c.alt FROM %s c
-                INNER JOIN (VALUES :ids) AS t(id)
-                ON t.id=c.legacy_id
+                WHERE c.legacy_id = ANY(:ids)
                 """, cosmicTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+        SqlParameterSource parameters = new MapSqlParameterSource("ids", ids.toArray(String[]::new));
         return jdbcTemplate.query(sql, parameters, (rs, rowNum) -> {
             Cosmic cosmic = createCosmic(rs);
             cosmic.setLegacyId(rs.getString("legacy_id"));

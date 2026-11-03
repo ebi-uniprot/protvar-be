@@ -11,9 +11,13 @@ import uk.ac.ebi.protvar.model.data.Dbsnp;
 import uk.ac.ebi.protvar.repo.ClinVarRepo;
 import uk.ac.ebi.protvar.repo.CosmicRepo;
 import uk.ac.ebi.protvar.repo.DbsnpRepo;
+import uk.ac.ebi.protvar.repo.HumsavarRepo;
+import uk.ac.ebi.protvar.model.data.Humsavar;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -23,11 +27,13 @@ public class Id2Gen {
     private DbsnpRepo dbsnpRepo;
     private ClinVarRepo clinVarRepo;
     private CosmicRepo cosmicRepo;
+    private HumsavarRepo humsavarRepo;
 
 
     /**
-     * Maps ID inputs (DBSNP) to their corresponding genomic coordinates.
-     * It is possible that an ID gives multiple variants - in which case they are added to the genomicInputList.
+     * Maps ID inputs to their variants. dbSNP, ClinVar and COSMIC IDs give genomic coordinates (an ID can give
+     * several, all added to the input's derived genomic variants). UniProt VAR_ IDs give a protein change
+     * (accession, position, ref/alt AA), which Pro2Gen then maps to genomic, as it does for cDNA after Coding2Pro.
      * @param groupedInputs
      */
     public void map(Map<VariantType, List<VariantInput>> groupedInputs) {
@@ -38,6 +44,7 @@ public class Id2Gen {
             dbsnpLookup(idGroups.get(VariantFormat.DBSNP));
             clinvarLookup(idGroups.get(VariantFormat.CLINVAR));
             cosmicLookup(idGroups.get(VariantFormat.COSMIC));
+            uniprotVarLookup(idGroups.get(VariantFormat.UNIPROT_VAR));
         }
     }
 
@@ -45,8 +52,7 @@ public class Id2Gen {
         if (dbsnpIdInputs == null || dbsnpIdInputs.isEmpty())
             return;
 
-        List<Object[]> dbsnpIds = dbsnpIdInputs.stream()
-                .map(i -> new Object[]{i.getInputStr()}).collect(Collectors.toList());
+        Set<String> dbsnpIds = dbsnpIdInputs.stream().map(VariantInput::getInputStr).collect(Collectors.toSet());
 
         Map<String, List<Dbsnp>> dbsnpMap = dbsnpRepo.getById(dbsnpIds).stream().collect(Collectors.groupingBy(Dbsnp::getId));
 
@@ -81,25 +87,17 @@ public class Id2Gen {
         Map<String, List<ClinVarExtended>> clinvarVCVMap = null; // Changed to ClinVarExtended
 
         if (clinvarIdTypeMap.get(ClinvarParser.RCV) != null) {
-            //List<Object[]> rcvIds = clinvarIdTypeMap.get(ClinVarID.RCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toList());
-            //clinvarRCVMap = clinVarRepo.getByRCV(rcvIds).stream().collect(Collectors.groupingBy(ClinVar::getRcv));
-            List<String> rcvs = clinvarIdTypeMap.get(ClinvarParser.RCV).stream().map(VariantInput::getInputStr).collect(Collectors.toList());
-            clinvarRCVMap = clinVarRepo.getByRCVMap(rcvs.stream()
-                    .map(String::toUpperCase)
-                    .collect(Collectors.toList())); // todo move this capitalisation earlier on, or in db query
+            clinvarRCVMap = clinVarRepo.getByRCVMap(clinvarIdTypeMap.get(ClinvarParser.RCV).stream()
+                    .map(Id2Gen::clinvarKey).distinct().collect(Collectors.toList()));
         }
 
         if (clinvarIdTypeMap.get(ClinvarParser.VCV) != null) {
-            //List<Object[]> vcvIds = clinvarIdTypeMap.get(ClinVarID.VCV).stream().map(i -> new Object[]{((ClinVarID) i).getId()}).collect(Collectors.toList());
-            //clinvarVCVMap = clinVarRepo.getByVCV(vcvIds).stream().collect(Collectors.groupingBy(ClinVar::getVcv));
-            List<String> vcvs = clinvarIdTypeMap.get(ClinvarParser.VCV).stream().map(VariantInput::getInputStr).collect(Collectors.toList());
-            clinvarVCVMap = clinVarRepo.getByVCVMap(vcvs.stream()
-                    .map(String::toUpperCase)
-                    .collect(Collectors.toList())); // todo same here!
+            clinvarVCVMap = clinVarRepo.getByVCVMap(clinvarIdTypeMap.get(ClinvarParser.VCV).stream()
+                    .map(Id2Gen::clinvarKey).distinct().collect(Collectors.toList()));
         }
 
         for (VariantInput input : clinvarIdInputs) {
-            String id = input.getInputStr();
+            String id = clinvarKey(input);
             if (input.getIdPrefix().equals(ClinvarParser.RCV) && clinvarRCVMap != null) {
                 addClinvarDerivedGenomicVariants(clinvarRCVMap.get(id), input);
             } else if (input.getIdPrefix().equals(ClinvarParser.VCV) && clinvarVCVMap != null) {
@@ -117,17 +115,17 @@ public class Id2Gen {
 
         Map<String, List<VariantInput>> cosmicIdTypeMap = cosmicIdInputs.stream().collect(Collectors.groupingBy(VariantInput::getIdPrefix));
 
-        List<Object[]> ids = cosmicIdTypeMap.get(CosmicParser.COSV) == null ? null :
-                cosmicIdTypeMap.get(CosmicParser.COSV).stream().map(i -> new Object[]{i.getInputStr().toUpperCase()}).collect(Collectors.toList());
-        List<Object[]> legacyIds = Stream.concat(cosmicIdTypeMap.get(CosmicParser.COSM) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicParser.COSM).stream(),
+        Set<String> ids = cosmicIdTypeMap.get(CosmicParser.COSV) == null ? null :
+                cosmicIdTypeMap.get(CosmicParser.COSV).stream().map(Id2Gen::upperKey).collect(Collectors.toSet());
+        Set<String> legacyIds = Stream.concat(cosmicIdTypeMap.get(CosmicParser.COSM) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicParser.COSM).stream(),
                         cosmicIdTypeMap.get(CosmicParser.COSN) == null ? Stream.empty() : cosmicIdTypeMap.get(CosmicParser.COSN).stream())
-                .map(i -> new Object[]{i.getInputStr().toUpperCase()}).collect(Collectors.toList());
+                .map(Id2Gen::upperKey).collect(Collectors.toSet());
 
         Map<String, List<Cosmic>> cosmicIdMap = cosmicRepo.getById(ids).stream().collect(Collectors.groupingBy(Cosmic::getId));
         Map<String, List<Cosmic>> cosmicLegacyIdMap = cosmicRepo.getByLegacyId(legacyIds).stream().collect(Collectors.groupingBy(Cosmic::getLegacyId));
 
         cosmicIdInputs.stream().forEach(input -> {
-            String id = input.getInputStr();
+            String id = upperKey(input);
             if (cosmicIdMap != null && input.getIdPrefix().equals(CosmicParser.COSV)) {
                 addCosmicDerivedGenomicVariants(cosmicIdMap.get(id), input);
             } else if (cosmicLegacyIdMap != null && (input.getIdPrefix().equals(CosmicParser.COSM) || input.getIdPrefix().equals(CosmicParser.COSN))) {
@@ -162,6 +160,38 @@ public class Id2Gen {
                     input.getDerivedGenomicVariants().add(newVariant);
             });
         }
+    }
+
+    /** UniProt VAR_ IDs (humsavar) → protein change on the ProteinInput; mapped to genomic by Pro2Gen. */
+    public void uniprotVarLookup(List<VariantInput> varIdInputs) {
+        if (varIdInputs == null || varIdInputs.isEmpty())
+            return;
+        Map<String, Humsavar> byId = humsavarRepo.getByVarIds(varIdInputs.stream()
+                        .map(Id2Gen::upperKey).collect(Collectors.toSet()))
+                .stream().collect(Collectors.toMap(Humsavar::varId, Function.identity(), (a, b) -> a));
+
+        for (VariantInput i : varIdInputs) {
+            ProteinInput input = (ProteinInput) i;
+            String id = upperKey(input);
+            Humsavar h = byId.get(id);
+            if (h == null) {
+                input.addMessage(MessageCode.PV408_UNIPROT_VAR_NOT_FOUND, id);
+                continue;
+            }
+            input.setAccession(h.accession());
+            input.setPosition(h.position());
+            input.setRefAA(h.wtAa());
+            input.setAltAA(h.mtAa());
+        }
+    }
+
+    // IDs are matched upper case (the parsers accept any case); ClinVar also without its version (.N)
+    static String upperKey(VariantInput input) {
+        return input.getInputStr().trim().toUpperCase();
+    }
+
+    static String clinvarKey(VariantInput input) {
+        return ClinvarParser.stripVersion(upperKey(input));
     }
 
 }

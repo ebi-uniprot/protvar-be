@@ -21,7 +21,7 @@ import static org.mockito.Mockito.mock;
 
 class DownloadProcessorTest {
 
-  private static final int TOTAL_CSV_COLUMNS = 45;
+  private static final int TOTAL_CSV_COLUMNS = 46;
   DownloadProcessor mockDeps = new DownloadProcessor(
           mock(HeavyDbWork.class),
           mock(CsvFunctionDataBuilder.class),
@@ -41,7 +41,7 @@ class DownloadProcessorTest {
     @Test
     void csvHeader() {
       var header = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele,Notes,Gene,Codon_change," +
-        "Strand,CADD_phred_like_score,AVI_phred_like_score,Canonical_isoform_transcripts,MANE_transcript,Uniprot_canonical_isoform_(non_canonical)," +
+        "Strand,CADD_phred_like_score,AVI_phred_like_score,Pangolin_splice_score,Canonical_isoform_transcripts,MANE_transcript,Uniprot_canonical_isoform_(non_canonical)," +
         "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences," +
         "Residue_function_(evidence),Region_function_(evidence),Protein_existence_evidence,Protein_length," +
         "Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location," +

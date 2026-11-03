@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import uk.ac.ebi.protvar.model.data.Dbsnp;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Repository
@@ -20,15 +21,15 @@ public class DbsnpRepo {
     @Value("${tbl.dbsnp}")
     private String dbsnpTable;
 
-    public List<Dbsnp> getById(List<Object[]> ids) {
+    public List<Dbsnp> getById(Collection<String> ids) {
         if (ids == null || ids.isEmpty())
             return new ArrayList<>();
         String sql = String.format("""
                 SELECT DISTINCT d.* FROM %s d
-                INNER JOIN (VALUES :ids) AS t(id)
-                ON t.id=d.id
+                WHERE d.id = ANY(:ids)
                 """, dbsnpTable);
-        SqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+        // an array is one bind parameter (a VALUES list is one per ID: Postgres caps those at 65,535)
+        SqlParameterSource parameters = new MapSqlParameterSource("ids", ids.toArray(String[]::new));
         return namedParameterJdbcTemplate.query(sql, parameters, new BeanPropertyRowMapper<>(Dbsnp.class));
     }
 }

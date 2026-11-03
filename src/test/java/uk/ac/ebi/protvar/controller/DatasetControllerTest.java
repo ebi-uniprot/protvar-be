@@ -17,7 +17,7 @@ class DatasetControllerTest {
 
     @Test
     void aDatasetByNameOrNotFound() {
-        Dataset humsavar = new Dataset("humsavar", "UniProt humsavar", "Curated variants", "UniProt 2026_03", 83859,
+        Dataset humsavar = new Dataset("humsavar", "UniProt humsavar", "Curated variants", "UniProt 2026_02", 83694,
                 "b9e311f4b64e6fa88cc0cb207965f63d");
         when(repo.list()).thenReturn(List.of(humsavar));
         assertEquals(humsavar, controller.dataset("humsavar").getBody());

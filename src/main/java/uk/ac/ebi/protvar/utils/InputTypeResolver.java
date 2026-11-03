@@ -43,11 +43,11 @@ public class InputTypeResolver {
 
     // Common single-word variant prefixes that should NOT be treated as genes
     private static final Pattern VARIANT_PREFIX_REGEX =
-            Pattern.compile("^(rs|RCV|VCV|COS[VMN]|NC_|NM_|NP_|chr).*", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("^(rs|RCV|VCV|COS[VMN]|VAR_|NC_|NM_|NP_|chr).*", Pattern.CASE_INSENSITIVE);
     public static final Pattern VARIANT_PREFIX_REGEX_ =
             // variant IDs; HGVS notation with RefSeq reference part;
             // genomic variant start chromosome; protein variant start UniProt accession
-            Pattern.compile("^(rs|RCV|VCV|COS[VMN]|NC_|NM_|NP_|NG_|LRG_|NR_|chr|([1-9]|1[0-9]|2[0-2]|MT|mit|mtDNA|mitochondria|mitochondrion)(?=\\s|-)|" + ProteinParser.VALID_UNIPROT + "(?=\\s)).*", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("^(rs|RCV|VCV|COS[VMN]|VAR_|NC_|NM_|NP_|NG_|LRG_|NR_|chr|([1-9]|1[0-9]|2[0-2]|MT|mit|mtDNA|mitochondria|mitochondrion)(?=\\s|-)|" + ProteinParser.VALID_UNIPROT + "(?=\\s)).*", Pattern.CASE_INSENSITIVE);
 
     /**
      * Resolve a string to its biological {@link IdentifierType}, skipping variant and result-ID patterns.

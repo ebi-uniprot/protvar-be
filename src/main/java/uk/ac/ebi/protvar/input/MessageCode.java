@@ -124,6 +124,10 @@ public enum MessageCode {
             "COSMIC ID not recognised; expected COSV/COSM/COSN + digits."),
     PV406_COSMIC_NOT_MAPPED(ERROR, "COSMIC ID not mapped",
             "No coding mapping for this COSMIC ID."),
+    PV407_UNIPROT_VAR_INVALID(ERROR, "UniProt variant ID not recognised",
+            "UniProt variant ID not recognised; expected VAR_ + 6 digits."),
+    PV408_UNIPROT_VAR_NOT_FOUND(ERROR, "UniProt variant ID not found",
+            "UniProt variant ID not found in humsavar (%s)."),
 
     // 5xx assembly
     PV501_ASSEMBLY_GRCH38(INFO, "GRCh38 detected",
