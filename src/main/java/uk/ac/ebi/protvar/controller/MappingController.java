@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
 import uk.ac.ebi.protvar.utils.MappingRequestValidator;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -45,6 +47,8 @@ public class MappingController {
             + "Filters (e.g. known, ptm, cadd, am) and sort apply to browse and to resultId, not to q. "
             + "For resultId, a large upload is prepared first: the response has 'preparing' (0-99) until it is ready.";
 
+    private static final CacheControl Q_CACHE = CacheControl.maxAge(Duration.ofMinutes(5));
+
     /**
      * Direct variant query: GET /mapping?q=19-1010539-G-C[&assembly=GRCh38]
      */
@@ -61,7 +65,9 @@ public class MappingController {
                 .page(1)
                 .pageSize(1)
                 .build();
-        return new ResponseEntity<>(mappingService.get(request), HttpStatus.OK);
+        // Short max-age: a proxy can absorb repeat hits, but a redeploy or data change shows within minutes
+        // (without a header the proxy in front of wwwint kept old responses across deploys).
+        return ResponseEntity.ok().cacheControl(Q_CACHE).body(mappingService.get(request));
     }
 
     /**
