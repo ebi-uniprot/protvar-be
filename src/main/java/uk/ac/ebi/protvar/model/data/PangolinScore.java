@@ -18,9 +18,9 @@ public class PangolinScore {
 	private String referenceAllele;
 	private String altAllele;
 	private String geneId; // unversioned ENSG
-	private double gainScore;
+	private float gainScore;
 	private int gainPos;
-	private double lossScore;
+	private float lossScore;
 	private int lossPos;
 
 	public String getVariantKey() {
