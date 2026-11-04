@@ -43,7 +43,7 @@ public class HGVSpParser extends VariantParser {
     );
 
     // no anchors (^...$)
-    public static final String REFSEQ_REGEX = "(NM_|NP_)\\d+(\\.\\d+)?"; // RefSeq part: NM_/NP_ + digits + version
+    public static final String REFSEQ_REGEX = "(NM_|NP_)\\d+(\\.\\d+)?(\\s*\\([A-Z][A-Z0-9]+\\))?"; // NM_/NP_ + digits + version + optional gene, as in c.
 
     // no anchors (^...$)
     // ALT: single OR three letter amino acid (includes * and Ter), "=" (silent), or "?"
@@ -96,7 +96,8 @@ public class HGVSpParser extends VariantParser {
             if (structureMatcher.matches()) {
                 String refseqPart = structureMatcher.group("refseq");
                 if (REFSEQ_PATTERN.matcher(refseqPart).matches()) {
-                    parsedInput.setRefseqId(refseqPart);
+                    // NP_004324.2(BRAF) → NP_004324.2: the gene symbol is informative only (as for c.)
+                    parsedInput.setRefseqId(refseqPart.replaceAll("(?i)\\s*\\([A-Z][A-Z0-9]+\\)", ""));
                 } else {
                     parsedInput.addMessage(MessageCode.PV340_P_REFSEQ_INVALID);
                 }

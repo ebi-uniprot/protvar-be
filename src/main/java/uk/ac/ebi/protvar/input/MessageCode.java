@@ -99,7 +99,7 @@ public enum MessageCode {
     PV337_C_POS_NOT_MAPPED(ERROR, "c. position not mapped",
             "c. position could not be mapped to the genome."),
     PV340_P_REFSEQ_INVALID(ERROR, "p. reference invalid",
-            "p. needs an NP_ accession, e.g. NP_001305738.1."),
+            "p. reference not recognised; expected a RefSeq NP_ accession, optionally with the gene, e.g. NP_004324.2 or NP_004324.2(BRAF)."),
     PV341_P_CHANGE_INVALID(ERROR, "p. change not recognised",
             "p. change not recognised; expected e.g. p.Arg490Ser."),
     PV350_REFSEQ_VERSION_DIFFERS(INFO, "RefSeq version differs",

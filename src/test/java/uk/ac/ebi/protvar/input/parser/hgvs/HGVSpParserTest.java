@@ -208,4 +208,15 @@ public class HGVSpParserTest {
         assertEquals("S", result.getAltAA());
         assertTrue(result.getErrors().isEmpty());
     }
+
+    @Test
+    public void testParse_GeneSymbolAfterAccession() {
+        ProteinInput in = HGVSpParser.parse("NP_004324.2(BRAF):p.Val600Glu");
+        assertTrue(in.isValid());
+        assertEquals("NP_004324.2", in.getRefseqId());
+        assertTrue(HGVSpParser.matchesPattern("NP_004324.2(BRAF):p.Val600Glu"));
+        assertEquals("NP_004324.2", HGVSpParser.parse("NP_004324.2 (braf):p.V600E").getRefseqId());
+        // still not a gene symbol on its own
+        assertFalse(HGVSpParser.parse("BRAF:p.Val600Glu").isValid());
+    }
 }
