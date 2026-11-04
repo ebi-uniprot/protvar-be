@@ -82,11 +82,8 @@ public class MappingService {
             return codingVariantRepo.get(request, pageable);
         }
         if (hasQ(request)) {
-            return new PageImpl<>(
-                    VariantParser.parse(List.of(request.getQ())),
-                    PageRequest.of(0, 1),
-                    1
-            );
+            List<VariantInput> inputs = parseQ(request);
+            return new PageImpl<>(inputs, PageRequest.of(0, Math.max(1, inputs.size())), inputs.size());
         }
         // filter-only browse
         Pageable pageable = PageRequest.of(request.getPage() - 1, request.getPageSize());
@@ -137,7 +134,7 @@ public class MappingService {
                     .takeWhile(batch -> !batch.isEmpty());
         }
         if (hasQ(request)) {
-            return Stream.of(VariantParser.parse(List.of(request.getQ())));
+            return Stream.of(parseQ(request));
         }
         // filter-only
         return Stream.iterate(0, page -> page + 1)
@@ -218,6 +215,10 @@ public class MappingService {
 
         Page<VariantInput> page = filtered != null ? filtered.page() : getInputs(request);
         List<VariantInput> inputs = page.getContent();
+        if (build == null && hasQ(request) && Assembly.autodetect(request.getAssembly())) {
+            // a single query is detected like an upload, so a GRCh37 position is converted (PV-502), not read as GRCh38
+            build = inputService.detectQueryBuild(inputs.stream().map(VariantInput::getInputStr).toList());
+        }
 
         MappingResponse mapping = inputMapper.getMapping(inputs, request.getAssembly(), build, multiFormat);
         if (filtered != null && mapping != null) {
@@ -281,6 +282,13 @@ public class MappingService {
 
     private static boolean hasIds(MappingRequest request) {
         return request.getIds() != null && !request.getIds().isEmpty();
+    }
+
+    // q is one variant: the same line normalisation as an upload line (thousands separators, CSV commas, a VCF
+    // line with several ALT alleles → one input each); a line break in q is not a separator
+    private static List<VariantInput> parseQ(MappingRequest request) {
+        List<String> lines = InputService.normalizeLine(request.getQ().replaceAll("\\R", " "));
+        return VariantParser.parse(lines.isEmpty() ? List.of(request.getQ().trim()) : lines);
     }
 
     private static boolean hasQ(MappingRequest request) {

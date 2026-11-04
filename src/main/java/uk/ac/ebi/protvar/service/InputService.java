@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.cache.InputBuild;
 import uk.ac.ebi.protvar.cache.InputSummary;
+import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.input.VariantType;
 import uk.ac.ebi.protvar.input.VariantInput;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
@@ -62,27 +63,61 @@ public class InputService {
 
     // Genomic position written with thousands separators, e.g. chr16:29,847,799 T>C
     private static final Pattern POSITION_WITH_SEPARATORS = Pattern.compile(
-            "^([ \\t]*(?:chr)?(?:\\d{1,2}|X|Y|MT?)[: \\t]+)(\\d{1,3}(?:,\\d{3})+)(?!\\d)",
-            Pattern.CASE_INSENSITIVE | Pattern.MULTILINE);
+            "^((?:chr)?(?:\\d{1,2}|X|Y|MT?)[: \\t]+)(\\d{1,3}(?:,\\d{3})+)(?!\\d)", Pattern.CASE_INSENSITIVE);
 
+    // VCF line with several ALT alleles: CHROM POS ID REF ALT1,ALT2[,...] [other columns]
+    private static final Pattern VCF_MULTI_ALT = Pattern.compile(
+            "^(\\S+\\s+\\S+\\s+\\S+\\s+[ACGT]\\s+)([ACGT](?:,[ACGT])+)(?:\\s.*)?$", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Splits raw input into variants: one per line (a line break is the only separator; commas and pipes can be
+     * part of a variant). Blank lines and # comment lines are dropped; each line goes through normalizeLine.
+     */
     public static List<String> normalizeInput(String rawInput) {
-        // remove thousands separators first, so the comma split below doesn't break the position
-        String input = POSITION_WITH_SEPARATORS.matcher(rawInput).replaceAll(m ->
-                Matcher.quoteReplacement(m.group(1) + m.group(2).replace(",", "")));
-        return Arrays.stream(input.split("\\R|,")) // split on any line break, pipe and comma
-                .map(String::trim)          // trim each line
-                .map(InputService::stripQuotes)
-                .filter(line -> !line.isEmpty())      // remove blank lines
-                .filter(line -> !line.startsWith("#")) // ignore comment lines
+        return Arrays.stream(rawInput.split("\\R"))
+                .flatMap(line -> normalizeLine(line).stream())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * One input line → its variant(s), in a canonical form (consistent upload checksums):
+     * wrapping quotes removed; thousands separators removed from a genomic position; a VCF line with several
+     * ALT alleles expanded to one line per allele; any other comma read as a column separator (a CSV row,
+     * e.g. 7,140753336,A,T → 7 140753336 A T). Empty for a blank or # comment line.
+     */
+    public static List<String> normalizeLine(String rawLine) {
+        String line = stripQuotes(rawLine.trim());
+        if (line.isEmpty() || line.startsWith("#")) return List.of();
+        line = POSITION_WITH_SEPARATORS.matcher(line).replaceFirst(m ->
+                Matcher.quoteReplacement(m.group(1) + m.group(2).replace(",", "")));
+        Matcher multiAlt = VCF_MULTI_ALT.matcher(line);
+        if (multiAlt.matches()) {
+            String prefix = multiAlt.group(1);
+            return Arrays.stream(multiAlt.group(2).split(",")).map(alt -> prefix + alt).collect(Collectors.toList());
+        }
+        if (line.contains(",") && !commasOnlyInVcfExtraColumns(line)) {
+            line = Arrays.stream(line.split(","))
+                    .map(f -> stripQuotes(f.trim()))
+                    .filter(f -> !f.isEmpty())
+                    .collect(Collectors.joining(" "));
+        }
+        return line.isEmpty() ? List.of() : List.of(line);
+    }
+
+    // CHROM POS ID REF ALT INFO...: commas only after the 5th column (e.g. AF=0.1,0.2), which VCF parsing ignores
+    private static boolean commasOnlyInVcfExtraColumns(String line) {
+        String[] cols = line.split("\\s+", 6);
+        return cols.length == 6 && Arrays.stream(cols, 0, 5).noneMatch(c -> c.contains(","));
     }
 
     // "P22304 A205P" or 'P22304 A205P' -> P22304 A205P
     private static String stripQuotes(String line) {
         if (line.length() >= 2) {
             char first = line.charAt(0);
-            if ((first == '"' || first == '\'') && line.charAt(line.length() - 1) == first)
-                return line.substring(1, line.length() - 1).trim();
+            String inner = line.substring(1, line.length() - 1);
+            // not "7","140753336" (a CSV row of quoted fields: its quotes go field by field)
+            if ((first == '"' || first == '\'') && line.charAt(line.length() - 1) == first && inner.indexOf(first) < 0)
+                return inner.trim();
         }
         return line;
     }
@@ -134,6 +169,20 @@ public class InputService {
                 cacheService.cacheBuild(id, build);
             }
         }
+    }
+
+    /**
+     * Assembly of a single query (q) under AUTO: GRCh37 (to be converted, with PV-502) only when its reference
+     * base matches GRCh37 and not GRCh38; otherwise null, i.e. GRCh38 as before, with no message (a single line
+     * that matches both builds is common, and a warning on it would be noise). Needs a reference base.
+     */
+    public InputBuild detectQueryBuild(List<String> lines) {
+        List<VariantInput> genomic = buildProcessor.filterGenomicInputs(lines).stream()
+                .filter(i -> ((GenomicInput) i).getRefBase() != null)
+                .collect(Collectors.toList());
+        if (genomic.isEmpty()) return null;
+        InputBuild build = buildProcessor.detect(genomic);
+        return build.getAssembly() == Assembly.GRCH37 ? build : null;
     }
 
     private InputBuild detectBuild(List<String> allInputs) {
