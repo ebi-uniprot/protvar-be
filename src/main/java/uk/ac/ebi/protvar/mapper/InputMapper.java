@@ -42,7 +42,7 @@ public class InputMapper {
 	private final MappingRepo mappingRepo;
 	private final GenomicScoreRepo genomicScoreRepo;
 	private final PangolinScoreRepo pangolinScoreRepo;
-	private final ScoreNewRepo scoreRepo;
+	private final ScoreRepo scoreRepo;
 	private final UniprotRefseqRepo uniprotRefseqRepo;
 	private final BuildProcessor buildProcessor;
 	private final Id2Gen id2Gen;

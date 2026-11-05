@@ -7,7 +7,7 @@ import uk.ac.ebi.protvar.model.score.*;
 import uk.ac.ebi.protvar.repo.FoldxRepo;
 import uk.ac.ebi.protvar.repo.InteractionRepo;
 import uk.ac.ebi.protvar.repo.PocketRepo;
-import uk.ac.ebi.protvar.repo.ScoreNewRepo;
+import uk.ac.ebi.protvar.repo.ScoreRepo;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -20,7 +20,7 @@ import static org.mockito.Mockito.*;
 
 class PredictionServiceTest {
 
-    private final ScoreNewRepo scores = mock(ScoreNewRepo.class);
+    private final ScoreRepo scores = mock(ScoreRepo.class);
     private final PocketRepo pockets = mock(PocketRepo.class);
     private final InteractionRepo interactions = mock(InteractionRepo.class);
     private final FoldxRepo foldx = mock(FoldxRepo.class);

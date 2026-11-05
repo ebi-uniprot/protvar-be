@@ -8,14 +8,14 @@ import uk.ac.ebi.protvar.model.score.*;
 import uk.ac.ebi.protvar.repo.FoldxRepo;
 import uk.ac.ebi.protvar.repo.InteractionRepo;
 import uk.ac.ebi.protvar.repo.PocketRepo;
-import uk.ac.ebi.protvar.repo.ScoreNewRepo;
+import uk.ac.ebi.protvar.repo.ScoreRepo;
 import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.*;
 
 /**
  * Everything predicted at a protein position, from the same repos the download uses: the score tables in one
- * transaction (ScoreNewRepo), then pockets, interfaces and FoldX. Only the requested keys are queried.
+ * transaction (ScoreRepo), then pockets, interfaces and FoldX. Only the requested keys are queried.
  */
 @Service
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class PredictionService {
             "conserv", ScoreType.CONSERV, "alphamissense", ScoreType.AM, "popeve", ScoreType.POPEVE,
             "esm", ScoreType.ESM, "eve", ScoreType.EVE, "m3d", ScoreType.M3D);
 
-    private final ScoreNewRepo scoreRepo;
+    private final ScoreRepo scoreRepo;
     private final PocketRepo pocketRepo;
     private final InteractionRepo interactionRepo;
     private final FoldxRepo foldxRepo;

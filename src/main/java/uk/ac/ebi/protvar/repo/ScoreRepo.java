@@ -18,7 +18,7 @@ import java.util.*;
 
 @Repository
 @RequiredArgsConstructor
-public class ScoreNewRepo {
+public class ScoreRepo {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     // Table names from configuration
