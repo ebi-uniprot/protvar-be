@@ -94,11 +94,11 @@ class CodingVariantRepoTest {
     void stabilityUsesMaxForLikelyMinForUnlikely() {
         MappingRequest r = new MappingRequest();
         r.setStability(List.of(StabilityChange.LIKELY_DESTABILISING));
-        assertEquals(List.of("foldx_ddg_max >= 2"), filters(r, new MapSqlParameterSource()));
+        assertEquals(List.of("foldx_ddg >= 2"), filters(r, new MapSqlParameterSource()));
         r.setStability(List.of(StabilityChange.UNLIKELY_DESTABILISING));
-        assertEquals(List.of("foldx_ddg_min < 2"), filters(r, new MapSqlParameterSource()));
+        assertEquals(List.of("foldx_ddg < 2"), filters(r, new MapSqlParameterSource()));
         r.setStability(List.of(StabilityChange.LIKELY_DESTABILISING, StabilityChange.UNLIKELY_DESTABILISING));
-        assertEquals(List.of("foldx_ddg_max IS NOT NULL"), filters(r, new MapSqlParameterSource()));
+        assertEquals(List.of("foldx_ddg IS NOT NULL"), filters(r, new MapSqlParameterSource()));
     }
 
     @Test
@@ -170,5 +170,20 @@ class CodingVariantRepoTest {
         String sql = repo.idPositions(ids(new Identifier(IdentifierType.ENSEMBL, "ENSP00000269305.4")), p);
         assertTrue(sql.endsWith("WHERE (m.accession, m.enst) IN (SELECT accession, enst FROM tx WHERE ensp = :id0 AND enspv = :id0v)"));
         assertEquals("4", p.getValue("id0v"));
+    }
+
+    @Test
+    void knownSourcesAndCuratedAreBitmasks() {
+        MappingRequest r = new MappingRequest();
+        r.setKnown(true);
+        r.setKnownIn(List.of(uk.ac.ebi.protvar.types.KnownSource.CLINVAR, uk.ac.ebi.protvar.types.KnownSource.COSMIC));
+        r.setCurated(List.of(uk.ac.ebi.protvar.types.CuratedCategory.parse("LP/P")));
+        MapSqlParameterSource p = new MapSqlParameterSource();
+        assertEquals(List.of("known", "(known_src & :knownMask) <> 0", "(humsavar & :curatedMask) <> 0"), filters(r, p));
+        assertEquals(6, p.getValue("knownMask"));
+        assertEquals(1, p.getValue("curatedMask"));
+        r.setCurated(List.of(uk.ac.ebi.protvar.types.CuratedCategory.ANY));
+        filters(r, p);
+        assertEquals(7, p.getValue("curatedMask"));
     }
 }

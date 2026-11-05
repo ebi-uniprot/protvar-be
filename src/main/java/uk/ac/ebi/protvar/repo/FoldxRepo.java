@@ -43,7 +43,7 @@ public class FoldxRepo {
         Map<String, List<Foldx>> groupedFoldxs = foldxs.stream()
                 .collect(Collectors.groupingBy(Foldx::getVariantKey));
 
-        groupedFoldxs.values().forEach(this::groupAndReturnMiddleFragment);
+        groupedFoldxs.replaceAll((k, v) -> groupAndReturnMiddleFragment(v));   // keep the result (was forEach: discarded since 80709f6)
 
         return groupedFoldxs;
     }
@@ -67,7 +67,7 @@ public class FoldxRepo {
         Map<String, List<Foldx>> foldxsMap = foldxs.stream()
                 .collect(Collectors.groupingBy(Foldx::getVariantKey));
 
-        foldxsMap.values().forEach(this::groupAndReturnMiddleFragment);
+        foldxsMap.replaceAll((k, v) -> groupAndReturnMiddleFragment(v));   // keep the result (was forEach: discarded since 80709f6)
         return foldxsMap;
     }
 
@@ -92,7 +92,7 @@ public class FoldxRepo {
         Map<String, List<Foldx>> grouped = foldxs.stream()
                 .collect(Collectors.groupingBy(Foldx::getVariantKey));
 
-        grouped.values().forEach(this::groupAndReturnMiddleFragment);
+        grouped.replaceAll((k, v) -> groupAndReturnMiddleFragment(v));   // keep the result (was forEach: discarded since 80709f6)
 
         return grouped;
     }

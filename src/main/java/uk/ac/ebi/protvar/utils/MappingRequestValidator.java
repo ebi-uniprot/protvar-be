@@ -18,7 +18,8 @@ import java.util.Optional;
  *   - pocket = true         (leads from pocket_v2,            ~547K rows)
  *   - interact = true       (leads from af2complexes_interfaces, ~68K rows)
  *   - experimentalModel     (leads from rel_*_structure,      ~203K rows)
- *   - known = true          (leads from mapping_dbsnp_lookup,  ~15M rows)
+ *   - known = true / knownIn (coding_variant partial index WHERE known, ~30M rows)
+ *   - curated               (coding_variant partial index WHERE humsavar IS NOT NULL, small)
  *
  * All other filters (cadd, aviMin, am, popeve, esm1b, stability, alleleFreq,
  * conservation, startPos/endPos, sort) are refinements only — they cannot
@@ -29,7 +30,7 @@ public class MappingRequestValidator {
 
     public static final String NO_DRIVER_MESSAGE =
             "Please provide an identifier or select at least one primary filter " +
-            "(Pocket, Interaction, Experimental Model, or Known variants) to begin browsing.";
+            "(Pocket, Interaction, Experimental Model, Known variants or UniProt curated) to begin browsing.";
 
     private MappingRequestValidator() {}
 
@@ -47,6 +48,8 @@ public class MappingRequestValidator {
         if (Boolean.TRUE.equals(request.getInteract())) return true;
         if (Boolean.TRUE.equals(request.getExperimentalModel())) return true;
         if (Boolean.TRUE.equals(request.getKnown())) return true;
+        if (request.getKnownIn() != null && !request.getKnownIn().isEmpty()) return true;
+        if (request.getCurated() != null && !request.getCurated().isEmpty()) return true;
 
         return false;
     }

@@ -26,6 +26,8 @@ import uk.ac.ebi.protvar.types.CaddCategory;
 import uk.ac.ebi.protvar.types.IdentifierType;
 import uk.ac.ebi.protvar.types.PopEveClass;
 import uk.ac.ebi.protvar.types.StabilityChange;
+import uk.ac.ebi.protvar.types.KnownSource;
+import uk.ac.ebi.protvar.types.CuratedCategory;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
 
 import java.util.ArrayList;
@@ -201,13 +203,21 @@ public class CodingVariantRepo {
     /**
      * One condition per active filter (AND across filters, OR within a band list), on the table's columns.
      * Band lists are [min, max) ORs; popEVE bands may be
-     * open-ended; stability means "any FoldX row" in either direction, hence max/min ΔΔG.
+     * open-ended; stability uses foldx_ddg (the middle AlphaFold fragment, the value shown for the variant).
      * Score bounds are cast to real like the columns, so a value exactly on a band edge (popEVE -5.056 is stored as
      * -5.0560002) falls in the same band as on the source tables.
      */
     List<String> filters(MappingRequest r, MapSqlParameterSource params) {
         List<String> c = new ArrayList<>();
         if (Boolean.TRUE.equals(r.getKnown())) c.add("known");
+        if (notEmpty(r.getKnownIn())) { // bitmask of the sources: any of them
+            c.add("(known_src & :knownMask) <> 0");
+            params.addValue("knownMask", KnownSource.mask(r.getKnownIn()));
+        }
+        if (notEmpty(r.getCurated())) {
+            c.add("(humsavar & :curatedMask) <> 0");
+            params.addValue("curatedMask", CuratedCategory.mask(r.getCurated()));
+        }
 
         if (notEmpty(r.getCadd())) {
             List<String> or = new ArrayList<>();
@@ -270,9 +280,10 @@ public class CodingVariantRepo {
         }
         if (notEmpty(r.getStability())) {
             Set<StabilityChange> changes = EnumSet.copyOf(r.getStability());
-            if (changes.equals(EnumSet.allOf(StabilityChange.class))) c.add("foldx_ddg_max IS NOT NULL");
-            else if (changes.contains(StabilityChange.LIKELY_DESTABILISING)) c.add("foldx_ddg_max >= 2");
-            else c.add("foldx_ddg_min < 2");
+            // foldx_ddg: the middle AlphaFold fragment's ΔΔG, the value shown for the variant
+            if (changes.equals(EnumSet.allOf(StabilityChange.class))) c.add("foldx_ddg IS NOT NULL");
+            else if (changes.contains(StabilityChange.LIKELY_DESTABILISING)) c.add("foldx_ddg >= 2");
+            else c.add("foldx_ddg < 2");
         }
 
         if (Boolean.TRUE.equals(r.getExperimentalModel())) c.add("exp_structure");

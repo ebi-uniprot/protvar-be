@@ -12,6 +12,8 @@ import uk.ac.ebi.protvar.types.AmClass;
 import uk.ac.ebi.protvar.types.CaddCategory;
 import uk.ac.ebi.protvar.types.PopEveClass;
 import uk.ac.ebi.protvar.types.StabilityChange;
+import uk.ac.ebi.protvar.types.KnownSource;
+import uk.ac.ebi.protvar.types.CuratedCategory;
 import jakarta.validation.constraints.Min;
 
 import java.util.List;
@@ -70,8 +72,16 @@ public class MappingRequest {
 
     // Advanced filtering criteria
     // Variant Type
-    @Schema(description = "Only known variants (default includes all possible)", example = "false")
+    @Schema(description = "Only known variants: in dbSNP, ClinVar, COSMIC or gnomAD (default includes all possible)", example = "false")
     private Boolean known;
+
+    @Schema(description = "Known in any of these sources (dbsnp, clinvar, cosmic, gnomad); implies known", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<KnownSource> knownIn;
+
+    @Schema(description = "UniProt curated variants (humsavar): any, lp_p, lb_b, us", example = "[]")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private List<CuratedCategory> curated;
 
     // Function-side feature filters (mapped via FeatureGroup → function_feature.type)
     @Schema(description = "Only variants at a PTM site", example = "false")

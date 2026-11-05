@@ -47,14 +47,15 @@ public class UploadVariantRepo {
     public static final String FAILED = "FAILED";
     /**
      * Release-key suffix of builds copied from coding_variant (fits upload.release varchar(10)). Bumped when
-     * builds gain data, so older builds are rebuilt on demand: -cv, then -c2 (adds upload_line).
+     * builds gain data, so older builds are rebuilt on demand: -cv, then -c2 (adds upload_line), -c3 (known_src,
+     * humsavar).
      */
-    public static final String CV_SUFFIX = "-c2";
+    public static final String CV_SUFFIX = "-c3";
 
     // coding_variant attributes copied into upload_variant (same names and types as the table)
     private static final String CV_COLUMNS = "cadd, avi, am, am_class, popeve, esm1b, conservation, af, "
-            + "foldx_ddg_max, foldx_ddg_min, known, pocket, interface, exp_structure, disease, "
-            + "ptm, mutagen, domain, binding, actsite, transmem";
+            + "foldx_ddg, known, pocket, interface, exp_structure, disease, "
+            + "ptm, mutagen, domain, binding, actsite, transmem, known_src, humsavar";
 
     private static final String DDL = """
             CREATE UNLOGGED TABLE IF NOT EXISTS protvar_runtime.upload (
@@ -96,13 +97,14 @@ public class UploadVariantRepo {
               ADD COLUMN IF NOT EXISTS am real, ADD COLUMN IF NOT EXISTS am_class smallint,
               ADD COLUMN IF NOT EXISTS popeve real, ADD COLUMN IF NOT EXISTS esm1b real,
               ADD COLUMN IF NOT EXISTS conservation real, ADD COLUMN IF NOT EXISTS af real,
-              ADD COLUMN IF NOT EXISTS foldx_ddg_max real, ADD COLUMN IF NOT EXISTS foldx_ddg_min real,
               ADD COLUMN IF NOT EXISTS known boolean, ADD COLUMN IF NOT EXISTS pocket boolean,
               ADD COLUMN IF NOT EXISTS interface boolean, ADD COLUMN IF NOT EXISTS exp_structure boolean,
               ADD COLUMN IF NOT EXISTS disease boolean, ADD COLUMN IF NOT EXISTS ptm boolean,
               ADD COLUMN IF NOT EXISTS mutagen boolean, ADD COLUMN IF NOT EXISTS domain boolean,
               ADD COLUMN IF NOT EXISTS binding boolean, ADD COLUMN IF NOT EXISTS actsite boolean,
-              ADD COLUMN IF NOT EXISTS transmem boolean;
+              ADD COLUMN IF NOT EXISTS transmem boolean,
+              ADD COLUMN IF NOT EXISTS known_src smallint, ADD COLUMN IF NOT EXISTS humsavar smallint,
+              ADD COLUMN IF NOT EXISTS foldx_ddg real;
             """;
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
@@ -387,7 +389,7 @@ public class UploadVariantRepo {
 
     /** True when the request filters or sorts on the lines' rows (scores, features, …), not only on notes. */
     private static boolean rowFiltersOrSorts(MappingRequest r) {
-        return Boolean.TRUE.equals(r.getKnown())
+        return Boolean.TRUE.equals(r.getKnown()) || notEmpty(r.getKnownIn()) || notEmpty(r.getCurated())
                 || notEmpty(r.getCadd()) || r.getAviMin() != null
                 || notEmpty(r.getAm()) || notEmpty(r.getPopeve())
                 || r.getEsm1bMin() != null || r.getEsm1bMax() != null
