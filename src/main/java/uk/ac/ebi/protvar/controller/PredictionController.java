@@ -4,116 +4,77 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.ac.ebi.protvar.model.data.*;
-import uk.ac.ebi.protvar.repo.FoldxRepo;
+import uk.ac.ebi.protvar.model.response.PredictionInfo;
 import uk.ac.ebi.protvar.repo.InteractionRepo;
-import uk.ac.ebi.protvar.repo.PocketRepo;
+import uk.ac.ebi.protvar.service.PredictionService;
 import uk.ac.ebi.protvar.types.AminoAcid;
 
-import jakarta.servlet.ServletContext;
-import uk.ac.ebi.protvar.utils.VariantKey;
-
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+/**
+ * Predictions at a protein position in one call (replaces /score and the per-type
+ * /prediction/foldx|pocket|interaction endpoints), plus the predicted complex model for an interface.
+ */
 @Tag(name = "Prediction")
 @RestController
 @RequestMapping("/prediction")
 @CrossOrigin
 @RequiredArgsConstructor
 public class PredictionController {
-    private final ServletContext context;
-    private final PocketRepo pocketRepo;
+
+    private final PredictionService predictionService;
     private final InteractionRepo interactionRepo;
-    private final FoldxRepo foldxRepo;
 
-    /**
-     * Foldx predictions based on AFDB.
-     *
-     * @param accession UniProt accession
-     * @param position  Amino acid position
-     * @param variantAA Optional, 1- or 3-letter symbol for variant amino acid
-     * @return <code>Foldx</code> information on accession
-     */
-    @Operation(summary = "FoldX stability change")
-    @GetMapping(value = "/foldx/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<Foldx>> getFoldxsByAccAndPos(
-            @Parameter(example = "Q9NUW8") @PathVariable String accession,
-            @Parameter(example = "493") @PathVariable Integer position,
-            @Parameter(example = "R") @RequestParam(required = false) String variantAA) {
-
-        List<Foldx> foldxs = foldxRepo.getFoldxs(accession, position, AminoAcid.oneLetter(variantAA))
-                .values().stream()
-                .flatMap(List::stream)
-                .toList();
-
-        if (foldxs.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    @Operation(summary = "Predictions at a protein position",
+            description = "Residue level: conserv (conservation), pocket (predicted pockets), interface (predicted "
+                    + "protein–protein interfaces). Variant level, per variant amino acid (all 19, or variantAA only): "
+                    + "alphamissense, popeve, esm (ESM1b), eve, foldx (stability; the middle AlphaFold fragment, with "
+                    + "numFragments), m3d (Missense3D). include= returns only the listed keys.")
+    @GetMapping(value = "/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> getPredictions(
+            @Parameter(example = "P22304") @PathVariable String accession,
+            @Parameter(example = "205") @PathVariable int position,
+            @Parameter(description = "Optional variant amino acid (1- or 3-letter).", example = "P")
+            @RequestParam(required = false) String variantAA,
+            @Parameter(description = "Keys to return (default all): conserv, pocket, interface, alphamissense, "
+                    + "popeve, esm, eve, foldx, m3d", example = "foldx,alphamissense")
+            @RequestParam(required = false) List<String> include) {
+        String mt = null;
+        if (variantAA != null && !variantAA.isBlank()) {
+            try {
+                mt = AminoAcid.oneLetter(variantAA);
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Unknown amino acid: " + variantAA));
+            }
         }
-        return new ResponseEntity<>(foldxs, HttpStatus.OK);
+        Set<String> keys = new LinkedHashSet<>();
+        if (include != null) {
+            for (String k : include) {
+                String key = k.trim().toLowerCase();
+                if (key.isEmpty()) continue;
+                if (!PredictionService.KEYS.contains(key))
+                    return ResponseEntity.badRequest().body(Map.of("error",
+                            "Unknown prediction '" + k + "'; expected any of " + PredictionService.KEYS));
+                keys.add(key);
+            }
+        }
+        PredictionInfo info = predictionService.get(accession.toUpperCase(), position, mt, keys);
+        return ResponseEntity.ok(info);
     }
 
-    /**
-     * Pocket predictions based on the AF-DB monomeric structures using autosite.
-     *
-     * @param accession UniProt accession
-     * @param resid     Residue
-     * @return <code>Pocket</code> information on accession
-     */
-    @Operation(summary = "Predicted pockets containing a residue")
-    @GetMapping(value = "/pocket/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<Pocket>> getPocketsByAccAndResid(
-            @Parameter(example = "Q9NUW8") @PathVariable String accession,
-            @Parameter(example = "493") @PathVariable Integer resid) {
-
-        Map<String, List<Pocket>> pocketMap = pocketRepo.getPockets(accession, resid);
-        List<Pocket> pockets = pocketMap.get(VariantKey.protein(accession, resid));
-        if (pockets == null || pockets.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        return new ResponseEntity<>(pockets, HttpStatus.OK);
-    }
-
-    /**
-     * Predicted protein-protein interactions with strength/confidence of interaction.
-     *
-     * @param accession UniProt accession
-     * @param resid     Residue
-     * @return <code>Interaction</code> information on accession
-     */
-    @Operation(summary = "Predicted protein–protein interfaces containing a residue")
-    @GetMapping(value = "/interaction/{accession}/{resid}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<Interaction>> getInteractionsByAccAndResid(
-            @Parameter(example = "Q9NUW8") @PathVariable String accession,
-            @Parameter(example = "493") @PathVariable Integer resid) {
-
-        Map<String, List<Interaction>> interactMap = interactionRepo.getInteractions(accession, resid);
-        List<Interaction> interactions = interactMap.get(VariantKey.protein(accession, resid));
-        if (interactions == null || interactions.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-        interactions.forEach(i -> i.setPdbModel(context.getContextPath() + i.getPdbModel()));
-        return new ResponseEntity<>(interactions, HttpStatus.OK);
-    }
-
-    /**
-     * Trimmed pdb model for two interacting proteins.
-     *
-     * @param a UniProt accession
-     * @param b UniProt accession
-     * @return pdb model
-     */
-    @Operation(summary = "Predicted complex model for two proteins (PDB text)")
-    @GetMapping(value = "/interaction/{a}/{b}/model", produces = MediaType.TEXT_PLAIN_VALUE)
-    public @ResponseBody String getInteractionModel(
-            @Parameter(example = "Q9NUW8") @PathVariable String a,
-            @Parameter(example = "Q9UBZ4") @PathVariable String b) {
+    @Operation(summary = "Predicted complex model for an interface (PDB text)",
+            description = "The AlphaFold2 model of proteins a and b together, trimmed to the interface; either order.")
+    @GetMapping(value = "/interface/{a}/{b}/model", produces = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getInterfaceModel(
+            @Parameter(example = "P22304") @PathVariable String a,
+            @Parameter(example = "Q9BWS9-3") @PathVariable String b) {
         String model = interactionRepo.getInteractionModel(a, b);
-        return model;
+        return model == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(model);
     }
-
 }

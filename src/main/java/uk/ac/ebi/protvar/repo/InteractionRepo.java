@@ -36,7 +36,9 @@ public class InteractionRepo {
 		   WHERE (a=:accession AND (:resid)=ANY("a_residues_5A" || "a_residues_8A")) 
 		   OR (b=:accession AND (:resid)=ANY("b_residues_5A" || "b_residues_8A"))
 		   """;
-    private static final String SELECT_INTERFACES_MODEL = "SELECT pdb_model FROM %s WHERE a=:a AND b=:b";
+    // either order: the pair is stored once (a, b)
+    private static final String SELECT_INTERFACES_MODEL =
+            "SELECT pdb_model FROM %s WHERE (a=:a AND b=:b) OR (a=:b AND b=:a) LIMIT 1";
     private static final String SELECT_INTERFACES_MODEL_NEW = "SELECT pdb_model FROM %s WHERE a=:a AND b=:b";
 
 

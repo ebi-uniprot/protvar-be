@@ -38,7 +38,8 @@ public class Interaction {
         this.b = b;
         this.bresidues = bresidues;
         this.pdockq = pdockq;
-        this.pdbModel = "/interaction/{a}/{b}/model".replace("{a}", a)
+        // the complex model (PDB) endpoint, relative to the API root
+        this.pdbModel = "/prediction/interface/{a}/{b}/model".replace("{a}", a)
                 .replace("{b}", b);
     }
 }

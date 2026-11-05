@@ -44,80 +44,8 @@ public class ScoreNewRepo {
     private String m3dTableName;
 
     // ============================================================================
-    // SINGLE VARIANT QUERIES (acc, pos, mt)
+    // popEVE RefSeq choice (single-position queries: PredictionRepo)
     // ============================================================================
-
-    private Optional<ConservScore> getConservScore(String acc, Integer pos) {
-        String sql = String.format("""
-            SELECT accession, position, score
-            FROM %s
-            WHERE accession = :acc AND position = :pos
-            """, conservTableName);
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("acc", acc)
-                .addValue("pos", pos);
-
-        List<ConservScore> results = jdbcTemplate.query(sql, params, conservScoreMapper);
-        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0));
-    }
-
-    private List<EveScore> getEveScores(String acc, Integer pos, String mt) {
-        StringBuilder sql = new StringBuilder(String.format("""
-            SELECT accession, position, mt_aa, score, class
-            FROM %s
-            WHERE accession = :acc AND position = :pos
-            """, eveTableName));
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("acc", acc)
-                .addValue("pos", pos);
-
-        if (mt != null && !mt.isBlank()) {
-            sql.append(" AND mt_aa = :mt");
-            params.addValue("mt", mt);
-        }
-
-        return jdbcTemplate.query(sql.toString(), params, eveScoreMapper);
-    }
-
-    private List<EsmScore> getEsmScores(String acc, Integer pos, String mt) {
-        StringBuilder sql = new StringBuilder(String.format("""
-            SELECT accession, position, mt_aa, score
-            FROM %s
-            WHERE accession = :acc AND position = :pos
-            """, esmTableName));
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("acc", acc)
-                .addValue("pos", pos);
-
-        if (mt != null && !mt.isBlank()) {
-            sql.append(" AND mt_aa = :mt");
-            params.addValue("mt", mt);
-        }
-
-        return jdbcTemplate.query(sql.toString(), params, esmScoreMapper);
-    }
-
-    private List<AmScore> getAmScores(String acc, Integer pos, String mt) {
-        StringBuilder sql = new StringBuilder(String.format("""
-            SELECT accession, position, mt_aa, am_pathogenicity, am_class
-            FROM %s
-            WHERE accession = :acc AND position = :pos
-            """, amTableName));
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("acc", acc)
-                .addValue("pos", pos);
-
-        if (mt != null && !mt.isBlank()) {
-            sql.append(" AND mt_aa = :mt");
-            params.addValue("mt", mt);
-        }
-
-        return jdbcTemplate.query(sql.toString(), params, amScoreMapper);
-    }
 
     /**
      * The one RefSeq protein an accession's popEVE comes from: its MANE Select RefSeq if that has popEVE, else
@@ -131,55 +59,6 @@ public class ScoreNewRepo {
                    AND EXISTS (SELECT 1 FROM %s x WHERE x.refseq_protein = r.refseq_acc)
                  ORDER BY (r.is_mane_select IS TRUE) DESC, r.refseq_acc LIMIT 1)""",
                 uniprotRefseqTableName, accExpr, popeveTableName);
-    }
-
-    private List<PopEveScore> getPopEveScores(String acc, Integer pos, String mt) {
-        StringBuilder sql = new StringBuilder(String.format("""
-            SELECT ur.uniprot_acc AS accession,
-                   p.position,
-                   p.wt_aa,
-                   p.mt_aa,
-                   p.gap_freq,
-                   p.popeve,
-                   p.popped_eve,
-                   p.popped_esm_1v,
-                   p.eve,
-                   p.esm_1v
-            FROM %s p
-            JOIN %s ur ON p.refseq_protein = ur.refseq_acc
-            WHERE ur.uniprot_acc = :acc AND p.position = :pos
-              AND ur.refseq_acc = %s
-            """, popeveTableName, uniprotRefseqTableName, popeveRefseq(":acc")));
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("acc", acc)
-                .addValue("pos", pos);
-
-        if (mt != null && !mt.isBlank()) {
-            sql.append(" AND p.mt_aa = :mt");
-            params.addValue("mt", mt);
-        }
-
-        return jdbcTemplate.query(sql.toString(), params, popEveScoreMapper);
-    }
-
-    private List<M3DPred> getM3DPred(String acc, Integer pos, String mt) {
-        StringBuilder sql = new StringBuilder(String.format("""
-            SELECT uniprot_id, pos, mut, prediction, damaging_feature
-            FROM %s
-            WHERE uniprot_id = :acc AND pos = :pos
-            """, m3dTableName));
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("acc", acc)
-                .addValue("pos", pos);
-
-        if (mt != null && !mt.isBlank()) {
-            sql.append(" AND mut = :mt");
-            params.addValue("mt", mt);
-        }
-
-        return jdbcTemplate.query(sql.toString(), params, m3DPredMapper);
     }
 
     // ============================================================================
@@ -365,72 +244,6 @@ public class ScoreNewRepo {
     // ============================================================================
 
     /**
-     * Get scores for a single variant (acc, pos, optionally mt)
-     * @Transactional ensures all queries use the same connection
-     *
-     * Used in ScoreController.getScores()
-     */
-    @Transactional(readOnly = true)
-    public List<Score> getScores(String acc, Integer pos, String mt, ScoreType type) {
-        if (acc == null || pos == null) {
-            return Collections.emptyList();
-        }
-
-        // If specific type requested, query only that type
-        if (type != null) {
-            return switch (type) {
-                case CONSERV -> getConservScore(acc, pos)
-                        .map(s -> (Score) s.copySubclassFields())
-                        .stream().toList();
-                case EVE -> getEveScores(acc, pos, mt).stream()
-                        .map(Score::copySubclassFields)
-                        .toList();
-                case ESM -> getEsmScores(acc, pos, mt).stream()
-                        .map(Score::copySubclassFields)
-                        .toList();
-                case AM -> getAmScores(acc, pos, mt).stream()
-                        .map(Score::copySubclassFields)
-                        .toList();
-                case POPEVE -> getPopEveScores(acc, pos, mt).stream()
-                        .map(Score::copySubclassFields)
-                        .toList();
-                case M3D -> getM3DPred(acc, pos, mt).stream()
-                        .map(Score::copySubclassFields)
-                        .toList();
-            };
-        }
-
-        // All types - executed sequentially but within same transaction (same connection)
-        List<Score> results = new ArrayList<>();
-
-        getConservScore(acc, pos)
-                .map(Score::copySubclassFields)
-                .ifPresent(results::add);
-
-        results.addAll(getEveScores(acc, pos, mt).stream()
-                .map(Score::copySubclassFields)
-                .toList());
-
-        results.addAll(getEsmScores(acc, pos, mt).stream()
-                .map(Score::copySubclassFields)
-                .toList());
-
-        results.addAll(getAmScores(acc, pos, mt).stream()
-                .map(Score::copySubclassFields)
-                .toList());
-
-        results.addAll(getPopEveScores(acc, pos, mt).stream()
-                .map(Score::copySubclassFields)
-                .toList());
-
-        results.addAll(getM3DPred(acc, pos, mt).stream()
-                .map(Score::copySubclassFields)
-                .toList());
-
-        return results;
-    }
-
-    /**
      * Get all scores for a single accession (all positions)
      * @Transactional ensures all queries use the same connection
      *
@@ -460,8 +273,9 @@ public class ScoreNewRepo {
      * @Transactional ensures all queries use the same connection
      *
      * Used in
-     *  - ScoreRepo.getMappingScores() -> used in InputMapper.loadCoreMappingAndScores()
-     *  - ScoreRepo.getAnnotationScores() -> used in InputMapper.preloadOptionalAnnotations() & .getAPIFunctionalData()
+     *  - getMappingScores() -> InputMapper.loadCoreMappingAndScores()
+     *  - getAnnotationScores() -> AnnotationFetcher (download, /function)
+     *  - PredictionService (/prediction), directly
      */
     @Transactional(readOnly = true)
     public List<Score> getScores(String[] accessions, Integer[] positions, Set<ScoreType> types) {
