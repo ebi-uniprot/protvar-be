@@ -8,7 +8,12 @@ import uk.ac.ebi.protvar.model.data.PangolinScore;
  */
 public record Pangolin(float score, float gain, int gainPos, float loss, int lossPos) {
 	public static Pangolin of(PangolinScore s) {
-		return new Pangolin(Math.max(s.getGainScore(), -s.getLossScore()),
-				s.getGainScore(), s.getGainPos(), s.getLossScore(), s.getLossPos());
+		float gain = noNegZero(s.getGainScore()), loss = noNegZero(s.getLossScore());
+		return new Pangolin(noNegZero(Math.max(gain, -loss)), gain, s.getGainPos(), loss, s.getLossPos());
+	}
+
+	// the data has -0.0 losses (no change): show 0.0
+	private static float noNegZero(float f) {
+		return f == 0f ? 0f : f;
 	}
 }

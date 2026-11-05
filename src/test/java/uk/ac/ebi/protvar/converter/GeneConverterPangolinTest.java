@@ -29,6 +29,9 @@ public class GeneConverterPangolinTest {
         assertEquals(-0.01, p.loss(), 1e-9);
         assertEquals(37, p.lossPos());
         assertEquals("0.01", String.valueOf(p.score())); // as stored, no float noise (download column)
+        Pangolin none = new GeneConverter(null).findPangolin(List.of(row("A", "ENSG00000157404", 0, -0.0f)), "A", "ENSG00000157404");
+        assertEquals("0.0", String.valueOf(none.loss())); // not -0.0
+        assertEquals("0.0", String.valueOf(none.score()));
         assertNull(new GeneConverter(null).findPangolin(rows, "G", "ENSG00000157404.18"));
         assertNull(new GeneConverter(null).findPangolin(rows, "T", "ENSG00000000001.1"));
     }
