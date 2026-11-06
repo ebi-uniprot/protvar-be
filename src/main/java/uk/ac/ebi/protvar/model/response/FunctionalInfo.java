@@ -36,16 +36,6 @@ public class FunctionalInfo {
 	private String alternativeNames; // built from ...
 	private String lastUpdated;
 
-	// ProtVar predictions
-	private List<Pocket> pockets;
-	private List<Foldx> foldxs;
-	private List<Interaction> interactions;
-
-	// ProtVar scores (CADD and AM scores in core mapping)
-	private ConservScore conservScore;
-	private EveScore eveScore;
-    private EsmScore esmScore;
-    private PopEveScore popEveScore;
-    private M3DPred m3dPred;
+	// UniProt only: predictions at the position are GET /prediction/{accession}/{position}
 
 }

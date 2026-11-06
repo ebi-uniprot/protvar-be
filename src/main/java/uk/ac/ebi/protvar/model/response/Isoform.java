@@ -33,7 +33,9 @@ public class Isoform implements Comparable<Isoform> {
 	@JsonInclude(Include.NON_NULL)
 	private String populationObservationsUri;
 	@JsonInclude(Include.NON_NULL)
-	private String referenceFunctionUri;
+	private String referenceFunctionUri;     // UniProt annotations at the position
+	@JsonInclude(Include.NON_NULL)
+	private String referencePredictionUri;   // predictions at the position, for the variant amino acid
 	@JsonInclude(Include.NON_NULL)
 	private String proteinStructureUri;
 

@@ -4,13 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
-import uk.ac.ebi.protvar.mapper.FunctionalInfoEnricher;
 import uk.ac.ebi.protvar.model.data.Foldx;
 import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.model.response.Isoform;
-import uk.ac.ebi.protvar.model.score.PopEveScore;
+import uk.ac.ebi.protvar.model.score.*;
+import uk.ac.ebi.protvar.utils.VariantKey;
 import uk.ac.ebi.protvar.service.FunctionService;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import uk.ac.ebi.protvar.types.PopEveClass;
@@ -46,7 +46,6 @@ public class CsvFunctionDataBuilder {
 	// ESM
 
 	private final FunctionService functionService;
-	private final FunctionalInfoEnricher functionalInfoEnricher;
 	public List<String> build(Isoform isoform, AnnotationData annData) {
 		if (!annData.isFun()) return Collections.emptyList();
 
@@ -54,11 +53,18 @@ public class CsvFunctionDataBuilder {
 		FunctionalInfo functionalInfo = functionService.get(isoform.getAccession(), isoform.getIsoformPosition());
 		if (functionalInfo == null) return Collections.emptyList();
 
-		// Score/foldx maps are keyed by the 1-letter variant AA (as stored in the DB),
-		// but isoform.getVariantAA() is 3-letter (e.g. "Thr"). Normalise to 1-letter so
-		// the AA-keyed lookups (FoldX, ESM1b, popEVE) hit — matching the API path
-		// (AnnotationFetcher.getAPIFunctionalData). Without this they all come out N/A.
-		functionalInfoEnricher.enrich(functionalInfo, annData, AminoAcid.oneLetter(isoform.getVariantAA()));
+		// predictions from the preloaded annotation data. Score/FoldX maps are keyed by the 1-letter variant AA (as
+		// stored), isoform.getVariantAA() is 3-letter (e.g. "Thr"): normalise, or those lookups miss (N/A)
+		String acc = isoform.getAccession();
+		int pos = isoform.getIsoformPosition();
+		String mt = AminoAcid.oneLetter(isoform.getVariantAA());
+		String key = VariantKey.protein(acc, pos);
+		List<Pocket> pockets = annData.getPocketMap() == null ? null : annData.getPocketMap().get(key);
+		List<Interaction> interactions = annData.getInteractMap() == null ? null : annData.getInteractMap().get(key);
+		List<Foldx> foldxs = annData.getFoldxMap() == null ? null : annData.getFoldxMap().get(VariantKey.protein(acc, pos, mt));
+		ConservScore conserv = score(annData, VariantKey.protein(ScoreType.CONSERV, acc, pos, null), ConservScore.class);
+		PopEveScore popEve = score(annData, VariantKey.protein(ScoreType.POPEVE, acc, pos, mt), PopEveScore.class);
+		EsmScore esm = score(annData, VariantKey.protein(ScoreType.ESM, acc, pos, mt), EsmScore.class);
 
 		List<String> output = new ArrayList<>();
 
@@ -73,14 +79,20 @@ public class CsvFunctionDataBuilder {
 		output.add(CsvUtils.getValOrNA(buildProteinFeature(regionFeatures))); //Region_function_(evidence)
 		output.addAll(buildProteinDetails(functionalInfo)); //Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated
 		output.addAll(buildComments(functionalInfo.getComments())); //Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)
-		output.add(CsvUtils.getValOrNA(buildPredictedPockets(functionalInfo.getPockets())));
-		output.add(CsvUtils.getValOrNA(buildPredictedInteractions(functionalInfo.getInteractions())));
-		output.add(CsvUtils.getValOrNA(buildFoldxPrediction(functionalInfo.getFoldxs())));
-		output.add(CsvUtils.getValOrNA(functionalInfo.getConservScore() == null ? null : functionalInfo.getConservScore().getScore()));
+		output.add(CsvUtils.getValOrNA(buildPredictedPockets(pockets)));
+		output.add(CsvUtils.getValOrNA(buildPredictedInteractions(interactions)));
+		output.add(CsvUtils.getValOrNA(buildFoldxPrediction(foldxs)));
+		output.add(CsvUtils.getValOrNA(conserv == null ? null : conserv.getScore()));
 		output.add(getAMScore(isoform));
-		output.add(getPopEveScore(functionalInfo.getPopEveScore()));
-		output.add(CsvUtils.getValOrNA(functionalInfo.getEsmScore() == null ? null : functionalInfo.getEsmScore().getScore()));
+		output.add(getPopEveScore(popEve));
+		output.add(CsvUtils.getValOrNA(esm == null ? null : esm.getScore()));
 		return output;
+	}
+
+	private static <T extends Score> T score(AnnotationData annData, String key, Class<T> type) {
+		if (annData.getScoreMap() == null) return null;
+		return annData.getScoreMap().getOrDefault(key, List.of()).stream()
+				.filter(type::isInstance).map(type::cast).findFirst().orElse(null);
 	}
 
 	private String getAMScore(Isoform isoform) {

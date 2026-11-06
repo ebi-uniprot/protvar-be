@@ -115,23 +115,6 @@ public class AnnotationFetcher {
 	public List<StructureResidue> buildStructure(String accession, int position) {
 		return structureService.getStr(accession, position);
 	}
-	public AnnotationData getAPIFunctionalData(String accession, Integer position, String variantAA) {
-		Map<String, List<Pocket>> pocketMap = pocketRepo.getPockets(accession, position);
-		Map<String, List<Interaction>> interactMap = interactionRepo.getInteractions(accession, position);
-		Map<String, List<Foldx>> foldxMap = foldxRepo.getFoldxs(accession, position, AminoAcid.oneLetter(variantAA));
-
-		List<Score> scores = scoreRepo.getAnnotationScores(new String[]{accession}, new Integer[]{position});
-		Map<String, List<Score>> scoreMap = scores.stream()
-				.collect(Collectors.groupingBy(Score::getVariantKey));
-
-		return AnnotationData.builder()
-				.pocketMap(pocketMap)
-				.interactMap(interactMap)
-				.foldxMap(foldxMap)
-				.scoreMap(scoreMap)
-				.build();
-	}
-
 	public AnnotationData getAPIPopulationData(String accession, Integer position,
 											   String chromosome, Integer genomicPosition) {
 		Map<String, List<Variant>> variantMap = variantFetcher.getVariants(accession, position);

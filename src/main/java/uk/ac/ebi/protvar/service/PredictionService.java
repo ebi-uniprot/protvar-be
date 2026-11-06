@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import uk.ac.ebi.protvar.model.data.Foldx;
+import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.response.PredictionInfo;
 import uk.ac.ebi.protvar.model.score.*;
 import uk.ac.ebi.protvar.repo.FoldxRepo;
@@ -58,8 +59,11 @@ public class PredictionService {
                 .eve(of(scores, EveScore.class))
                 .m3d(of(scores, M3DPred.class))
                 .pocket(keys.contains("pocket") ? pocketRepo.getPockets(acc, pos).getOrDefault(key, List.of()) : null)
-                .interfaces(keys.contains("interface")
-                        ? interactionRepo.getInteractions(acc, pos).getOrDefault(key, List.of()) : null)
+                .interfaces(keys.contains("interface")   // highest pDockQ first (pockets come by score from PocketRepo)
+                        ? interactionRepo.getInteractions(acc, pos).getOrDefault(key, List.of()).stream()
+                            .sorted(Comparator.comparing(Interaction::getPdockq,
+                                    Comparator.nullsLast(Comparator.reverseOrder()))).toList()
+                        : null)
                 .foldx(keys.contains("foldx") ? foldxRepo.getFoldxs(acc, pos, mt).values().stream()
                         .flatMap(List::stream).sorted(Comparator.comparing(Foldx::getMutatedType)).toList() : null)
                 .build();

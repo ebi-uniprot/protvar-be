@@ -103,9 +103,10 @@ public class IsoformConverter {
 	// function / population / structure links of the canonical isoform; altAA null when the change is unknown
 	private static void addAnnotationUris(Isoform.IsoformBuilder builder, String accession,
 										  GenomeToProteinMapping mapping, String altBase, AminoAcid altAA) {
-		builder.referenceFunctionUri("/function/" + accession + "/" + mapping.getIsoformPosition()
+		builder.referenceFunctionUri("/function/" + accession + "/" + mapping.getIsoformPosition());
+		builder.referencePredictionUri("/prediction/" + accession + "/" + mapping.getIsoformPosition()
 				+ (altAA != null && altAA.getOneLetter() != null && !altAA.getOneLetter().isEmpty()
-				? "?variantAA=" + altAA : ""));
+				? "?variantAA=" + altAA.getOneLetter() : ""));
 
 		String genomicVariant = String.format("%s-%d-%s-%s",
 				mapping.getChromosome(), mapping.getGenomeLocation(),

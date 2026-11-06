@@ -12,7 +12,6 @@ import uk.ac.ebi.protvar.input.parser.VariantParser;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
-import uk.ac.ebi.protvar.mapper.FunctionalInfoEnricher;
 import uk.ac.ebi.protvar.model.response.FunctionalInfo;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.response.StructureResidue;
@@ -30,7 +29,6 @@ public class AnnotationController {
 
   private final FunctionService functionService;
   private final AnnotationFetcher annotationFetcher;
-  private final FunctionalInfoEnricher functionalInfoEnricher;
   private final StructureService structureService;
 
   /**
@@ -43,18 +41,11 @@ public class AnnotationController {
   @GetMapping(value = "/function/{accession}/{position}", produces = MediaType.APPLICATION_JSON_VALUE)
   public ResponseEntity<FunctionalInfo> getFunction(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
-    @Parameter(example = "493") @PathVariable("position") int position,
-    @Parameter(description = "Optional variant amino acid.", example = "R") @RequestParam(required = false) String variantAA) {
+    @Parameter(example = "493") @PathVariable("position") int position) {
 
+    // UniProt annotations only; predictions at the position: GET /prediction/{accession}/{position}
     FunctionalInfo functionalInfo = functionService.get(accession, position);
     if (functionalInfo != null) {
-      if (variantAA != null && !variantAA.isBlank()) {
-        variantAA = AminoAcid.oneLetter(variantAA);   // null when not an amino acid (it doesn't throw)
-        if (variantAA == null) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-      }
-
-      AnnotationData annData = annotationFetcher.getAPIFunctionalData(accession, position, variantAA);
-      functionalInfoEnricher.enrich(functionalInfo, annData, variantAA);
       return new ResponseEntity<>(functionalInfo, HttpStatus.OK);
     }
 

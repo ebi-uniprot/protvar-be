@@ -48,4 +48,14 @@ class PredictionServiceTest {
         verify(scores, times(1)).getScores(any(), any(), any());
         verifyNoInteractions(pockets, interactions, foldx);
     }
+
+    @Test
+    void interfacesHighestPdockqFirst() {
+        when(interactions.getInteractions("P22304", 205)).thenReturn(Map.of("P22304:205", List.of(
+                new uk.ac.ebi.protvar.model.data.Interaction("P22304", List.of(205), "A", List.of(1), 0.30),
+                new uk.ac.ebi.protvar.model.data.Interaction("P22304", List.of(205), "B", List.of(1), 0.60),
+                new uk.ac.ebi.protvar.model.data.Interaction("P22304", List.of(205), "C", List.of(1), 0.45))));
+        PredictionInfo p = service.get("P22304", 205, null, Set.of("interface"));
+        assertEquals(List.of("B", "C", "A"), p.getInterfaces().stream().map(i -> i.getB()).toList());
+    }
 }
