@@ -48,14 +48,9 @@ public class AnnotationController {
 
     FunctionalInfo functionalInfo = functionService.get(accession, position);
     if (functionalInfo != null) {
-      if (variantAA != null) {
-        try {
-          variantAA = AminoAcid.oneLetter(variantAA);
-        } catch (IllegalArgumentException e) {
-          return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-          //log.warn("Invalid variant amino acid '{}'", variantAA);
-          //variantAA = null; // or throw a 400 from controller if needed
-        }
+      if (variantAA != null && !variantAA.isBlank()) {
+        variantAA = AminoAcid.oneLetter(variantAA);   // null when not an amino acid (it doesn't throw)
+        if (variantAA == null) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
       }
 
       AnnotationData annData = annotationFetcher.getAPIFunctionalData(accession, position, variantAA);

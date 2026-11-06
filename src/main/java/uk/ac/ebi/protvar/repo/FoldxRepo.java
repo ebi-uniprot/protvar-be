@@ -103,7 +103,7 @@ public class FoldxRepo {
             return foldxs; // Single fragment, return as is
         }
 
-        foldxs.sort(Comparator.comparing(Foldx::getAfId));  // Sort by afId
+        foldxs.sort(Comparator.comparingInt(FoldxRepo::fragmentNumber));  // by fragment number: F95 < F100 (as text, F100 < F95)
 
         // Get middle element
         int middleIndex = foldxs.size() / 2;
@@ -111,6 +111,16 @@ public class FoldxRepo {
         middleElement.setNumFragments(foldxs.size());  // Set the number of fragments
 
         return List.of(middleElement);  // Return list containing only the middle fragment
+    }
+
+    /** The AlphaFold fragment number of af_id "F<n>" (all rows have this form). */
+    static int fragmentNumber(Foldx f) {
+        String id = f.getAfId();
+        try {
+            return Integer.parseInt(id.substring(1));
+        } catch (RuntimeException e) {
+            return Integer.MAX_VALUE;   // unexpected form: last
+        }
     }
 
     // Converts ResultSet row to Foldx

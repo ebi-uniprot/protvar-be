@@ -47,11 +47,9 @@ public class PredictionController {
             @RequestParam(required = false) List<String> include) {
         String mt = null;
         if (variantAA != null && !variantAA.isBlank()) {
-            try {
-                mt = AminoAcid.oneLetter(variantAA);
-            } catch (IllegalArgumentException e) {
+            mt = AminoAcid.oneLetter(variantAA);   // null when not an amino acid (it doesn't throw)
+            if (mt == null)
                 return ResponseEntity.badRequest().body(Map.of("error", "Unknown amino acid: " + variantAA));
-            }
         }
         Set<String> keys = new LinkedHashSet<>();
         if (include != null) {
