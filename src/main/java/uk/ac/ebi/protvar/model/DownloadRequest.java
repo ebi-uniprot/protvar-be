@@ -9,6 +9,7 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @SuperBuilder
@@ -22,14 +23,22 @@ import java.time.LocalDateTime;
 @Schema(description = "Download request: a mapping request plus annotation options.")
 public class DownloadRequest extends MappingRequest {
 
-    @Schema(description = "Include functional annotations", defaultValue = "false")
+    @Schema(description = "Add the protein function columns (UniProt)", defaultValue = "false")
     protected Boolean function;
 
-    @Schema(description = "Include population annotations", defaultValue = "false")
+    @Schema(description = "Add the prediction columns (conservation, ESM1b, FoldX, pockets, interfaces)", defaultValue = "false")
+    protected Boolean prediction;
+
+    @Schema(description = "Add the population columns", defaultValue = "false")
     protected Boolean population;
 
-    @Schema(description = "Include structural annotations", defaultValue = "false")
+    @Schema(description = "Add the structure columns", defaultValue = "false")
     protected Boolean structure;
+
+    @Schema(description = "Only these result-table columns in the variant and mapping groups (id, position, gene, "
+            + "codon, cadd, avi, pangolin, isoform, protein, aaChange, consequence, popeve, am); the input and notes "
+            + "are always included. Omit for all.", example = "[]")
+    protected List<String> columns;
 
     @Schema(description = "Optional; notified when ready.", example = "user@example.com")
     //@Email(message = "Must be a valid email address") // default jakarta validation is lenient, allows abc@xyz (without domain)

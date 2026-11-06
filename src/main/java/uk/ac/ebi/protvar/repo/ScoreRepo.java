@@ -274,7 +274,7 @@ public class ScoreRepo {
      *
      * Used in
      *  - getMappingScores() -> InputMapper.loadCoreMappingAndScores()
-     *  - getAnnotationScores() -> AnnotationFetcher (download, /function)
+     *  - getPredictionScores() -> AnnotationFetcher (download)
      *  - PredictionService (/prediction), directly
      */
     @Transactional(readOnly = true)
@@ -324,9 +324,8 @@ public class ScoreRepo {
      * Get annotation scores for multiple accession-position pairs
      * No @Transactional needed - delegates to getScores() which is already transactional
      */
-    public List<Score> getAnnotationScores(String[] accessions, Integer[] positions) {
-        return getScores(accessions, positions,
-                Set.of(ScoreType.CONSERV, ScoreType.EVE, ScoreType.ESM, ScoreType.POPEVE, ScoreType.M3D));
+    public List<Score> getPredictionScores(String[] accessions, Integer[] positions) {
+        return getScores(accessions, positions, Set.of(ScoreType.CONSERV, ScoreType.ESM));
     }
 
     // ============================================================================

@@ -13,9 +13,7 @@ import uk.ac.ebi.protvar.model.score.*;
 import uk.ac.ebi.protvar.utils.VariantKey;
 import uk.ac.ebi.protvar.service.FunctionService;
 import uk.ac.ebi.protvar.types.AminoAcid;
-import uk.ac.ebi.protvar.types.PopEveClass;
 import uk.ac.ebi.protvar.utils.CsvUtils;
-import uk.ac.ebi.protvar.utils.Constants;
 import uk.ac.ebi.protvar.utils.FetcherUtils;
 import uk.ac.ebi.uniprot.domain.entry.DbReference;
 import uk.ac.ebi.uniprot.domain.entry.EvidencedString;
@@ -33,28 +31,34 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class CsvFunctionDataBuilder {
-	//private static final String CSV_HEADER_OUTPUT_FUNCTION = "Residue_function_(evidence),Region_function_(evidence),"
-	//	+ "Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,"
-	//	+ "Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)";
-	// NEW
-	// Predicted_pockets(energy;per_vol;score;resids),
-	// Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ)
-	// Foldx_prediction(foldxDdg;plddt)
-	// Conservation_score
-	// AlphaMissense
-	// EVE
-	// ESM
-
 	private final FunctionService functionService;
+
+	/** The protein function columns (UniProt), in CsvHeaders order; empty when not requested or not found. */
 	public List<String> build(Isoform isoform, AnnotationData annData) {
 		if (!annData.isFun()) return Collections.emptyList();
 
-		// functional info would have been preloaded in the cache
 		FunctionalInfo functionalInfo = functionService.get(isoform.getAccession(), isoform.getIsoformPosition());
 		if (functionalInfo == null) return Collections.emptyList();
 
-		// predictions from the preloaded annotation data. Score/FoldX maps are keyed by the 1-letter variant AA (as
-		// stored), isoform.getVariantAA() is 3-letter (e.g. "Thr"): normalise, or those lookups miss (N/A)
+		List<String> output = new ArrayList<>();
+
+		Map<Boolean, List<Feature>> partitionedFeatures = functionalInfo.getFeatures().stream()
+				.filter(feature -> !feature.getCategory().equals(FeatureCategory.VARIANTS))
+				.collect(Collectors.partitioningBy(feature -> feature.getBegin().equals(feature.getEnd())));
+
+		output.add(CsvUtils.getValOrNA(buildProteinFeature(partitionedFeatures.get(true)))); // Residue_features
+		output.add(CsvUtils.getValOrNA(buildProteinFeature(partitionedFeatures.get(false)))); // Region_features
+		output.addAll(buildProteinDetails(functionalInfo)); // Existence_evidence, Protein_length, Entry_updated, Sequence_updated
+		output.addAll(buildComments(functionalInfo.getComments())); // Catalytic_activity, Complex, Subcellular_location, Family, Interactions
+		return output;
+	}
+
+	/** The prediction columns, in CsvHeaders order; empty when not requested. */
+	public List<String> buildPredictions(Isoform isoform, AnnotationData annData) {
+		if (!annData.isPred()) return Collections.emptyList();
+
+		// Score/FoldX maps are keyed by the 1-letter variant AA (as stored), isoform.getVariantAA() is 3-letter
+		// (e.g. "Thr"): normalise, or those lookups miss (N/A)
 		String acc = isoform.getAccession();
 		int pos = isoform.getIsoformPosition();
 		String mt = AminoAcid.oneLetter(isoform.getVariantAA());
@@ -63,29 +67,14 @@ public class CsvFunctionDataBuilder {
 		List<Interaction> interactions = annData.getInteractMap() == null ? null : annData.getInteractMap().get(key);
 		List<Foldx> foldxs = annData.getFoldxMap() == null ? null : annData.getFoldxMap().get(VariantKey.protein(acc, pos, mt));
 		ConservScore conserv = score(annData, VariantKey.protein(ScoreType.CONSERV, acc, pos, null), ConservScore.class);
-		PopEveScore popEve = score(annData, VariantKey.protein(ScoreType.POPEVE, acc, pos, mt), PopEveScore.class);
 		EsmScore esm = score(annData, VariantKey.protein(ScoreType.ESM, acc, pos, mt), EsmScore.class);
 
 		List<String> output = new ArrayList<>();
-
-		Map<Boolean, List<Feature>> partitionedFeatures = functionalInfo.getFeatures().stream()
-				.filter(feature -> !feature.getCategory().equals(FeatureCategory.VARIANTS))
-				.collect(Collectors.partitioningBy(feature -> feature.getBegin().equals(feature.getEnd())));
-
-		List<Feature> residueFeatures = partitionedFeatures.get(true);
-		List<Feature> regionFeatures = partitionedFeatures.get(false);
-
-		output.add(CsvUtils.getValOrNA(buildProteinFeature(residueFeatures))); //Residue_function_(evidence)
-		output.add(CsvUtils.getValOrNA(buildProteinFeature(regionFeatures))); //Region_function_(evidence)
-		output.addAll(buildProteinDetails(functionalInfo)); //Protein_existence_evidence,Protein_length,Entry_last_updated,Sequence_last_updated
-		output.addAll(buildComments(functionalInfo.getComments())); //Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location,Protein_family,Protein_interactions_PROTEIN(gene)
-		output.add(CsvUtils.getValOrNA(buildPredictedPockets(pockets)));
-		output.add(CsvUtils.getValOrNA(buildPredictedInteractions(interactions)));
-		output.add(CsvUtils.getValOrNA(buildFoldxPrediction(foldxs)));
-		output.add(CsvUtils.getValOrNA(conserv == null ? null : conserv.getScore()));
-		output.add(getAMScore(isoform));
-		output.add(getPopEveScore(popEve));
-		output.add(CsvUtils.getValOrNA(esm == null ? null : esm.getScore()));
+		output.add(CsvUtils.getValOrNA(conserv == null ? null : conserv.getScore())); // Conservation
+		output.add(CsvUtils.getValOrNA(esm == null ? null : esm.getScore())); // ESM1b
+		output.add(CsvUtils.getValOrNA(buildFoldxPrediction(foldxs))); // FoldX
+		output.add(CsvUtils.getValOrNA(buildPredictedPockets(pockets))); // Pockets
+		output.add(CsvUtils.getValOrNA(buildPredictedInteractions(interactions))); // Interfaces
 		return output;
 	}
 
@@ -93,25 +82,6 @@ public class CsvFunctionDataBuilder {
 		if (annData.getScoreMap() == null) return null;
 		return annData.getScoreMap().getOrDefault(key, List.of()).stream()
 				.filter(type::isInstance).map(type::cast).findFirst().orElse(null);
-	}
-
-	private String getAMScore(Isoform isoform) {
-		if (isoform.getAmScore() == null) return Constants.NA;
-		return new StringBuilder()
-				.append(isoform.getAmScore().getAmPathogenicity())
-				.append("(")
-				.append(isoform.getAmScore().getAmClass())
-				.append(")").toString();
-	}
-
-	private String getPopEveScore(PopEveScore popEveScore) {
-		if (popEveScore == null || popEveScore.getPopeve() == null) return Constants.NA;
-		StringBuilder sb = new StringBuilder().append(popEveScore.getPopeve());
-		PopEveClass popEveClass = PopEveClass.fromScore(popEveScore.getPopeve());
-		if (popEveClass != null) {
-			sb.append("(").append(popEveClass.getLabel()).append(")");
-		}
-		return sb.toString();
 	}
 
 	private List<String> buildComments(List<Comment> comments) {

@@ -41,7 +41,13 @@ import uk.ac.ebi.protvar.service.UploadCacheService;
 import uk.ac.ebi.protvar.service.HeavyDbWork;
 import uk.ac.ebi.protvar.service.UploadFilterService;
 import uk.ac.ebi.protvar.service.InputService;
+import uk.ac.ebi.protvar.model.score.AmScore;
+import uk.ac.ebi.protvar.model.score.PopEveScore;
+import uk.ac.ebi.protvar.processor.CsvHeaders.Group;
 import uk.ac.ebi.protvar.types.Assembly;
+import uk.ac.ebi.protvar.types.CuratedCategory;
+import uk.ac.ebi.protvar.types.KnownSource;
+import uk.ac.ebi.protvar.types.PopEveClass;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Passing;
 import uk.ac.ebi.protvar.utils.*;
@@ -182,9 +188,7 @@ public class DownloadProcessor {
 
 	private void handleDownload(DownloadRequest request, Path zipPath) throws Exception {
 		Path csvPath = Path.of(tmpFolder, request.getFname() + ".csv");
-		boolean fun = Boolean.TRUE.equals(request.getFunction());
-		boolean pop = Boolean.TRUE.equals(request.getPopulation());
-		boolean str = Boolean.TRUE.equals(request.getStructure());
+		CsvLayout layout = CsvLayout.of(request);
 
 		InputBuild build = (request.getResultId() != null && !request.getResultId().isBlank())
 				? uploadCacheService.getBuild(request.getResultId()) : null;
@@ -195,14 +199,14 @@ public class DownloadProcessor {
 				UploadFilterService.Result filtered = uploadFilterService.get(request, build);
 				if (filtered.preparing() != null)
 					throw new IllegalStateException("Upload " + request.getResultId() + " is not prepared for filtering");
-				processAndWriteCsv(filtered.page().getContent(), filtered.passing(), csvPath, request.getAssembly(), build, fun, pop, str, true);
+				processAndWriteCsv(filtered.page().getContent(), filtered.passing(), csvPath, request.getAssembly(), build, layout, true);
 			} else {
 				List<VariantInput> inputs = mappingService.getInputs(request).getContent();
-				processAndWriteCsv(inputs, null, csvPath, request.getAssembly(), build, fun, pop, str, true);
+				processAndWriteCsv(inputs, null, csvPath, request.getAssembly(), build, layout, true);
 			}
 		} else {
 			LOGGER.info("Full download request: {}", request.getFname());
-			processFullDownload(request, csvPath, build, fun, pop, str);
+			processFullDownload(request, csvPath, build, layout);
 		}
 
 		FileUtils.zipFile(csvPath, zipPath);
@@ -211,21 +215,24 @@ public class DownloadProcessor {
 
 	// passing: for a filtered upload, the rows that passed (others are trimmed); null otherwise
 	private void processAndWriteCsv(List<VariantInput> inputs, Set<Passing> passing, Path outputPath, String assembly,
-                                    InputBuild build, boolean fun, boolean pop, boolean str, boolean writeHeader) throws Exception {
+                                    InputBuild build, CsvLayout layout, boolean writeHeader) throws Exception {
 		inputMapper.preprocess(inputs, assembly, build);
 		addDetectedBuildNote(inputs, assembly, build);
 
 		MappingData coreMapping = inputMapper.loadCoreMappingAndScores(inputs);
 		if (coreMapping != null) {
-			AnnotationData annData = annotationFetcher.preloadOptionalAnnotations(coreMapping, fun, pop, str);
+			AnnotationData annData = annotationFetcher.preloadOptionalAnnotations(coreMapping,
+					layout.has(Group.FUNCTION), layout.has(Group.PREDICTION), layout.has(Group.POPULATION),
+					layout.has(Group.STRUCTURE), layout.keeps("Known_in") || layout.keeps("UniProt_curated"));
 
-			try (Stream<String[]> rows = streamInputsToCsv(inputs, passing, coreMapping, annData)) {
-				writeCsv(outputPath, rows, writeHeader);
+			try (Stream<String[]> rows = streamInputsToCsv(inputs, passing, coreMapping, annData, layout)) {
+				writeCsv(outputPath, rows, layout, writeHeader);
 			}
 		} else {
 			// No genomic coordinates (e.g. all inputs invalid or failed GRCh37
 			// conversion): still write one row per invalid input, as the web shows.
-			writeCsv(outputPath, inputs.stream().filter(i -> !i.isValid()).map(this::getCsvDataInvalidInput), writeHeader);
+			writeCsv(outputPath, inputs.stream().filter(i -> !i.isValid()).map(i -> getCsvDataInvalidInput(i, layout)),
+					layout, writeHeader);
 		}
 	}
 
@@ -249,7 +256,7 @@ public class DownloadProcessor {
 	// The API page path keeps loadCoreMappingAndScores (page-bounded JSON
 	// output genuinely benefits from the in-memory hierarchy).
 	private void processFullDownload(DownloadRequest request, Path csvPath,
-									 InputBuild build, boolean fun, boolean pop, boolean str) throws Exception {
+									 InputBuild build, CsvLayout layout) throws Exception {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
 		HeavyDbWork.Job job = heavyDbWork.job("download " + request.getFname());
 		List<Future<Path>> futures = new ArrayList<>();
@@ -273,7 +280,7 @@ public class DownloadProcessor {
 					// blocks while this download already has its share of slots in use
 					futures.add(job.submit(() -> {
 						LOGGER.info("[{}] Processing chunk #{}", request.getFname(), chunkNum);
-						processAndWriteCsv(chunk, result.passing(), partPath, request.getAssembly(), build, fun, pop, str, false);
+						processAndWriteCsv(chunk, result.passing(), partPath, request.getAssembly(), build, layout, false);
 						return partPath;
 					}));
 				}
@@ -286,7 +293,7 @@ public class DownloadProcessor {
 			}
 
 			// Merge all parts
-			mergeCsvFiles(csvParts, csvPath);
+			mergeCsvFiles(csvParts, csvPath, layout);
 			success = true;
 			LOGGER.info("[{}] {} chunks of {}; waited for slots {} ms", request.getFname(), csvParts.size(), chunkSize,
 					job.queuedMs());
@@ -317,21 +324,21 @@ public class DownloadProcessor {
 		Email.notifyDevErr(request, inputs, e);
 	}
 
-	private void writeCsv(Path file, Stream<String[]> rowsStream, boolean writeHeader) throws IOException {
+	private void writeCsv(Path file, Stream<String[]> rowsStream, CsvLayout layout, boolean writeHeader) throws IOException {
 		try (CSVWriter writer = new CSVWriter(Files.newBufferedWriter(file))) {
 			// Write the header first if necessary
 			if (writeHeader) {
-				writer.writeNext(CsvHeaders.CSV_HEADER.split(","));
+				writer.writeNext(layout.header());
 			}
 			// Write the data rows using stream
 			rowsStream.forEach(writer::writeNext);
 		}
 	}
 
-	private void mergeCsvFiles(List<Path> csvFiles, Path mergedFile) throws IOException {
+	private void mergeCsvFiles(List<Path> csvFiles, Path mergedFile, CsvLayout layout) throws IOException {
 		try (CSVWriter writer = new CSVWriter(Files.newBufferedWriter(mergedFile))) {
 			// Write the header first
-			writer.writeNext(CsvHeaders.CSV_HEADER.split(","));
+			writer.writeNext(layout.header());
 
 			for (Path csvFile : csvFiles) {
 				try (CSVReader reader = new CSVReader(Files.newBufferedReader(csvFile))) {
@@ -351,21 +358,22 @@ public class DownloadProcessor {
 	private Stream<String[]> streamInputsToCsv(List<VariantInput> inputs,
 											   Set<Passing> passing,
 											   MappingData coreMapping,
-												AnnotationData annData) {
+												AnnotationData annData,
+												CsvLayout layout) {
 		// Stream the inputs instead of collecting them into a list
 		Stream.Builder<String[]> builder = Stream.builder();
 		inputs.stream()
 			.forEach(input -> {
 				if (!input.isValid()) {
 					// Invalid input, add one row
-					builder.add(getCsvDataInvalidInput(input));
+					builder.add(getCsvDataInvalidInput(input, layout));
 					return;
 				}
 				// Process the input and generate CSV rows
 				inputMapper.processInput(input, coreMapping);
 				if (passing != null) uploadFilterService.trim(List.of(input), passing);
 				input.getDerivedGenomicVariants()
-						.forEach(genomicVariant -> generateGenomicCsvRows(builder, input, genomicVariant, annData));
+						.forEach(genomicVariant -> generateGenomicCsvRows(builder, input, genomicVariant, annData, layout));
 		});
 
 		return builder.build();
@@ -374,7 +382,8 @@ public class DownloadProcessor {
 	private void generateGenomicCsvRows(Stream.Builder<String[]> builder,
 										VariantInput input,
 										GenomicVariant genomicVariant,
-										AnnotationData annData) {
+										AnnotationData annData,
+										CsvLayout layout) {
 		String messages = input.getMessages().stream().map(Message::toString)
 				.filter(msg -> !msg.isEmpty()) // Filter for non-empty messages
 				.collect(Collectors.joining(";"));
@@ -382,10 +391,9 @@ public class DownloadProcessor {
 
 		var genes = genomicVariant.getGenes();
 		if (genes.isEmpty())
-			builder.add(getCsvDataMappingNotFound(input, genomicVariant));
+			builder.add(getCsvDataMappingNotFound(input, genomicVariant, layout));
 		else
-			genes.stream()
-					.forEach(gene -> builder.add(getCsvData(notes, gene, input, genomicVariant, annData)));
+			genes.forEach(gene -> builder.add(getCsvData(notes, gene, input, genomicVariant, annData, layout)));
 	}
 
 	String idValue(VariantInput input) {
@@ -393,114 +401,107 @@ public class DownloadProcessor {
 				(input.getFormat() == VariantFormat.VCF ? ((GenomicInput) input).getId() : null);
 	}
 
-	// Method to generate the CSV data for invalid mapping
-	String[] getCsvDataMappingNotFound(VariantInput input, GenomicVariant genomicVariant){
-		String id = idValue(input);
-		List<String> valList = new ArrayList<>();
-		valList.add(input.getInputStr()); // User_input
-		valList.add(strValOrNA(genomicVariant.getChromosome())); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
-		valList.add(intValOrNA(genomicVariant.getPosition()));
-		valList.add(strValOrNA(id));
-		valList.add(strValOrNA(genomicVariant.getRefBase()));
-		valList.add(strValOrNA(genomicVariant.getAltBase()));
-		valList.add(NO_MAPPING); // Notes
-		valList.addAll(Collections.nCopies(CsvHeaders.OUTPUT_LENGTH, Constants.NA));
-		return valList.toArray(String[]::new); // Return a String[] array
+	// Variant group values: Input, Notes, ID, Chromosome, Position, Ref, Alt, Known_in, UniProt_curated
+	private List<String> variantValues(VariantInput input, String notes, String chr, Integer pos, String ref, String alt,
+									   String knownIn, String curated) {
+		return Arrays.asList(input.getInputStr(), notes, idValue(input), chr, pos == null ? null : pos.toString(),
+				ref, alt, knownIn, curated);
 	}
 
-	// Method to generate CSV data for invalid input
-	String[] getCsvDataInvalidInput(VariantInput input){
-		List<String> valList = new ArrayList<>();
-		valList.add(input.getInputStr()); // User_input
-		valList.addAll(Collections.nCopies(5, Constants.NA)); // Chromosome,Coordinate,ID,Reference_allele,Alternative_allele
-		valList.add(input.getMessages().stream().map(Message::toString).collect(Collectors.joining(";"))); // Notes
-		valList.addAll(Collections.nCopies(CsvHeaders.OUTPUT_LENGTH, Constants.NA));
-		return valList.toArray(String[]::new);
+	// A row for a variant with no mapping
+	String[] getCsvDataMappingNotFound(VariantInput input, GenomicVariant genomicVariant, CsvLayout layout) {
+		return layout.row(Map.of(Group.VARIANT, variantValues(input, NO_MAPPING, genomicVariant.getChromosome(),
+				genomicVariant.getPosition(), genomicVariant.getRefBase(), genomicVariant.getAltBase(), null, null)));
 	}
 
-	String strValOrNA(String val) {
-		if (val == null || val.trim().isEmpty())
-			return Constants.NA;
-		return val.trim();
-	}
-
-	String intValOrNA(Integer val) {
-		if (val == null)
-			return Constants.NA;
-		return val.toString();
+	// A row for an invalid input
+	String[] getCsvDataInvalidInput(VariantInput input, CsvLayout layout) {
+		String notes = input.getMessages().stream().map(Message::toString).collect(Collectors.joining(";"));
+		return layout.row(Map.of(Group.VARIANT, variantValues(input, notes, null, null, null, null, null, null)));
 	}
 
 	private String[] getCsvData(String notes, Gene gene,
 								VariantInput input,
 								GenomicVariant genomicVariant,
-								AnnotationData annData) {
+								AnnotationData annData,
+								CsvLayout layout) {
+		List<Isoform> isoforms = gene.getIsoforms();
+		if (isoforms == null || isoforms.isEmpty()) {
+			return getCsvDataMappingNotFound(input, genomicVariant, layout);
+		}
+		Isoform isoform = isoforms.get(0);
 		String chr = genomicVariant.getChromosome();
 		Integer genomicLocation = genomicVariant.getPosition();
 		String varAllele = genomicVariant.getAltBase();
 
-		String id = idValue(input);
+		Map<Group, List<String>> values = new EnumMap<>(Group.class);
+		values.put(Group.VARIANT, variantValues(input, notes, chr, genomicLocation, gene.getRefAllele(), varAllele,
+				knownIn(annData, chr, genomicLocation, varAllele),
+				curated(annData, chr, genomicLocation, varAllele, isoform.getAccession())));
+		values.put(Group.MAPPING, Arrays.asList(
+				gene.getGeneName(),
+				isoform.getCodonChange(),
+				gene.isReverseStrand() ? "-" : "+",
+				gene.getCaddScore() == null ? null : gene.getCaddScore().toString(),
+				gene.getAviScore() == null ? null : gene.getAviScore().toString(),
+				gene.getPangolin() == null ? null : String.valueOf(gene.getPangolin().score()),
+				isoform.isCanonical() ? isoform.getAccession() : "(" + isoform.getAccession() + ")",
+				buildAlternateInformDetails(isoforms),
+				addTranscripts(isoform.getTranscripts()).toString(),
+				isoform.getProteinName(),
+				String.valueOf(isoform.getIsoformPosition()),
+				isoform.getAminoAcidChange(),
+				isoform.getConsequences(),
+				popEve(isoform.getPopEveScore()),
+				alphaMissense(isoform.getAmScore())));
 
-		String cadd = null;
-		if (gene.getCaddScore() != null)
-			cadd = gene.getCaddScore().toString();
-		String avi = gene.getAviScore() == null ? null : gene.getAviScore().toString();
-		String pangolin = gene.getPangolin() == null ? null : String.valueOf(gene.getPangolin().score());
-		String strand = "+";
-		List<Isoform> isoforms = gene.getIsoforms();
-		if (isoforms == null || isoforms.isEmpty()) {
-			return getCsvDataMappingNotFound(input, genomicVariant);
-		}
-		Isoform isoform = isoforms.get(0);
-
-		if (gene.isReverseStrand()) {
-			strand = "-";
-		}
-
-		var alternateInformDetails = buildAlternateInformDetails(gene.getIsoforms());
-		List<String> transcripts = addTranscripts(isoform.getTranscripts());
-
-		List<String> output = new ArrayList<>(Arrays.asList(input.getInputStr(), chr, genomicLocation.toString(), id, gene.getRefAllele(),
-			varAllele, notes, gene.getGeneName(), isoform.getCodonChange(), strand, cadd, avi, pangolin,
-				transcripts.toString(), Constants.NA,
-				isoform.isCanonical() ? isoform.getAccession() : "(" + isoform.getAccession() + ")", CsvUtils.getValOrNA(alternateInformDetails), isoform.getProteinName(),
-			String.valueOf(isoform.getIsoformPosition()), isoform.getAminoAcidChange(),
-			isoform.getConsequences()));
-
-
-		List<String> funData = csvFunctionDataBuilder.build(isoform, annData);
-		if (funData != null && !funData.isEmpty()) {
-			output.addAll(funData);
-		} else {
-			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_FUNCTION);
-		}
-
-		List<String> popData = csvPopulationDataBuilder.build(isoform, chr, genomicLocation, varAllele, annData);
-		if (popData != null && !popData.isEmpty()) {
-			output.addAll(popData);
-		} else {
-			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_POPULATION);
-		}
-
+		if (layout.has(Group.FUNCTION))
+			values.put(Group.FUNCTION, csvFunctionDataBuilder.build(isoform, annData));
+		if (layout.has(Group.PREDICTION))
+			values.put(Group.PREDICTION, csvFunctionDataBuilder.buildPredictions(isoform, annData));
+		if (layout.has(Group.POPULATION))
+			values.put(Group.POPULATION, csvPopulationDataBuilder.build(isoform, chr, genomicLocation, varAllele, annData));
 		// protein structures would have been preloaded in the cache when str=true.
 		// Skip the lookup entirely otherwise — preloadStructureCache isn't called,
 		// so each per-row getStr would be a cold cache miss against rel_*_structure.
-		if (annData.isStr()) {
+		if (layout.has(Group.STRUCTURE)) {
 			List<StructureResidue> proteinStructure = structureService.getStr(isoform.getAccession(),
 					isoform.getIsoformPosition());
 			if (proteinStructure != null)
-				output.add(csvStructureDataBuilder.build(proteinStructure));
-			else
-				addNaForNonRequestedData(output, CsvHeaders.OUTPUT_STRUCTURE);
-		} else {
-			addNaForNonRequestedData(output, CsvHeaders.OUTPUT_STRUCTURE);
+				values.put(Group.STRUCTURE, List.of(csvStructureDataBuilder.build(proteinStructure)));
 		}
-
-		return output.toArray(String[]::new);
+		return layout.row(values);
 	}
 
-	private void addNaForNonRequestedData(List<String> output, String header) {
-		for (int i = 0; i < header.split(Constants.COMMA).length; i++)
-			output.add(Constants.NA);
+	// e.g. "dbSNP;ClinVar"
+	static String knownIn(AnnotationData annData, String chr, Integer pos, String alt) {
+		if (annData.getKnownCurated() == null || alt == null) return null;
+		Integer bits = annData.getKnownCurated().known().get(VariantKey.genomic(chr, pos, alt.toUpperCase()));
+		if (bits == null || bits == 0) return null;
+		return Arrays.stream(KnownSource.values()).filter(s -> (bits & s.getBit()) != 0)
+				.map(KnownSource::getLabel).collect(Collectors.joining(";"));
+	}
+
+	// e.g. "LP/P;US"
+	static String curated(AnnotationData annData, String chr, Integer pos, String alt, String accession) {
+		if (annData.getKnownCurated() == null || alt == null) return null;
+		Integer bits = annData.getKnownCurated().curated()
+				.get(VariantKey.genomic(chr, pos, alt.toUpperCase()) + ":" + accession);
+		if (bits == null || bits == 0) return null;
+		return Arrays.stream(CuratedCategory.values()).filter(c -> c != CuratedCategory.ANY && (bits & c.getBit()) != 0)
+				.map(CuratedCategory::getLabel).collect(Collectors.joining(";"));
+	}
+
+	// e.g. "0.42(likely benign)"
+	static String alphaMissense(AmScore am) {
+		if (am == null) return null;
+		return am.getAmPathogenicity() + "(" + am.getAmClass() + ")";
+	}
+
+	static String popEve(PopEveScore popEve) {
+		if (popEve == null || popEve.getPopeve() == null) return null;
+		PopEveClass popEveClass = PopEveClass.fromScore(popEve.getPopeve());
+		return popEve.getPopeve() + (popEveClass == null ? "" : "(" + popEveClass.getLabel() + ")");
 	}
 
 	private String buildAlternateInformDetails(List<Isoform> value) {

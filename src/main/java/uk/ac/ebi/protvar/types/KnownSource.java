@@ -10,12 +10,13 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public enum KnownSource {
-    DBSNP(1),
-    CLINVAR(2),
-    COSMIC(4),
-    GNOMAD(8);
+    DBSNP(1, "dbSNP"),
+    CLINVAR(2, "ClinVar"),
+    COSMIC(4, "COSMIC"),
+    GNOMAD(8, "gnomAD");
 
     private final int bit;
+    private final String label;
 
     public static KnownSource parse(String value) {
         if (value == null) return null;

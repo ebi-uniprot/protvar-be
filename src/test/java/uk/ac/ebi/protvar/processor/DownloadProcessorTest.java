@@ -2,61 +2,102 @@ package uk.ac.ebi.protvar.processor;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import uk.ac.ebi.protvar.service.HeavyDbWork;
-import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
-import uk.ac.ebi.protvar.mapper.InputMapper;
-import uk.ac.ebi.protvar.fetcher.csv.CsvFunctionDataBuilder;
-import uk.ac.ebi.protvar.fetcher.csv.CsvPopulationDataBuilder;
-import uk.ac.ebi.protvar.fetcher.csv.CsvStructureDataBuilder;
-import uk.ac.ebi.protvar.service.DownloadStatusService;
-import uk.ac.ebi.protvar.service.MappingService;
-import uk.ac.ebi.protvar.service.StructureService;
-import uk.ac.ebi.protvar.service.UploadCacheService;
-import uk.ac.ebi.protvar.service.UploadFilterService;
-import uk.ac.ebi.protvar.service.InputService;
-import uk.ac.ebi.protvar.utils.Constants;
+import uk.ac.ebi.protvar.mapper.AnnotationData;
+import uk.ac.ebi.protvar.model.DownloadRequest;
+import uk.ac.ebi.protvar.processor.CsvHeaders.Group;
+import uk.ac.ebi.protvar.repo.CodingVariantRepo.KnownCurated;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 
 class DownloadProcessorTest {
 
-  private static final int TOTAL_CSV_COLUMNS = 46;
-  DownloadProcessor mockDeps = new DownloadProcessor(
-          mock(HeavyDbWork.class),
-          mock(CsvFunctionDataBuilder.class),
-          mock(CsvPopulationDataBuilder.class),
-          mock(CsvStructureDataBuilder.class),
-          mock(InputService.class),
-          mock(UploadCacheService.class),
-          mock(UploadFilterService.class),
-          mock(MappingService.class),
-          mock(InputMapper.class),
-          mock(AnnotationFetcher.class),
-          mock(StructureService.class),
-          mock(DownloadStatusService.class));
+  private static final String BASE = "Input,Notes,ID,Chromosome,Position,Ref,Alt,Known_in,UniProt_curated,"
+      + "Gene,Codon_change,Strand,CADD,AVI,Pangolin,Isoform,Other_isoforms,Transcripts,Protein,AA_position,AA_change,"
+      + "Consequence,popEVE,AlphaMissense";
 
   @Nested
   class Header {
     @Test
-    void csvHeader() {
-      var header = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele,Notes,Gene,Codon_change," +
-        "Strand,CADD_phred_like_score,AVI_phred_like_score,Pangolin_splice_score,Canonical_isoform_transcripts,MANE_transcript,Uniprot_canonical_isoform_(non_canonical)," +
-        "Alternative_isoform_mappings,Protein_name,Amino_acid_position,Amino_acid_change,Consequences," +
-        "Residue_function_(evidence),Region_function_(evidence),Protein_existence_evidence,Protein_length," +
-        "Entry_last_updated,Sequence_last_updated,Protein_catalytic_activity,Protein_complex,Protein_sub_cellular_location," +
-        "Protein_family,Protein_interactions_PROTEIN(gene),Predicted_pockets(energy;per_vol;score;resids)," +
-        "Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ),Foldx_prediction(foldxDdg;plddt),Conservation_score," +
-        "AlphaMissense_pathogenicity(class),popEVE_score(class),ESM1b_score," +
-        "Gnomad_allele_freq(ac;an;af),Genomic_location,Cytogenetic_band," +
-        "Other_identifiers_for_the_variant,Diseases_associated_with_variant,Variants_colocated_at_residue_position," +
-        "Position_in_structures";
-      assertEquals(header, CsvHeaders.CSV_HEADER);
+    void variantAndMappingAlways() {
+      assertEquals(BASE, String.join(",", CsvLayout.of(new DownloadRequest()).header()));
     }
 
     @Test
-    void size() {
-      assertEquals(TOTAL_CSV_COLUMNS, CsvHeaders.CSV_HEADER.split(Constants.COMMA).length);
+    void groupsAddedInOrder() {
+      DownloadRequest r = new DownloadRequest();
+      r.setPrediction(true);
+      r.setStructure(true);
+      assertEquals(BASE + ",Conservation,ESM1b,FoldX,Pockets,Interfaces,PDB_structures",
+          String.join(",", CsvLayout.of(r).header()));
+    }
+
+    @Test
+    void allGroups() {
+      DownloadRequest r = new DownloadRequest();
+      r.setFunction(true);
+      r.setPrediction(true);
+      r.setPopulation(true);
+      r.setStructure(true);
+      assertEquals(CsvHeaders.COLUMNS.size(), CsvLayout.of(r).header().length);
+      assertEquals(47, CsvHeaders.COLUMNS.size());
+    }
+
+    @Test
+    void onlyTableColumns() {
+      DownloadRequest r = new DownloadRequest();
+      r.setColumns(List.of("position", "gene", "isoform", "aaChange", "am", "details"));
+      r.setPrediction(true);
+      assertEquals("Input,Notes,Chromosome,Position,Ref,Alt,Gene,Isoform,Other_isoforms,AA_position,AA_change,"
+              + "AlphaMissense,Conservation,ESM1b,FoldX,Pockets,Interfaces",
+          String.join(",", CsvLayout.of(r).header()));
+      assertFalse(CsvLayout.of(r).keeps("Known_in"));
+    }
+  }
+
+  @Nested
+  class Row {
+    @Test
+    void missingGroupsAreNA() {
+      DownloadRequest r = new DownloadRequest();
+      r.setStructure(true);
+      CsvLayout layout = CsvLayout.of(r);
+      String[] row = layout.row(Map.of(Group.VARIANT, List.of("rs1", "note")));
+      assertEquals(layout.header().length, row.length);
+      assertEquals("rs1", row[0]);
+      assertEquals("note", row[1]);
+      for (int i = 2; i < row.length; i++) assertEquals("N/A", row[i]);
+    }
+
+    @Test
+    void trimmedRowFollowsHeader() {
+      DownloadRequest r = new DownloadRequest();
+      r.setColumns(List.of("gene"));
+      String[] row = CsvLayout.of(r).row(Map.of(
+          Group.VARIANT, List.of("in", "notes", "id", "1", "100", "A", "G", "dbSNP", "US"),
+          Group.MAPPING, List.of("BRCA1", "aCg/aTg", "+")));
+      assertArrayEquals(new String[]{"in", "notes", "BRCA1"}, row);
+    }
+  }
+
+  @Nested
+  class Values {
+    AnnotationData ann = AnnotationData.builder()
+        .knownCurated(new KnownCurated(Map.of("1:100:G", 1 | 8), Map.of("1:100:G:P12345", 1 | 4)))
+        .build();
+
+    @Test
+    void knownIn() {
+      assertEquals("dbSNP;gnomAD", DownloadProcessor.knownIn(ann, "1", 100, "g"));
+      assertNull(DownloadProcessor.knownIn(ann, "1", 100, "T"));
+    }
+
+    @Test
+    void curated() {
+      assertEquals("LP/P;US", DownloadProcessor.curated(ann, "1", 100, "G", "P12345"));
+      assertNull(DownloadProcessor.curated(ann, "1", 100, "G", "Q99999"));
     }
   }
 }

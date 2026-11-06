@@ -10,6 +10,7 @@ import uk.ac.ebi.protvar.model.data.Interaction;
 import uk.ac.ebi.protvar.model.data.Pocket;
 import uk.ac.ebi.protvar.model.response.PopulationObservation;
 import uk.ac.ebi.protvar.model.score.Score;
+import uk.ac.ebi.protvar.repo.CodingVariantRepo;
 import uk.ac.ebi.protvar.utils.VariantKey;
 import uk.ac.ebi.uniprot.domain.variation.Variant;
 
@@ -25,13 +26,13 @@ public class AnnotationData {
 
     // Annotation options
     private boolean fun;
+    private boolean pred;
     private boolean pop;
     private boolean str;
 
-    // fun (Proteins API+ProtVar scores and preds)
-    // functional info is loaded from preloaded data in cache
-    //FunctionalInfo funInfo FunctionService.get(String accession, int position)
+    // fun: functional info comes from FunctionService's cache (FunctionService.get(accession, position))
 
+    // pred
 
     Map<String, List<Score>> scoreMap; // key: ?
     Map<String, List<Pocket>> pocketMap; // key: acc-pos
@@ -42,7 +43,10 @@ public class AnnotationData {
     private final Map<String, List<Variant>> variantMap;
     private final Map<String, List<AlleleFreq>> freqMap;
 
-    // str
+    // str: structures come from StructureService's cache
+
+    // Known_in, UniProt_curated (null when not in the file)
+    private final CodingVariantRepo.KnownCurated knownCurated;
 
 
     public PopulationObservation get(String accession, Integer position,

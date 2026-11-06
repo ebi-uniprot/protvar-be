@@ -1,73 +1,91 @@
 package uk.ac.ebi.protvar.processor;
 
-import uk.ac.ebi.protvar.utils.Constants;
+import java.util.List;
 
+import static uk.ac.ebi.protvar.processor.CsvHeaders.Group.*;
+
+/**
+ * The download file's columns, grouped by what the data is. Variant and Mapping are always in the file; the other
+ * groups are added on request. Which columns are present depends on the request, so the file's first row names them
+ * (read the columns by name, not by position).
+ */
 public final class CsvHeaders {
 
     private CsvHeaders() {
         // Utility class; prevent instantiation
     }
 
-    public static final String INPUT = "User_input,Chromosome,Coordinate,ID,Reference_allele,Alternative_allele";
-    public static final String NOTES = "Notes";
+    public enum Group { VARIANT, MAPPING, FUNCTION, PREDICTION, POPULATION, STRUCTURE }
 
-    public static final String OUTPUT_MAPPING = String.join(",",
-            "Gene",
-            "Codon_change",
-            "Strand",
-            "CADD_phred_like_score",
-            "AVI_phred_like_score",
-            "Pangolin_splice_score",
-            "Canonical_isoform_transcripts",
-            "MANE_transcript",
-            "Uniprot_canonical_isoform_(non_canonical)",
-            "Alternative_isoform_mappings",
-            "Protein_name",
-            "Amino_acid_position",
-            "Amino_acid_change",
-            "Consequences"
-    ); // length = 14
+    /**
+     * @param table the result-table column (FE resultColumns id) the file column shows: kept when the request asks
+     *              for only the table's shown columns. {@link #ALWAYS}: always kept; null: not in the table.
+     */
+    public record Column(String name, Group group, String table) {}
 
-    public static final String OUTPUT_FUNCTION = String.join(",",
-            "Residue_function_(evidence)",
-            "Region_function_(evidence)",
-            "Protein_existence_evidence",
-            "Protein_length",
-            "Entry_last_updated",
-            "Sequence_last_updated",
-            "Protein_catalytic_activity",
-            "Protein_complex",
-            "Protein_sub_cellular_location",
-            "Protein_family",
-            "Protein_interactions_PROTEIN(gene)",
-            "Predicted_pockets(energy;per_vol;score;resids)",
-            "Predicted_interactions(chainA-chainB;a_resids;b_resids;pDockQ)",
-            "Foldx_prediction(foldxDdg;plddt)",
-            "Conservation_score",
-            "AlphaMissense_pathogenicity(class)",
-            "popEVE_score(class)",
-            "ESM1b_score"
-    ); // length = 18
+    public static final String ALWAYS = "";
 
-    public static final String OUTPUT_POPULATION = String.join(",",
-            "Gnomad_allele_freq(ac;an;af)",
-            "Genomic_location",
-            "Cytogenetic_band",
-            "Other_identifiers_for_the_variant",
-            "Diseases_associated_with_variant",
-            "Variants_colocated_at_residue_position"
-    ); // length = 6
+    public static final List<Column> COLUMNS = List.of(
+            // Variant: the line as entered, the genomic variant it was read as, where the variant is known from
+            new Column("Input", VARIANT, ALWAYS),
+            new Column("Notes", VARIANT, ALWAYS),
+            new Column("ID", VARIANT, "id"),
+            new Column("Chromosome", VARIANT, "position"),
+            new Column("Position", VARIANT, "position"),
+            new Column("Ref", VARIANT, "position"),
+            new Column("Alt", VARIANT, "position"),
+            new Column("Known_in", VARIANT, null),
+            new Column("UniProt_curated", VARIANT, null),
+            // Mapping, in the result table's order
+            new Column("Gene", MAPPING, "gene"),
+            new Column("Codon_change", MAPPING, "codon"),
+            new Column("Strand", MAPPING, "codon"),
+            new Column("CADD", MAPPING, "cadd"),
+            new Column("AVI", MAPPING, "avi"),
+            new Column("Pangolin", MAPPING, "pangolin"),
+            new Column("Isoform", MAPPING, "isoform"),
+            new Column("Other_isoforms", MAPPING, "isoform"),
+            new Column("Transcripts", MAPPING, null),
+            new Column("Protein", MAPPING, "protein"),
+            new Column("AA_position", MAPPING, "aaChange"),
+            new Column("AA_change", MAPPING, "aaChange"),
+            new Column("Consequence", MAPPING, "consequence"),
+            new Column("popEVE", MAPPING, "popeve"),
+            new Column("AlphaMissense", MAPPING, "am"),
+            // Protein function (UniProt)
+            new Column("Residue_features", FUNCTION, null),
+            new Column("Region_features", FUNCTION, null),
+            new Column("Existence_evidence", FUNCTION, null),
+            new Column("Protein_length", FUNCTION, null),
+            new Column("Entry_updated", FUNCTION, null),
+            new Column("Sequence_updated", FUNCTION, null),
+            new Column("Catalytic_activity", FUNCTION, null),
+            new Column("Complex", FUNCTION, null),
+            new Column("Subcellular_location", FUNCTION, null),
+            new Column("Family", FUNCTION, null),
+            new Column("Interactions", FUNCTION, null),
+            // Predictions
+            new Column("Conservation", PREDICTION, null),
+            new Column("ESM1b", PREDICTION, null),
+            new Column("FoldX", PREDICTION, null),
+            new Column("Pockets", PREDICTION, null),
+            new Column("Interfaces", PREDICTION, null),
+            // Population
+            new Column("gnomAD_AF", POPULATION, null),
+            new Column("HGVS_g", POPULATION, null),
+            new Column("Cytoband", POPULATION, null),
+            new Column("Xrefs", POPULATION, null),
+            new Column("Diseases", POPULATION, null),
+            new Column("Colocated_variants", POPULATION, null),
+            // Structures
+            new Column("PDB_structures", STRUCTURE, null)
+    );
 
-    public static final String OUTPUT_STRUCTURE = "Position_in_structures"; // length = 1
+    public static List<Column> of(Group group) {
+        return COLUMNS.stream().filter(c -> c.group() == group).toList();
+    }
 
-    public static final String OUTPUT = String.join(",",
-            OUTPUT_MAPPING,
-            OUTPUT_FUNCTION,
-            OUTPUT_POPULATION,
-            OUTPUT_STRUCTURE
-    ); // total = 37
-
-    public static final int OUTPUT_LENGTH = OUTPUT.split(Constants.COMMA).length; // total = 36
-
-    public static final String CSV_HEADER = String.join(",", INPUT, NOTES, OUTPUT);
+    public static int size(Group group) {
+        return (int) COLUMNS.stream().filter(c -> c.group() == group).count();
+    }
 }

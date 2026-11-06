@@ -29,9 +29,11 @@ import uk.ac.ebi.protvar.types.StabilityChange;
 import uk.ac.ebi.protvar.types.KnownSource;
 import uk.ac.ebi.protvar.types.CuratedCategory;
 import uk.ac.ebi.protvar.utils.InputTypeResolver;
+import uk.ac.ebi.protvar.utils.VariantKey;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -381,4 +383,33 @@ public class CodingVariantRepo {
         scoped.setQueryTimeout(seconds);
         return new NamedParameterJdbcTemplate(scoped);
     }
+
+    /**
+     * Where each variant at the given genomic positions is known from and its UniProt curated categories, for the
+     * download: known_src (OR over the gene leads) by chromosome-position-alt, humsavar by that plus accession.
+     */
+    public KnownCurated getKnownCurated(String[] chromosomes, Integer[] positions) {
+        Map<String, Integer> known = new HashMap<>();
+        Map<String, Integer> curated = new HashMap<>();
+        if (chromosomes == null || chromosomes.length == 0) return new KnownCurated(known, curated);
+        String sql = String.format("""
+                SELECT cv.chromosome, cv.position, cv.alt, cv.accession, cv.known_src, cv.humsavar
+                FROM %s cv
+                JOIN (SELECT DISTINCT unnest(:chrs) AS chr, unnest(:poss) AS pos) t
+                  ON cv.chromosome = t.chr AND cv.position = t.pos
+                WHERE cv.known_src <> 0 OR cv.humsavar IS NOT NULL
+                """, table);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("chrs", chromosomes).addValue("poss", positions);
+        jdbcTemplate.query(sql, params, rs -> {
+            String key = VariantKey.genomic(rs.getString("chromosome"), rs.getInt("position"), rs.getString("alt"));
+            known.merge(key, rs.getInt("known_src"), (a, b) -> a | b);
+            int h = rs.getInt("humsavar");
+            if (!rs.wasNull() && h != 0) curated.merge(key + ":" + rs.getString("accession"), h, (a, b) -> a | b);
+        });
+        return new KnownCurated(known, curated);
+    }
+
+    /** known: chromosome-position-alt → known_src bits; curated: chromosome-position-alt-accession → humsavar bits. */
+    public record KnownCurated(Map<String, Integer> known, Map<String, Integer> curated) {}
 }

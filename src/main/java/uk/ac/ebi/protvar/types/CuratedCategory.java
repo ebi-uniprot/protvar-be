@@ -13,12 +13,13 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 public enum CuratedCategory {
-    ANY(7),
-    LP_P(1),
-    LB_B(2),
-    US(4);
+    ANY(7, "any"),
+    LP_P(1, "LP/P"),
+    LB_B(2, "LB/B"),
+    US(4, "US");
 
     private final int bit;
+    private final String label;
 
     public static CuratedCategory parse(String value) {
         if (value == null) return null;
