@@ -30,7 +30,7 @@ import java.util.concurrent.Executor;
 @OpenAPIDefinition(info =
 	@Info(
 		title = "ProtVar API",
-		version = "2.1",
+		version = "3.0",
 		description = "Programmatic access to ProtVar: map human missense variants to proteins and retrieve annotations. "
 				+ "Typical flow: POST /input/text → GET /mapping/{inputId} → POST /download.",
 		license = @License(name = "Creative Commons", url = "https://creativecommons.org/licenses/by/4.0/"),
