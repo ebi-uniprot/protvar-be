@@ -28,7 +28,7 @@ class DownloadProcessorTest {
       DownloadRequest r = new DownloadRequest();
       r.setPrediction(true);
       r.setStructure(true);
-      assertEquals(BASE + ",Conservation,ESM1b,FoldX,Pockets,Interfaces,PDB_structures",
+      assertEquals(BASE + ",Conservation,ESM1b,FoldX,Missense3D,Pockets,Interfaces,PDB_structures",
           String.join(",", CsvLayout.of(r).header()));
     }
 
@@ -40,7 +40,7 @@ class DownloadProcessorTest {
       r.setPopulation(true);
       r.setStructure(true);
       assertEquals(CsvHeaders.COLUMNS.size(), CsvLayout.of(r).header().length);
-      assertEquals(45, CsvHeaders.COLUMNS.size());
+      assertEquals(46, CsvHeaders.COLUMNS.size());
     }
 
     @Test
@@ -49,7 +49,7 @@ class DownloadProcessorTest {
       r.setColumns(List.of("position", "gene", "isoform", "aaChange", "am", "details"));
       r.setPrediction(true);
       assertEquals("Input,Notes,Chromosome,Position,Ref,Alt,Gene,Isoform,Other_isoforms,AA_position,AA_change,"
-              + "AlphaMissense,Conservation,ESM1b,FoldX,Pockets,Interfaces",
+              + "AlphaMissense,Conservation,ESM1b,FoldX,Missense3D,Pockets,Interfaces",
           String.join(",", CsvLayout.of(r).header()));
     }
   }

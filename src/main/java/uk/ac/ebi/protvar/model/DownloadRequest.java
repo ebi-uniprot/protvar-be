@@ -26,7 +26,7 @@ public class DownloadRequest extends MappingRequest {
     @Schema(description = "Add the protein function columns (UniProt)", defaultValue = "false")
     protected Boolean function;
 
-    @Schema(description = "Add the prediction columns (conservation, ESM1b, FoldX, pockets, interfaces)", defaultValue = "false")
+    @Schema(description = "Add the prediction columns (conservation, ESM1b, FoldX, Missense3D, pockets, interfaces)", defaultValue = "false")
     protected Boolean prediction;
 
     @Schema(description = "Add the population columns", defaultValue = "false")

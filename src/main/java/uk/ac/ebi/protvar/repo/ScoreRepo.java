@@ -325,7 +325,7 @@ public class ScoreRepo {
      * No @Transactional needed - delegates to getScores() which is already transactional
      */
     public List<Score> getPredictionScores(String[] accessions, Integer[] positions) {
-        return getScores(accessions, positions, Set.of(ScoreType.CONSERV, ScoreType.ESM));
+        return getScores(accessions, positions, Set.of(ScoreType.CONSERV, ScoreType.ESM, ScoreType.M3D));
     }
 
     // ============================================================================

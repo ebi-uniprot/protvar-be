@@ -68,14 +68,24 @@ public class CsvFunctionDataBuilder {
 		List<Foldx> foldxs = annData.getFoldxMap() == null ? null : annData.getFoldxMap().get(VariantKey.protein(acc, pos, mt));
 		ConservScore conserv = score(annData, VariantKey.protein(ScoreType.CONSERV, acc, pos, null), ConservScore.class);
 		EsmScore esm = score(annData, VariantKey.protein(ScoreType.ESM, acc, pos, mt), EsmScore.class);
+		M3DPred m3d = score(annData, VariantKey.protein(ScoreType.M3D, acc, pos, mt), M3DPred.class);
 
 		List<String> output = new ArrayList<>();
 		output.add(CsvUtils.getValOrNA(conserv == null ? null : conserv.getScore())); // Conservation
 		output.add(CsvUtils.getValOrNA(esm == null ? null : esm.getScore())); // ESM1b
 		output.add(CsvUtils.getValOrNA(buildFoldxPrediction(foldxs))); // FoldX
+		output.add(CsvUtils.getValOrNA(missense3d(m3d))); // Missense3D
 		output.add(CsvUtils.getValOrNA(buildPredictedPockets(pockets))); // Pockets
 		output.add(CsvUtils.getValOrNA(buildPredictedInteractions(interactions))); // Interfaces
 		return output;
+	}
+
+	// e.g. "Damaging(Buried Pro introduced)"
+	static String missense3d(M3DPred m3d) {
+		if (m3d == null || m3d.getPrediction() == null) return null;
+		String feature = m3d.getDamagingFeature();
+		return feature == null || feature.isBlank() || feature.equals("-")
+				? m3d.getPrediction() : m3d.getPrediction() + "(" + feature + ")";
 	}
 
 	private static <T extends Score> T score(AnnotationData annData, String key, Class<T> type) {

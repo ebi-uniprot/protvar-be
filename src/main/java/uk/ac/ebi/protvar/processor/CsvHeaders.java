@@ -66,6 +66,7 @@ public final class CsvHeaders {
             new Column("Conservation", PREDICTION, null),
             new Column("ESM1b", PREDICTION, null),
             new Column("FoldX", PREDICTION, null),
+            new Column("Missense3D", PREDICTION, null),
             new Column("Pockets", PREDICTION, null),
             new Column("Interfaces", PREDICTION, null),
             // Population

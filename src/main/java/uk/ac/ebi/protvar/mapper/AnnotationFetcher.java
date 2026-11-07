@@ -85,7 +85,7 @@ public class AnnotationFetcher {
 
 		// fun: UniProt function comes from FunctionService's cache, nothing to preload here
 		if (pred) {
-			scoreMap = scoreRepo.getPredictionScores(accessions, positions) // conservation, ESM1b
+			scoreMap = scoreRepo.getPredictionScores(accessions, positions) // conservation, ESM1b, Missense3D
 					.stream().collect(Collectors.groupingBy(Score::getVariantKey));
 			pocketMap = pocketRepo.getPockets(accessions, positions);
 			interactMap = interactionRepo.getInteractions(accessions, positions);
