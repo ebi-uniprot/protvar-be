@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 import uk.ac.ebi.protvar.model.score.*;
 
 import static uk.ac.ebi.protvar.utils.Commons.upperFirstRemainingLower;
@@ -29,6 +30,10 @@ public class Isoform implements Comparable<Isoform> {
 	private String consequences;
 	private String proteinName;
 	private List<Transcript> transcripts;
+
+	@JsonInclude(Include.NON_EMPTY)
+	@Setter
+	private List<String> sameAs;             // canonical only: isoforms dropped as copies of it (e.g. X-1 next to X)
 
 	@JsonInclude(Include.NON_NULL)
 	private String populationObservationsUri;

@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,13 +33,38 @@ public class IsoformConverter {
 		String canonicalAccession = mappingList.stream().filter(GenomeToProteinMapping::isCanonical)
 				.map(GenomeToProteinMapping::getAccession).findFirst().orElse(null);
 
-		return mappingList.stream()
+		return withoutCanonicalCopies(mappingList.stream()
 				.collect(Collectors.groupingBy(GenomeToProteinMapping::getAccession))
 				.entrySet().stream()
 				.map(entry -> createIsoform(altBase, canonicalAccession, entry.getKey(), entry.getValue(),
 						scoreMap))
 				.filter(Objects::nonNull)
-				.sorted().collect(Collectors.toList());
+				.sorted().collect(Collectors.toList()));
+	}
+
+	/**
+	 * Drops a non-canonical isoform with the canonical's position, change and transcripts: the same protein listed
+	 * twice, usually X-1 next to X. Compared, not matched by name: X-1 is not always the canonical sequence.
+	 * The canonical keeps their accessions in sameAs.
+	 */
+	static List<Isoform> withoutCanonicalCopies(List<Isoform> isoforms) {
+		Isoform canonical = isoforms.stream().filter(Isoform::isCanonical).findFirst().orElse(null);
+		if (canonical == null) return isoforms;
+		Map<Boolean, List<Isoform>> copy = isoforms.stream()
+				.collect(Collectors.partitioningBy(i -> !i.isCanonical() && sameMapping(i, canonical)));
+		canonical.setSameAs(copy.get(true).stream().map(Isoform::getAccession).toList());
+		return copy.get(false);
+	}
+
+	private static boolean sameMapping(Isoform a, Isoform b) {
+		return a.getIsoformPosition() == b.getIsoformPosition()
+				&& a.getAminoAcidChange().equals(b.getAminoAcidChange())
+				&& transcriptIds(a).equals(transcriptIds(b));
+	}
+
+	private static Set<String> transcriptIds(Isoform isoform) {
+		return isoform.getTranscripts() == null ? Set.of()
+				: isoform.getTranscripts().stream().map(Transcript::getEnst).collect(Collectors.toSet());
 	}
 
 	private Isoform createIsoform(String altBase, String canonicalAccession, String accession,
