@@ -26,7 +26,7 @@ public final class CsvHeaders {
     public static final String ALWAYS = "";
 
     public static final List<Column> COLUMNS = List.of(
-            // Variant: the line as entered, the genomic variant it was read as, where the variant is known from
+            // Variant: the line as entered and the genomic variant it was read as
             new Column("Input", VARIANT, ALWAYS),
             new Column("Notes", VARIANT, ALWAYS),
             new Column("ID", VARIANT, "id"),
@@ -34,8 +34,6 @@ public final class CsvHeaders {
             new Column("Position", VARIANT, "position"),
             new Column("Ref", VARIANT, "position"),
             new Column("Alt", VARIANT, "position"),
-            new Column("Known_in", VARIANT, null),
-            new Column("UniProt_curated", VARIANT, null),
             // Mapping, in the result table's order
             new Column("Gene", MAPPING, "gene"),
             new Column("Codon_change", MAPPING, "codon"),

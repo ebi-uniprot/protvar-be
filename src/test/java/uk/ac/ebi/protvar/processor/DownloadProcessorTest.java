@@ -2,10 +2,8 @@ package uk.ac.ebi.protvar.processor;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.processor.CsvHeaders.Group;
-import uk.ac.ebi.protvar.repo.CodingVariantRepo.KnownCurated;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class DownloadProcessorTest {
 
-  private static final String BASE = "Input,Notes,ID,Chromosome,Position,Ref,Alt,Known_in,UniProt_curated,"
+  private static final String BASE = "Input,Notes,ID,Chromosome,Position,Ref,Alt,"
       + "Gene,Codon_change,Strand,CADD,AVI,Pangolin,Isoform,Other_isoforms,Transcripts,Protein,AA_position,AA_change,"
       + "Consequence,popEVE,AlphaMissense";
 
@@ -42,7 +40,7 @@ class DownloadProcessorTest {
       r.setPopulation(true);
       r.setStructure(true);
       assertEquals(CsvHeaders.COLUMNS.size(), CsvLayout.of(r).header().length);
-      assertEquals(47, CsvHeaders.COLUMNS.size());
+      assertEquals(45, CsvHeaders.COLUMNS.size());
     }
 
     @Test
@@ -53,7 +51,6 @@ class DownloadProcessorTest {
       assertEquals("Input,Notes,Chromosome,Position,Ref,Alt,Gene,Isoform,Other_isoforms,AA_position,AA_change,"
               + "AlphaMissense,Conservation,ESM1b,FoldX,Pockets,Interfaces",
           String.join(",", CsvLayout.of(r).header()));
-      assertFalse(CsvLayout.of(r).keeps("Known_in"));
     }
   }
 
@@ -76,28 +73,9 @@ class DownloadProcessorTest {
       DownloadRequest r = new DownloadRequest();
       r.setColumns(List.of("gene"));
       String[] row = CsvLayout.of(r).row(Map.of(
-          Group.VARIANT, List.of("in", "notes", "id", "1", "100", "A", "G", "dbSNP", "US"),
+          Group.VARIANT, List.of("in", "notes", "id", "1", "100", "A", "G"),
           Group.MAPPING, List.of("BRCA1", "aCg/aTg", "+")));
       assertArrayEquals(new String[]{"in", "notes", "BRCA1"}, row);
-    }
-  }
-
-  @Nested
-  class Values {
-    AnnotationData ann = AnnotationData.builder()
-        .knownCurated(new KnownCurated(Map.of("1:100:G", 1 | 8), Map.of("1:100:G:P12345", 1 | 4)))
-        .build();
-
-    @Test
-    void knownIn() {
-      assertEquals("dbSNP;gnomAD", DownloadProcessor.knownIn(ann, "1", 100, "g"));
-      assertNull(DownloadProcessor.knownIn(ann, "1", 100, "T"));
-    }
-
-    @Test
-    void curated() {
-      assertEquals("LP/P;US", DownloadProcessor.curated(ann, "1", 100, "G", "P12345"));
-      assertNull(DownloadProcessor.curated(ann, "1", 100, "G", "Q99999"));
     }
   }
 }

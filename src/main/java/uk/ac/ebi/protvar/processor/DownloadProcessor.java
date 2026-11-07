@@ -45,8 +45,6 @@ import uk.ac.ebi.protvar.model.score.AmScore;
 import uk.ac.ebi.protvar.model.score.PopEveScore;
 import uk.ac.ebi.protvar.processor.CsvHeaders.Group;
 import uk.ac.ebi.protvar.types.Assembly;
-import uk.ac.ebi.protvar.types.CuratedCategory;
-import uk.ac.ebi.protvar.types.KnownSource;
 import uk.ac.ebi.protvar.types.PopEveClass;
 import uk.ac.ebi.protvar.model.response.*;
 import uk.ac.ebi.protvar.repo.UploadVariantRepo.Passing;
@@ -223,7 +221,7 @@ public class DownloadProcessor {
 		if (coreMapping != null) {
 			AnnotationData annData = annotationFetcher.preloadOptionalAnnotations(coreMapping,
 					layout.has(Group.FUNCTION), layout.has(Group.PREDICTION), layout.has(Group.POPULATION),
-					layout.has(Group.STRUCTURE), layout.keeps("Known_in") || layout.keeps("UniProt_curated"));
+					layout.has(Group.STRUCTURE));
 
 			try (Stream<String[]> rows = streamInputsToCsv(inputs, passing, coreMapping, annData, layout)) {
 				writeCsv(outputPath, rows, layout, writeHeader);
@@ -401,23 +399,21 @@ public class DownloadProcessor {
 				(input.getFormat() == VariantFormat.VCF ? ((GenomicInput) input).getId() : null);
 	}
 
-	// Variant group values: Input, Notes, ID, Chromosome, Position, Ref, Alt, Known_in, UniProt_curated
-	private List<String> variantValues(VariantInput input, String notes, String chr, Integer pos, String ref, String alt,
-									   String knownIn, String curated) {
-		return Arrays.asList(input.getInputStr(), notes, idValue(input), chr, pos == null ? null : pos.toString(),
-				ref, alt, knownIn, curated);
+	// Variant group values: Input, Notes, ID, Chromosome, Position, Ref, Alt
+	private List<String> variantValues(VariantInput input, String notes, String chr, Integer pos, String ref, String alt) {
+		return Arrays.asList(input.getInputStr(), notes, idValue(input), chr, pos == null ? null : pos.toString(), ref, alt);
 	}
 
 	// A row for a variant with no mapping
 	String[] getCsvDataMappingNotFound(VariantInput input, GenomicVariant genomicVariant, CsvLayout layout) {
 		return layout.row(Map.of(Group.VARIANT, variantValues(input, NO_MAPPING, genomicVariant.getChromosome(),
-				genomicVariant.getPosition(), genomicVariant.getRefBase(), genomicVariant.getAltBase(), null, null)));
+				genomicVariant.getPosition(), genomicVariant.getRefBase(), genomicVariant.getAltBase())));
 	}
 
 	// A row for an invalid input
 	String[] getCsvDataInvalidInput(VariantInput input, CsvLayout layout) {
 		String notes = input.getMessages().stream().map(Message::toString).collect(Collectors.joining(";"));
-		return layout.row(Map.of(Group.VARIANT, variantValues(input, notes, null, null, null, null, null, null)));
+		return layout.row(Map.of(Group.VARIANT, variantValues(input, notes, null, null, null, null)));
 	}
 
 	private String[] getCsvData(String notes, Gene gene,
@@ -435,9 +431,7 @@ public class DownloadProcessor {
 		String varAllele = genomicVariant.getAltBase();
 
 		Map<Group, List<String>> values = new EnumMap<>(Group.class);
-		values.put(Group.VARIANT, variantValues(input, notes, chr, genomicLocation, gene.getRefAllele(), varAllele,
-				knownIn(annData, chr, genomicLocation, varAllele),
-				curated(annData, chr, genomicLocation, varAllele, isoform.getAccession())));
+		values.put(Group.VARIANT, variantValues(input, notes, chr, genomicLocation, gene.getRefAllele(), varAllele));
 		values.put(Group.MAPPING, Arrays.asList(
 				gene.getGeneName(),
 				isoform.getCodonChange(),
@@ -471,25 +465,6 @@ public class DownloadProcessor {
 				values.put(Group.STRUCTURE, List.of(csvStructureDataBuilder.build(proteinStructure)));
 		}
 		return layout.row(values);
-	}
-
-	// e.g. "dbSNP;ClinVar"
-	static String knownIn(AnnotationData annData, String chr, Integer pos, String alt) {
-		if (annData.getKnownCurated() == null || alt == null) return null;
-		Integer bits = annData.getKnownCurated().known().get(VariantKey.genomic(chr, pos, alt.toUpperCase()));
-		if (bits == null || bits == 0) return null;
-		return Arrays.stream(KnownSource.values()).filter(s -> (bits & s.getBit()) != 0)
-				.map(KnownSource::getLabel).collect(Collectors.joining(";"));
-	}
-
-	// e.g. "LP/P;US"
-	static String curated(AnnotationData annData, String chr, Integer pos, String alt, String accession) {
-		if (annData.getKnownCurated() == null || alt == null) return null;
-		Integer bits = annData.getKnownCurated().curated()
-				.get(VariantKey.genomic(chr, pos, alt.toUpperCase()) + ":" + accession);
-		if (bits == null || bits == 0) return null;
-		return Arrays.stream(CuratedCategory.values()).filter(c -> c != CuratedCategory.ANY && (bits & c.getBit()) != 0)
-				.map(CuratedCategory::getLabel).collect(Collectors.joining(";"));
 	}
 
 	// e.g. "0.42(likely benign)"

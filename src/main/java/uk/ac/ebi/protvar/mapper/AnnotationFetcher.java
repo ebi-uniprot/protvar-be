@@ -40,9 +40,6 @@ public class AnnotationFetcher {
 	private final FoldxRepo foldxRepo;
 	private final ScoreRepo scoreRepo; // annotation scores
 
-	// Known_in, UniProt_curated
-	private final CodingVariantRepo codingVariantRepo;
-
 	// population ann sources
 	private final VariantFetcher variantFetcher;
 	private final AlleleFreqRepo alleleFreqRepo;
@@ -68,8 +65,7 @@ public class AnnotationFetcher {
 
 	TO check: which calls can be/is cached
 	 */
-	public AnnotationData preloadOptionalAnnotations(MappingData core, boolean fun, boolean pred, boolean pop,
-													 boolean str, boolean known) {
+	public AnnotationData preloadOptionalAnnotations(MappingData core, boolean fun, boolean pred, boolean pop, boolean str) {
 		Map<String, List<Variant>> variantMap = Map.of();
 		Map<String, List<AlleleFreq>> freqMap = Map.of();
 
@@ -106,13 +102,8 @@ public class AnnotationFetcher {
 			structureService.preloadStructureCache(new ArrayList<>(core.getCanonicalAccessions()));
 		}
 
-		CodingVariantRepo.KnownCurated knownCurated = known
-				? codingVariantRepo.getKnownCurated(core.getChrPosArrays().first(), core.getChrPosArrays().second())
-				: null;
-
 		return AnnotationData.builder()
 				.fun(fun).pred(pred).pop(pop).str(str)
-				.knownCurated(knownCurated)
 				.variantMap(variantMap)
 				.freqMap(freqMap)
 				.scoreMap(scoreMap)

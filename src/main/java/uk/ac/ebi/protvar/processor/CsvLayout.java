@@ -34,10 +34,6 @@ public record CsvLayout(Set<Group> groups, Set<String> tableColumns) {
         return c.table() != null && tableColumns.contains(c.table());
     }
 
-    public boolean keeps(String name) {
-        return CsvHeaders.COLUMNS.stream().anyMatch(c -> c.name().equals(name) && keeps(c));
-    }
-
     public String[] header() {
         return CsvHeaders.COLUMNS.stream().filter(this::keeps).map(Column::name).toArray(String[]::new);
     }
