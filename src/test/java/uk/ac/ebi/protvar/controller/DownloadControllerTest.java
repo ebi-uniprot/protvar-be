@@ -21,7 +21,8 @@ class DownloadControllerTest {
     private final DownloadService downloadService = mock(DownloadService.class);
     private final MappingService mappingService = mock(MappingService.class);
     private final DownloadController controller = new DownloadController(downloadService,
-            mock(DownloadStatusService.class), mock(DownloadFileCleanupTask.class), mappingService);
+            mock(DownloadStatusService.class), mock(DownloadFileCleanupTask.class), mappingService,
+            mock(uk.ac.ebi.protvar.service.DownloadGuard.class));
     private final HttpServletRequest http = mock(HttpServletRequest.class);
 
     DownloadControllerTest() {

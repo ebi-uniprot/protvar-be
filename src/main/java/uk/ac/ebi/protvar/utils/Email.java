@@ -3,6 +3,7 @@ package uk.ac.ebi.protvar.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -19,10 +20,15 @@ import java.util.stream.Collectors;
 @Component
 public class Email {
     private static final String FROM = "protvar@ebi.ac.uk";
-    private static final String DEVELOPER = "prabhat@ebi.ac.uk";
+    private static String DEVELOPER;
     private static JavaMailSender emailSender;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Email.class);
+
+    @Value("${app.mail.dev}")
+    public void setDeveloper(String developer) {
+        Email.DEVELOPER = developer;
+    }
 
     @Autowired
     public void setEmailSender(JavaMailSender emailSender) {

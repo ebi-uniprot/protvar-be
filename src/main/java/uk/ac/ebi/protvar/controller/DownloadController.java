@@ -19,6 +19,7 @@ import uk.ac.ebi.protvar.model.response.DownloadStatsResponse;
 import uk.ac.ebi.protvar.model.response.DownloadStatus;
 import uk.ac.ebi.protvar.processor.DownloadFileCleanupTask;
 import uk.ac.ebi.protvar.repo.CodingVariantRepo;
+import uk.ac.ebi.protvar.service.DownloadGuard;
 import uk.ac.ebi.protvar.service.DownloadService;
 import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.MappingService;
@@ -58,6 +59,7 @@ public class DownloadController implements WebMvcConfigurer {
     private final DownloadStatusService downloadStatusService;
     private final DownloadFileCleanupTask cleanupTask;
     private final MappingService mappingService;
+    private final DownloadGuard guard;
 
     @Operation(summary = SUMMARY, description = DESC)
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -80,9 +82,19 @@ public class DownloadController implements WebMvcConfigurer {
      * allocate UUID job ID, queue.
      */
     public ResponseEntity<?> handleDownload(DownloadRequest request, HttpServletRequest http) {
+        if (guard.rateLimited(http)) {
+            downloadStatusService.increment("rate-limited");
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(Map.of("error", DownloadGuard.MSG_RATE_LIMITED));
+        }
+
         Optional<String> validationError = MappingRequestValidator.validate(request);
         if (validationError.isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("error", validationError.get()));
+        }
+
+        if (guard.undeliverable(request.getEmail())) {
+            downloadStatusService.increment("bad-email");
+            return ResponseEntity.badRequest().body(Map.of("error", DownloadGuard.MSG_BAD_EMAIL));
         }
 
         // a filtered upload downloads its passing lines, so it must be prepared for filtering first
