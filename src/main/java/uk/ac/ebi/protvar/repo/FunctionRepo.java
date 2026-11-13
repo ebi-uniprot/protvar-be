@@ -26,12 +26,12 @@ import java.util.stream.Collectors;
  * Reads function annotation data from the two-table layout produced by the
  * protvar-import-py pipeline:
  *
- *   rel_{R}_function           — one row per accession, header_json holds
- *                                      everything except features[].
+ *   rel_{R}_function           — one row per accession; header_json holds the
+ *                                      UniProt entry, everything except features[].
  *   rel_{R}_function_feature   — one row per UniProt feature, with type,
  *                                      category, begin_pos, end_pos, raw_json.
  *
- * Header lookups are cached per-accession (replaces the old explicit preload).
+ * Entry lookups are cached per-accession (replaces the old explicit preload).
  * Position-filtered feature queries are SQL-side (indexed on
  * (accession, begin_pos, end_pos)) — no in-memory filtering.
  */
@@ -49,11 +49,11 @@ public class FunctionRepo {
     private String functionFeatureTable;
 
     /**
-     * Per-protein header (everything except features[]). Result is cached;
+     * The protein's UniProt entry, everything except features[] (see getFeatures). Result is cached;
      * `null` results are cached too so a missing accession isn't re-queried.
      */
     @Cacheable(value = RedisKeys.Cache.UNIPROT_ENTRY_BY_ACCESSION, key = "#accession")
-    public UPEntry getHeader(String accession) {
+    public UPEntry getEntry(String accession) {
         if (accession == null) return null;
 
         String sql = String.format("SELECT header_json FROM %s WHERE accession = :accession", functionTable);

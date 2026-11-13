@@ -15,7 +15,7 @@ import uk.ac.ebi.uniprot.domain.entry.UPEntry;
  * now cacheManager and Cacheable annotation).
  *
  * The FUN cache that held the whole FunctionalInfo has been dropped — caching now
- * lives one layer down in {@link FunctionRepo#getHeader(String)} (uniprotEntryByAccession per
+ * lives one layer down in {@link FunctionRepo#getEntry(String)} (uniprotEntryByAccession per
  * accession) which holds just the protein-level metadata. Features are fetched
  * fresh per call against an indexed function_feature table, so position-specific
  * calls are accurate without filtering a cached payload in memory.
@@ -28,16 +28,16 @@ public class FunctionService {
 
     public FunctionalInfo get(String accession) {
         if (accession == null || accession.isEmpty()) return null;
-        UPEntry header = functionRepo.getHeader(accession);
-        if (header == null) return null;
-        return converter.convert(header, functionRepo.getFeatures(accession));
+        UPEntry entry = functionRepo.getEntry(accession);
+        if (entry == null) return null;
+        return converter.convert(entry, functionRepo.getFeatures(accession));
     }
 
     public FunctionalInfo get(String accession, int position) {
         if (accession == null || accession.isEmpty()) return null;
-        UPEntry header = functionRepo.getHeader(accession);
-        if (header == null) return null;
-        FunctionalInfo info = converter.convert(header, functionRepo.getFeatures(accession, position));
+        UPEntry entry = functionRepo.getEntry(accession);
+        if (entry == null) return null;
+        FunctionalInfo info = converter.convert(entry, functionRepo.getFeatures(accession, position));
         info.setPosition(position);
         return info;
     }

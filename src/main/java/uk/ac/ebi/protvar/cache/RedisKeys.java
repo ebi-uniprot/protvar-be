@@ -19,7 +19,7 @@ public final class RedisKeys {
     public static final class Cache {
         private Cache() {}
         // protein data: TTL app.retention.protein-cache (30d). Were FUN_HEADER and STR until 2026-11.
-        public static final String UNIPROT_ENTRY_BY_ACCESSION = "uniprotEntryByAccession"; // accession -> UniProt entry header (no features)
+        public static final String UNIPROT_ENTRY_BY_ACCESSION = "uniprotEntryByAccession"; // accession -> UniProt entry (no features)
         public static final String STRUCTURES_BY_ACCESSION = "structuresByAccession";     // accession -> PDB structures
         public static final String SCORES_BY_ACCESSION = "scoresByAccession";            // accession -> scores
         public static final String POCKETS_BY_ACCESSION = "pocketsByAccession";          // accession -> pockets

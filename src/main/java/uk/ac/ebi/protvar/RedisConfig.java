@@ -98,7 +98,7 @@ public class RedisConfig implements CachingConfigurer {
      * Treat Redis failures as cache misses instead of propagating them. The
      * cache is an optimization layered over the DB; a transient Redis blip
      * (e.g. a "Read timed out" on a SET) must not abort the caller. Before
-     * this, a cache PUT timeout inside a @Cacheable getHeader() bubbled all the
+     * this, a cache PUT timeout inside a @Cacheable getEntry() bubbled all the
      * way up and failed an entire multi-chunk full download — even though the
      * underlying DB read had already succeeded.
      *
