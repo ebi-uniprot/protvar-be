@@ -29,6 +29,7 @@ public class DownloadService {
 
     private final RabbitTemplate rabbitTemplate;
     private final DownloadStatusService downloadStatusService;
+    private final DevReportService devReport;
 
     @Value("${app.data.folder}")
     private String dataFolder;
@@ -43,6 +44,7 @@ public class DownloadService {
         } catch (Exception e) {
             LOGGER.error("Error queuing request {}", id, e);
             downloadStatusService.markFailed(id, DownloadStatusService.MSG_QUEUE_FAILED);
+            devReport.urgent("queue", downloadRequest, List.of(), e);
         }
 
         DownloadResponse response = new DownloadResponse();

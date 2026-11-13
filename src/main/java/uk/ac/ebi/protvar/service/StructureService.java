@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.service;
 
+import uk.ac.ebi.protvar.cache.RedisKeys;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,7 @@ public class StructureService {
     public void preloadStructureCache(List<String> accessions) {
         if (accessions == null || accessions.isEmpty()) return;
 
-        Cache cache = cacheManager.getCache("STR");
+        Cache cache = cacheManager.getCache(RedisKeys.Cache.STRUCTURES_BY_ACCESSION);
         if (cache == null) return;
 
         List<String> toFetch = accessions.stream()

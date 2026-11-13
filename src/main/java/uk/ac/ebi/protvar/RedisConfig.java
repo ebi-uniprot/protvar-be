@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar;
 
+import uk.ac.ebi.protvar.cache.RedisKeys;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -42,7 +43,7 @@ public class RedisConfig implements CachingConfigurer {
 
     // Socket connect/read timeout for the Jedis client. The Jedis default is
     // only 2000ms — too tight for writing a large cached value (e.g. a
-    // FUN_HEADER UPEntry) while Redis is under load from parallel download
+    // uniprotEntryByAccession UPEntry) while Redis is under load from parallel download
     // chunks, which surfaced as "Read timed out" mid-download. Raised here and
     // made configurable per environment.
     @Value("${spring.data.redis.timeout:5000}")
@@ -170,7 +171,9 @@ public class RedisConfig implements CachingConfigurer {
      * This ensures that Spring's @Cacheable mechanism will use Jackson (JSON) serialization, not the default JDK one.
      * Caches that hold user-submitted data ({@code inputs}, {@code inputBuilds}, {@code inputSummaries})
      * get a finite TTL from {@link RetentionProperties#getSubmissions()} so old submissions auto-expire;
-     * everything else inherits the default config (no TTL, bounded by redis maxmemory + LRU at the cluster).
+     * the protein caches (uniprotEntryByAccession, structuresByAccession) get
+     * {@link RetentionProperties#getProteinCache()}; everything else inherits the default config
+     * (no TTL, bounded by redis maxmemory + LRU at the cluster).
      */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory,
@@ -186,10 +189,14 @@ public class RedisConfig implements CachingConfigurer {
                 .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(redisJsonSerializer));
 
         RedisCacheConfiguration submissionConfig = config.entryTtl(retention.getSubmissions());
+        // protein caches expire so stale entries don't fill Redis and push out uploads (LRU)
+        RedisCacheConfiguration proteinConfig = config.entryTtl(retention.getProteinCache());
         Map<String, RedisCacheConfiguration> perCache = Map.of(
-                "inputs", submissionConfig,
-                "inputBuilds", submissionConfig,
-                "inputSummaries", submissionConfig
+                RedisKeys.Cache.INPUTS, submissionConfig,
+                RedisKeys.Cache.INPUT_BUILDS, submissionConfig,
+                RedisKeys.Cache.INPUT_SUMMARIES, submissionConfig,
+                RedisKeys.Cache.UNIPROT_ENTRY_BY_ACCESSION, proteinConfig,
+                RedisKeys.Cache.STRUCTURES_BY_ACCESSION, proteinConfig
         );
 
         return RedisCacheManager.builder(connectionFactory)

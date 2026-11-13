@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.service;
 
+import uk.ac.ebi.protvar.cache.RedisKeys;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -51,7 +52,7 @@ public class DownloadGuard {
     public boolean rateLimited(HttpServletRequest http) {
         if (perHour <= 0) return false;
         String ip = clientIp(http);
-        String key = cacheVersion + ":download:rate:" + ip;
+        String key = RedisKeys.key(cacheVersion, RedisKeys.Download.RATE + ip);
         try {
             Long n = redisTemplate.opsForValue().increment(key);
             if (n != null && n == 1) redisTemplate.expire(key, Duration.ofHours(1));

@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
+import uk.ac.ebi.protvar.cache.RedisKeys;
 import lombok.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -41,7 +42,7 @@ public class StructureRepo {
     }
 
 
-    @Cacheable(value = "STR", key = "#accession")
+    @Cacheable(value = RedisKeys.Cache.STRUCTURES_BY_ACCESSION, key = "#accession")
     public List<Structure> getStr(String accession) {
         return getStr(List.of(accession));
     }

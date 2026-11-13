@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.protvar.input.parser.VariantParser;
+import uk.ac.ebi.protvar.input.parser.protein.ProteinParser;
 import uk.ac.ebi.protvar.input.GenomicInput;
 import uk.ac.ebi.protvar.mapper.AnnotationData;
 import uk.ac.ebi.protvar.mapper.AnnotationFetcher;
@@ -19,6 +20,7 @@ import uk.ac.ebi.protvar.service.FunctionService;
 import uk.ac.ebi.protvar.service.StructureService;
 import uk.ac.ebi.protvar.types.AminoAcid;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Tag(name = "Annotation")
 @RestController
@@ -26,6 +28,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AnnotationController {
 
+
+  // malformed accessions get a 400 before any DB query or cache entry (scanners send junk here)
+  private static final Pattern ACCESSION = Pattern.compile("^" + ProteinParser.VALID_UNIPROT + "$", Pattern.CASE_INSENSITIVE);
 
   private final FunctionService functionService;
   private final AnnotationFetcher annotationFetcher;
@@ -42,6 +47,8 @@ public class AnnotationController {
   public ResponseEntity<FunctionalInfo> getFunction(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
+    if (!ACCESSION.matcher(accession).matches())
+      return ResponseEntity.badRequest().build();
 
     // UniProt annotations only; predictions at the position: GET /prediction/{accession}/{position}
     FunctionalInfo functionalInfo = functionService.get(accession, position);
@@ -63,6 +70,8 @@ public class AnnotationController {
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position,
     @Parameter(example = "14-89993420-A-C") @RequestParam(required = false) String genomicVariant) {
+    if (!ACCESSION.matcher(accession).matches())
+      return ResponseEntity.badRequest().build();
 
     GenomicInput genomicInput = VariantParser.parseValidGenomicInput(genomicVariant);
     String chromosome = null;
@@ -95,6 +104,8 @@ public class AnnotationController {
   public ResponseEntity<List<StructureResidue>> getStructure(
     @Parameter(example = "Q9NUW8") @PathVariable("accession") String accession,
     @Parameter(example = "493") @PathVariable("position") int position) {
+    if (!ACCESSION.matcher(accession).matches())
+      return ResponseEntity.badRequest().build();
     List<StructureResidue> object = structureService.getStr(accession, position);
     return new ResponseEntity<>(object, HttpStatus.OK);
   }

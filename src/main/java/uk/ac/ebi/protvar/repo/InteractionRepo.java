@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
+import uk.ac.ebi.protvar.cache.RedisKeys;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -100,7 +101,7 @@ public class InteractionRepo {
      * @param accession
      * @return accession-residue mapping
      */
-    @Cacheable(value = "interactionsByAccession", key = "#accession")
+    @Cacheable(value = RedisKeys.Cache.INTERACTIONS_BY_ACCESSION, key = "#accession")
     public Map<String, List<Interaction>> getInteractions(String accession) {
         String sql = """
             SELECT a, a_residues, b, b_residues, pdockq

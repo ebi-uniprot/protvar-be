@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.service;
 
+import uk.ac.ebi.protvar.cache.RedisKeys;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -22,33 +23,34 @@ import java.util.List;
  *       ]
  */
 @Service
+// Lookups are cache-only (body returns null); "unless" stops an unknown id leaving a null entry.
 public class UploadCacheService {
-    @Cacheable(value = "inputs", key = "#inputId")
+    @Cacheable(value = RedisKeys.Cache.INPUTS, key = "#inputId", unless = "#result == null")
     //public List<VariantInput> getInput(String inputId) { return null; }
     public List<String> getInput(String inputId) { return null; }
 
-    @CachePut(value = "inputs", key = "#inputId")
+    @CachePut(value = RedisKeys.Cache.INPUTS, key = "#inputId")
     //public List<VariantInput> cacheInput(String inputId, List<VariantInput> inputs) { return inputs; }
     public List<String> cacheInput(String inputId, List<String> inputs) { return inputs; }
 
     // Rename InputBuild to GenomeBuild
-    @Cacheable(value = "inputBuilds", key = "#inputId")
+    @Cacheable(value = RedisKeys.Cache.INPUT_BUILDS, key = "#inputId", unless = "#result == null")
     public InputBuild getBuild(String inputId) { return null; }
 
-    @CachePut(value = "inputBuilds", key = "#inputId")
+    @CachePut(value = RedisKeys.Cache.INPUT_BUILDS, key = "#inputId")
     public InputBuild cacheBuild(String inputId, InputBuild build) { return build; }
 
-    @Cacheable(value = "inputSummaries", key = "#inputId")
+    @Cacheable(value = RedisKeys.Cache.INPUT_SUMMARIES, key = "#inputId", unless = "#result == null")
     public InputSummary getSummary(String inputId) { return null; }
 
-    @CachePut(value = "inputSummaries", key = "#inputId")
+    @CachePut(value = RedisKeys.Cache.INPUT_SUMMARIES, key = "#inputId")
     public InputSummary cacheSummary(String inputId, InputSummary summary) { return summary; }
 
     public CachedInputData getAll(String inputId) {
         return new CachedInputData(getInput(inputId), getBuild(inputId), getSummary(inputId));
     }
 
-    @CacheEvict(value = {"inputs", "inputBuilds", "inputSummaries"}, key = "#inputId")
+    @CacheEvict(value = {RedisKeys.Cache.INPUTS, RedisKeys.Cache.INPUT_BUILDS, RedisKeys.Cache.INPUT_SUMMARIES}, key = "#inputId")
     public void clearCache(String inputId) {}
 
 }

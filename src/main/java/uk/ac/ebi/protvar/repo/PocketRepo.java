@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
+import uk.ac.ebi.protvar.cache.RedisKeys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -126,7 +127,7 @@ public class PocketRepo {
      * @param accession
      * @return accession-residue mapping
      */
-    @Cacheable(value = "pocketsByAccession", key = "#accession")
+    @Cacheable(value = RedisKeys.Cache.POCKETS_BY_ACCESSION, key = "#accession")
     public Map<String, List<Pocket>> getPockets(String accession) {
         String sql = String.format("SELECT " + POCKET_FIELDS + """
         FROM %s p

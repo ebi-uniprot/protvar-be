@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.repo;
 
+import uk.ac.ebi.protvar.cache.RedisKeys;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,7 +52,7 @@ public class FunctionRepo {
      * Per-protein header (everything except features[]). Result is cached;
      * `null` results are cached too so a missing accession isn't re-queried.
      */
-    @Cacheable(value = "FUN_HEADER", key = "#accession")
+    @Cacheable(value = RedisKeys.Cache.UNIPROT_ENTRY_BY_ACCESSION, key = "#accession")
     public UPEntry getHeader(String accession) {
         if (accession == null) return null;
 

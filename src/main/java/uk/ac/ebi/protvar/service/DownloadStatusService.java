@@ -1,5 +1,6 @@
 package uk.ac.ebi.protvar.service;
 
+import uk.ac.ebi.protvar.cache.RedisKeys;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +44,8 @@ public class DownloadStatusService {
             "Download failed repeatedly. Please contact protvar@ebi.ac.uk.";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DownloadStatusService.class);
-    private static final String KEY_PREFIX = "download:status:";
-    private static final String COUNTER_PREFIX = "download:counts:";
+
+    private static final java.time.Duration BY_DAY_TTL = java.time.Duration.ofDays(400);
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final RetentionProperties retention;
@@ -56,11 +57,11 @@ public class DownloadStatusService {
     private String cacheVersion;
 
     private String key(String id) {
-        return cacheVersion + ":" + KEY_PREFIX + id;
+        return RedisKeys.key(cacheVersion, RedisKeys.Download.STATUS + id);
     }
 
     private String counterPrefix() {
-        return cacheVersion + ":" + COUNTER_PREFIX;
+        return RedisKeys.key(cacheVersion, RedisKeys.Download.COUNTS);
     }
 
     public DownloadStatus get(String id) {
@@ -132,7 +133,9 @@ public class DownloadStatusService {
         try {
             String today = java.time.LocalDate.now().toString();
             redisTemplate.opsForValue().increment(counterPrefix() + name + ":total");
-            redisTemplate.opsForValue().increment(counterPrefix() + name + ":by-day:" + today);
+            String day = counterPrefix() + name + ":by-day:" + today;
+            Long n = redisTemplate.opsForValue().increment(day);
+            if (n != null && n == 1) redisTemplate.expire(day, BY_DAY_TTL); // keeps a year + a month for comparisons
         } catch (Exception e) {
             LOGGER.warn("Failed to increment counter '{}': {}", name, e.getMessage());
         }

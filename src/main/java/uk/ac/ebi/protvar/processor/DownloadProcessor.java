@@ -34,6 +34,7 @@ import uk.ac.ebi.protvar.mapper.MappingData;
 import uk.ac.ebi.protvar.mapper.InputMapper;
 import uk.ac.ebi.protvar.model.DownloadRequest;
 import uk.ac.ebi.protvar.model.InputRequest;
+import uk.ac.ebi.protvar.service.DevReportService;
 import uk.ac.ebi.protvar.service.DownloadStatusService;
 import uk.ac.ebi.protvar.service.MappingService;
 import uk.ac.ebi.protvar.service.StructureService;
@@ -93,6 +94,7 @@ public class DownloadProcessor {
 	private final AnnotationFetcher annotationFetcher;
 	private final StructureService structureService;
 	private final DownloadStatusService downloadStatusService;
+	private final DevReportService devReport;
 	@Value("${app.data.folder}")
 	private String dataFolder;
 	@Value("${app.tmp.folder}")
@@ -135,7 +137,7 @@ public class DownloadProcessor {
 		if (attempts > maxAttempts) {
 			LOGGER.error("[{}] Aborting after {} crashed attempts", id, previousAttempts);
 			downloadStatusService.markFailed(id, DownloadStatusService.MSG_RETRIES_EXHAUSTED);
-			Email.notifyDevErr(request, List.of(), new RuntimeException(
+			devReport.urgent("retries-exhausted", request, List.of(), new RuntimeException(
 					"Download " + id + " gave up after " + previousAttempts + " crashed attempts"));
 			return;
 		}
@@ -319,7 +321,8 @@ public class DownloadProcessor {
 			LOGGER.error("Processing failed for {}: {}", request.getFname(), e.getMessage(), e);
 		}
 		Email.notifyUserErr(request, inputs);
-		Email.notifyDevErr(request, inputs, e);
+		String category = e instanceof CannotGetJdbcConnectionException ? "db-connection" : "processing:" + e.getClass().getSimpleName();
+		devReport.urgent(category, request, inputs, e);
 	}
 
 	private void writeCsv(Path file, Stream<String[]> rowsStream, CsvLayout layout, boolean writeHeader) throws IOException {

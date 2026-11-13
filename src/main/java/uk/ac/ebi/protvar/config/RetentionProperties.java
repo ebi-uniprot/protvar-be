@@ -13,4 +13,5 @@ public class RetentionProperties {
 
     private Duration submissions = Duration.ofDays(90);
     private Duration downloads = Duration.ofDays(30);
+    private Duration proteinCache = Duration.ofDays(30);
 }

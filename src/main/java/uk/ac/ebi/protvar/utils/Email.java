@@ -85,10 +85,14 @@ public class Email {
         if (Commons.notNullNotEmpty(request.getEmail())) {
             String subject = String.format("ProtVar job: %s failed", request.getJobName());
             String body = notifyErrEmailBody();
-            sendSimpleMessage(request.getEmail(), DEVELOPER, subject,
+            sendSimpleMessage(request.getEmail(), null, subject,
                     String.format("%s\n\n%s", body, first10Inputs(inputs)));
             //sendMimeMessage(request.getEmail(), DEVELOPER, subject, body, request.getFileInput());
         }
+    }
+
+    public static void notifyDev(String subject, String body) {
+        sendSimpleMessage(DEVELOPER, null, subject, body);
     }
 
     public static void notifyDevErr(DownloadRequest request, List<String> inputs, Throwable t) {

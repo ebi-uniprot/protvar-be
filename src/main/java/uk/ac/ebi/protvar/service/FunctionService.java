@@ -15,7 +15,7 @@ import uk.ac.ebi.uniprot.domain.entry.UPEntry;
  * now cacheManager and Cacheable annotation).
  *
  * The FUN cache that held the whole FunctionalInfo has been dropped — caching now
- * lives one layer down in {@link FunctionRepo#getHeader(String)} (FUN_HEADER per
+ * lives one layer down in {@link FunctionRepo#getHeader(String)} (uniprotEntryByAccession per
  * accession) which holds just the protein-level metadata. Features are fetched
  * fresh per call against an indexed function_feature table, so position-specific
  * calls are accurate without filtering a cached payload in memory.
