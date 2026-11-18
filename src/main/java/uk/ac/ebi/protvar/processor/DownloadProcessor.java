@@ -177,6 +177,12 @@ public class DownloadProcessor {
 		LOGGER.info("[{}] Download request completed in {}", id, formatDuration(durationMs));
 	}
 
+	/** Score, plus the prediction when significant, e.g. 0.84(Splice loss predicted). */
+	public static String pangolinValue(Pangolin p) {
+		if (p == null) return null;
+		return p.label() == null ? String.valueOf(p.score()) : p.score() + "(" + p.label() + ")";
+	}
+
 	private long fileSize(Path path) {
 		try {
 			return Files.exists(path) ? Files.size(path) : 0L;
@@ -441,7 +447,7 @@ public class DownloadProcessor {
 				gene.isReverseStrand() ? "-" : "+",
 				gene.getCaddScore() == null ? null : gene.getCaddScore().toString(),
 				gene.getAviScore() == null ? null : gene.getAviScore().toString(),
-				gene.getPangolin() == null ? null : String.valueOf(gene.getPangolin().score()),
+				pangolinValue(gene.getPangolin()),
 				isoform.isCanonical() ? isoform.getAccession() : "(" + isoform.getAccession() + ")",
 				buildAlternateInformDetails(isoforms),
 				addTranscripts(isoform.getTranscripts()).toString(),
