@@ -78,4 +78,12 @@ class DownloadProcessorTest {
       assertArrayEquals(new String[]{"in", "notes", "BRCA1"}, row);
     }
   }
+
+  @Test
+  void progressPercentHeldAt99() {
+    assertEquals(0, DownloadProcessor.percent(0, 100));
+    assertEquals(50, DownloadProcessor.percent(4000, 8000));
+    assertEquals(99, DownloadProcessor.percent(100, 100));
+    assertEquals(99, DownloadProcessor.percent(150, 100));
+  }
 }

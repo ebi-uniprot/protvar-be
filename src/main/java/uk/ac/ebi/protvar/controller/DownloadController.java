@@ -121,6 +121,9 @@ public class DownloadController implements WebMvcConfigurer {
                 downloadStatusService.increment("rejected");
                 return ResponseEntity.badRequest().body(Map.of("error", DownloadStatusService.MSG_TOO_LARGE));
             }
+            request.setTotal(total); // for progress
+        } else {
+            request.setTotal(null);
         }
 
         request.setTimestamp(LocalDateTime.now());

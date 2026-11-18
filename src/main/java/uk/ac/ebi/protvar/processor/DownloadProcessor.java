@@ -264,6 +264,8 @@ public class DownloadProcessor {
 	private void processFullDownload(DownloadRequest request, Path csvPath,
 									 InputBuild build, CsvLayout layout) throws Exception {
 		AtomicInteger chunkIndex = new AtomicInteger(0);
+		Progress progress = new Progress(request.getFname(), request.getTotal());
+		progress.add(0); // 0% straight away
 		HeavyDbWork.Job job = heavyDbWork.job("download " + request.getFname());
 		List<Future<Path>> futures = new ArrayList<>();
 		List<Path> partPaths = new ArrayList<>();   // tracked here so we can clean up on failure
@@ -287,6 +289,7 @@ public class DownloadProcessor {
 					futures.add(job.submit(() -> {
 						LOGGER.info("[{}] Processing chunk #{}", request.getFname(), chunkNum);
 						processAndWriteCsv(chunk, result.passing(), partPath, request.getAssembly(), build, layout, false);
+						progress.add(chunk.size());
 						return partPath;
 					}));
 				}
@@ -318,6 +321,34 @@ public class DownloadProcessor {
 				}
 			}
 		}
+	}
+
+	/** Percent of a full download's inputs written, saved to its status as chunks finish (any order). */
+	private class Progress {
+		private final String id;
+		private final Long total;
+		private long done;
+		private int saved = -1;
+
+		Progress(String id, Long total) {
+			this.id = id;
+			this.total = total;
+		}
+
+		synchronized void add(int inputs) {
+			if (total == null || total <= 0) return;
+			done += inputs;
+			int pct = percent(done, total);
+			if (pct > saved) {
+				saved = pct;
+				downloadStatusService.markProgress(id, pct);
+			}
+		}
+	}
+
+	// held at 99 until merged and zipped; ready sets 100
+	static int percent(long done, long total) {
+		return (int) Math.min(99, done * 100 / total);
 	}
 
 	private void handleException(Exception e, DownloadRequest request, List<String> inputs) {

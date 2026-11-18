@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -55,7 +56,16 @@ public class DownloadService {
         return response;
     }
 
+    // Job ids are server-generated UUIDs; anything else is never looked up (file or Redis)
+    private static final Pattern JOB_ID =
+            Pattern.compile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", Pattern.CASE_INSENSITIVE);
+
+    static boolean isJobId(String id) {
+        return id != null && JOB_ID.matcher(id).matches();
+    }
+
     public FileInputStream getFileResource(String filename) {
+        if (!isJobId(filename)) return null;
         Path filePath = Path.of(dataFolder, filename + ".csv.zip");
         try {
             return new FileInputStream(filePath.toFile());
@@ -73,6 +83,10 @@ public class DownloadService {
     public Map<String, DownloadStatus> getDownloadStatus(List<String> ids) {
         Map<String, DownloadStatus> resultMap = new LinkedHashMap<>();
         for (String id : ids) {
+            if (!isJobId(id)) {
+                resultMap.put(id, DownloadStatus.builder().state(DownloadState.EXPIRED).build());
+                continue;
+            }
             DownloadStatus status = downloadStatusService.get(id);
             if (status == null) {
                 status = filesystemFallback(id);

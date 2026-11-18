@@ -48,6 +48,11 @@ public class DownloadRequest extends MappingRequest {
     )
     private String email;
 
+    // Full downloads: the input count found at submission, for progress. Set by the controller
+    // (any client value is overwritten); travels with the queued request.
+    @Schema(hidden = true)
+    private Long total;
+
     @Schema(description = "Optional label.", example = "protvar-run-001")
     private String jobName;
 

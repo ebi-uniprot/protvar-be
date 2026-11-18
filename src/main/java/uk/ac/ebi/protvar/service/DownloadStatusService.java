@@ -99,7 +99,15 @@ public class DownloadStatusService {
                 .state(DownloadState.PROCESSING)
                 .startedAt(Instant.now())
                 .attempts(attempts)
+                .progress(null) // a redelivered job starts again
                 .build());
+    }
+
+    /** Full downloads: percent of inputs written so far (0–99; ready sets 100). */
+    public void markProgress(String id, int progress) {
+        DownloadStatus current = get(id);
+        if (current == null || current.getState() != DownloadState.PROCESSING) return;
+        put(id, current.toBuilder().progress(progress).build());
     }
 
     public void markReady(String id, long size) {
@@ -107,6 +115,7 @@ public class DownloadStatusService {
         DownloadStatus.DownloadStatusBuilder builder = current != null
                 ? current.toBuilder()
                 : DownloadStatus.builder();
+        if (current != null && current.getProgress() != null) builder.progress(100);
         put(id, builder
                 .state(DownloadState.READY)
                 .size(size)

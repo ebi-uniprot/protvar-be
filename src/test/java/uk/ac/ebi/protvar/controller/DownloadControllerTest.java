@@ -80,7 +80,16 @@ class DownloadControllerTest {
     void filterOnlyFullWithinBrowseCapIsQueued() {
         when(mappingService.countInputs(any())).thenReturn((long) CodingVariantRepo.COUNT_CAP);
         assertEquals(200, controller.handleDownload(filterOnly(), http).getStatusCode().value());
-        verify(downloadService).queueRequest(any());
+        verify(downloadService).queueRequest(argThat(r -> Long.valueOf(CodingVariantRepo.COUNT_CAP).equals(r.getTotal())));
+    }
+
+    @Test
+    void pageDownloadClearsAnyClientTotal() {
+        when(mappingService.countFilteredUpload(any())).thenReturn(10L);
+        DownloadRequest r = filteredUpload(false);
+        r.setTotal(999L);
+        assertEquals(200, controller.handleDownload(r, http).getStatusCode().value());
+        verify(downloadService).queueRequest(argThat(q -> q.getTotal() == null));
     }
 
     @Test

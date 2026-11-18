@@ -23,6 +23,9 @@ import java.time.Instant;
  *       used to cap redeliveries after a JVM crash mid-job</li>
  *   <li>{@code queuedAt} is set at submission, {@code startedAt} when a
  *       worker picks up the job, {@code finishedAt} on terminal state</li>
+ *   <li>{@code progress} (0–100) is set for full downloads only: the share of
+ *       inputs written, held at 99 while the file is merged and zipped,
+ *       100 when ready</li>
  * </ul>
  */
 @Data
@@ -38,4 +41,5 @@ public class DownloadStatus {
     private Instant queuedAt;
     private Instant startedAt;
     private Instant finishedAt;
+    private Integer progress;
 }
