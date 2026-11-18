@@ -108,7 +108,7 @@ class CodingVariantRepoTest {
                 new Identifier(IdentifierType.GENE, "BRCA2")), p);
         assertEquals("""
                 SELECT DISTINCT m.chromosome AS id_chr, m.genomic_position AS id_pos FROM map m WHERE m.accession = :id0
-                UNION SELECT DISTINCT m.chromosome AS id_chr, m.genomic_position AS id_pos FROM map m WHERE m.accession IN (SELECT accession FROM prot WHERE gene_name = :id1)""",
+                UNION SELECT DISTINCT m.chromosome AS id_chr, m.genomic_position AS id_pos FROM map m WHERE m.accession IN (SELECT accession FROM prot WHERE UPPER(gene_name) = UPPER(:id1))""",
                 sql);
         assertEquals("P22304", p.getValue("id0"));
         assertEquals("BRCA2", p.getValue("id1"));
