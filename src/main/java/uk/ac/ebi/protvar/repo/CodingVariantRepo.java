@@ -82,7 +82,7 @@ public class CodingVariantRepo {
     private static final int PAGE_TIMEOUT_SECONDS = 20;
     static final String PAGE_TIMEOUT_MESSAGE = "This filter combination is too slow to browse. "
             + "Add an identifier (protein, gene, …) or a more selective primary filter.";
-    private static final Pattern ENSEMBL_ID = Pattern.compile("^(ENS[GTP])(\\d{11})(?:\\.(\\d+))?$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern ENSEMBL_ID = Pattern.compile("^(ENS[GTPE])(\\d{11})(?:\\.(\\d+))?$", Pattern.CASE_INSENSITIVE);
 
     // request sort key → column
     private static final Map<String, String> SORT_COLUMNS = Map.of(
@@ -324,9 +324,14 @@ public class CodingVariantRepo {
             Identifier id = ids.get(i);
             if (id.type() == null || id.value() == null || id.value().isBlank()) continue;
             String p = "id" + i, value = id.value().trim();
+            // UniProt and RefSeq accessions are stored upper case: p15056 → P15056, nm_000518.5 → NM_000518.5
+            // (Ensembl is upper-cased below, PDB matched lower case, gene names in any case)
+            if (id.type() == IdentifierType.UNIPROT || id.type() == IdentifierType.REFSEQ) value = value.toUpperCase();
             String cond = switch (id.type()) {
                 case UNIPROT -> "m.accession = :" + p;
-                case GENE -> "m.accession IN (SELECT accession FROM " + proteinTable + " WHERE gene_name = :" + p + ")";
+                // any case: brca2 finds BRCA2, and mixed-case symbols (C19orf12) still match (~20 ms scan of ~105k rows)
+                case GENE -> "m.accession IN (SELECT accession FROM " + proteinTable
+                        + " WHERE UPPER(gene_name) = UPPER(:" + p + "))";
                 case REFSEQ -> {
                     Matcher rm = InputTypeResolver.REFSEQ_REGEX.matcher(value);
                     yield "m.accession IN (SELECT uniprot_acc FROM " + uniprotRefseqTable + " WHERE refseq_acc "
@@ -337,8 +342,10 @@ public class CodingVariantRepo {
                 case ENSEMBL -> {
                     Matcher em = ENSEMBL_ID.matcher(value);
                     if (!em.matches()) yield null;
-                    String col = em.group(1).toLowerCase();   // ensg / enst / ensp
+                    String col = em.group(1).toLowerCase();   // ensg / enst / ensp / ense
                     value = em.group(1).toUpperCase() + em.group(2);
+                    // ENSE (exon) is on the mapping, with no version column: match the exon whatever version is given
+                    if ("ense".equals(col)) yield "m.ense = :" + p;
                     // ENST is on the mapping; ENSG/ENSP give the (accession, transcript) pairs to match
                     boolean onMapping = "enst".equals(col);
                     String version = "";   // must match too, when given (not for ENSG: no ensgv on the tables)
